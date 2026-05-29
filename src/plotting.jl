@@ -19,14 +19,14 @@ end
 
 function _clean_theme()
     return Theme(
-        fontsize=20,
-        figure_padding=(18, 22, 12, 16),
+        fontsize=16,
+        figure_padding=(8, 12, 8, 10),
         Axis=(
-            xlabelsize=24,
-            ylabelsize=24,
-            titlesize=25,
-            xticklabelsize=17,
-            yticklabelsize=17,
+            xlabelsize=20,
+            ylabelsize=20,
+            titlesize=21,
+            xticklabelsize=15,
+            yticklabelsize=15,
             xgridvisible=true,
             ygridvisible=true,
             xminorgridvisible=false,
@@ -81,10 +81,16 @@ function _prediction_band_sigma(result::FitResult, xgrid::AbstractVector)
     return sqrt.(clamp.(variances, 0.0, Inf))
 end
 
-function _panel_width_px(stats_panel_width::Real, fig_width::Int)
+function _panel_width_px(stats_panel_width, fig_width::Int, stats_lines)
+    if stats_panel_width === :auto
+        max_chars = maximum(length(string(line)) for line in stats_lines; init=24)
+        return clamp(120 + 7 * max_chars, 250, 390)
+    end
+
+    stats_panel_width isa Real || throw(ArgumentError("stats_panel_width must be :auto or a positive number"))
     stats_panel_width > 0 || throw(ArgumentError("stats_panel_width must be positive"))
     if stats_panel_width <= 1
-        return max(280, Int(round(fig_width * stats_panel_width)))
+        return clamp(Int(round(fig_width * stats_panel_width)), 240, 390)
     end
     return Int(round(stats_panel_width))
 end
@@ -183,8 +189,10 @@ function _stats_panel_lines(
     result::FitResult;
     parameter_names::Union{Nothing, AbstractVector}=nothing,
     sigdigits::Int=5,
-    latex_stats::Bool=true,
+    latex_stats::Bool=false,
+    stats_mode::Symbol=:compact,
 )
+    stats_mode in (:compact, :full) || throw(ArgumentError("stats_mode must be :compact or :full"))
     n = length(result.params)
     names = if parameter_names === nothing
         Any["p$i" for i in 1:n]
@@ -210,13 +218,13 @@ function _stats_panel_lines(
     ndf_text = string(result.stats.ndf)
 
     if latex_stats
-        push!(lines, L"\chi^2 = %$chi2_text")
-        push!(lines, L"\mathrm{n_{dof}} = %$ndf_text")
         push!(lines, L"\chi^2/\mathrm{n_{dof}} = %$chi2_ndf_text")
+        stats_mode == :full && push!(lines, L"\chi^2 = %$chi2_text")
+        push!(lines, L"\mathrm{n_{dof}} = %$ndf_text")
     else
-        push!(lines, string("chi2 = ", chi2_text))
-        push!(lines, string("ndf = ", ndf_text))
         push!(lines, string("chi2/ndf = ", chi2_ndf_text))
+        stats_mode == :full && push!(lines, string("chi2 = ", chi2_text))
+        push!(lines, string("ndf = ", ndf_text))
     end
 
     return lines
@@ -237,6 +245,65 @@ function _as_label_text(value, latex_labels::Bool)
         return _to_latex_text(s)
     end
     return value
+end
+
+function _stats_box_geometry(stats_lines; position::Symbol=:lt)
+    max_chars = maximum(length(string(line)) for line in stats_lines; init=20)
+    width = clamp(0.013 * max_chars, 0.22, 0.34)
+    height = clamp(0.031 * length(stats_lines) + 0.035, 0.13, 0.36)
+    margin = 0.025
+
+    if position in (:lt, :lefttop)
+        return margin, 1.0 - margin, width, height, :left, :top
+    elseif position in (:lb, :leftbottom)
+        return margin, margin + height, width, height, :left, :top
+    elseif position in (:rt, :righttop)
+        return 1.0 - margin - width, 1.0 - margin, width, height, :left, :top
+    elseif position in (:rb, :rightbottom)
+        return 1.0 - margin - width, margin + height, width, height, :left, :top
+    end
+
+    throw(ArgumentError("inside stats position must be :lt, :lb, :rt, or :rb"))
+end
+
+function _draw_inside_stats!(
+    ax,
+    stats_lines;
+    position::Symbol=:lt,
+    fontsize::Real=14,
+    box_color=:white,
+    box_alpha::Real=0.90,
+    box_strokecolor=:black,
+    box_strokewidth::Real=1.0,
+)
+    x, y, width, height, halign, valign = _stats_box_geometry(stats_lines; position=position)
+    rect = Point2f[
+        (x, y),
+        (x + width, y),
+        (x + width, y - height),
+        (x, y - height),
+    ]
+    poly!(
+        ax,
+        rect;
+        space=:relative,
+        color=(box_color, box_alpha),
+        strokecolor=box_strokecolor,
+        strokewidth=box_strokewidth,
+    )
+    text!(
+        ax,
+        x + 0.014,
+        y - 0.018;
+        text=join(string.(stats_lines), "\n"),
+        space=:relative,
+        align=(halign, valign),
+        fontsize=fontsize,
+        color=:black,
+        justification=:left,
+        lineheight=0.95,
+    )
+    return nothing
 end
 
 const _FITPLOT_FIT_KWARGS = Set([
@@ -342,7 +409,7 @@ end
         xgrid=nothing,
         filename=nothing,
         format=:pdf,
-        theme=:publication,
+        theme=:clean,
         theme_override=Theme(),
         title="Fit Result",
         xlabel="x",
@@ -353,14 +420,18 @@ end
         limit_padding=0.08,
         plot_aspect=nothing,
         figure_size=nothing,
-        stats_panel_width=0.42,
-        panel_gap=8,
+        stats_panel_width=:auto,
+        stats_position=:inside,
+        inside_stats_position=:lt,
+        panel_gap=10,
         latex_labels=false,
-        latex_stats=true,
+        latex_stats=false,
         show_stats=true,
+        stats_mode=:compact,
+        tight_layout=true,
         stats_sigdigits=5,
         parameter_names=nothing,
-        stats_fontsize=18,
+        stats_fontsize=12,
         stats_box_color=:white,
         stats_box_alpha=0.95,
         stats_box_strokecolor=:black,
@@ -404,7 +475,7 @@ function plot_fit(
     xgrid=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:publication,
+    theme::Symbol=:clean,
     theme_override::Theme=Theme(),
     title="Fit Result",
     xlabel="x",
@@ -415,14 +486,18 @@ function plot_fit(
     limit_padding::Real=0.08,
     plot_aspect::Union{Nothing, Real}=nothing,
     figure_size::Union{Nothing, Tuple{<:Real, <:Real}}=nothing,
-    stats_panel_width::Real=0.42,
-    panel_gap::Real=8,
+    stats_panel_width=:auto,
+    stats_position::Symbol=:inside,
+    inside_stats_position::Symbol=:lt,
+    panel_gap::Real=10,
     latex_labels::Bool=false,
-    latex_stats::Bool=true,
+    latex_stats::Bool=false,
     show_stats::Bool=true,
+    stats_mode::Symbol=:compact,
+    tight_layout::Bool=true,
     stats_sigdigits::Int=5,
     parameter_names::Union{Nothing, AbstractVector}=nothing,
-    stats_fontsize::Real=18,
+    stats_fontsize::Real=12,
     stats_box_color=:white,
     stats_box_alpha::Real=0.95,
     stats_box_strokecolor=:black,
@@ -457,11 +532,12 @@ function plot_fit(
     data_label="data",
 )
     band in (:confidence, :none) || throw(ArgumentError("band must be :confidence or :none"))
+    stats_position in (:inside, :right) || throw(ArgumentError("stats_position must be :inside or :right"))
 
     thm = theme == :clean ? _clean_theme() : theme == :publication ? _publication_theme() : theme == :latex ? _latex_theme() : Theme()
     thm = merge(thm, theme_override)
 
-    base_size = show_stats ? (1250, 720) : (980, 720)
+    base_size = show_stats && stats_position == :right ? (980, 560) : (760, 540)
     fig_size = figure_size === nothing ? base_size : (Int(round(figure_size[1])), Int(round(figure_size[2])))
     fig = with_theme(thm) do
         Figure(size=fig_size)
@@ -572,16 +648,30 @@ function plot_fit(
         )
     end
 
-    if show_stats
-        panel_width_px = _panel_width_px(stats_panel_width, fig_size[1])
-        stats_lines = _stats_panel_lines(
-            result;
-            parameter_names=parameter_names,
-            sigdigits=stats_sigdigits,
-            latex_stats=latex_stats,
+    stats_lines = show_stats ? _stats_panel_lines(
+        result;
+        parameter_names=parameter_names,
+        sigdigits=stats_sigdigits,
+        latex_stats=stats_position == :right && latex_stats,
+        stats_mode=stats_mode,
+    ) : nothing
+
+    if show_stats && stats_position == :inside
+        _draw_inside_stats!(
+            ax,
+            stats_lines;
+            position=inside_stats_position,
+            fontsize=stats_fontsize,
+            box_color=stats_box_color,
+            box_alpha=stats_box_alpha,
+            box_strokecolor=stats_box_strokecolor,
+            box_strokewidth=stats_box_strokewidth,
         )
+    elseif show_stats && stats_position == :right
+        panel_width_px = _panel_width_px(stats_panel_width, fig_size[1], stats_lines)
+        panel_grid = GridLayout(fig[1, 2], alignmode=Inside(), tellheight=false)
         Box(
-            fig[1, 2];
+            panel_grid[1, 1];
             _merged_kwargs(
                 (
                     color=(stats_box_color, stats_box_alpha),
@@ -591,20 +681,20 @@ function plot_fit(
                 stats_box_kwargs,
             )...,
         )
-        stats_grid = GridLayout(fig[1, 2], alignmode=Inside())
+        stats_grid = GridLayout(panel_grid[1, 1], alignmode=Inside(), tellheight=true)
         rowgap!(stats_grid, Int(round(stats_linegap)))
         label_defaults = (
             halign=:left,
             valign=:top,
             justification=:left,
-            lineheight=1.0,
+            lineheight=0.92,
             word_wrap=true,
             tellwidth=false,
             tellheight=true,
-            padding=(12, 12, 1, 1),
+            padding=(10, 10, 1, 1),
             fontsize=stats_fontsize,
         )
-        title_defaults = merge(label_defaults, (padding=(12, 12, 8, 12),))
+        title_defaults = merge(label_defaults, (padding=(10, 10, 5, 8), fontsize=stats_fontsize + 1))
         for (row, line) in enumerate(stats_lines)
             defaults = row == 1 ? title_defaults : label_defaults
             Label(
@@ -619,12 +709,14 @@ function plot_fit(
             halign=:left,
             valign=:top,
             justification=:left,
-            padding=(0, 0, 12, 0),
+            padding=(0, 0, 8, 0),
             fontsize=1,
         )
         colsize!(fig.layout, 2, Fixed(panel_width_px))
         colsize!(fig.layout, 1, Auto(1))
     end
+
+    tight_layout && resize_to_layout!(fig)
 
     if filename !== nothing
         outpath = String(filename)
