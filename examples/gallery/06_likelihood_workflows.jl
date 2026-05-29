@@ -1,10 +1,7 @@
-using Pkg
-Pkg.activate(joinpath(@__DIR__, ".."))
-
 using JuFitter
-include(joinpath(@__DIR__, "_example_utils.jl"))
+include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
-# Poisson count fit: model returns expected counts, not y-values.
+# Poisson count fit: model returns expected counts.
 x = collect(1.0:10.0)
 counts = [2, 4, 5, 6, 9, 11, 12, 14, 15, 19]
 poisson_model(x, p) = @. exp(p[1] + p[2] * x)
@@ -16,10 +13,9 @@ poisson_result = fit_poisson_model(
     bounds=([-10.0, -10.0], [10.0, 10.0]),
     parameter_names=["log_scale", "slope"],
 )
-println("Poisson params = ", poisson_result.params)
-println("Poisson deviance/ndf = ", poisson_result.stats.chi2_ndf)
+print_result_summary("Poisson count fit", poisson_result)
 
-# Histogram fit: expected_counts(edges, p) returns one positive expected count per bin.
+# Histogram fit: expected_counts(edges, p) returns one expected count per bin.
 edges = collect(0.0:1.0:5.0)
 hist_counts = [4, 9, 13, 20, 31]
 expected_counts(edges, p) = [p[1] * (edges[i + 1] - edges[i]) * exp(p[2] * (edges[i] + edges[i + 1]) / 2) for i in 1:(length(edges) - 1)]
@@ -30,8 +26,7 @@ hist_result = fit_histogram_model(
     p0=[3.0, 0.3],
     bounds=([1e-6, -5.0], [100.0, 5.0]),
 )
-println("Histogram params = ", hist_result.params)
-println("Histogram deviance/ndf = ", hist_result.stats.chi2_ndf)
+print_result_summary("Histogram Poisson fit", hist_result)
 
 # Unbinned likelihood fit for a normalized density.
 data = [-1.1, -0.2, 0.1, 0.3, 0.9, 1.2]
@@ -43,7 +38,7 @@ unbinned_result = fit_unbinned_model(
     bounds=([-5.0, 0.1], [5.0, 5.0]),
     parameter_names=["mu", "sigma"],
 )
-println("Unbinned normal params = ", unbinned_result.params)
+print_result_summary("Unbinned normal fit", unbinned_result)
 
 # Extended unbinned fit: rate(x, p) is an intensity, not a normalized PDF.
 rate(x, p) = exp(p[1])
@@ -54,7 +49,7 @@ extended_result = fit_extended_unbinned_model(
     p0=[0.0],
     parameter_names=["log_rate"],
 )
-println("Extended unbinned expected count = ", exp(extended_result.params[1]))
+print_result_summary("Extended unbinned fit", extended_result)
 
 # Indexed fit: observations are addressed by labels rather than a numeric x-axis.
 indices = [:a, :b, :a, :c]
@@ -68,18 +63,18 @@ indexed_result = fit_indexed_model(
     sigma_y=fill(0.1, length(y_indexed)),
     parameter_names=["level_a", "level_b", "level_c"],
 )
-println("Indexed params = ", indexed_result.params)
+print_result_summary("Indexed fit", indexed_result)
 
-# Custom fit: directly minimize a user-defined scalar objective.
+# Custom scalar objective.
 custom_result = fit_custom(
     p -> sum(abs2, p .- [1.0, 2.0]);
     p0=[0.0, 0.0],
     nobs=4,
     parameter_names=["a", "b"],
 )
-println("Custom params = ", custom_result.params)
+print_result_summary("Custom objective fit", custom_result)
 
-# MultiFit with parameter mapping: both datasets share global p[1], but use different offsets.
+# MultiFit with parameter mapping: both datasets share a slope but have different offsets.
 x1 = collect(0.0:1.0:5.0)
 x2 = collect(0.0:1.0:5.0)
 local_linear(x, p) = @. p[1] * x + p[2]
@@ -94,10 +89,8 @@ multi_result = fit_multi_model(
     sigma_y=[fill(0.1, length(x1)), fill(0.1, length(x2))],
     parameter_names=["shared_slope", "offset_1", "offset_2"],
 )
-println("Mapped MultiFit params = ", multi_result.params)
+print_result_summary("Mapped multi-dataset fit", multi_result)
 
-# Profiles and reports also work for likelihood fits.
-prof = profile(poisson_result, 2; npoints=9)
-plot_profile(prof; filename=example_output("poisson_profile"), format=:png)
-println("Saved plot to ", example_output("poisson_profile.png"))
-println(report_text(poisson_result))
+prof = profile(poisson_result, 2; npoints=17)
+plot_profile(prof; filename=example_output("06_poisson_slope_profile.pdf"), xlabel="Poisson slope")
+println("Saved profile to ", example_output("06_poisson_slope_profile.pdf"))

@@ -5,7 +5,7 @@ JuFitter is a Julia fitting utility focused on fast scientific workflows:
 - weighted nonlinear least-squares fitting
 - optional full covariance for `x` and `y`
 - constraint-aware fitting (hybrid backend)
-- publication-ready CairoMakie plots with 1-sigma confidence band
+- publication-ready CairoMakie plots with one-call `fitplot(...)` workflows
 
 ## Install (in this repo)
 
@@ -25,14 +25,24 @@ model(x, p) = @. p[1] * x + p[2]
 sigma_y = fill(0.2, length(x))
 y = model(x, [2.0, 1.0]) .+ sigma_y .* sin.(1.8 .* x)
 
-result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y, cost=:auto)
+fit = fitplot(
+    model,
+    x,
+    y;
+    p0=[1.0, 0.0],
+    sigma_y=sigma_y,
+    xlabel="x",
+    ylabel="y",
+    parameter_names=["m", "b"],
+    filename="fit.pdf",
+)
+
+result = fit.result
 
 @show result.params
 @show result.param_stderr
 @show result.stats.cost result.stats.cost_min result.stats.nll_min
 @show result.stats.chi2 result.stats.chi2_ndf result.stats.ndf
-
-plot_fit(result; filename="fit.pdf")
 ```
 
 ## API
@@ -48,6 +58,8 @@ plot_fit(result; filename="fit.pdf")
 - `fit_indexed_model(model, indices, y; p0, sigma_y=nothing, cov_y=nothing, kwargs...)`
 - `fit_custom(objective; p0, nobs, gof=nothing, kwargs...)`
 - `fit_multi_model(models, xs, ys; p0, sigma_y=nothing, kwargs...)`
+- `fitplot(x, y; sigma_y=nothing, kwargs...)`
+- `fitplot(model, x, y; p0, sigma_y=nothing, kwargs...)`
 - `plot_fit(result; xgrid=nothing, filename=nothing, format=:pdf, theme=:publication, ...)`
 - `plot_residuals(result; kind=:pull, filename=nothing, format=:pdf, ...)`
 - `plot_diagnostics(result; filename=nothing, format=:pdf, ...)`
@@ -57,11 +69,13 @@ plot_fit(result; filename="fit.pdf")
 Key `plot_fit` customization kwargs:
 
 - labels/text:
-  - `title`, `xlabel`, `ylabel`
+  - `title`, `xlabel`, `ylabel`, `xunit`, `yunit`
   - `latex_labels=true` to render string labels/titles as LaTeX
   - `parameter_names` (names in the side summary panel; can be `LaTeXString`, e.g. `L"\\lambda"`)
 - plot size/layout:
   - `figure_size=(width, height)` in pixels (e.g. `(1800, 900)`)
+  - `auto_limits=true` pads limits around data, error bars, fit curve, and confidence band
+  - `limit_padding=0.08` controls automatic axis padding
   - `stats_panel_width` controls the right summary panel; values `<= 1` are relative, values `> 1` are pixels
   - `panel_gap` controls the gap between plot and summary panel
   - `plot_aspect` controls the axis width/height ratio (e.g. `1.0` for square plot area)
@@ -72,11 +86,12 @@ Key `plot_fit` customization kwargs:
 - styling:
   - `data_color`, `data_marker`, `data_markersize`
   - `fit_color`, `fit_linewidth`
-  - `band_color`, `band_alpha`
+  - `band=:confidence` or `band=:none`
+  - `nsigma`, `band_color`, `band_alpha`
   - `xerr_color`, `yerr_color`, `error_whiskerwidth`
   - `show_legend`, `legend_position`
 - theme/font control:
-  - `theme` (`:publication` or custom base)
+  - `theme` (`:clean`, `:publication`, `:latex`, or custom base)
   - `theme=:latex` for LaTeX-like styling defaults
   - `theme_override=Theme(...)` for global style overrides, including fonts/font sizes
 - direct Makie keyword forwarding:
@@ -271,32 +286,21 @@ plot_diagnostics(result; filename="fit_diagnostics.pdf")
 Run examples from the repository root with:
 
 ```julia
-julia --project=. examples/<example_name>.jl
+julia --project=. examples/gallery/01_quickstart_linear.jl
 ```
 
 Generated plots are written to `examples/output/`, which is intentionally
 ignored by git.
 
-Available examples:
+Available examples are documented in `examples/README.md` and are organized as
+a numbered gallery:
 
-- `examples/basic_fit.jl`
-  - Photoelectric-effect fit with x/y uncertainties, Planck constant extraction, fit plot, and diagnostics.
-- `examples/linear_small_dataset.jl`
-  - Small dataset, heteroscedastic `sigma_y`, custom `xgrid`, SVG export.
-- `examples/exponential_covariance_y.jl`
-  - Nonlinear model with full `cov_y` (correlated y-errors).
-- `examples/x_uncertainty_effective_variance.jl`
-  - Effective-variance fitting with `sigma_x` + `sigma_y`, plus comparison to y-only weighting.
-- `examples/constrained_quadratic.jl`
-  - Bounds + inequality constraints (`ineq(p) <= 0`) using optimization backend.
-- `examples/analytic_jacobian_and_plot_options.jl`
-  - User-supplied analytic Jacobian, explicit backend selection, custom plot styling/options.
-- `examples/styled_plot_with_summary.jl`
-  - Focused plot customization: labels/title, colors, markers, line widths, and side summary panel.
-- `examples/latex_styled_plot.jl`
-  - LaTeX-styled figure (`theme=:latex`) with LaTeX title/axis labels and LaTeX `\chi^2` display.
-- `examples/advanced_likelihood_fits.jl`
-  - Poisson count fit, histogram fit, unbinned and extended-unbinned likelihood fit, IndexedFit, CustomFit, mapped MultiFit, and profile plotting.
+- `examples/gallery/01_quickstart_linear.jl`
+- `examples/gallery/02_xy_uncertainties_photoelectric.jl`
+- `examples/gallery/03_plot_customization.jl`
+- `examples/gallery/04_covariance_and_effective_variance.jl`
+- `examples/gallery/05_constraints_priors_profiles.jl`
+- `examples/gallery/06_likelihood_workflows.jl`
 
 ## Constraint format
 

@@ -57,6 +57,7 @@ export fit_report
 export profile
 export profile_interval
 export contour
+export fitplot
 export plot_fit
 export plot_residuals
 export plot_diagnostics

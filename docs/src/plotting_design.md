@@ -25,14 +25,14 @@ layout tuning.
 - Export quality must be consistent across PNG, PDF, and SVG.
 - Plot functions should return the Makie `Figure` for further user control.
 
-## Planned High-Level Controls
+## High-Level Controls
 
 - `theme=:clean | :paper | :latex | custom`
 - `xlabel`, `ylabel`, `xunit`, `yunit`, `title`
 - `parameter_names`
 - `report=:plot | :console | :both | :none`
-- `band=:none | :confidence | :prediction`
-- `confidence_level` or `nsigma`
+- `band=:none | :confidence`
+- `nsigma`
 - `show_grid`, `show_legend`, `show_residuals`, `show_pulls`
 - `axis_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`,
   `legend_kwargs`

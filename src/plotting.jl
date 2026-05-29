@@ -17,6 +17,30 @@ function _publication_theme()
     )
 end
 
+function _clean_theme()
+    return Theme(
+        fontsize=20,
+        figure_padding=(18, 22, 12, 16),
+        Axis=(
+            xlabelsize=24,
+            ylabelsize=24,
+            titlesize=25,
+            xticklabelsize=17,
+            yticklabelsize=17,
+            xgridvisible=true,
+            ygridvisible=true,
+            xminorgridvisible=false,
+            yminorgridvisible=false,
+            xgridcolor=(:gray70, 0.35),
+            ygridcolor=(:gray70, 0.35),
+            topspinevisible=false,
+            rightspinevisible=false,
+        ),
+        Lines=(linewidth=3,),
+        Scatter=(markersize=10,),
+    )
+end
+
 function _latex_theme()
     return Theme(
         fontsize=22,
@@ -63,6 +87,56 @@ function _panel_width_px(stats_panel_width::Real, fig_width::Int)
         return max(280, Int(round(fig_width * stats_panel_width)))
     end
     return Int(round(stats_panel_width))
+end
+
+function _label_with_unit(label, unit)
+    unit === nothing && return label
+    unit_text = string(unit)
+    isempty(unit_text) && return label
+    label_text = string(label)
+    return isempty(label_text) ? unit_text : string(label_text, " (", unit_text, ")")
+end
+
+function _finite_extrema(values)
+    finite_values = Float64[v for v in values if isfinite(v)]
+    isempty(finite_values) && return nothing
+    return minimum(finite_values), maximum(finite_values)
+end
+
+function _padded_limits(values; padding::Real=0.08)
+    extrema = _finite_extrema(values)
+    extrema === nothing && return nothing
+    lo, hi = extrema
+    if lo == hi
+        delta = max(abs(lo), 1.0)
+        return lo - 0.5 * delta, hi + 0.5 * delta
+    end
+    pad = Float64(padding) * (hi - lo)
+    return lo - pad, hi + pad
+end
+
+function _fit_plot_limits(x, y, xerr, yerr, xgrid, ygrid, band_sigma; padding::Real)
+    x_values = Float64[]
+    append!(x_values, Float64.(x))
+    append!(x_values, Float64.(xgrid))
+    if xerr !== nothing
+        append!(x_values, Float64.(x .- xerr))
+        append!(x_values, Float64.(x .+ xerr))
+    end
+
+    y_values = Float64[]
+    append!(y_values, Float64.(y))
+    append!(y_values, Float64.(ygrid))
+    if yerr !== nothing
+        append!(y_values, Float64.(y .- yerr))
+        append!(y_values, Float64.(y .+ yerr))
+    end
+    if band_sigma !== nothing
+        append!(y_values, Float64.(ygrid .- band_sigma))
+        append!(y_values, Float64.(ygrid .+ band_sigma))
+    end
+
+    return _padded_limits(x_values; padding=padding), _padded_limits(y_values; padding=padding)
 end
 
 function _default_grid(x::AbstractVector)
@@ -165,6 +239,103 @@ function _as_label_text(value, latex_labels::Bool)
     return value
 end
 
+const _FITPLOT_FIT_KWARGS = Set([
+    :sigma_y,
+    :sigma_x,
+    :cov_y,
+    :cov_x,
+    :error_components,
+    :bounds,
+    :constraints,
+    :parameter_priors,
+    :parameter_constraints,
+    :fixed_parameters,
+    :jacobian,
+    :backend,
+    :cost,
+    :maxiters,
+    :tol,
+    :ci_level,
+    :scale_covariance,
+    :initial_guesses,
+    :multistart,
+])
+
+function _split_fitplot_kwargs(kwargs)
+    fit_kwargs = Dict{Symbol, Any}()
+    plot_kwargs = Dict{Symbol, Any}()
+    for (key, value) in pairs(kwargs)
+        if key in _FITPLOT_FIT_KWARGS
+            fit_kwargs[key] = value
+        else
+            plot_kwargs[key] = value
+        end
+    end
+    return (; fit_kwargs...), (; plot_kwargs...)
+end
+
+function _linear_initial_guess(x::AbstractVector, y::AbstractVector)
+    x1 = Float64(first(x))
+    x2 = Float64(last(x))
+    y1 = Float64(first(y))
+    y2 = Float64(last(y))
+    slope = x1 == x2 ? 0.0 : (y2 - y1) / (x2 - x1)
+    intercept = y1 - slope * x1
+    return [slope, intercept]
+end
+
+_default_linear_model(x, p) = @. p[1] * x + p[2]
+
+function _normalize_fitplot_report(report::Symbol)
+    report in (:plot, :console, :both, :none) || throw(ArgumentError("report must be :plot, :console, :both, or :none"))
+    return report
+end
+
+function _fitplot_result(result::FitResult; report::Symbol=:plot, kwargs...)
+    report = _normalize_fitplot_report(report)
+    plot_kwargs = Dict{Symbol, Any}(pairs(kwargs))
+    parameter_names = get(plot_kwargs, :parameter_names, nothing)
+
+    if !haskey(plot_kwargs, :show_stats)
+        plot_kwargs[:show_stats] = report in (:plot, :both)
+    end
+
+    if report in (:console, :both)
+        println(report_text(result; parameter_names=parameter_names))
+    end
+
+    fig = plot_fit(result; (; plot_kwargs...)...)
+    return (result=result, figure=fig)
+end
+
+"""
+    fitplot(result::FitResult; report=:plot, kwargs...)
+    fitplot(model, x, y; p0, report=:plot, kwargs...)
+    fitplot(x, y; p0=nothing, report=:plot, kwargs...)
+
+Fit and plot in one call. The `model, x, y` method forwards fitting keywords
+such as `sigma_y`, `sigma_x`, `bounds`, `parameter_priors`, and `backend` to
+`fit_model`; plotting keywords such as `xlabel`, `ylabel`, `theme`, `nsigma`,
+`report`, and `filename` are forwarded to `plot_fit`.
+
+The `x, y` method uses a linear model by default. All methods return a named
+tuple `(result, figure)` so the numerical result is not lost.
+"""
+function fitplot(result::FitResult; report::Symbol=:plot, kwargs...)
+    return _fitplot_result(result; report=report, kwargs...)
+end
+
+function fitplot(model, x::AbstractVector, y::AbstractVector; p0::AbstractVector, report::Symbol=:plot, kwargs...)
+    fit_kwargs, plot_kwargs = _split_fitplot_kwargs(kwargs)
+    result = fit_model(model, x, y; p0=p0, fit_kwargs...)
+    return _fitplot_result(result; report=report, plot_kwargs...)
+end
+
+function fitplot(x::AbstractVector, y::AbstractVector; p0=nothing, report::Symbol=:plot, kwargs...)
+    initial = p0 === nothing ? _linear_initial_guess(x, y) : p0
+    return fitplot(_default_linear_model, x, y; p0=initial, report=report, kwargs...)
+end
+
 """
     plot_fit(
         result::FitResult;
@@ -176,6 +347,10 @@ end
         title="Fit Result",
         xlabel="x",
         ylabel="y",
+        xunit=nothing,
+        yunit=nothing,
+        auto_limits=true,
+        limit_padding=0.08,
         plot_aspect=nothing,
         figure_size=nothing,
         stats_panel_width=0.42,
@@ -208,6 +383,8 @@ end
         line_kwargs=NamedTuple(),
         band_color=:dodgerblue,
         band_alpha=0.20,
+        band=:confidence,
+        nsigma=1,
         band_label="1-sigma band",
         band_kwargs=NamedTuple(),
         xerr_color=:black,
@@ -232,6 +409,10 @@ function plot_fit(
     title="Fit Result",
     xlabel="x",
     ylabel="y",
+    xunit=nothing,
+    yunit=nothing,
+    auto_limits::Bool=true,
+    limit_padding::Real=0.08,
     plot_aspect::Union{Nothing, Real}=nothing,
     figure_size::Union{Nothing, Tuple{<:Real, <:Real}}=nothing,
     stats_panel_width::Real=0.42,
@@ -264,6 +445,8 @@ function plot_fit(
     line_kwargs=NamedTuple(),
     band_color=:dodgerblue,
     band_alpha::Real=0.20,
+    band::Symbol=:confidence,
+    nsigma::Real=1.0,
     band_label="1-sigma band",
     band_kwargs=NamedTuple(),
     xerr_color=:black,
@@ -273,7 +456,9 @@ function plot_fit(
     yerrorbars_kwargs=NamedTuple(),
     data_label="data",
 )
-    thm = theme == :publication ? _publication_theme() : theme == :latex ? _latex_theme() : Theme()
+    band in (:confidence, :none) || throw(ArgumentError("band must be :confidence or :none"))
+
+    thm = theme == :clean ? _clean_theme() : theme == :publication ? _publication_theme() : theme == :latex ? _latex_theme() : Theme()
     thm = merge(thm, theme_override)
 
     base_size = show_stats ? (1250, 720) : (980, 720)
@@ -288,8 +473,8 @@ function plot_fit(
 
     axis_defaults = (
         title=_as_label_text(title, latex_labels),
-        xlabel=_as_label_text(xlabel, latex_labels),
-        ylabel=_as_label_text(ylabel, latex_labels),
+        xlabel=_as_label_text(_label_with_unit(xlabel, xunit), latex_labels),
+        ylabel=_as_label_text(_label_with_unit(ylabel, yunit), latex_labels),
     )
     if plot_aspect !== nothing
         axis_defaults = merge(axis_defaults, (aspect=AxisAspect(Float64(plot_aspect)),))
@@ -303,18 +488,21 @@ function plot_fit(
 
     xg = xgrid === nothing ? _default_grid(x) : collect(Float64, xgrid)
     yg = _model_values(result.problem, result.params; x=xg)
-    sg = _prediction_band_sigma(result, xg)
+    sg = Float64(nsigma) .* _prediction_band_sigma(result, xg)
 
-    bplot = band!(
-        ax,
-        xg,
-        yg .- sg,
-        yg .+ sg;
-        _merged_kwargs(
-            (color=(band_color, band_alpha), label=_as_label_text(band_label, latex_labels)),
-            band_kwargs,
-        )...,
-    )
+    bplot = nothing
+    if band == :confidence
+        bplot = band!(
+            ax,
+            xg,
+            yg .- sg,
+            yg .+ sg;
+            _merged_kwargs(
+                (color=(band_color, band_alpha), label=_as_label_text(band_label, latex_labels)),
+                band_kwargs,
+            )...,
+        )
+    end
     fplot = lines!(
         ax,
         xg,
@@ -358,15 +546,27 @@ function plot_fit(
         )...,
     )
 
+    if auto_limits
+        xlims, ylims = _fit_plot_limits(x, y, xerr, yerr, xg, yg, band == :confidence ? sg : nothing; padding=limit_padding)
+        xlims !== nothing && ylims !== nothing && limits!(ax, xlims..., ylims...)
+    end
+
     if show_legend
-        axislegend(
-            ax,
-            [bplot, fplot, dplot],
+        legend_plots = band == :confidence ? [bplot, fplot, dplot] : [fplot, dplot]
+        legend_labels = band == :confidence ?
             [
                 _as_label_text(band_label, latex_labels),
                 _as_label_text(fit_label, latex_labels),
                 _as_label_text(data_label, latex_labels),
-            ],
+            ] :
+            [
+                _as_label_text(fit_label, latex_labels),
+                _as_label_text(data_label, latex_labels),
+            ]
+        axislegend(
+            ax,
+            legend_plots,
+            legend_labels,
             ;
             _merged_kwargs((position=legend_position,), legend_kwargs)...,
         )
@@ -438,7 +638,7 @@ function plot_fit(
 end
 
 function _theme_from_symbol(theme::Symbol, theme_override::Theme)
-    thm = theme == :publication ? _publication_theme() : theme == :latex ? _latex_theme() : Theme()
+    thm = theme == :clean ? _clean_theme() : theme == :publication ? _publication_theme() : theme == :latex ? _latex_theme() : Theme()
     return merge(thm, theme_override)
 end
 

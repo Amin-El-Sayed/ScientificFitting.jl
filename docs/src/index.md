@@ -12,8 +12,17 @@ model(x, p) = @. p[1] * x + p[2]
 sigma_y = fill(0.2, length(x))
 y = model(x, [2.0, 1.0]) .+ sigma_y .* sin.(1.8 .* x)
 
-result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
-plot_fit(result; filename="fit.pdf")
+fit = fitplot(
+    model,
+    x,
+    y;
+    p0=[1.0, 0.0],
+    sigma_y=sigma_y,
+    parameter_names=["m", "b"],
+    filename="fit.pdf",
+)
+
+result = fit.result
 ```
 
 ## Development Priorities
