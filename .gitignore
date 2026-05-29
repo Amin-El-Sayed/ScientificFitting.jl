@@ -1,0 +1,16 @@
+# macOS metadata
+.DS_Store
+
+# Julia build/test caches
+.julia/
+
+# Generated example and demo output
+/output/
+/examples/output/
+/docs/build/
+/benchmarks/output/
+
+# Generated plot exports in repository root
+/*.pdf
+/*.png
+/*.svg

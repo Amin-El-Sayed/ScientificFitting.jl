@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+JuFitter = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
+
+[compat]
+Documenter = "1"

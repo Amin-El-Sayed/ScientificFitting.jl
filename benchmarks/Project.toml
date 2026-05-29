@@ -1,0 +1,6 @@
+[deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+JuFitter = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
+
+[compat]
+BenchmarkTools = "1"
