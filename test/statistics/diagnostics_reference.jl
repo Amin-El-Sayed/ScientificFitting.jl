@@ -73,6 +73,43 @@ using Test
         @test any(f -> f.code == :active_bounds, diagnose(bounded).findings)
     end
 
+    @testset "Diagnostic dashboard prioritizes lab next actions" begin
+        clean_dashboard = diagnostic_dashboard(DiagnosticReport(DiagnosticFinding[], "Synthetic clean report."))
+
+        @test clean_dashboard isa DiagnosticDashboard
+        @test clean_dashboard.status == :ok
+        @test clean_dashboard.severity_counts[:critical] == 0
+        @test clean_dashboard.severity_counts[:warning] == 0
+        @test isempty(clean_dashboard.next_actions)
+        @test contains(diagnostic_dashboard_text(clean_dashboard), "status = ok")
+
+        clean_model(x, p) = @. p[1] * x + p[2]
+        bad_x = collect(range(-3.0, 3.0; length=41))
+        bad_y = @. 0.4 * bad_x^2 + 0.8 * bad_x - 1.0
+        bad = fit_model(clean_model, bad_x, bad_y; p0=[0.0, 0.0], sigma_y=fill(0.05, length(bad_x)))
+        bad_dashboard = diagnostic_dashboard(bad; max_actions=3)
+
+        @test bad_dashboard.status == :stop
+        @test bad_dashboard.severity_counts[:critical] > 0
+        @test length(bad_dashboard.next_actions) == 3
+        @test allunique(lowercase.(strip.(bad_dashboard.next_actions)))
+        @test contains(diagnostic_dashboard_text(bad_dashboard), "Next actions:")
+
+        warning_report = DiagnosticReport(
+            DiagnosticFinding[
+                DiagnosticFinding(:warning, :a, "A", "evidence", "Inspect residuals."),
+                DiagnosticFinding(:warning, :b, "B", "evidence", "Inspect residuals."),
+                DiagnosticFinding(:info, :c, "C", "evidence", "Record context."),
+            ],
+            "Synthetic warning report.",
+        )
+        warning_dashboard = diagnostic_dashboard(warning_report)
+
+        @test warning_dashboard.status == :review
+        @test warning_dashboard.severity_counts[:warning] == 2
+        @test warning_dashboard.next_actions == ["Inspect residuals.", "Record context."]
+    end
+
     @testset "Diagnosis flags strong parameter correlations" begin
         x = collect(range(99.0, 101.0; length=50))
         model(x, p) = @. p[1] * x + p[2]

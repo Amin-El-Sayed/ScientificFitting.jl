@@ -116,6 +116,13 @@ struct DiagnosticReport
     summary::String
 end
 
+struct DiagnosticDashboard
+    report::DiagnosticReport
+    status::Symbol
+    severity_counts::Dict{Symbol, Int}
+    next_actions::Vector{String}
+end
+
 struct FitResult
     problem::FitProblem
     options::FitOptions

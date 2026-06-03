@@ -14,10 +14,13 @@ sufficient.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
   passes with 30 profile/contour reference checks in about 18s after
   precompilation.
-- `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 301
-  core checks in about 5m55s on the local machine.
-- `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 300 tests in about
-  7m21s on the local machine.
+- `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
+  passes with 41 diagnostic reference checks in about 37s.
+- `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 315
+  core checks in about 5m25s on the local machine after the diagnostic
+  dashboard update.
+- `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 324 tests in about
+  8m36s on the local machine after the diagnostic dashboard update.
 - `julia --project=docs docs/make.jl` passes locally after the `siteinfo.js`
   source fix. The build output is ignored and must not be committed.
 - Phase 3 is reopened as the release gate. The project no longer treats
@@ -72,9 +75,10 @@ sufficient.
 - Multi-dataset fitting currently supports useful parameter mapping, but not the
   full uncertainty model expected from kafe2-level workflows.
 - Benchmarks exist, but there is no enforced performance budget in CI.
-- Diagnostic plots, profile contours, residual/pull views, and external report
-  legends are not yet at the level needed to compete with kafe2/Minuit-style
-  workflows.
+- `diagnostic_dashboard(...)` now summarizes structured findings into status,
+  severity counts, and deduplicated next actions. Diagnostic plots, profile
+  contours, residual/pull views, and external report legends are still not yet
+  at the level needed to compete with kafe2/Minuit-style workflows.
 
 ## Documentation Blockers
 

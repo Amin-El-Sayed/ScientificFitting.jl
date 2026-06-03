@@ -145,13 +145,15 @@ Current evidence:
 - Profile scans can adaptively refine threshold-crossing intervals, and contour
   scans can adaptively refine cells around requested contour levels. Reference
   tests cover both adaptive paths against the quadratic covariance benchmark.
+- `diagnostic_dashboard(...)` summarizes structured `diagnose(...)` findings
+  into status, severity counts, and deduplicated next actions for lab workflows.
 
 Open hardening work:
 
 - Improve adaptive contour refinement for strongly curved/non-elliptic regions
   beyond simple level-bracketing cells.
-- Build a diagnosis dashboard from the structured `diagnose` findings instead
-  of treating residual/profile/contour plots as independent smoke plots.
+- Turn the diagnostic dashboard into a visual Makie report that combines fit
+  quality, pulls, profiles, contours, and next actions.
 - Add structured covariance/whitening operators for large correlated data.
 - Add in-place model and residual APIs for huge datasets.
 - Add explicit optimizer fallback and parameter-scaling diagnostics.

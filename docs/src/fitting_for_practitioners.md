@@ -147,6 +147,20 @@ first troubleshooting step fast: if the fit is statistically implausible,
 overconstrained, bounded, locally degenerate, or visibly structured, JuFitter
 should say that directly and suggest what to try next.
 
+For a shorter lab-facing summary, use:
+
+```julia
+dashboard = diagnostic_dashboard(result)
+```
+
+The dashboard turns the same findings into a status:
+
+- `:ok`: no current diagnostic warnings,
+- `:review`: warnings exist; inspect before publication,
+- `:stop`: at least one critical issue exists; do not trust the fit yet.
+
+It also lists the highest-priority next actions, deduplicated across findings.
+
 ## Why Profile And Contour Diagnostics Matter
 
 The parameter covariance matrix is a local approximation. Near the minimum it

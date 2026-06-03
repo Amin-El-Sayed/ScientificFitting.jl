@@ -448,3 +448,92 @@ diagnose_text(result) = diagnose_text(diagnose(result))
 function Base.show(io::IO, report::DiagnosticReport)
     print(io, diagnose_text(report))
 end
+
+function _diagnostic_status(findings::Vector{DiagnosticFinding})
+    any(f -> f.severity == :critical, findings) && return :stop
+    any(f -> f.severity == :warning, findings) && return :review
+    return :ok
+end
+
+function _severity_counts(findings::Vector{DiagnosticFinding})
+    counts = Dict(:critical => 0, :warning => 0, :info => 0)
+    for finding in findings
+        counts[finding.severity] = get(counts, finding.severity, 0) + 1
+    end
+    return counts
+end
+
+function _action_key(action::String)
+    return lowercase(strip(action))
+end
+
+function _diagnostic_next_actions(findings::Vector{DiagnosticFinding}; max_actions::Int)
+    max_actions >= 0 || throw(ArgumentError("max_actions must be non-negative"))
+    actions = String[]
+    seen = Set{String}()
+    for finding in _sort_findings(findings)
+        key = _action_key(finding.recommendation)
+        key in seen && continue
+        push!(seen, key)
+        push!(actions, finding.recommendation)
+        length(actions) >= max_actions && break
+    end
+    return actions
+end
+
+"""
+    diagnostic_dashboard(result_or_report; max_actions=5)
+
+Create a compact dashboard from `diagnose(...)` findings. The dashboard does
+not add new statistical tests; it summarizes the current findings into a lab
+workflow status and prioritized next actions.
+
+The status is:
+
+- `:ok`: no current warnings or critical findings,
+- `:review`: warnings exist and should be inspected before publication,
+- `:stop`: at least one critical finding exists; do not trust the fit yet.
+"""
+function diagnostic_dashboard(report::DiagnosticReport; max_actions::Int=5)
+    return DiagnosticDashboard(
+        report,
+        _diagnostic_status(report.findings),
+        _severity_counts(report.findings),
+        _diagnostic_next_actions(report.findings; max_actions=max_actions),
+    )
+end
+
+diagnostic_dashboard(result; max_actions::Int=5) =
+    diagnostic_dashboard(diagnose(result); max_actions=max_actions)
+
+function _diagnostic_dashboard_lines(dashboard::DiagnosticDashboard)
+    counts = dashboard.severity_counts
+    lines = String[
+        "Fit diagnostic dashboard",
+        "status = $(dashboard.status)",
+        "critical = $(get(counts, :critical, 0)), warning = $(get(counts, :warning, 0)), info = $(get(counts, :info, 0))",
+        dashboard.report.summary,
+    ]
+
+    if isempty(dashboard.next_actions)
+        push!(lines, "No next action required by the current diagnostic checks.")
+        return lines
+    end
+
+    push!(lines, "")
+    push!(lines, "Next actions:")
+    for (i, action) in enumerate(dashboard.next_actions)
+        push!(lines, "  $i. $action")
+    end
+    return lines
+end
+
+diagnostic_dashboard_text(dashboard::DiagnosticDashboard) =
+    join(_diagnostic_dashboard_lines(dashboard), "\n")
+
+diagnostic_dashboard_text(result; max_actions::Int=5) =
+    diagnostic_dashboard_text(diagnostic_dashboard(result; max_actions=max_actions))
+
+function Base.show(io::IO, dashboard::DiagnosticDashboard)
+    print(io, diagnostic_dashboard_text(dashboard))
+end

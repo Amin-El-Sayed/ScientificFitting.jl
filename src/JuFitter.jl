@@ -40,6 +40,7 @@ export FitStatistics
 export FitDiagnostics
 export DiagnosticFinding
 export DiagnosticReport
+export DiagnosticDashboard
 export FitReport
 export ParameterEstimate
 export ProfileResult
@@ -67,6 +68,8 @@ export plot_profile
 export plot_contour
 export diagnose
 export diagnose_text
+export diagnostic_dashboard
+export diagnostic_dashboard_text
 export report_text
 
 end # module JuFitter

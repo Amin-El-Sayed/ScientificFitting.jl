@@ -66,6 +66,9 @@ large temporary matrices inside every objective call.
   profile threshold. `contour(...; adaptive=true)` refines grid cells whose
   corner values bracket requested contour levels. These refinements improve
   diagnostic resolution without making the whole scan uniformly dense.
+- `diagnostic_dashboard(...)` is a summary layer over `diagnose(...)`. It must
+  not introduce independent statistical rules; it only converts structured
+  findings into status, counts, and prioritized next actions for lab use.
 - Add analytic reference tests before changing statistical semantics.
 - Add benchmark coverage before changing a hot path.
 
