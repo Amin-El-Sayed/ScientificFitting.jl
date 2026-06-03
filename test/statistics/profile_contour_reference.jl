@@ -36,6 +36,18 @@ using Test
         @test isapprox(interval.uncertainty_plus, slope_sigma; atol=2e-8, rtol=2e-8)
     end
 
+    @testset "Adaptive profile refines threshold crossings" begin
+        slope_values = result.params[1] .+ slope_sigma .* [-2.0, 0.0, 2.0]
+        coarse = profile(result, 1; values=slope_values, threshold=1.0)
+        refined = profile(result, 1; values=slope_values, threshold=1.0, adaptive=true, max_refinements=3)
+        lower, upper = JuFitter._profile_crossings(refined)
+
+        @test length(refined.values) > length(coarse.values)
+        @test issorted(refined.values)
+        @test isapprox(lower, result.params[1] - slope_sigma; atol=5e-3, rtol=5e-3)
+        @test isapprox(upper, result.params[1] + slope_sigma; atol=5e-3, rtol=5e-3)
+    end
+
     @testset "Two-dimensional contour follows covariance quadratic form" begin
         slope_values = result.params[1] .+ slope_sigma .* [-1.0, 0.0, 1.0]
         offset_values = result.params[2] .+ offset_sigma .* [-1.0, 0.0, 1.0]
@@ -54,6 +66,34 @@ using Test
         @test !any(
             f -> f.code == :contour_not_elliptic,
             diagnose(cont; local_covariance=covariance, local_center=result.params[[1, 2]]).findings,
+        )
+    end
+
+    @testset "Adaptive contour refines level-crossing cells" begin
+        slope_values = result.params[1] .+ slope_sigma .* [-2.0, 0.0, 2.0]
+        offset_values = result.params[2] .+ offset_sigma .* [-2.0, 0.0, 2.0]
+        coarse = contour(result, 1, 2; xvalues=slope_values, yvalues=offset_values, levels=[2.30])
+        refined = contour(
+            result,
+            1,
+            2;
+            xvalues=slope_values,
+            yvalues=offset_values,
+            levels=[2.30],
+            adaptive=true,
+            max_refinements=2,
+        )
+
+        @test length(refined.x_values) > length(coarse.x_values)
+        @test length(refined.y_values) > length(coarse.y_values)
+        @test issorted(refined.x_values)
+        @test issorted(refined.y_values)
+
+        finite_delta = refined.delta_cost[isfinite.(refined.delta_cost)]
+        @test minimum(finite_delta) <= 2.30 <= maximum(finite_delta)
+        @test !any(
+            f -> f.code == :contour_not_elliptic,
+            diagnose(refined; local_covariance=covariance, local_center=result.params[[1, 2]]).findings,
         )
     end
 

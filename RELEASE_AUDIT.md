@@ -8,11 +8,14 @@ sufficient.
 
 ## Current Verification
 
-- `git diff --check` passes for the current staged release-hardening block.
+- `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. -e 'include("test/torture_runtests.jl")'` passes with 14
   torture checks in about 2m44s on the local machine.
-- `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 291
-  core checks in about 4m27s on the local machine.
+- `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
+  passes with 30 profile/contour reference checks in about 18s after
+  precompilation.
+- `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 301
+  core checks in about 5m55s on the local machine.
 - `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 300 tests in about
   7m21s on the local machine.
 - `julia --project=docs docs/make.jl` passes locally after the `siteinfo.js`
@@ -22,9 +25,10 @@ sufficient.
 
 ## Release Blockers
 
-- Public documentation still contains legacy German text in technical pages.
-  These pages must either be rewritten in polished English or moved out of the
-  public documentation.
+- Public documentation still needs a page-by-page editorial pass before broad
+  promotion. The legacy German mathematical audit was removed from the public
+  documentation source, and the main technical concept pages are now in
+  polished English.
 - The API reference is generated from docstrings, but many public functions do
   not yet have the level of parameter-by-parameter documentation expected from a
   serious Julia package.
@@ -61,9 +65,10 @@ sufficient.
 - Bounds and constraints currently rely on local Hessian/covariance
   approximations. Reports must be explicit about when errors are local and when
   profile intervals are required.
-- Profile and contour scans compute useful refits, but still need robust
-  failed-refit handling and adaptive refinement before they are release-grade
-  diagnostic tools.
+- Profile and contour scans now expose failed refits through diagnostics and
+  support adaptive refinement around profile thresholds and contour levels.
+  Strongly curved/non-elliptic contours still need deeper diagnostic polish
+  before release-grade claims.
 - Multi-dataset fitting currently supports useful parameter mapping, but not the
   full uncertainty model expected from kafe2-level workflows.
 - Benchmarks exist, but there is no enforced performance budget in CI.

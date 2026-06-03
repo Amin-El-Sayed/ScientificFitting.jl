@@ -142,13 +142,14 @@ Current evidence:
 - Dense covariance remains intentionally documented as an expensive `O(n^2)`
   memory and `O(n^3)` factorization path; huge correlated datasets need future
   structured covariance operators rather than dense matrices.
+- Profile scans can adaptively refine threshold-crossing intervals, and contour
+  scans can adaptively refine cells around requested contour levels. Reference
+  tests cover both adaptive paths against the quadratic covariance benchmark.
 
 Open hardening work:
 
-- Make profile/contour scans robust against failed refits and expose failures
-  in diagnostics instead of crashing or silently producing incomplete grids.
-- Add adaptive profile/contour refinement around confidence thresholds and
-  curved/non-elliptic regions.
+- Improve adaptive contour refinement for strongly curved/non-elliptic regions
+  beyond simple level-bracketing cells.
 - Build a diagnosis dashboard from the structured `diagnose` findings instead
   of treating residual/profile/contour plots as independent smoke plots.
 - Add structured covariance/whitening operators for large correlated data.

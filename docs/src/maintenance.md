@@ -62,6 +62,10 @@ large temporary matrices inside every objective call.
   points instead of aborting the whole scan. `diagnose(profile_result)` and
   `diagnose(contour_result)` must surface those failures before users interpret
   intervals or contour topology.
+- `profile(...; adaptive=true)` refines intervals that bracket the selected
+  profile threshold. `contour(...; adaptive=true)` refines grid cells whose
+  corner values bracket requested contour levels. These refinements improve
+  diagnostic resolution without making the whole scan uniformly dense.
 - Add analytic reference tests before changing statistical semantics.
 - Add benchmark coverage before changing a hot path.
 

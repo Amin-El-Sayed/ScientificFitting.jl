@@ -119,11 +119,85 @@ function _profile_refit_cost(result, fixed::Vector{FixedParameter}; on_failure::
     end
 end
 
+function _validate_adaptive_controls(max_refinements::Int, max_points::Int)
+    max_refinements >= 0 || throw(ArgumentError("max_refinements must be non-negative"))
+    max_points >= 3 || throw(ArgumentError("max_points must be at least 3"))
+    return nothing
+end
+
+function _unique_sorted(values::AbstractVector{<:Real})
+    cleaned = sort!(collect(Float64, values))
+    isempty(cleaned) && return cleaned
+    out = Float64[cleaned[1]]
+    for value in Iterators.drop(cleaned, 1)
+        if value != last(out)
+            push!(out, value)
+        end
+    end
+    return out
+end
+
+function _profile_refinement_candidates(values, delta, thresholds)
+    candidates = Float64[]
+    for i in 1:(length(values) - 1)
+        d1 = delta[i]
+        d2 = delta[i + 1]
+        isfinite(d1) && isfinite(d2) || continue
+        for threshold in thresholds
+            if min(d1, d2) <= threshold <= max(d1, d2)
+                push!(candidates, (values[i] + values[i + 1]) / 2)
+                break
+            end
+        end
+    end
+    return candidates
+end
+
+function _profile_from_grid(result, index::Int, grid::Vector{Float64}, threshold::Float64, on_failure::Symbol)
+    costs = Vector{Float64}(undef, length(grid))
+    for (i, value) in enumerate(grid)
+        costs[i] = _profile_refit_cost(result, [FixedParameter(index, value)]; on_failure=on_failure)
+    end
+    delta = costs .- result.stats.cost_min
+    return ProfileResult(index, grid, costs, delta, threshold, result.params[index])
+end
+
+function _adaptive_profile(
+    result,
+    index::Int,
+    grid::Vector{Float64},
+    threshold::Float64,
+    on_failure::Symbol;
+    max_refinements::Int,
+    max_points::Int,
+)
+    _validate_adaptive_controls(max_refinements, max_points)
+    grid = _unique_sorted(grid)
+    prof = _profile_from_grid(result, index, grid, threshold, on_failure)
+    thresholds = Float64[threshold]
+
+    for _ in 1:max_refinements
+        length(prof.values) >= max_points && break
+        candidates = _profile_refinement_candidates(prof.values, prof.delta_cost, thresholds)
+        isempty(candidates) && break
+        remaining = max_points - length(prof.values)
+        grid = _unique_sorted(vcat(prof.values, candidates[1:min(end, remaining)]))
+        length(grid) == length(prof.values) && break
+        prof = _profile_from_grid(result, index, grid, threshold, on_failure)
+    end
+
+    return prof
+end
+
 """
-    profile(result, index; values=nothing, npoints=61, nsigma=3, threshold=1.0, on_failure=:inf)
+    profile(result, index; values=nothing, npoints=61, nsigma=3, threshold=1.0, adaptive=false, on_failure=:inf)
 
 Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
+
+With `adaptive=true`, JuFitter refines grid intervals that bracket the requested
+profile threshold. This improves interval extraction without forcing a dense
+grid over the full scan range.
 """
 function profile(
     result,
@@ -132,18 +206,25 @@ function profile(
     npoints::Int=61,
     nsigma::Real=3,
     threshold::Real=1.0,
+    adaptive::Bool=false,
+    max_refinements::Int=3,
+    max_points::Int=241,
     on_failure::Symbol=:inf,
 )
     1 <= index <= length(result.params) || throw(ArgumentError("profile index out of range"))
     grid = values === nothing ? _default_profile_grid(result, index; npoints=npoints, nsigma=nsigma) : collect(Float64, values)
-    costs = Vector{Float64}(undef, length(grid))
-
-    for (i, value) in enumerate(grid)
-        costs[i] = _profile_refit_cost(result, [FixedParameter(index, value)]; on_failure=on_failure)
+    if adaptive
+        return _adaptive_profile(
+            result,
+            index,
+            grid,
+            Float64(threshold),
+            on_failure;
+            max_refinements=max_refinements,
+            max_points=max_points,
+        )
     end
-
-    delta = costs .- result.stats.cost_min
-    return ProfileResult(index, grid, costs, delta, Float64(threshold), result.params[index])
+    return _profile_from_grid(result, index, _unique_sorted(grid), Float64(threshold), on_failure)
 end
 
 function _profile_refit_failure_findings(profile_result::ProfileResult)
@@ -204,8 +285,21 @@ function profile_interval(
     npoints::Int=121,
     nsigma::Real=5,
     values=nothing,
+    adaptive::Bool=true,
+    max_refinements::Int=3,
+    max_points::Int=241,
 )
-    prof = profile(result, index; values=values, npoints=npoints, nsigma=nsigma, threshold=threshold)
+    prof = profile(
+        result,
+        index;
+        values=values,
+        npoints=npoints,
+        nsigma=nsigma,
+        threshold=threshold,
+        adaptive=adaptive,
+        max_refinements=max_refinements,
+        max_points=max_points,
+    )
     lower, upper = _profile_crossings(prof)
     center = result.params[index]
     minus = isfinite(lower) ? center - lower : NaN
@@ -277,12 +371,106 @@ function _default_contour_grid(result::FitResult, index::Int; npoints::Int, nsig
     return _default_profile_grid(result, index; npoints=npoints, nsigma=nsigma)
 end
 
+function _contour_refit_cost(result, i::Int, j::Int, xvalue::Float64, yvalue::Float64, on_failure::Symbol)
+    return _profile_refit_cost(result, [FixedParameter(i, xvalue), FixedParameter(j, yvalue)]; on_failure=on_failure)
+end
+
+function _contour_from_grid(result, i::Int, j::Int, xs::Vector{Float64}, ys::Vector{Float64}, levels::Vector{Float64}, on_failure::Symbol)
+    cache = Dict{Tuple{Float64, Float64}, Float64}()
+    return _contour_from_grid!(cache, result, i, j, xs, ys, levels, on_failure)
+end
+
+function _contour_from_grid!(cache, result, i::Int, j::Int, xs::Vector{Float64}, ys::Vector{Float64}, levels::Vector{Float64}, on_failure::Symbol)
+    costs = Matrix{Float64}(undef, length(xs), length(ys))
+    for ix in eachindex(xs), iy in eachindex(ys)
+        key = (xs[ix], ys[iy])
+        costs[ix, iy] = get!(cache, key) do
+            _contour_refit_cost(result, i, j, xs[ix], ys[iy], on_failure)
+        end
+    end
+    delta = costs .- result.stats.cost_min
+    return ContourResult((i, j), xs, ys, costs, delta, levels)
+end
+
+function _contour_refinement_candidates(contour_result::ContourResult)
+    xs = contour_result.x_values
+    ys = contour_result.y_values
+    delta = contour_result.delta_cost
+    levels = contour_result.levels
+    x_candidates = Float64[]
+    y_candidates = Float64[]
+
+    for ix in 1:(length(xs) - 1), iy in 1:(length(ys) - 1)
+        corners = (delta[ix, iy], delta[ix + 1, iy], delta[ix, iy + 1], delta[ix + 1, iy + 1])
+        all(isfinite, corners) || continue
+        lo = minimum(corners)
+        hi = maximum(corners)
+        if any(level -> lo <= level <= hi, levels)
+            push!(x_candidates, (xs[ix] + xs[ix + 1]) / 2)
+            push!(y_candidates, (ys[iy] + ys[iy + 1]) / 2)
+        end
+    end
+
+    return _unique_sorted(x_candidates), _unique_sorted(y_candidates)
+end
+
+function _adaptive_contour(
+    result,
+    i::Int,
+    j::Int,
+    xs::Vector{Float64},
+    ys::Vector{Float64},
+    levels::Vector{Float64},
+    on_failure::Symbol;
+    max_refinements::Int,
+    max_points::Int,
+)
+    _validate_adaptive_controls(max_refinements, max_points)
+    xs = _unique_sorted(xs)
+    ys = _unique_sorted(ys)
+    cache = Dict{Tuple{Float64, Float64}, Float64}()
+    cont = _contour_from_grid!(cache, result, i, j, xs, ys, levels, on_failure)
+
+    for _ in 1:max_refinements
+        length(cont.x_values) * length(cont.y_values) >= max_points && break
+        x_candidates, y_candidates = _contour_refinement_candidates(cont)
+        isempty(x_candidates) && isempty(y_candidates) && break
+
+        candidate_xs = copy(cont.x_values)
+        candidate_ys = copy(cont.y_values)
+        for xvalue in x_candidates
+            xvalue in candidate_xs && continue
+            (length(candidate_xs) + 1) * length(candidate_ys) <= max_points || break
+            push!(candidate_xs, xvalue)
+        end
+        for yvalue in y_candidates
+            yvalue in candidate_ys && continue
+            length(candidate_xs) * (length(candidate_ys) + 1) <= max_points || break
+            push!(candidate_ys, yvalue)
+        end
+        candidate_xs = _unique_sorted(candidate_xs)
+        candidate_ys = _unique_sorted(candidate_ys)
+
+        if length(candidate_xs) == length(cont.x_values) && length(candidate_ys) == length(cont.y_values)
+            break
+        end
+
+        cont = _contour_from_grid!(cache, result, i, j, candidate_xs, candidate_ys, levels, on_failure)
+    end
+
+    return cont
+end
+
 """
-    contour(result, i, j; xvalues=nothing, yvalues=nothing, npoints=31, nsigma=3, levels=[2.30, 6.18], on_failure=:inf)
+    contour(result, i, j; xvalues=nothing, yvalues=nothing, npoints=31, nsigma=3, levels=[2.30, 6.18], adaptive=false, on_failure=:inf)
 
 Compute a two-parameter profile-likelihood contour grid. At each grid point,
 parameters `i` and `j` are fixed and all remaining free parameters are
 re-minimized.
+
+With `adaptive=true`, JuFitter refines grid cells whose corner values bracket a
+requested contour level. This concentrates expensive refits near meaningful
+contour geometry instead of spreading them uniformly across the full rectangle.
 """
 function contour(
     result,
@@ -293,6 +481,9 @@ function contour(
     npoints::Int=31,
     nsigma::Real=3,
     levels::AbstractVector=[2.30, 6.18],
+    adaptive::Bool=false,
+    max_refinements::Int=2,
+    max_points::Int=2601,
     on_failure::Symbol=:inf,
 )
     i != j || throw(ArgumentError("contour requires two distinct parameter indices"))
@@ -301,14 +492,21 @@ function contour(
 
     xs = xvalues === nothing ? _default_contour_grid(result, i; npoints=npoints, nsigma=nsigma) : collect(Float64, xvalues)
     ys = yvalues === nothing ? _default_contour_grid(result, j; npoints=npoints, nsigma=nsigma) : collect(Float64, yvalues)
-    costs = Matrix{Float64}(undef, length(xs), length(ys))
-
-    for ix in eachindex(xs), iy in eachindex(ys)
-        costs[ix, iy] = _profile_refit_cost(result, [FixedParameter(i, xs[ix]), FixedParameter(j, ys[iy])]; on_failure=on_failure)
+    level_values = collect(Float64, levels)
+    if adaptive
+        return _adaptive_contour(
+            result,
+            i,
+            j,
+            xs,
+            ys,
+            level_values,
+            on_failure;
+            max_refinements=max_refinements,
+            max_points=max_points,
+        )
     end
-
-    delta = costs .- result.stats.cost_min
-    return ContourResult((i, j), xs, ys, costs, delta, collect(Float64, levels))
+    return _contour_from_grid(result, i, j, _unique_sorted(xs), _unique_sorted(ys), level_values, on_failure)
 end
 
 function _contour_refit_failure_findings(contour_result::ContourResult)

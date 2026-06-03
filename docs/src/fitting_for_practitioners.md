@@ -175,6 +175,16 @@ diagnose(prof; local_sigma=result.param_stderr[1])
 
 This reports when the scan range is too narrow to bracket the chosen threshold
 or when the actual profile disagrees with the local parabolic approximation.
+For interval work, the default `profile_interval` path uses adaptive refinement
+near threshold crossings. You can request the same behavior explicitly:
+
+```julia
+prof = profile(result, 1; adaptive=true, threshold=1.0)
+```
+
+Adaptive refinement keeps the broad scan range coarse, then adds points where
+the profile crosses the selected ``\Delta C`` threshold. That is usually a
+better use of refits than making the entire grid dense.
 
 A contour scan checks pairs of parameters. JuFitter fixes two parameters on a
 grid, refits the rest, and plots contours of constant ``\Delta\chi^2``. If the
@@ -191,3 +201,14 @@ diagnose(cont; local_covariance=result.param_covariance,
 
 This reports when requested contour levels are outside the scan range or when
 the profiled contour disagrees with the local covariance ellipse.
+
+For expensive contour scans, use:
+
+```julia
+cont = contour(result, 1, 2; adaptive=true, levels=[2.30, 6.18])
+```
+
+The adaptive contour pass refines grid cells whose corner values bracket a
+requested contour level. It does not make the result magically exact; it makes
+the expensive refits concentrate near the contour geometry that will actually
+be interpreted.
