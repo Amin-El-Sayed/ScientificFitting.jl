@@ -34,6 +34,28 @@ must progress in parallel without mixing files.
 7. Commit with a clear message.
 8. Merge to `main` only after the gate is green.
 
+## Codex Operating Model
+
+Use Codex as an implementation worker, not as an uncontrolled auto-merge bot.
+The safe loop is:
+
+1. Keep the current thread responsible for integration decisions.
+2. Let Codex work on one scoped `codex/` branch or worktree at a time.
+3. Ask for a concrete outcome, for example "finish adaptive contours" or
+   "harden dense covariance errors".
+4. Require tests, maintenance notes, and a clean diff before a commit.
+5. Merge to `main` only from a reviewed, green branch.
+
+Heartbeats and automations are useful for continuing the loop when nobody is
+actively typing. They must be state-driven: each run reads the repository state,
+the roadmap, and the audit notes before choosing the next task. They must not
+blindly repeat an old checklist, and they must not merge to `main`.
+
+Skills are local instruction bundles for specialized work. Use them when the
+task matches the skill, for example browser verification for the documentation
+site or spreadsheet tooling for CSV/XLSX data extraction. Skills do not replace
+the repository rules in `AGENTS.md`; they only add task-specific procedure.
+
 ## Test Gates
 
 Fast focused gates:
