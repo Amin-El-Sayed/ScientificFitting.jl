@@ -1,81 +1,188 @@
 # Quickstart
 
-This is the smallest useful JuFitter workflow: data, uncertainties, model,
-fit, plot, report.
+This page is the first complete JuFitter workflow. It is deliberately small, but
+it still follows the same logic as a real analysis:
+
+1. define the measured quantities and uncertainties,
+2. choose a model,
+3. fit,
+4. inspect the result,
+5. decide whether the result is trustworthy enough to use.
+
+The data below are a controlled calibration example, not a claim about a real
+instrument. Real workflows start in the [Gallery](gallery.md).
+
+## Question
+
+A sensor output ``U`` should be approximately linear in an input position ``x``.
+We want the calibration slope and offset, including uncertainties, and a plot
+that already shows whether the fit is plausible.
+
+## Data
+
+We have three arrays:
+
+- `x`: measured input values,
+- `y`: measured sensor output,
+- `sigma_y`: one-standard-deviation uncertainty of each output value.
+
+The uncertainties are slightly larger at large ``x``. That is common in
+calibrations where readout noise, alignment error, or gain uncertainty grows
+with signal size.
+
+## Model
+
+The first model is a straight line:
+
+```math
+U(x) = m x + b.
+```
+
+For independent Gaussian y uncertainties, JuFitter minimizes
+
+```math
+\chi^2(m,b)
+=
+\sum_i
+\left(
+\frac{U_i-(m x_i+b)}{\sigma_{U,i}}
+\right)^2.
+```
+
+This is the standard weighted least-squares model. It is appropriate only if
+the uncertainties are meaningful standard deviations and the residuals are
+roughly Gaussian and structureless.
+
+## Complete Code
+
+Run this from the repository root or from any Julia project where JuFitter is
+available:
 
 ```julia
 using JuFitter
 
-x = collect(range(0.0, 10.0; length=40))
-model(x, p) = @. p[1] * x + p[2]
+x = collect(range(0.0, 10.0; length=24))
+sigma_y = @. 0.16 + 0.02 * x
+y = @. 1.85 * x + 0.7 + sigma_y * sin(1.6 * x)
 
-sigma_y = fill(0.25, length(x))
-y = model(x, [1.7, 0.8]) .+ sigma_y .* sin.(1.2 .* x)
-
-plot_result = fitplot(
-    model,
+fit = fitplot(
     x,
     y;
-    p0=[1.0, 0.0],
     sigma_y=sigma_y,
+    xlabel="time",
+    xunit="s",
+    ylabel="signal",
+    yunit="V",
     parameter_names=["slope", "offset"],
-    xlabel="time / s",
-    ylabel="signal / V",
-    filename="quickstart_fit.pdf",
+    band=:prediction,
+    nsigma=1,
+    band_label="1σ prediction band",
+    show_legend=true,
+    report=:both,
+    filename="quickstart_linear.pdf",
 )
 
-result = plot_result.result
+result = fit.result
+
 println(report_text(result; parameter_names=["slope", "offset"]))
-println(diagnose_text(result))
+println()
+println(diagnostic_dashboard_text(result))
 ```
 
-## What Happens
-
-`fitplot` calls `fit_model`, creates a `FitResult`, and renders the default
-fit plot with uncertainty band and optional result panel. If you only need the
-numbers, call `fit_model` directly:
+`fitplot(x, y; sigma_y=...)` uses a straight-line model by default. If you want
+to make the model explicit, use:
 
 ```julia
+model(x, p) = @. p[1] * x + p[2]
 result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
 ```
 
-## Choosing The Cost
+The explicit form is preferred once the model is not a straight line.
 
-For ordinary Gaussian y uncertainties, `cost=:auto` uses chi-square:
+## What The Plot Means
 
-```julia
-result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
-```
+The plot contains:
 
-For parameter-dependent covariance, for example x uncertainties, `cost=:auto`
-uses the full Gaussian negative log-likelihood:
+- measured data points,
+- y error bars from `sigma_y`,
+- the fitted line,
+- a **1σ prediction band**,
+- a report panel with fitted parameters and fit statistics.
 
-```julia
-sigma_x = fill(0.03, length(x))
-result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_x=sigma_x, sigma_y=sigma_y)
-```
+A prediction band is wider than a confidence band for the mean curve. It asks:
+where would a new measurement plausibly land, given the fitted model and the
+measurement uncertainty?
 
-For count data, use the Poisson helper:
-
-```julia
-rate(x, p) = @. exp(p[1] + p[2] * x)
-counts = round.(rate(x, [1.0, 0.12]))
-
-result = fit_poisson_model(rate, x, counts; p0=[0.8, 0.1])
-```
+If you want only the uncertainty of the fitted mean curve, use
+`band=:confidence`.
 
 ## Reading The Result
 
-Important fields are:
+The most important fields are:
 
-- `result.params`: fitted parameters.
-- `result.param_stderr`: local one-sigma standard errors.
+- `result.params`: best-fit parameter values.
+- `result.param_stderr`: local one-standard-deviation parameter errors.
 - `result.param_covariance`: local parameter covariance matrix.
-- `result.stats`: cost, chi-square or deviance, ndf, p-value, AIC, and BIC.
-- `result.diagnostics`: warnings for non-convergence, active bounds,
-  ill-conditioned covariance, and unavailable goodness-of-fit statistics.
-- `diagnose(result)`: actionable troubleshooting findings with evidence and
-  recommended next steps.
+- `result.stats.chi2`: weighted residual sum of squares.
+- `result.stats.chi2_ndf`: chi-square divided by degrees of freedom.
+- `result.stats.pvalue`: goodness-of-fit probability under the stated Gaussian
+  assumptions.
 
-Local errors are only local approximations. For nonlinear fits, active bounds,
-or asymmetric likelihoods, use `profile`, `profile_interval`, and `contour`.
+As a rule of thumb, ``\chi^2/\mathrm{ndf}`` should be near one when the model and
+uncertainties are both plausible. Much larger values usually mean missing model
+structure, underestimated uncertainties, outliers, or wrong correlations. Much
+smaller values can mean overestimated uncertainties or non-independent data.
+
+## First Diagnosis
+
+`diagnostic_dashboard(result)` summarizes the first things to inspect:
+
+```julia
+dashboard = diagnostic_dashboard(result)
+```
+
+The dashboard status is:
+
+- `:ok`: no major issue found by the current checks,
+- `:review`: warnings exist; inspect before publication,
+- `:stop`: at least one critical issue exists; do not trust the fit yet.
+
+For this controlled example, `:review` is not surprising. The residuals were
+generated by a smooth sine pattern, not by independent random noise. A good
+diagnostic tool should notice that the points are not statistically independent
+Gaussian scatter even when the fitted line looks visually reasonable.
+
+The dashboard does not prove the model is true. It only catches common failure
+modes quickly: bad goodness-of-fit, active bounds, ill-conditioned covariance,
+large pulls, structured residuals, strong parameter correlations, and failed
+optimizer convergence.
+
+## What Can Go Wrong
+
+A straight-line calibration can look visually acceptable and still be wrong.
+Inspect the fit more carefully if:
+
+- residuals curve systematically above and below the line,
+- the prediction band is much narrower than the observed scatter,
+- ``\chi^2/\mathrm{ndf}`` is far from one,
+- the p-value is extremely small or extremely close to one,
+- parameters are strongly correlated,
+- one or two points dominate the result.
+
+If the model is nonlinear, bounded, or weakly constrained, local symmetric
+errors may be misleading. Use profile intervals and contours:
+
+```julia
+prof = profile(result, 1; adaptive=true)
+interval = profile_interval(result, 1)
+cont = contour(result, 1, 2; adaptive=true)
+```
+
+## Next Steps
+
+- See [Linear Calibration](gallery/linear_calibration.md) for the same workflow
+  as a polished gallery example with generated light/dark plots.
+- See [Fitting for Practitioners](fitting_for_practitioners.md) for practical
+  troubleshooting rules.
+- See [Statistical Foundations](statistical_foundations.md) for the mathematical
+  justification of chi-square, likelihoods, covariance, profiles, and contours.
