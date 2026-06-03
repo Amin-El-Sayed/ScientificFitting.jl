@@ -1,8 +1,24 @@
 # Gallery
 
-The gallery is the public face of JuFitter. It should demonstrate scientific
-workflows, not only API calls. Every major example must have a real question,
-visible uncertainties, a fit result, and a plot that can stand on its own.
+The gallery is the fastest way to learn JuFitter. It is organized by scientific
+workflow, not by API feature. Start with the example closest to your data, read
+the statistical assumptions, run the complete script, and then inspect the
+diagnostics before trusting the reported numbers.
+
+Every finished gallery page follows the same pattern:
+
+1. a concrete question,
+2. measured quantities with units and uncertainties,
+3. the model and its assumptions,
+4. complete executable code,
+5. a plot with visible uncertainty semantics,
+6. fit diagnostics,
+7. interpretation and realistic failure modes.
+
+If you only want the shortest path from two arrays to a polished fit, start with
+[Quickstart](@ref). If the fit looks suspicious, continue with
+[Fitting for Practitioners](@ref). If you need to justify the method in a
+report, read [Statistical Foundations](@ref).
 
 Run repository examples from the project root:
 
@@ -10,7 +26,21 @@ Run repository examples from the project root:
 julia --project=. examples/gallery/01_quickstart_linear.jl
 ```
 
-Generated figures are written to `examples/output/`.
+Generated figures are written to `examples/output/`. Documentation figures are
+generated intentionally under `docs/src/assets/gallery/`; ad-hoc output should
+not be committed.
+
+## Recommended Path
+
+```@raw html
+<div class="jufitter-flow">
+  <div class="jufitter-flow-step"><strong>First fit</strong><span>Linear calibration teaches the default data-model-diagnosis loop.</span></div>
+  <div class="jufitter-flow-step"><strong>Real experiment</strong><span>Damped oscillation shows nonlinear parameters, units, and imperfect residuals.</span></div>
+  <div class="jufitter-flow-step"><strong>Uncertainty structure</strong><span>XY errors and full covariance explain when error bars are not independent decoration.</span></div>
+  <div class="jufitter-flow-step"><strong>Likelihoods</strong><span>Poisson and histogram examples switch from least squares to count statistics.</span></div>
+  <div class="jufitter-flow-step"><strong>Trust check</strong><span>Profiles, contours, and diagnostics test whether local symmetric errors are credible.</span></div>
+</div>
+```
 
 ## Current Gallery
 
@@ -20,10 +50,10 @@ Generated figures are written to `examples/output/`.
 <img class="jufitter-plot-light" src="assets/gallery/linear_calibration_light.png" alt="Linear calibration fit">
 <img class="jufitter-plot-dark" src="assets/gallery/linear_calibration_dark.png" alt="Linear calibration fit dark">
 <div>
-<span class="jufitter-tag">quickstart</span>
+<span class="jufitter-tag">first fit</span>
 <span class="jufitter-tag">prediction band</span>
 <h3><a href="gallery/linear_calibration.html">Linear calibration</a></h3>
-<p>One-call Gaussian fit with heteroscedastic uncertainties, report panel, and visible prediction band.</p>
+<p>Estimate a calibration law from heteroscedastic measurements. This page is the controlled baseline for reading parameters, bands, residuals, and goodness of fit.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -33,7 +63,7 @@ Generated figures are written to `examples/output/`.
 <span class="jufitter-tag">x/y errors</span>
 <span class="jufitter-tag">extrapolation</span>
 <h3><a href="gallery/photoelectric_threshold.html">Photoelectric work function</a></h3>
-<p>Linear photoelectric fit with threshold marker, y-intercept work function, and propagated uncertainty.</p>
+<p>Determine a work function from a threshold extrapolation. The finished version must show the intercept marker, propagated uncertainty, and where the linear model is physically meaningful.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -43,8 +73,7 @@ Generated figures are written to `examples/output/`.
 <span class="jufitter-tag">real data</span>
 <span class="jufitter-tag">nonlinear</span>
 <h3><a href="gallery/resonance_decay.html">Damped oscillator</a></h3>
-<p>Mechanical oscillator decay with visible uncertainty band, nonlinear model,
-and goodness-of-fit diagnostics.</p>
+<p>Fit a decaying mechanical oscillation with physically interpretable amplitude, damping, frequency, and phase. This is the main real-data example for nonlinear least squares.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -54,7 +83,7 @@ and goodness-of-fit diagnostics.</p>
 <span class="jufitter-tag">covariance</span>
 <span class="jufitter-tag">correlations</span>
 <h3><a href="gallery/full_covariance.html">Full covariance</a></h3>
-<p>Exponential decay with a dense y-covariance matrix and correlated readout noise.</p>
+<p>Use a dense covariance matrix when measurements share readout noise. The point is not syntax; it is how correlations change parameter uncertainty and goodness-of-fit interpretation.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -64,7 +93,7 @@ and goodness-of-fit diagnostics.</p>
 <span class="jufitter-tag">effective variance</span>
 <span class="jufitter-tag">x errors</span>
 <h3><a href="gallery/xy_uncertainties.html">XY uncertainties</a></h3>
-<p>Fit where x errors contribute through the local model slope, not just as cosmetic error bars.</p>
+<p>Include uncertainty in the independent variable through the local model slope. This example is useful when calibration, frequency, voltage, or position errors are not negligible.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -74,7 +103,7 @@ and goodness-of-fit diagnostics.</p>
 <span class="jufitter-tag">constraints</span>
 <span class="jufitter-tag">profiles</span>
 <h3><a href="gallery/constraints_profiles.html">Constraints and profiles</a></h3>
-<p>Bounds, inequality constraints, Gaussian priors, profile scans, and two-parameter contours.</p>
+<p>Combine bounds, priors, profiles, and two-parameter contours. Use this when local covariance errors may be too optimistic or too symmetric.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -84,7 +113,7 @@ and goodness-of-fit diagnostics.</p>
 <span class="jufitter-tag">likelihood</span>
 <span class="jufitter-tag">counts</span>
 <h3><a href="gallery/poisson_histogram.html">Poisson and histograms</a></h3>
-<p>Count data and binned likelihood fits where Gaussian least squares is the wrong default.</p>
+<p>Fit count data with a Poisson likelihood instead of pretending that every bin is Gaussian. This is the entry point for histograms, rates, and low-count regimes.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -94,73 +123,64 @@ and goodness-of-fit diagnostics.</p>
 <span class="jufitter-tag">multi-fit</span>
 <span class="jufitter-tag">shared parameters</span>
 <h3><a href="gallery/multi_dataset.html">Multi-dataset fit</a></h3>
-<p>Two datasets share a slope while each keeps its own offset and uncertainty model.</p>
+<p>Fit several datasets with shared and dataset-specific parameters. This is the pattern for comparing sensors, repeated runs, or coupled experiments.</p>
 </div>
 </div>
 </div>
 ```
 
-The repository scripts are currently:
+## What Each Example Teaches
 
-- `01_quickstart_linear.jl`: minimal linear Gaussian fit with uncertainty band.
-- `02_xy_uncertainties_photoelectric.jl`: physics example with x/y
-  uncertainties, bounds, multistart, LaTeX labels, and diagnostics.
-- `03_plot_customization.jl`: themes, units, report placement, sigma bands,
-  export, and Makie keyword passthrough.
-- `04_covariance_and_effective_variance.jl`: full y covariance and
+| Page | Scientific use case | Statistical focus | Diagnosis to inspect |
+| --- | --- | --- | --- |
+| Linear calibration | sensor or scale calibration | weighted Gaussian least squares | residual structure, prediction band, chi-square per degree of freedom |
+| Photoelectric work function | threshold extrapolation | x/y uncertainty and derived quantity propagation | extrapolation leverage, intercept uncertainty, model range |
+| Damped oscillator | mechanical decay or resonance envelope | nonlinear least squares with correlated parameters | phase/frequency coupling, residual periodicity, profile asymmetry |
+| Full covariance | repeated readout with shared noise | whitening with dense covariance | correlation effect on uncertainty and p-value |
+| XY uncertainties | calibration with uncertain abscissa | effective-variance approximation | slope-dependent variance and approximation validity |
+| Constraints and profiles | physically bounded parameters | bounds, priors, profile intervals, contours | active constraints and non-parabolic cost shape |
+| Poisson and histograms | counts, rates, binned events | Poisson deviance and likelihood fits | low-count bins, deviance residuals, empty-bin behavior |
+| Multi-dataset fit | shared physics across runs | parameter mapping and joint costs | per-dataset residuals and shared-parameter tension |
+
+## Repository Scripts
+
+The scripts under `examples/gallery/` are executable examples and asset
+generators. They are allowed to be more compact than the documentation pages,
+but they should still read like serious scientific examples.
+
+- `01_quickstart_linear.jl`: minimal weighted Gaussian fit with visible
+  uncertainty semantics.
+- `02_xy_uncertainties_photoelectric.jl`: photoelectric threshold fit with x/y
+  uncertainties, extrapolation, and diagnostic output.
+- `03_plot_customization.jl`: themes, units, reports, sigma bands, export, and
+  Makie keyword passthrough.
+- `04_covariance_and_effective_variance.jl`: dense y covariance and
   effective-variance x uncertainty.
-- `05_constraints_priors_profiles.jl`: bounds, inequality constraints,
-  Gaussian priors, profile interval, and contour plot.
+- `05_constraints_priors_profiles.jl`: bounds, inequality constraints, Gaussian
+  priors, profile intervals, and contours.
 - `06_likelihood_workflows.jl`: Poisson, histogram, unbinned,
   extended-unbinned, indexed, custom, and multi-dataset likelihood fits.
-- `07_plot_styles.jl`: clean default, dense-data minimal, and LaTeX-style paper
-  plot layouts.
+- `07_plot_styles.jl`: default, dense-data, and paper-style plot layouts.
 - `08_damped_oscillator_decay.jl`: real mechanical oscillator decay with x/y
-  uncertainties, LaTeX labels, and light/dark documentation exports.
-- `09_docs_gallery_suite.jl`: documentation asset generator for the public
-  gallery pages.
+  uncertainties and light/dark documentation exports.
+- `09_docs_gallery_suite.jl`: reproducible documentation asset generator.
 
-## Planned Real-Data Gallery
+## Completion Status
 
-The next gallery pass should convert curated public datasets into reproducible
-examples and documentation pages. Each dataset must be renamed by physical
-content, reduced to the columns needed for the example, and documented without
-local paths, course-internal context, or unrelated acquisition notes.
+The gallery is being rewritten page by page. The current pages are useful, but
+not all of them are finished scientific tutorials yet. A page is considered
+release-ready only when a reader can copy the full code, reproduce the plot,
+understand the statistical assumptions, and decide whether the fit should be
+trusted.
 
-## Required Example Types
+The next documentation passes should prioritize:
 
-- Simple linear fit with visible uncertainties and readable result panel.
-- Pendulum period analysis: small-angle model, improved nonlinear correction,
-  residual diagnostics, and model comparison.
-- Driven or damped resonance: nonlinear line shape, damping, phase, and
-  physically interpretable parameters.
-- Interference or diffraction: oscillatory model with calibration and
-  parameter correlations.
-- Signal analysis: noisy time series, frequency extraction, and fit residuals.
-- Photoelectric-effect workflow with multiple fits in one plot and a visible
-  work-function marker.
-- Circuit example: RC/RLC transient or frequency response with units and
-  derived quantities.
-- Histogram or count-data example with Poisson statistics and likelihood
-  diagnostics.
-- One non-physics example from engineering, biology, chemistry, or social data
-  to show that JuFitter is not laboratory-course specific.
-- Dense data fit with minimal markers, clear line, and no visual clutter.
-- XY fit with x and y uncertainties.
-- Full covariance fit with a visible correlation effect.
-- Fit with priors, fixed parameters, bounds, and diagnostics.
-- Profile interval and two-parameter contour.
-- Poisson count fit and histogram fit.
-- Unbinned and extended-unbinned likelihood examples.
-- Multi-dataset fit with shared and dataset-specific parameters.
-- Plot theme comparison including a dark-mode export.
-
-## Visual Rules
-
-- Data should not look like decoration. Marker size, alpha, line width, and
-  bands must be chosen for the dataset density.
-- Uncertainty bands must be visible enough to teach the concept.
-- Result panels should help, not dominate. Large datasets need a quieter layout.
-- Every gallery plot must work on light and dark documentation backgrounds.
-- If a plot needs manual margins, that is a plotting bug or missing API option,
-  not an acceptable tutorial workaround.
+- turning the photoelectric page into a complete extrapolation workflow with
+  work-function uncertainty and visual markers,
+- adding profile/contour diagnostics that explain non-parabolic likelihood
+  shapes,
+- expanding the Poisson/histogram page with count-specific residuals and
+  likelihood interpretation,
+- replacing any remaining toy-like synthetic examples with realistic data or
+  clearly labeled controlled demonstrations,
+- checking every light and dark gallery asset visually after regeneration.
