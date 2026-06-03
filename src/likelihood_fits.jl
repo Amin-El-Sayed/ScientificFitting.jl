@@ -147,7 +147,7 @@ function _build_likelihood_result(
     stats = FitStatistics(problem.cost_name, cost_min, cost_min, gof, gof_ndf, ndf, pvalue, aic, bic)
     free_idx = _free_indices(problem)
     hessian = isempty(free_idx) ? nothing : ForwardDiff.hessian(q -> _likelihood_cost(problem, _expand_free_parameters(problem, q)), params[free_idx])
-    diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian)
+    diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=gof)
 
     return LikelihoodFitResult(problem, options, :optimization, converged, iterations, message, params, stderr, cov, corr, stats, diagnostics)
 end

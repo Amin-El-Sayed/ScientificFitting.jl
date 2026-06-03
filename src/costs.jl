@@ -76,8 +76,19 @@ function _data_chi2(problem::FitProblem, p::AbstractVector)
     return sum(abs2, rw)
 end
 
+function _data_chi2(cache::FitEvaluationCache, p::AbstractVector)
+    residual = _residual(cache.problem, p)
+    rw = _whiten_residual(cache, p, residual)
+    return sum(abs2, rw)
+end
+
 function _chi2_cost(problem::FitProblem, p::AbstractVector)
     return _data_chi2(problem, p) + _prior_chi2(problem, p) + _parameter_constraint_chi2(problem, p)
+end
+
+function _chi2_cost(cache::FitEvaluationCache, p::AbstractVector)
+    problem = cache.problem
+    return _data_chi2(cache, p) + _prior_chi2(problem, p) + _parameter_constraint_chi2(problem, p)
 end
 
 function _covariance_logdet(cov, n::Int)
@@ -99,8 +110,25 @@ function _gaussian_data_nll(problem::FitProblem, p::AbstractVector)
     return n * LOG2PI + _covariance_logdet(cov, n) + _data_chi2(problem, p)
 end
 
+function _gaussian_data_nll(cache::FitEvaluationCache{NoPreparedCovariance}, p::AbstractVector)
+    return length(cache.problem.y) * LOG2PI + _data_chi2(cache, p)
+end
+
+function _gaussian_data_nll(cache::FitEvaluationCache{<:Union{DiagonalPreparedCovariance, DensePreparedCovariance}}, p::AbstractVector)
+    return length(cache.problem.y) * LOG2PI + cache.covariance.logdet + _data_chi2(cache, p)
+end
+
+function _gaussian_data_nll(cache::FitEvaluationCache{DynamicPreparedCovariance}, p::AbstractVector)
+    return _gaussian_data_nll(cache.problem, p)
+end
+
 function _gaussian_nll(problem::FitProblem, p::AbstractVector)
     return _gaussian_data_nll(problem, p) + _prior_nll(problem, p) + _parameter_constraint_nll(problem, p)
+end
+
+function _gaussian_nll(cache::FitEvaluationCache, p::AbstractVector)
+    problem = cache.problem
+    return _gaussian_data_nll(cache, p) + _prior_nll(problem, p) + _parameter_constraint_nll(problem, p)
 end
 
 function _cost_value(problem::FitProblem, p::AbstractVector, cost::Symbol)
@@ -109,6 +137,16 @@ function _cost_value(problem::FitProblem, p::AbstractVector, cost::Symbol)
         return _chi2_cost(problem, p)
     elseif resolved == :gaussian_nll
         return _gaussian_nll(problem, p)
+    end
+    throw(ArgumentError("unsupported resolved cost: $resolved"))
+end
+
+function _cost_value(cache::FitEvaluationCache, p::AbstractVector, cost::Symbol)
+    resolved = _resolve_cost(cache.problem, cost)
+    if resolved == :chi2
+        return _chi2_cost(cache, p)
+    elseif resolved == :gaussian_nll
+        return _gaussian_nll(cache, p)
     end
     throw(ArgumentError("unsupported resolved cost: $resolved"))
 end

@@ -216,8 +216,14 @@ using Test
 
         profile_out = joinpath(mktempdir(), "profile.png")
         contour_out = joinpath(mktempdir(), "contour.png")
-        @test plot_profile(prof; filename=profile_out, format=:png) !== nothing
-        @test plot_contour(cont; filename=contour_out, format=:png) !== nothing
+        @test plot_profile(prof; filename=profile_out, format=:png, local_sigma=result.param_stderr[1]) !== nothing
+        @test plot_contour(
+            cont;
+            filename=contour_out,
+            format=:png,
+            local_covariance=result.param_covariance,
+            local_center=result.params[[1, 2]],
+        ) !== nothing
         @test isfile(profile_out)
         @test isfile(contour_out)
 
@@ -417,6 +423,24 @@ using Test
         @test hard.converged
         @test isapprox(hard.params[1], 2.0; atol=1e-2)
         @test isapprox(hard.params[2], 0.8; atol=1e-2)
+    end
+
+    @testset "No-op bounds keep the fast least-squares backend" begin
+        x = collect(range(-1.0, 1.0; length=30))
+        model(x, p) = @. p[1] * x + p[2]
+        y = model(x, [1.3, -0.2])
+
+        result = fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.05, length(x)),
+            bounds=([-Inf, -Inf], [Inf, Inf]),
+        )
+
+        @test result.backend == :lsqfit
+        @test isapprox(result.params, [1.3, -0.2]; atol=1e-8)
     end
 
     @testset "Named error components" begin

@@ -31,11 +31,14 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     iterations = hasproperty(fit_result, :iterations) ? getproperty(fit_result, :iterations) : options.maxiters
     message = "Converged with LsqFit"
 
-    return params, converged, iterations, message
+    # LsqFit stores the weighted model Jacobian. JuFitter stores residual
+    # Jacobians, hence the sign flip at result construction.
+    return params, converged, iterations, message, Matrix{Float64}(fit_result.jacobian)
 end
 
 function _fit_with_optimization(problem::FitProblem, options::FitOptions)
-    objective = (q, prob) -> _cost_value(prob, _expand_free_parameters(prob, q), options.cost)
+    cache = _prepare_fit_cache(problem)
+    objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(cache.problem, q), options.cost)
 
     lb = nothing
     ub = nothing
@@ -50,7 +53,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
         cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
         ad = DifferentiationInterface.SecondOrder(Optimization.AutoForwardDiff(), Optimization.AutoForwardDiff())
         optf = OptimizationFunction(objective, ad; cons=cons!)
-        optprob = OptimizationProblem(optf, _free_p0(problem), problem; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
+        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
         sol = solve(
             optprob,
             OptimizationOptimJL.IPNewton();
@@ -60,7 +63,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
         )
     else
         optf = OptimizationFunction(objective, Optimization.AutoForwardDiff())
-        optprob = OptimizationProblem(optf, _free_p0(problem), problem; lb=lb, ub=ub)
+        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub)
         sol = solve(
             optprob,
             OptimizationOptimJL.LBFGS();
@@ -76,7 +79,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ? sol.stats.iterations : options.maxiters
     message = string(sol.retcode)
 
-    return params, converged, iterations, message
+    return params, converged, iterations, message, nothing
 end
 
 function _build_fit_result(
@@ -87,13 +90,15 @@ function _build_fit_result(
     converged::Bool,
     iterations::Int,
     message::String,
+    backend_jacobian=nothing,
 )
+    cache = _prepare_fit_cache(problem)
     yhat = _model_values(problem, params)
     residuals = problem.y .- yhat
-    weighted_residuals = _weighted_residual(problem, params)
-    chi2 = _chi2_cost(problem, params)
-    cost_min = Float64(_cost_value(problem, params, options.cost))
-    nll_min = Float64(_gaussian_nll(problem, params))
+    weighted_residuals = _weighted_residual(cache, params)
+    chi2 = _chi2_cost(cache, params)
+    cost_min = Float64(_cost_value(cache, params, options.cost))
+    nll_min = Float64(_gaussian_nll(cache, params))
 
     nconstraint_obs = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
     nobs = length(problem.y) + length(problem.parameter_priors) + nconstraint_obs
@@ -104,15 +109,19 @@ function _build_fit_result(
     aic = nll_min + 2.0 * npar
     bic = nll_min + log(nobs) * npar
 
-    Jw = _weighted_jacobian(problem, params)
+    Jw = if backend_jacobian === nothing
+        _weighted_jacobian(cache, params)
+    else
+        _full_jacobian_from_free(problem, -backend_jacobian, length(weighted_residuals))
+    end
     free_idx = _free_indices(problem)
     cov = if isempty(free_idx)
         _embed_free_covariance(problem, zeros(Float64, 0, 0))
     elseif _resolve_cost(problem, options.cost) == :gaussian_nll
-        _covariance_from_cost_hessian(problem, params, options.cost)
+        _covariance_from_cost_hessian(cache, params, options.cost)
     else
         scale = _should_scale_covariance(problem, options.scale_covariance)
-        free_cov = _covariance_from_weighted_jacobian(_free_weighted_jacobian(problem, params), chi2, ndf, scale)
+        free_cov = _covariance_from_weighted_jacobian(Jw[:, free_idx], chi2, ndf, scale)
         _embed_free_covariance(problem, free_cov)
     end
     stderr = sqrt.(clamp.(diag(cov), 0.0, Inf))
@@ -120,11 +129,11 @@ function _build_fit_result(
 
     stats = FitStatistics(_resolve_cost(problem, options.cost), cost_min, nll_min, chi2, chi2_ndf, ndf, pvalue, aic, bic)
     hessian = if _resolve_cost(problem, options.cost) == :gaussian_nll && !isempty(free_idx)
-        ForwardDiff.hessian(q -> _cost_value(problem, _expand_free_parameters(problem, q), options.cost), params[free_idx])
+        ForwardDiff.hessian(q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost), params[free_idx])
     else
         nothing
     end
-    diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian)
+    diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=chi2)
 
     return FitResult(
         problem,
@@ -195,17 +204,17 @@ function fit(
         try
             result = if isempty(_free_indices(candidate_problem))
                 params = _expand_free_parameters(candidate_problem, Float64[])
-                _build_fit_result(candidate_problem, options, :fixed, params, true, 0, "All parameters fixed")
+                _build_fit_result(candidate_problem, options, :fixed, params, true, 0, "All parameters fixed", nothing)
             else
                 chosen_backend = _solve_backend(candidate_problem, backend, options.cost)
-                params, converged, iterations, message = if chosen_backend == :lsqfit
+                params, converged, iterations, message, backend_jacobian = if chosen_backend == :lsqfit
                     _fit_with_lsqfit(candidate_problem, options)
                 elseif chosen_backend == :optimization
                     _fit_with_optimization(candidate_problem, options)
                 else
                     throw(ArgumentError("unsupported backend: $chosen_backend (use :auto, :lsqfit, or :optimization)"))
                 end
-                _build_fit_result(candidate_problem, options, chosen_backend, params, converged, iterations, message)
+                _build_fit_result(candidate_problem, options, chosen_backend, params, converged, iterations, message, backend_jacobian)
             end
 
             current_cost = result.stats.cost_min

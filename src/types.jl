@@ -95,11 +95,25 @@ struct FitStatistics
     bic::Float64
 end
 
+struct DiagnosticFinding
+    severity::Symbol
+    code::Symbol
+    title::String
+    evidence::String
+    recommendation::String
+end
+
 struct FitDiagnostics
     warnings::Vector{String}
     covariance_condition::Float64
     hessian_condition::Float64
     active_bounds::Vector{Int}
+    findings::Vector{DiagnosticFinding}
+end
+
+struct DiagnosticReport
+    findings::Vector{DiagnosticFinding}
+    summary::String
 end
 
 struct FitResult
@@ -132,6 +146,35 @@ function _float_matrix(m::AbstractMatrix)
     return Matrix{Float64}(m)
 end
 
+function _assert_finite_vector(name::AbstractString, values::AbstractVector)
+    all(isfinite, values) || throw(ArgumentError("$name must contain only finite values"))
+    return nothing
+end
+
+function _assert_finite_matrix(name::AbstractString, values::AbstractMatrix)
+    all(isfinite, values) || throw(ArgumentError("$name must contain only finite values"))
+    return nothing
+end
+
+function _assert_positive_sigma(name::AbstractString, values::AbstractVector)
+    _assert_finite_vector(name, values)
+    all(>(0.0), values) || throw(ArgumentError("$name entries must be > 0"))
+    return nothing
+end
+
+function _assert_covariance_matrix(name::AbstractString, cov::AbstractMatrix)
+    dense = Matrix{Float64}(cov)
+    _assert_finite_matrix(name, dense)
+    isapprox(dense, dense'; rtol=1e-12, atol=1e-12) ||
+        throw(ArgumentError("$name must be symmetric"))
+    try
+        cholesky(Symmetric(dense))
+    catch
+        throw(ArgumentError("$name must be symmetric positive definite"))
+    end
+    return nothing
+end
+
 function _normalize_bounds(bounds, nparams::Int)
     bounds === nothing && return nothing
     if !(bounds isa Tuple) || length(bounds) != 2
@@ -142,6 +185,7 @@ function _normalize_bounds(bounds, nparams::Int)
     length(lower) == nparams || throw(ArgumentError("lower bounds length must equal parameter count"))
     length(upper) == nparams || throw(ArgumentError("upper bounds length must equal parameter count"))
     any(lower .> upper) && throw(ArgumentError("each lower bound must be <= corresponding upper bound"))
+    all(isinf.(lower) .& (lower .< 0.0)) && all(isinf.(upper) .& (upper .> 0.0)) && return nothing
     return (lower, upper)
 end
 
@@ -268,14 +312,27 @@ function _normalize_error_components(error_components, nobs::Int)
 
         if component.values isa AbstractVector
             length(component.values) == nobs || throw(ArgumentError("error component vector length must match data length"))
+            _assert_finite_vector("error component $(component.name)", component.values)
         elseif component.values isa AbstractMatrix
             size(component.values) == (nobs, nobs) || throw(ArgumentError("error component covariance must be n x n"))
+            _assert_finite_matrix("error component $(component.name)", Matrix(component.values))
+        elseif component.values isa Number
+            isfinite(component.values) || throw(ArgumentError("error component $(component.name) must be finite"))
         end
 
         component.mode == :covariance && component.values isa Number &&
             throw(ArgumentError("covariance error components require a vector or matrix"))
         component.mode != :covariance && component.values isa AbstractMatrix &&
             throw(ArgumentError("non-covariance error components require a scalar or vector"))
+        if component.mode == :covariance && component.values isa AbstractVector
+            all(>(0.0), component.values) || throw(ArgumentError("covariance error component vector entries must be > 0"))
+        elseif component.mode != :covariance
+            if component.values isa Number
+                component.values > 0.0 || throw(ArgumentError("error component sigma entries must be > 0"))
+            else
+                all(>(0.0), component.values) || throw(ArgumentError("error component sigma entries must be > 0"))
+            end
+        end
 
         push!(components, component)
     end
@@ -371,8 +428,12 @@ function FitProblem(
     p0_vec = _float_vector(p0)
 
     n = length(y_vec)
+    n > 0 || throw(ArgumentError("x and y must contain at least one observation"))
     length(x_vec) == n || throw(ArgumentError("x and y must have equal length"))
     length(p0_vec) > 0 || throw(ArgumentError("p0 must contain at least one parameter"))
+    _assert_finite_vector("x", x_vec)
+    _assert_finite_vector("y", y_vec)
+    _assert_finite_vector("p0", p0_vec)
 
     if sigma_y !== nothing && cov_y !== nothing
         throw(ArgumentError("use either sigma_y or cov_y, not both"))
@@ -389,12 +450,16 @@ function FitProblem(
 
     sigma_y_vec !== nothing && length(sigma_y_vec) != n && throw(ArgumentError("sigma_y length must match y"))
     sigma_x_vec !== nothing && length(sigma_x_vec) != n && throw(ArgumentError("sigma_x length must match x"))
+    sigma_y_vec !== nothing && _assert_positive_sigma("sigma_y", sigma_y_vec)
+    sigma_x_vec !== nothing && _assert_positive_sigma("sigma_x", sigma_x_vec)
 
     if cov_y_mat !== nothing
         size(cov_y_mat) == (n, n) || throw(ArgumentError("cov_y must be n x n"))
+        _assert_covariance_matrix("cov_y", cov_y_mat)
     end
     if cov_x_mat !== nothing
         size(cov_x_mat) == (n, n) || throw(ArgumentError("cov_x must be n x n"))
+        _assert_covariance_matrix("cov_x", cov_x_mat)
     end
 
     bnd = _normalize_bounds(bounds, length(p0_vec))

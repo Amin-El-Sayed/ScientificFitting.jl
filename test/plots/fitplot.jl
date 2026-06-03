@@ -47,4 +47,32 @@ using Test
     @test nonlinear.result isa FitResult
     @test nonlinear.result.converged
     @test isfile(out)
+
+    minimal_out = joinpath(mktempdir(), "fitplot_minimal.png")
+    paper_out = joinpath(mktempdir(), "fitplot_paper.png")
+
+    fitplot(
+        x,
+        y;
+        sigma_y=sigma_y,
+        filename=minimal_out,
+        format=:png,
+        report=:none,
+        theme=:minimal,
+        parameter_names=["m", "b"],
+    )
+    fitplot(
+        x,
+        y;
+        sigma_y=sigma_y,
+        filename=paper_out,
+        format=:png,
+        report=:none,
+        theme=:paper,
+        parameter_names=["m", "b"],
+        model_label="y = m x + b",
+    )
+
+    @test isfile(minimal_out)
+    @test isfile(paper_out)
 end

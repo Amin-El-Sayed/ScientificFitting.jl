@@ -1,21 +1,30 @@
 function _fixed_index_set(problem)
+    isempty(problem.fixed_parameters) && return Set{Int}()
     return Set(fp.index for fp in problem.fixed_parameters)
 end
 
 function _free_indices(problem)
+    isempty(problem.fixed_parameters) && return collect(eachindex(problem.p0))
     fixed = _fixed_index_set(problem)
     return [i for i in eachindex(problem.p0) if !(i in fixed)]
 end
 
 function _fixed_lookup(problem)
+    isempty(problem.fixed_parameters) && return Dict{Int, FixedParameter}()
     return Dict(fp.index => fp for fp in problem.fixed_parameters)
 end
 
 function _free_p0(problem)
+    isempty(problem.fixed_parameters) && return copy(problem.p0)
     return problem.p0[_free_indices(problem)]
 end
 
 function _expand_free_parameters(problem, free_params::AbstractVector)
+    if isempty(problem.fixed_parameters)
+        length(free_params) == length(problem.p0) || throw(ArgumentError("free parameter vector has wrong length"))
+        return collect(free_params)
+    end
+
     free_idx = _free_indices(problem)
     length(free_params) == length(free_idx) || throw(ArgumentError("free parameter vector has wrong length"))
 
@@ -63,6 +72,14 @@ end
 
 function _free_jacobian_from_full(problem::FitProblem, full_jacobian::AbstractMatrix)
     return Matrix{Float64}(full_jacobian[:, _free_indices(problem)])
+end
+
+function _full_jacobian_from_free(problem, free_jacobian::AbstractMatrix, nrows::Int)
+    free_idx = _free_indices(problem)
+    size(free_jacobian) == (nrows, length(free_idx)) || throw(ArgumentError("free jacobian has wrong shape"))
+    jacobian = zeros(Float64, nrows, length(problem.p0))
+    jacobian[:, free_idx] .= free_jacobian
+    return jacobian
 end
 
 function _free_weighted_jacobian(problem::FitProblem, params::AbstractVector)

@@ -38,6 +38,8 @@ export LikelihoodFitProblem
 export LikelihoodFitResult
 export FitStatistics
 export FitDiagnostics
+export DiagnosticFinding
+export DiagnosticReport
 export FitReport
 export ParameterEstimate
 export ProfileResult
@@ -63,6 +65,8 @@ export plot_residuals
 export plot_diagnostics
 export plot_profile
 export plot_contour
+export diagnose
+export diagnose_text
 export report_text
 
 end # module JuFitter

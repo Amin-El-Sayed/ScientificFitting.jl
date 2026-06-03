@@ -108,8 +108,19 @@ function _default_profile_grid(result, index::Int; npoints::Int, nsigma::Real)
     return collect(range(center - nsigma * sigma, center + nsigma * sigma; length=npoints))
 end
 
+function _profile_refit_cost(result, fixed::Vector{FixedParameter}; on_failure::Symbol)
+    try
+        profiled = _refit_with_fixed(result, fixed)
+        return Float64(profiled.stats.cost_min)
+    catch err
+        on_failure == :throw && rethrow(err)
+        on_failure == :inf && return Inf
+        throw(ArgumentError("on_failure must be :inf or :throw"))
+    end
+end
+
 """
-    profile(result, index; values=nothing, npoints=61, nsigma=3, threshold=1.0)
+    profile(result, index; values=nothing, npoints=61, nsigma=3, threshold=1.0, on_failure=:inf)
 
 Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
@@ -121,18 +132,32 @@ function profile(
     npoints::Int=61,
     nsigma::Real=3,
     threshold::Real=1.0,
+    on_failure::Symbol=:inf,
 )
     1 <= index <= length(result.params) || throw(ArgumentError("profile index out of range"))
     grid = values === nothing ? _default_profile_grid(result, index; npoints=npoints, nsigma=nsigma) : collect(Float64, values)
     costs = Vector{Float64}(undef, length(grid))
 
     for (i, value) in enumerate(grid)
-        profiled = _refit_with_fixed(result, [FixedParameter(index, value)])
-        costs[i] = profiled.stats.cost_min
+        costs[i] = _profile_refit_cost(result, [FixedParameter(index, value)]; on_failure=on_failure)
     end
 
     delta = costs .- result.stats.cost_min
     return ProfileResult(index, grid, costs, delta, Float64(threshold), result.params[index])
+end
+
+function _profile_refit_failure_findings(profile_result::ProfileResult)
+    failed = count(!isfinite, profile_result.cost_values)
+    failed == 0 && return DiagnosticFinding[]
+    return DiagnosticFinding[
+        _finding(
+            :warning,
+            :profile_refit_failed,
+            "Some profile refits failed",
+            "$failed of $(length(profile_result.cost_values)) profile grid point(s) produced non-finite costs.",
+            "Inspect bounds, constraints, starting values, and scan range. Treat intervals across failed regions as unreliable.",
+        ),
+    ]
 end
 
 function _linear_crossing(x1, y1, x2, y2, threshold)
@@ -188,12 +213,72 @@ function profile_interval(
     return ProfileInterval(index, lower, upper, minus, plus, Float64(threshold), prof)
 end
 
+function _profile_threshold_bracket_findings(profile_result::ProfileResult)
+    lower, upper = _profile_crossings(profile_result)
+    findings = DiagnosticFinding[]
+    if !isfinite(lower) || !isfinite(upper)
+        side = !isfinite(lower) && !isfinite(upper) ? "both sides" : (!isfinite(lower) ? "lower side" : "upper side")
+        push!(
+            findings,
+            _finding(
+                :warning,
+                :profile_threshold_not_bracketed,
+                "Profile interval is not fully bracketed",
+                "The threshold $(profile_result.threshold) was not crossed on the $side of the scan.",
+                "Extend the profile range with a larger nsigma or explicit values before quoting a profile interval.",
+            ),
+        )
+    end
+    return findings
+end
+
+function _profile_parabolicity_findings(profile_result::ProfileResult, local_sigma; tolerance::Real)
+    local_sigma === nothing && return DiagnosticFinding[]
+    sigma = Float64(local_sigma)
+    sigma > 0 || throw(ArgumentError("local_sigma must be positive"))
+    tolerance >= 0 || throw(ArgumentError("tolerance must be non-negative"))
+
+    local_delta = @. abs2((profile_result.values - profile_result.best_value) / sigma)
+    relevant = (profile_result.delta_cost .<= max(4 * profile_result.threshold, profile_result.threshold + 3))
+    any(relevant) || return DiagnosticFinding[]
+    deviation = maximum(abs.(profile_result.delta_cost[relevant] .- local_delta[relevant]); init=0.0)
+
+    if deviation > tolerance
+        return DiagnosticFinding[
+            _finding(
+                :warning,
+                :profile_not_parabolic,
+                "Profile is not well described by the local parabola",
+                "max |profile - local parabola| = $(_fmt_scientific(deviation)) near the minimum.",
+                "Use profile intervals instead of symmetric local errors, and inspect bounds, correlations, scaling, or model nonlinearity.",
+            ),
+        ]
+    end
+    return DiagnosticFinding[]
+end
+
+"""
+    diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance=0.25)
+
+Diagnose an already computed one-parameter profile. With `local_sigma`, the
+actual profile is compared to the local covariance parabola. This is the
+machine-readable counterpart of overlaying both curves in `plot_profile`.
+"""
+function diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance::Real=0.25)
+    findings = DiagnosticFinding[]
+    append!(findings, _profile_refit_failure_findings(profile_result))
+    append!(findings, _profile_threshold_bracket_findings(profile_result))
+    append!(findings, _profile_parabolicity_findings(profile_result, local_sigma; tolerance=tolerance))
+    findings = _sort_findings(_deduplicate_findings(findings))
+    return DiagnosticReport(findings, _diagnostic_summary(findings))
+end
+
 function _default_contour_grid(result::FitResult, index::Int; npoints::Int, nsigma::Real)
     return _default_profile_grid(result, index; npoints=npoints, nsigma=nsigma)
 end
 
 """
-    contour(result, i, j; xvalues=nothing, yvalues=nothing, npoints=31, nsigma=3, levels=[2.30, 6.18])
+    contour(result, i, j; xvalues=nothing, yvalues=nothing, npoints=31, nsigma=3, levels=[2.30, 6.18], on_failure=:inf)
 
 Compute a two-parameter profile-likelihood contour grid. At each grid point,
 parameters `i` and `j` are fixed and all remaining free parameters are
@@ -208,6 +293,7 @@ function contour(
     npoints::Int=31,
     nsigma::Real=3,
     levels::AbstractVector=[2.30, 6.18],
+    on_failure::Symbol=:inf,
 )
     i != j || throw(ArgumentError("contour requires two distinct parameter indices"))
     1 <= i <= length(result.params) || throw(ArgumentError("first contour index out of range"))
@@ -218,10 +304,126 @@ function contour(
     costs = Matrix{Float64}(undef, length(xs), length(ys))
 
     for ix in eachindex(xs), iy in eachindex(ys)
-        profiled = _refit_with_fixed(result, [FixedParameter(i, xs[ix]), FixedParameter(j, ys[iy])])
-        costs[ix, iy] = profiled.stats.cost_min
+        costs[ix, iy] = _profile_refit_cost(result, [FixedParameter(i, xs[ix]), FixedParameter(j, ys[iy])]; on_failure=on_failure)
     end
 
     delta = costs .- result.stats.cost_min
     return ContourResult((i, j), xs, ys, costs, delta, collect(Float64, levels))
+end
+
+function _contour_refit_failure_findings(contour_result::ContourResult)
+    failed = count(!isfinite, contour_result.cost_values)
+    failed == 0 && return DiagnosticFinding[]
+    return DiagnosticFinding[
+        _finding(
+            :warning,
+            :contour_refit_failed,
+            "Some contour refits failed",
+            "$failed of $(length(contour_result.cost_values)) contour grid point(s) produced non-finite costs.",
+            "Inspect bounds, constraints, starting values, and scan range. Do not interpret contour topology through failed grid regions.",
+        ),
+    ]
+end
+
+function _contour_level_bracket_findings(contour_result::ContourResult)
+    findings = DiagnosticFinding[]
+    finite_delta = contour_result.delta_cost[isfinite.(contour_result.delta_cost)]
+    isempty(finite_delta) && return findings
+    min_delta = minimum(finite_delta)
+    max_delta = maximum(finite_delta)
+    missing_levels = [level for level in contour_result.levels if !(min_delta <= level <= max_delta)]
+    if !isempty(missing_levels)
+        push!(
+            findings,
+            _finding(
+                :warning,
+                :contour_levels_not_bracketed,
+                "Contour scan does not cover all requested levels",
+                "Requested level(s) $(join(_fmt_scientific.(missing_levels), ", ")) are outside the scanned delta-cost range [$(_fmt_scientific(min_delta)), $(_fmt_scientific(max_delta))].",
+                "Increase npoints/nsigma or pass wider xvalues/yvalues before interpreting missing contour levels.",
+            ),
+        )
+    end
+    return findings
+end
+
+function _contour_center(contour_result::ContourResult, local_center)
+    if local_center !== nothing
+        raw = collect(local_center)
+        length(raw) == 2 || throw(ArgumentError("local_center must contain exactly two values"))
+        return (Float64(raw[1]), Float64(raw[2]))
+    end
+
+    finite_delta = replace(contour_result.delta_cost, NaN => Inf)
+    idx = argmin(vec(finite_delta))
+    ix, iy = Tuple(CartesianIndices(contour_result.delta_cost)[idx])
+    return (contour_result.x_values[ix], contour_result.y_values[iy])
+end
+
+function _contour_local_covariance(contour_result::ContourResult, local_covariance)
+    local_covariance === nothing && return nothing
+    cov = Matrix{Float64}(local_covariance)
+    if size(cov) == (2, 2)
+        return cov
+    end
+    i, j = contour_result.parameter_indices
+    size(cov, 1) >= max(i, j) && size(cov, 2) >= max(i, j) ||
+        throw(ArgumentError("local_covariance must be 2x2 or the full parameter covariance matrix"))
+    return cov[[i, j], [i, j]]
+end
+
+function _contour_ellipticity_findings(contour_result::ContourResult, local_covariance, local_center; tolerance::Real)
+    cov = _contour_local_covariance(contour_result, local_covariance)
+    cov === nothing && return DiagnosticFinding[]
+    tolerance >= 0 || throw(ArgumentError("tolerance must be non-negative"))
+
+    center = _contour_center(contour_result, local_center)
+    precision = Symmetric(cov) \ Matrix{Float64}(I, 2, 2)
+    local_delta = Matrix{Float64}(undef, length(contour_result.x_values), length(contour_result.y_values))
+    for ix in eachindex(contour_result.x_values), iy in eachindex(contour_result.y_values)
+        delta = [contour_result.x_values[ix] - center[1], contour_result.y_values[iy] - center[2]]
+        local_delta[ix, iy] = dot(delta, precision * delta)
+    end
+
+    first_level = isempty(contour_result.levels) ? 2.30 : minimum(contour_result.levels)
+    relevant = contour_result.delta_cost .<= max(4 * first_level, first_level + 3)
+    any(relevant) || return DiagnosticFinding[]
+    deviation = maximum(abs.(contour_result.delta_cost[relevant] .- local_delta[relevant]); init=0.0)
+
+    if deviation > tolerance
+        return DiagnosticFinding[
+            _finding(
+                :warning,
+                :contour_not_elliptic,
+                "Contour is not well described by the local covariance ellipse",
+                "max |profile contour - local ellipse| = $(_fmt_scientific(deviation)) near the minimum.",
+                "Use profile contours for uncertainty interpretation, and inspect parameter correlations, bounds, scaling, or model nonlinearity.",
+            ),
+        ]
+    end
+    return DiagnosticFinding[]
+end
+
+"""
+    diagnose(contour_result::ContourResult; local_covariance=nothing, local_center=nothing, tolerance=0.5)
+
+Diagnose an already computed two-parameter contour grid. With
+`local_covariance`, the actual profiled contour surface is compared to the local
+covariance ellipse used by symmetric Gaussian error propagation.
+"""
+function diagnose(contour_result::ContourResult; local_covariance=nothing, local_center=nothing, tolerance::Real=0.5)
+    findings = DiagnosticFinding[]
+    append!(findings, _contour_refit_failure_findings(contour_result))
+    append!(findings, _contour_level_bracket_findings(contour_result))
+    append!(
+        findings,
+        _contour_ellipticity_findings(
+            contour_result,
+            local_covariance,
+            local_center;
+            tolerance=tolerance,
+        ),
+    )
+    findings = _sort_findings(_deduplicate_findings(findings))
+    return DiagnosticReport(findings, _diagnostic_summary(findings))
 end

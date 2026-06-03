@@ -3,10 +3,67 @@ has_y_uncertainty(problem::FitProblem) = !(problem.sigma_y === nothing && proble
 has_parameter_priors(problem) = !isempty(problem.parameter_priors)
 has_parameter_constraints(problem) = !isempty(problem.parameter_constraints)
 
+abstract type PreparedCovariance end
+
+struct DynamicPreparedCovariance <: PreparedCovariance end
+struct NoPreparedCovariance <: PreparedCovariance end
+
+struct DiagonalPreparedCovariance{V<:Vector{Float64}} <: PreparedCovariance
+    variances::V
+    invsqrt::V
+    logdet::Float64
+end
+
+struct DensePreparedCovariance{F} <: PreparedCovariance
+    factor::F
+    logdet::Float64
+end
+
+struct FitEvaluationCache{C<:PreparedCovariance}
+    problem::FitProblem
+    covariance::C
+end
+
+function _has_model_relative_y_uncertainty(problem::FitProblem)
+    return any(c -> c.active && c.target == :y && c.mode == :model_relative, problem.error_components)
+end
+
+function _static_effective_covariance_available(problem::FitProblem)
+    has_x_uncertainty(problem) && return false
+    _has_model_relative_y_uncertainty(problem) && return false
+    return true
+end
+
+function _prepare_covariance(cov, n::Int)
+    cov === nothing && return NoPreparedCovariance()
+
+    if cov isa AbstractVector
+        variances = collect(Float64, cov)
+        length(variances) == n || throw(ArgumentError("covariance vector length must match observations"))
+        any(variances .<= 0.0) && throw(ArgumentError("all effective variances must be positive"))
+        return DiagonalPreparedCovariance(variances, inv.(sqrt.(variances)), sum(log, variances))
+    end
+
+    F = _stable_cholesky(cov)
+    logdet = 2.0 * sum(log, diag(F.L))
+    return DensePreparedCovariance(F, logdet)
+end
+
+function _prepare_fit_cache(problem::FitProblem)
+    if !_static_effective_covariance_available(problem)
+        return FitEvaluationCache(problem, DynamicPreparedCovariance())
+    end
+    cov = _effective_covariance(problem, problem.p0)
+    return FitEvaluationCache(problem, _prepare_covariance(cov, length(problem.y)))
+end
+
 function _model_values(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
     values = problem.model(x, p)
     length(values) == length(x) || throw(ArgumentError("model output length must match x length"))
-    return collect(values)
+    collected = collect(values)
+    finite_values = ForwardDiff.value.(collected)
+    all(isfinite, finite_values) || throw(ArgumentError("model output must contain only finite values"))
+    return collected
 end
 
 function _model_scalar(problem::FitProblem, x::Real, p::AbstractVector)
@@ -121,23 +178,15 @@ function _effective_covariance(problem::FitProblem, p::AbstractVector)
 end
 
 function _stable_cholesky(cov::AbstractMatrix)
-    cov_sym = Symmetric(Matrix(cov))
+    cov_mat = Matrix{Float64}(ForwardDiff.value.(cov))
+    all(isfinite, cov_mat) || throw(ArgumentError("covariance matrix must contain only finite values"))
+    isapprox(cov_mat, cov_mat'; rtol=1e-12, atol=1e-12) ||
+        throw(ArgumentError("covariance matrix must be symmetric"))
+    cov_sym = Symmetric(cov_mat)
     try
         return cholesky(cov_sym)
     catch
-        base_scale = maximum(abs, diag(cov_sym))
-        for factor in (1e-12, 1e-10, 1e-8, 1e-6)
-            jitter = max(base_scale, 1.0) * factor
-            try
-                return cholesky(cov_sym + jitter * I)
-            catch
-                continue
-            end
-        end
-        eigen_decomp = eigen(cov_sym)
-        min_eig = minimum(eigen_decomp.values)
-        jitter = max(-min_eig, 0.0) + max(base_scale, 1.0) * 1e-8
-        return cholesky(cov_sym + jitter * I)
+        throw(ArgumentError("covariance matrix must be symmetric positive definite"))
     end
 end
 
@@ -155,6 +204,27 @@ function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::Abst
 
     F = _stable_cholesky(cov)
     return collect(F.L \ residual)
+end
+
+function _whiten_residual(cache::FitEvaluationCache{NoPreparedCovariance}, p::AbstractVector, residual::AbstractVector)
+    return collect(residual)
+end
+
+function _whiten_residual(cache::FitEvaluationCache{<:DiagonalPreparedCovariance}, p::AbstractVector, residual::AbstractVector)
+    invsqrt = cache.covariance.invsqrt
+    out = Vector{promote_type(eltype(residual), Float64)}(undef, length(residual))
+    @inbounds for i in eachindex(residual)
+        out[i] = residual[i] * invsqrt[i]
+    end
+    return out
+end
+
+function _whiten_residual(cache::FitEvaluationCache{<:DensePreparedCovariance}, p::AbstractVector, residual::AbstractVector)
+    return collect(cache.covariance.factor.L \ residual)
+end
+
+function _whiten_residual(cache::FitEvaluationCache{DynamicPreparedCovariance}, p::AbstractVector, residual::AbstractVector)
+    return _whiten_residual(cache.problem, p, residual)
 end
 
 function _residual(problem::FitProblem, p::AbstractVector)
@@ -187,8 +257,39 @@ function _weighted_residual(problem::FitProblem, p::AbstractVector)
     return vcat(rw_data, rw_priors)
 end
 
+function _weighted_residual(cache::FitEvaluationCache, p::AbstractVector)
+    problem = cache.problem
+    r = _residual(problem, p)
+    rw_data = _whiten_residual(cache, p, r)
+    if !has_parameter_priors(problem) && !has_parameter_constraints(problem)
+        return rw_data
+    end
+
+    T = eltype(rw_data)
+    n_constraint_terms = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
+    rw_priors = Vector{T}(undef, length(problem.parameter_priors) + n_constraint_terms)
+    cursor = 1
+    @inbounds for prior in problem.parameter_priors
+        sigma = _asymmetric_sigma(p[prior.index], prior.mean, prior.sigma_minus, prior.sigma_plus)
+        rw_priors[cursor] = (p[prior.index] - prior.mean) / sigma
+        cursor += 1
+    end
+    @inbounds for constraint in problem.parameter_constraints
+        delta = p[constraint.indices] .- constraint.mean
+        z = _stable_cholesky(constraint.covariance).L \ delta
+        rw_priors[cursor:(cursor + length(z) - 1)] .= z
+        cursor += length(z)
+    end
+    return vcat(rw_data, rw_priors)
+end
+
 function _chi2(problem::FitProblem, p::AbstractVector)
     rw = _weighted_residual(problem, p)
+    return sum(abs2, rw)
+end
+
+function _chi2(cache::FitEvaluationCache, p::AbstractVector)
+    rw = _weighted_residual(cache, p)
     return sum(abs2, rw)
 end
 
@@ -206,6 +307,18 @@ end
 
 function _weighted_jacobian(problem::FitProblem, p::AbstractVector)
     jac = ForwardDiff.jacobian(pp -> _weighted_residual(problem, pp), p)
+    return Matrix{Float64}(jac)
+end
+
+function _weighted_jacobian(cache::FitEvaluationCache, p::AbstractVector)
+    jac = ForwardDiff.jacobian(pp -> _weighted_residual(cache, pp), p)
+    return Matrix{Float64}(jac)
+end
+
+function _free_weighted_jacobian(cache::FitEvaluationCache, params::AbstractVector)
+    problem = cache.problem
+    free_idx = _free_indices(problem)
+    jac = ForwardDiff.jacobian(q -> _weighted_residual(cache, _expand_free_parameters(problem, q)), params[free_idx])
     return Matrix{Float64}(jac)
 end
 
@@ -251,6 +364,15 @@ function _covariance_from_cost_hessian(problem::FitProblem, p::AbstractVector, c
     free_idx = _free_indices(problem)
     q = p[free_idx]
     H = ForwardDiff.hessian(qq -> _cost_value(problem, _expand_free_parameters(problem, qq), cost), q)
+    cov = 2.0 .* _stable_symmetric_inverse(H)
+    return _embed_free_covariance(problem, cov)
+end
+
+function _covariance_from_cost_hessian(cache::FitEvaluationCache, p::AbstractVector, cost::Symbol)
+    problem = cache.problem
+    free_idx = _free_indices(problem)
+    q = p[free_idx]
+    H = ForwardDiff.hessian(qq -> _cost_value(cache, _expand_free_parameters(problem, qq), cost), q)
     cov = 2.0 .* _stable_symmetric_inverse(H)
     return _embed_free_covariance(problem, cov)
 end

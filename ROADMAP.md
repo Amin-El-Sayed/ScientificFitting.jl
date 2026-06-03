@@ -59,6 +59,9 @@ Acceptance criteria:
 
 ## Phase 2: Statistical Core
 
+Status: complete for the current v1 core; future statistical features belong to
+new scoped phases or explicit follow-up items.
+
 Goal: every number in `FitResult` has an explicit statistical interpretation.
 
 Key deliverables:
@@ -78,27 +81,115 @@ Acceptance criteria:
 - Warnings are emitted when reported uncertainties or p-values are not
   statistically reliable.
 
-## Phase 3: Numerics and Performance
+Completion evidence:
+
+- Analytic Gaussian references cover diagonal, full-covariance, constraints,
+  covariance scaling, and component covariance semantics.
+- Likelihood references cover Poisson, histogram Poisson, unbinned, extended
+  unbinned, and mapped multi-fit workflows.
+- Profile and contour scans are validated against the covariance quadratic form.
+- Diagnostics warn for unavailable p-values, non-positive degrees of freedom,
+  active bounds, and ill-conditioned covariance/Hessian cases.
+
+## Phase 3: Numerics, Performance, and Torture Testing
+
+Status: reopened as the release gate. The previous benchmark baseline was useful
+but not strict enough for a public scientific package.
 
 Goal: robustness and speed are measured continuously.
 
 Key deliverables:
 
+- Torture tests for hostile inputs, bad scaling, singular or invalid
+  uncertainty structures, active constraints, non-finite model output, and large
+  datasets.
+- Clear failure semantics: invalid scientific input must fail early with a
+  useful error; numerical repair must never be silent.
 - Benchmark suite for least squares, full covariance, likelihood fits, profiles,
   and plotting.
 - No explicit matrix inverse in production covariance calculations.
-- Stable factorization strategy with Cholesky/LDL/fallback diagnostics.
+- Stable factorization strategy with Cholesky/LDL/fallback diagnostics, not
+  hidden jitter.
 - Clear AD/Jacobian policy: analytic, automatic differentiation, finite
   differences as fallback.
 - Parameter scaling and optimizer fallback policy.
 
 Acceptance criteria:
 
-- Benchmarks are reproducible from the repository.
-- Numerically bad inputs produce actionable diagnostics.
+- Benchmarks are reproducible from the repository and compared against saved
+  baselines.
+- Numerically bad inputs produce actionable errors or diagnostics.
 - Common workflows stay fast as features are added.
+- Pathological but meaningful fits are covered before gallery examples claim
+  robustness.
+
+Current evidence:
+
+- `benchmarks/runbenchmarks.jl` covers least-squares, no-op bounds, dense
+  covariance, bounded dense covariance, Poisson likelihood, plotting, and
+  profile scans.
+- Static diagonal and dense Gaussian covariance terms are factorized once per
+  fit evaluation cache instead of being rebuilt on every objective call.
+- Production covariance calculations avoid explicit matrix inverse calls; they
+  use linear solves or stable eigen fallbacks for singular/ill-conditioned
+  cases.
+- The fast `LsqFit` path is preserved for unbounded static least-squares fits,
+  including user-supplied no-op bounds such as `[-Inf, Inf]`.
+- `LsqFit` backend Jacobians are reused when constructing `FitResult`, avoiding
+  an avoidable AD pass for common least-squares workflows.
+- The generic `Optimization.jl` path receives cached objective data, so static
+  covariance factorizations and log determinants are not recomputed by AD.
+- Dense covariance remains intentionally documented as an expensive `O(n^2)`
+  memory and `O(n^3)` factorization path; huge correlated datasets need future
+  structured covariance operators rather than dense matrices.
+
+Open hardening work:
+
+- Make profile/contour scans robust against failed refits and expose failures
+  in diagnostics instead of crashing or silently producing incomplete grids.
+- Add adaptive profile/contour refinement around confidence thresholds and
+  curved/non-elliptic regions.
+- Build a diagnosis dashboard from the structured `diagnose` findings instead
+  of treating residual/profile/contour plots as independent smoke plots.
+- Add structured covariance/whitening operators for large correlated data.
+- Add in-place model and residual APIs for huge datasets.
+- Add explicit optimizer fallback and parameter-scaling diagnostics.
+- Add performance-budget CI for representative hot paths.
+- Expand torture tests until they cover constraints, priors, likelihoods,
+  profiles, contours, and multi-dataset workflows under hostile conditions.
+
+## Phase 3.5: Diagnostic Plots and Contours
+
+Status: blocked on the Phase 3 hardening gate.
+
+Goal: profile, contour, residual, pull, covariance, and likelihood diagnostics
+must communicate statistical meaning as clearly as kafe2/Minuit-style tools,
+with Makie-level visual quality.
+
+Key deliverables:
+
+- Profile and contour plots with correct likelihood thresholds, labels, legends,
+  and clear distinction between local covariance and profile intervals.
+- Residual and pull diagnostics that explain outliers, heteroscedasticity, and
+  systematic model failures.
+- External legends/statistical reports that can sit beside the plot without
+  wasting plot area.
+- User-extensible plot annotation API for physical extrapolations, thresholds,
+  derived quantities, and uncertainty markers.
+
+Acceptance criteria:
+
+- Diagnostic plots are backed by numerical tests for profile/contour semantics.
+- Every diagnostic example explains what a scientist should conclude from the
+  plot, not merely how to call the function.
+- The gallery includes difficult, messy examples before simple aesthetic
+  showcase examples.
 
 ## Phase 4: Documentation and Gallery
+
+Status: postponed behind Phase 3 and Phase 3.5 quality gates. Documentation
+work continues only where it records architecture decisions, known limitations,
+and hardening results.
 
 Goal: documentation is good enough to teach scientific fitting, not only list
 function signatures.
@@ -109,12 +200,25 @@ Key deliverables:
 - Quickstart, tutorials, theory guide, plot gallery, and API reference.
 - Realistic examples from physics, engineering, and social sciences.
 - Every major example includes generated plots.
+- Function-level documentation for every exported type and function.
+- Installation, troubleshooting, first-compile, plotting-backend, and
+  performance guidance.
+- A long-term maintenance section documenting architecture, hot paths,
+  bottlenecks, and known limitations.
+- Light and dark documentation design with matching plot themes.
+- A reproducible gallery pipeline, ideally via Literate-style examples, so code,
+  text, and figures stay synchronized.
 
 Acceptance criteria:
 
 - The docs build locally and in CI.
 - Tutorials are executable or have a documented reason when they are not.
 - Statistical concepts are explained with equations and practical settings.
+- Gallery examples include simple, dense-data, XY-uncertainty, full-covariance,
+  profile/contour, histogram, likelihood, and multi-fit workflows.
+- The first public release has a clear path from `Pkg.add` to first successful
+  plot and report.
+- The docs explain when not to trust local errors, p-values, or chi-square/ndf.
 
 ## Agent Operating Model
 

@@ -1,6 +1,6 @@
 using Test
 
-@testset "JuFitter test suite" begin
+@testset "JuFitter core test suite" begin
     include("regression/current_api.jl")
     include("statistics/covariance_semantics_reference.jl")
     include("statistics/diagnostics_reference.jl")
@@ -8,5 +8,4 @@ using Test
     include("statistics/likelihood_reference.jl")
     include("statistics/profile_contour_reference.jl")
     include("numerics/torture_inputs.jl")
-    include("plots/fitplot.jl")
 end

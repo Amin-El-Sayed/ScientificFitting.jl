@@ -168,6 +168,16 @@ function _report_lines(report::FitReport; sigdigits::Int=6)
         append!(lines, ["  $warning" for warning in report.diagnostics.warnings])
     end
 
+    if !isempty(report.diagnostics.findings)
+        push!(lines, "")
+        push!(lines, "Diagnosis:")
+        for finding in report.diagnostics.findings
+            push!(lines, "  [$(uppercase(String(finding.severity)))] $(finding.title)")
+            push!(lines, "    evidence: $(finding.evidence)")
+            push!(lines, "    action: $(finding.recommendation)")
+        end
+    end
+
     return lines
 end
 

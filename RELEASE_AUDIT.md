@@ -1,0 +1,106 @@
+# JuFitter Release Audit
+
+Status: 2026-06-03
+
+This document tracks what must be true before JuFitter should be advertised as a
+serious scientific fitting library. Passing tests is necessary, but not
+sufficient.
+
+## Current Verification
+
+- `git diff --check` passes for the current staged release-hardening block.
+- `julia --project=. -e 'include("test/torture_runtests.jl")'` passes with 14
+  torture checks in about 2m44s on the local machine.
+- `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 291
+  core checks in about 4m27s on the local machine.
+- `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 300 tests in about
+  7m21s on the local machine.
+- Documentation build passed before the latest `siteinfo.js` source fix. The
+  build must be rerun before publishing.
+- Phase 3 is reopened as the release gate. The project no longer treats
+  friendly-path examples or smoke tests as evidence of production robustness.
+
+## Release Blockers
+
+- Public documentation still contains legacy German text in technical pages.
+  These pages must either be rewritten in polished English or moved out of the
+  public documentation.
+- The API reference is generated from docstrings, but many public functions do
+  not yet have the level of parameter-by-parameter documentation expected from a
+  serious Julia package.
+- The README is still a repo-oriented technical summary, not a polished landing
+  page for users coming from JuliaHub, GitHub, Reddit, or a paper.
+- The gallery is directionally good, but several pages are still short API
+  examples rather than complete scientific workflows with interpretation,
+  formulas, full code, and diagnostics.
+- There is no formal link check in CI for the generated documentation.
+- There is no visual regression or snapshot test for documentation plots.
+- There is no documentation deployment workflow yet.
+
+## Code And Numerical Blockers
+
+- `CairoMakie` is a hard dependency of `JuFitter`. This makes `using JuFitter`
+  heavier than necessary for users who only want fitting. A package extension or
+  split plotting submodule should be evaluated before a public release.
+- The torture suite is only starting. It must cover constraints, priors,
+  likelihoods, profiles, contours, multi-dataset fits, bad scaling, local
+  minima, invalid uncertainty models, and large datasets before release claims
+  can use words like robust.
+- x-uncertainty propagation currently differentiates the model point-by-point
+  by calling the model on one-element arrays. This is clear but not acceptable
+  as the final high-performance path for large datasets.
+- Dense covariance support is mathematically useful, but still `O(n^2)` memory
+  and `O(n^3)` factorization. Large correlated datasets need structured
+  covariance operators or custom whitening operators.
+- Objective functions still allocate substantially through `ForwardDiff`
+  Jacobians/Hessians and array-returning model calls. Very large datasets need
+  an in-place residual/model API.
+- Invalid covariance matrices must not be silently repaired. If a future
+  regularization/jitter policy is added, it must be explicit in the API and
+  visible in diagnostics.
+- Bounds and constraints currently rely on local Hessian/covariance
+  approximations. Reports must be explicit about when errors are local and when
+  profile intervals are required.
+- Profile and contour scans compute useful refits, but still need robust
+  failed-refit handling and adaptive refinement before they are release-grade
+  diagnostic tools.
+- Multi-dataset fitting currently supports useful parameter mapping, but not the
+  full uncertainty model expected from kafe2-level workflows.
+- Benchmarks exist, but there is no enforced performance budget in CI.
+- Diagnostic plots, profile contours, residual/pull views, and external report
+  legends are not yet at the level needed to compete with kafe2/Minuit-style
+  workflows.
+
+## Documentation Blockers
+
+- Every gallery example should include a complete code block that can be copied
+  into a Julia session.
+- Every plot band must explicitly state whether it is a confidence band or a
+  prediction band and which sigma level it shows.
+- The math section needs a clean beginner path before the full formal reference.
+- Technical maintenance notes should remain accessible, but should not dominate
+  the user-facing navigation.
+- All private/local dataset language must stay out of public documentation.
+- Dark-mode plots must be checked visually whenever a gallery asset changes.
+
+## CI And Packaging Blockers
+
+- Add a docs-deploy job for GitHub Pages or the chosen static host.
+- Add a generated-documentation link check.
+- Add a fast test target that excludes expensive plot generation.
+- Add a full test target that includes plots and gallery generation.
+- Add benchmarks with saved baseline results for hot paths.
+- Add a pre-release checklist that runs tests, docs, link checks, examples, and
+  benchmark smoke tests from a clean checkout.
+
+## Minimum Public v0 Criteria
+
+- All tests pass on macOS and Linux CI.
+- Docs build and link check pass in CI.
+- README, install, quickstart, and gallery are polished enough for first-time
+  users.
+- At least eight gallery workflows are complete stories with formulas, full
+  code, generated plots, and interpretation.
+- Core statistical semantics are covered by reference tests.
+- Known limitations are explicit and not hidden in optimistic marketing text.
+- Performance claims are backed by reproducible benchmarks.
