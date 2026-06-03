@@ -15,8 +15,8 @@ sufficient.
   core checks in about 4m27s on the local machine.
 - `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 300 tests in about
   7m21s on the local machine.
-- Documentation build passed before the latest `siteinfo.js` source fix. The
-  build must be rerun before publishing.
+- `julia --project=docs docs/make.jl` passes locally after the `siteinfo.js`
+  source fix. The build output is ignored and must not be committed.
 - Phase 3 is reopened as the release gate. The project no longer treats
   friendly-path examples or smoke tests as evidence of production robustness.
 
