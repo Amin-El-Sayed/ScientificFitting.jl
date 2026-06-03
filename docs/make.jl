@@ -16,22 +16,24 @@ makedocs(;
         "Getting Started" => [
             "Install" => "install.md",
             "Quickstart" => "quickstart.md",
-            "Gallery" => [
-                "Overview" => "gallery.md",
-                "Linear Calibration" => "gallery/linear_calibration.md",
-                "Photoelectric Work Function" => "gallery/photoelectric_threshold.md",
-                "Damped Oscillator" => "gallery/resonance_decay.md",
-                "Full Covariance" => "gallery/full_covariance.md",
-                "XY Uncertainties" => "gallery/xy_uncertainties.md",
-                "Constraints and Profiles" => "gallery/constraints_profiles.md",
-                "Poisson and Histograms" => "gallery/poisson_histogram.md",
-                "Multi-Dataset Fit" => "gallery/multi_dataset.md",
-            ],
         ],
-        "Concepts" => [
+        "Gallery" => [
+            "Overview" => "gallery.md",
+            "Linear Calibration" => "gallery/linear_calibration.md",
+            "Photoelectric Work Function" => "gallery/photoelectric_threshold.md",
+            "Damped Oscillator" => "gallery/resonance_decay.md",
+            "Full Covariance" => "gallery/full_covariance.md",
+            "XY Uncertainties" => "gallery/xy_uncertainties.md",
+            "Constraints and Profiles" => "gallery/constraints_profiles.md",
+            "Poisson and Histograms" => "gallery/poisson_histogram.md",
+            "Multi-Dataset Fit" => "gallery/multi_dataset.md",
+        ],
+        "Guides" => [
             "Fitting for Practitioners" => "fitting_for_practitioners.md",
-            "Statistical Foundations" => "statistical_foundations.md",
             "Plotting Design" => "plotting_design.md",
+        ],
+        "Mathematics And Statistics" => [
+            "Statistical Foundations" => "statistical_foundations.md",
         ],
         "Reference" => [
             "API Reference" => "api.md",

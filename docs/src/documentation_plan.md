@@ -1,117 +1,160 @@
-# Documentation Plan
+# Documentation Strategy
 
-This page tracks the documentation work needed before JuFitter should be
-advertised publicly. The target is a stable, modern, easy-to-host site with the
-tone of Julia, Pluto, Makie, and SciML: computation made accessible, but without
-weakening the mathematics.
+This page is the working contract for the documentation rewrite. It exists to
+prevent the site from becoming a loose collection of examples, API fragments,
+and generated-looking explanations.
 
-## Publication Readiness
+## Reader Paths
 
-The current codebase is a solid v0 foundation: the core fit paths, statistical
-semantics, plotting backend, examples, benchmarks, and tests are in place. It
-is not ready for broad promotion until the documentation reaches the same
-standard as the code.
+The documentation must serve four different readers without forcing them
+through the same path.
 
-The first public release should wait for:
+```@raw html
+<div class="jufitter-flow">
+  <div class="jufitter-flow-step"><strong>New User</strong><span>Install, quickstart, first plot, first diagnosis.</span></div>
+  <div class="jufitter-flow-step"><strong>Example-Driven Scientist</strong><span>Start from a realistic workflow and adapt it.</span></div>
+  <div class="jufitter-flow-step"><strong>Practitioner</strong><span>Decide what to do when a fit looks suspicious.</span></div>
+  <div class="jufitter-flow-step"><strong>Statistics Reader</strong><span>Understand and justify the mathematical method.</span></div>
+  <div class="jufitter-flow-step"><strong>API User</strong><span>Find every argument, default, return value, and failure mode.</span></div>
+</div>
+```
 
-- A complete quickstart path from installation to first plot.
-- A polished gallery with generated figures.
-- Function-level documentation for every public export.
-- A theory section that explains which statistical model each helper uses.
-- Troubleshooting pages for startup time, plotting backends, slow fits, and
-  covariance pitfalls.
-- A clean design layer with readable light and dark modes.
+The site order follows that priority:
 
-## Site Architecture
+1. Getting Started.
+2. Gallery.
+3. Guides.
+4. Mathematics And Statistics.
+5. Reference.
+6. Development Notes.
 
-- Home: clear promise, minimal example, links to common entry points.
-- Install: package install, project activation, first compile, plot backends,
-  troubleshooting.
-- Quickstart: one complete path with `fitplot`, `fit_model`, reports, and
-  diagnostics.
-- Gallery: example-driven documentation with generated figures.
-- Concepts: statistics, backend design, performance, covariance semantics.
-- API Reference: detailed docs for every exported type and function.
-- Maintenance Notes: architecture, bottlenecks, known limitations, and future
-  optimization points.
+The Gallery comes before Guides because many scientists learn fitting by
+recognizing a workflow close to their own experiment. Guides explain general
+rules after the reader has seen concrete examples.
 
-## Design Direction
+## Core Narrative
 
-The website should feel closer to a modern scientific product than a default
-API dump. The practical target:
+The documentation should teach one repeated workflow:
 
-- Documenter.jl for stable Julia-native hosting and deployment.
-- Evaluate DocumenterVitepress.jl for a more modern navigation and dark-mode
-  experience.
-- Literate examples for gallery pages, so code, text, and figures stay in sync.
-- Light and dark plot themes generated from the same gallery scripts.
-- Visual references: Makie/Beautiful Makie for plot galleries, SciML for
-  large-scale technical navigation, Pluto for accessible language and immediacy.
+1. State the scientific question.
+2. Inspect the measured quantities and uncertainties.
+3. Choose a model and explain its parameters.
+4. Choose the statistical cost and justify it.
+5. Fit.
+6. Diagnose the result.
+7. Report the parameter values, uncertainty, and limitations.
+8. Decide whether the model is good enough or needs revision.
 
-## API Documentation Requirements
+Every tutorial and gallery page should follow this pattern unless there is a
+specific reason not to.
 
-Every exported symbol must answer:
+## Gallery Standard
 
-- What problem does this solve?
-- What are the required arguments?
-- What keyword arguments exist, with defaults and units/semantics where
-  relevant?
-- What statistical model is minimized?
-- What does the result contain?
-- What can go wrong, and what warning should the user expect?
-- Minimal example and one realistic example where useful.
+Gallery pages are not decorative examples. Each one must be a complete
+scientific workflow.
 
-Priority public exports:
+Required sections:
 
-- `fitplot`, `plot_fit`, `plot_residuals`, `plot_diagnostics`,
-  `plot_profile`, `plot_contour`.
-- `fit`, `fit_model`, `fit_custom`, `fit_poisson_model`,
-  `fit_histogram_model`, `fit_histogram_density`, `fit_unbinned_model`,
-  `fit_extended_unbinned_model`, `fit_indexed_model`, `fit_multi_model`.
-- `profile`, `profile_interval`, `contour`.
-- `fit_report`, `report_text`.
-- `FitProblem`, `FitResult`, `LikelihoodFitProblem`, `LikelihoodFitResult`,
-  `FitStatistics`, `FitDiagnostics`, `ParameterPrior`, `FixedParameter`,
-  `ParameterConstraint`, `ErrorComponent`, `ConstraintSpec`.
+- **Question:** what physical, engineering, or statistical quantity is being
+  determined?
+- **Data:** column meanings, units, uncertainty sources, and why the dataset is
+  realistic.
+- **Model:** formula, parameter meanings, assumptions, and expected failure
+  modes.
+- **Fit:** full executable code, not just a fragment.
+- **Diagnostics:** residuals, chi-square, p-value, dashboard, profiles, or
+  contours where relevant.
+- **Interpretation:** final result with uncertainty and what it means.
+- **What can go wrong:** at least one realistic warning sign or limitation.
 
-## Theory Requirements
+Synthetic data are acceptable only for controlled demonstrations of a method.
+The main gallery should use real or realistically messy datasets with visible
+uncertainties, imperfect residuals, and meaningful interpretation.
 
-The mathematics section must explain:
+## Mathematics And Statistics Standard
 
-- Chi-square fits with diagonal and dense covariance.
-- Full Gaussian negative log-likelihood and the log-determinant term.
-- Effective variance for x uncertainties and when it is only an approximation.
-- Poisson likelihood and Poisson deviance.
-- Histogram, unbinned, and extended-unbinned likelihoods.
-- Priors, parameter constraints, fixed parameters, bounds, and ndf semantics.
-- Local covariance from Jacobian or Hessian.
-- Profile likelihoods, contour levels, Wilks approximations, and limitations.
-- AIC, BIC, p-values, and when not to trust them.
+The mathematics section is not a library manual. It must justify the methods in
+a scientific context.
 
-Each theory page should end with practical guidance: which JuFitter function to
-use, which options matter, and which diagnostics to inspect.
+Each methods page should answer:
 
-## Gallery Build Plan
+- What assumptions does this method make?
+- What quantity is minimized or estimated?
+- Which terms are constants, and which affect the fitted parameters?
+- When are local covariance errors valid?
+- When do profiles or contours replace local symmetric errors?
+- What does the p-value or deviance mean, and what does it not mean?
+- Which approximation is being used, and when does it fail?
+- What should a scientist cite, report, or check in a critical analysis?
 
-Examples should be executable and visually checked. The target workflow is:
+API calls may appear at the end of a methods page, but the main body should
+explain the method itself.
 
-- Write gallery scripts under `examples/gallery/`.
-- Save outputs under `examples/output/`.
-- Convert stable examples into docs pages via Literate or a small build helper.
-- Use real data subsets where possible.
-- Add a smoke test for each gallery script once it stabilizes.
+The minimum statistics curriculum is:
 
-Course-specific raw data can be used as source material, but public
-documentation must only contain curated datasets with neutral names, minimal
-columns, and provenance notes that explain the measurement type without local
-paths or course-internal context.
+- weighted chi-square and whitening,
+- full Gaussian likelihood and log determinants,
+- diagonal versus dense covariance,
+- x-uncertainty and effective variance approximations,
+- Poisson counts and deviance,
+- histogram, unbinned, and extended likelihoods,
+- priors, bounds, fixed parameters, and constraints,
+- degrees of freedom and goodness-of-fit,
+- local Hessian/Jacobian covariance,
+- profile likelihoods, Wilks thresholds, and contour interpretation,
+- AIC, BIC, model comparison, and their limitations.
 
-## Current Documentation Debt
+## Guides Standard
 
-- `api.md` currently relies on raw autodocs. It needs curated pages organized by
-  workflow.
-- The gallery needs at least eight polished long-form examples with real or
-  realistic datasets, visible uncertainty information, and light/dark plot
-  exports.
-- The math section needs an entry-level layer for engineers and beginners before
-  the precise likelihood/covariance treatment.
+Guides are for decisions during use. They should be shorter than the math
+reference and more operational than the gallery.
+
+Examples:
+
+- Which uncertainty input should I use?
+- My chi-square is terrible. What do I inspect first?
+- When should I use a likelihood fit instead of least squares?
+- How do I decide whether local errors are trustworthy?
+- How do I make a plot/report for a lab notebook or paper?
+
+Guides should link to gallery pages for full workflows and to mathematics pages
+for justification.
+
+## API Reference Standard
+
+Autodocs alone are not sufficient. Every public export must eventually document:
+
+- required arguments,
+- keyword arguments and defaults,
+- units and statistical semantics where relevant,
+- return type,
+- failure modes,
+- diagnostics emitted,
+- one minimal example,
+- one realistic example or link to a gallery page.
+
+## Page Completion Gate
+
+A page is not ready unless:
+
+- It has a clear reader and purpose.
+- It uses concrete data, formulas, or code rather than generic prose.
+- Every plot explains bands, errors, markers, and reports.
+- Every code block is executable or explicitly marked as a fragment.
+- No private paths, course-internal language, or placeholder text remain.
+- The page links to the next useful page in the reader path.
+- `julia --project=docs docs/make.jl` builds after the change.
+
+## Automation Rules
+
+Automated documentation work should proceed page by page. A heartbeat or agent
+run must:
+
+1. Read this strategy, `ROADMAP.md`, `RELEASE_AUDIT.md`, and `git status`.
+2. Pick one page or one tightly scoped navigation change.
+3. Improve it to the completion gate above.
+4. Run the docs build.
+5. Leave the worktree clean or stop with a precise blocker.
+
+Do not spread shallow edits across many pages. One excellent page is more useful
+than ten plausible pages.

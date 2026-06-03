@@ -47,23 +47,23 @@ result = fit.result
 
 <div class="jufitter-card-grid">
 <div class="jufitter-card">
-<h3>Install</h3>
-<p>Set up the package, understand first compile time, and verify plotting.</p>
-<p><a href="install.html">Install JuFitter</a></p>
-</div>
-<div class="jufitter-card">
-<h3>Quickstart</h3>
-<p>Go from arrays and uncertainties to fit, plot, and report.</p>
-<p><a href="quickstart.html">Run the first fit</a></p>
+<h3>Start</h3>
+<p>Install the package, understand first compile time, and produce the first fit plot.</p>
+<p><a href="quickstart.html">Run the quickstart</a></p>
 </div>
 <div class="jufitter-card">
 <h3>Gallery</h3>
-<p>Learn by realistic physics and engineering examples with generated plots.</p>
+<p>Start from complete scientific workflows: data, model, fit, diagnostics, interpretation.</p>
 <p><a href="gallery.html">Open the gallery</a></p>
 </div>
 <div class="jufitter-card">
+<h3>Guides</h3>
+<p>Choose uncertainty inputs, diagnose bad fits, and decide what to inspect next.</p>
+<p><a href="fitting_for_practitioners.html">Read the practitioner guide</a></p>
+</div>
+<div class="jufitter-card">
 <h3>Statistics</h3>
-<p>Check the mathematical model before trusting a number.</p>
+<p>Understand and justify the methods behind chi-square, likelihoods, covariance, profiles, and contours.</p>
 <p><a href="statistical_foundations.html">Read the theory</a></p>
 </div>
 </div>
