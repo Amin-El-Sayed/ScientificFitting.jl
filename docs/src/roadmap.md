@@ -18,12 +18,34 @@ exports, and Makie-compatible customization.
 Statistical core: audited likelihood conventions, covariance semantics,
 constraints, profiles, contours, and reference tests.
 
+Status: complete for the current v1 core. The statistical reference suite now
+covers Gaussian, likelihood, covariance-component, profile/contour, and
+diagnostic-warning semantics.
+
 ## Phase 3
 
 Numerics and performance: reproducible benchmarks, stable factorizations,
 diagnostics, AD/Jacobian policy, and optimizer fallback strategy.
 
+Status: reopened as the release gate. Static covariance factorizations are
+cached, explicit production matrix inverses were removed, no-op bounds keep the
+fast least-squares backend, and benchmark coverage now includes least-squares,
+dense covariance, bounded covariance, Poisson likelihood, plotting, and
+profiles. That evidence is useful, but it is not enough for public robustness
+claims until the torture suite covers more hostile constraints, priors,
+likelihood, profile, contour, and multi-dataset workflows.
+
+Dense covariance fits remain the intentionally expensive path: they are correct
+and tested, but very large correlated datasets need future structured
+covariance operators instead of materialized dense matrices.
+
 ## Phase 4
 
 Documentation and gallery: tutorials, theory guide, API reference, and
 real-data examples with generated plots.
+
+Status: in progress. The docs now have explicit pages for installation,
+quickstart, gallery planning, performance, maintenance notes, and the
+documentation plan. The remaining work is to turn the example scripts into
+generated gallery pages, write curated API pages for all public exports, and
+apply the final modern light/dark design.

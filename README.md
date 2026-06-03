@@ -60,7 +60,7 @@ result = fit.result
 - `fit_multi_model(models, xs, ys; p0, sigma_y=nothing, kwargs...)`
 - `fitplot(x, y; sigma_y=nothing, kwargs...)`
 - `fitplot(model, x, y; p0, sigma_y=nothing, kwargs...)`
-- `plot_fit(result; xgrid=nothing, filename=nothing, format=:pdf, theme=:publication, ...)`
+- `plot_fit(result; xgrid=nothing, filename=nothing, format=:pdf, theme=:clean, ...)`
 - `plot_residuals(result; kind=:pull, filename=nothing, format=:pdf, ...)`
 - `plot_diagnostics(result; filename=nothing, format=:pdf, ...)`
 - `fit_report(result; parameter_names=nothing)`
@@ -70,6 +70,7 @@ Key `plot_fit` customization kwargs:
 
 - labels/text:
   - `title`, `xlabel`, `ylabel`, `xunit`, `yunit`
+  - `model_label` for the model formula shown above the fit summary
   - `latex_labels=true` to render string labels/titles as LaTeX
   - `parameter_names` (names in the side summary panel; can be `LaTeXString`, e.g. `L"\\lambda"`)
 - plot size/layout:
@@ -79,10 +80,13 @@ Key `plot_fit` customization kwargs:
   - `stats_panel_width` controls the right summary panel; values `<= 1` are relative, values `> 1` are pixels
   - `panel_gap` controls the gap between plot and summary panel
   - `plot_aspect` controls the axis width/height ratio (e.g. `1.0` for square plot area)
-- side summary panel:
+- summary display:
   - `show_stats`, `stats_sigdigits`, `stats_fontsize`, `latex_stats`
-  - shows fitted parameters ± uncertainties, and `\chi^2`, `\chi^2/\mathrm{ndf}`, `\mathrm{ndf}`
-  - `stats_box_color`, `stats_box_alpha`, `stats_box_strokecolor`, `stats_box_strokewidth`, `stats_linegap`
+  - `stats_title` for an optional small summary title
+  - `stats_position=:right` shows a compact side summary without covering the data
+  - `stats_position=:inside` draws an in-axis box for compact slide-style plots
+  - shows the model formula, fitted parameters ± uncertainties, `\chi^2`, `\chi^2/\mathrm{ndf}`, `P(\chi^2)`, and `\mathrm{ndf}`
+  - `stats_box_color`, `stats_box_alpha`, `stats_box_strokecolor`, and `stats_box_strokewidth` control only the inside box
 - styling:
   - `data_color`, `data_marker`, `data_markersize`
   - `fit_color`, `fit_linewidth`
@@ -91,8 +95,9 @@ Key `plot_fit` customization kwargs:
   - `xerr_color`, `yerr_color`, `error_whiskerwidth`
   - `show_legend`, `legend_position`
 - theme/font control:
-  - `theme` (`:clean`, `:publication`, `:latex`, or custom base)
-  - `theme=:latex` for LaTeX-like styling defaults
+  - `theme` (`:clean`, `:minimal`, `:paper`, `:publication`, `:latex`, or custom base)
+  - `theme=:minimal` for dense datasets with fine markers and precise black/white styling
+  - `theme=:paper` for LaTeX-like physics publication styling
   - `theme_override=Theme(...)` for global style overrides, including fonts/font sizes
 - direct Makie keyword forwarding:
   - `axis_kwargs`, `legend_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`
@@ -316,4 +321,13 @@ constraints = (
 ## Notes on scale
 
 Dense covariance matrices are supported but memory-heavy for very large datasets.
-For large `N`, prefer diagonal or sparse covariance representations.
+They need `O(N^2)` memory and `O(N^3)` factorization time. For large `N`, prefer
+diagonal uncertainties today; truly large correlated problems need future
+structured covariance operators rather than materialized dense matrices.
+
+Performance benchmarks live in `benchmarks/runbenchmarks.jl` and can be run
+with:
+
+```bash
+julia --project=. benchmarks/runbenchmarks.jl
+```

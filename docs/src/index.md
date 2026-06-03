@@ -1,8 +1,14 @@
 # JuFitter
 
-JuFitter is a Julia package for scientific fitting with a focus on beautiful
-default plots, explicit statistical semantics, robust numerics, and readable
-workflows for scientists and engineers.
+<section class="jufitter-hero">
+<div class="jufitter-kicker">Scientific fitting for Julia</div>
+
+JuFitter is a Julia package for scientific fitting. Its goal is simple:
+give scientists and engineers one clear path from data and uncertainties to a
+statistically meaningful fit, a readable report, and a plot that is already good
+enough to show.
+
+</section>
 
 ```julia
 using JuFitter
@@ -25,14 +31,39 @@ fit = fitplot(
 result = fit.result
 ```
 
-## Development Priorities
+## What JuFitter Optimizes For
 
 - One-line fit plots that look publication-ready without manual repairs.
-- Full control for users who need LaTeX, custom fonts, colors, units, panels,
-  reports, and export settings.
-- Statistically explicit Gaussian, Poisson, histogram, unbinned, extended, and
-  multi-fit workflows.
-- Robust covariance handling and profile-likelihood uncertainty estimates.
-- Documentation that explains both the API and the statistics behind it.
+- Explicit Gaussian, Poisson, histogram, unbinned, extended, indexed, custom,
+  and multi-dataset workflows.
+- Covariance-aware uncertainty propagation, profile likelihoods, contours, and
+  diagnostics when local errors are not trustworthy.
+- Makie-based output with clean defaults, publication export, and full
+  customization when needed.
+- A documentation style that makes statistical fitting accessible without
+  hiding the mathematics.
 
-See the roadmap and plotting design pages for the active development plan.
+## Where To Start
+
+<div class="jufitter-card-grid">
+<div class="jufitter-card">
+<h3>Install</h3>
+<p>Set up the package, understand first compile time, and verify plotting.</p>
+<p><a href="install.html">Install JuFitter</a></p>
+</div>
+<div class="jufitter-card">
+<h3>Quickstart</h3>
+<p>Go from arrays and uncertainties to fit, plot, and report.</p>
+<p><a href="quickstart.html">Run the first fit</a></p>
+</div>
+<div class="jufitter-card">
+<h3>Gallery</h3>
+<p>Learn by realistic physics and engineering examples with generated plots.</p>
+<p><a href="gallery.html">Open the gallery</a></p>
+</div>
+<div class="jufitter-card">
+<h3>Statistics</h3>
+<p>Check the mathematical model before trusting a number.</p>
+<p><a href="statistical_foundations.html">Read the theory</a></p>
+</div>
+</div>

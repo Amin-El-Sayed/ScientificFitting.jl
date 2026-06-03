@@ -1,262 +1,149 @@
-# JuFitter Backend Design
+# Backend Design
 
-Stand: 2026-05-07
+This page is for maintainers. It records the numerical structure that must stay
+clear as JuFitter grows.
 
-Dieses Dokument beschreibt den neu eingefuehrten Backend-Kern. Formeln sind in
-LaTeX gesetzt, damit sie in Markdown-Renderern sauber lesbar sind.
+```@raw html
+<div class="jufitter-flow">
+  <div class="jufitter-flow-step"><strong>fit_model</strong><span>Normalizes user data and options.</span></div>
+  <div class="jufitter-flow-step"><strong>FitProblem</strong><span>Stores model, data, bounds, fixed parameters, priors, constraints.</span></div>
+  <div class="jufitter-flow-step"><strong>Evaluation Cache</strong><span>Prepares static covariance factors and reusable weights.</span></div>
+  <div class="jufitter-flow-step"><strong>Backend Choice</strong><span>Fast LsqFit path or general Optimization.jl path.</span></div>
+  <div class="jufitter-flow-step"><strong>Result</strong><span>Parameters, statistics, covariance, diagnostics.</span></div>
+  <div class="jufitter-flow-step"><strong>Output</strong><span>Reports and plots never change the numerical result.</span></div>
+</div>
+```
 
-## Ziel
+## Separation Of Responsibilities
 
-Der Solver soll nicht mehr implizit definieren, welche Statistik minimiert
-wird. JuFitter trennt daher:
+The optimizer is not allowed to define the statistics. JuFitter separates the
+fit into:
 
-$$
+```math
 \text{FitProblem} + \text{CostFunction} + \text{Optimizer}
-\longrightarrow \text{FitResult}.
-$$
+\longrightarrow
+\text{FitResult}.
+```
 
-Aktuell sind zwei Kostenfunktionen implementiert:
+The `FitProblem` stores data, model, uncertainty inputs, fixed parameters,
+bounds, priors, and constraints. The cost layer decides what is minimized. The
+optimizer only solves the numerical minimization problem.
 
-$$
-\texttt{:chi2}
-$$
+## Cost Functions
 
-und
+For Gaussian XY fits, JuFitter currently distinguishes:
 
-$$
-\texttt{:gaussian\_nll}.
-$$
+- `:chi2`: quadratic residual cost for static Gaussian uncertainties.
+- `:gaussian_nll`: full Gaussian negative log-likelihood, including
+  normalization and log determinant terms.
 
-`cost=:auto` waehlt derzeit:
+`cost=:auto` chooses `:gaussian_nll` when the effective covariance depends on
+the parameters, especially for x uncertainties or model-relative y
+uncertainties. Otherwise it uses `:chi2`.
 
-$$
-\texttt{:gaussian\_nll}
-$$
+For residuals
 
-falls die effektive Kovarianz parameterabhaengig ist, insbesondere bei
-x-Unsicherheiten. Sonst wird
-$$
-\texttt{:chi2}
-$$
-
-verwendet.
-
-## Chi-Quadrat-Kostenfunktion
-
-Fuer Residuen
-
-$$
+```math
 r(\theta)=y-m(x,\theta)
-$$
+```
 
-und Kovarianzmatrix
+and covariance ``V``, the chi-square cost is
 
-$$
-V
-$$
+```math
+\chi^2(\theta)=r(\theta)^T V^{-1}r(\theta).
+```
 
-ist
+For the full Gaussian NLL in JuFitter's ``-2\log L`` convention:
 
-$$
-\chi^2(\theta)=r(\theta)^T V^{-1} r(\theta).
-$$
-
-Bei diagonalen Unsicherheiten gilt:
-
-$$
-\chi^2(\theta)=
-\sum_i
-\left(
-\frac{y_i-m(x_i,\theta)}{\sigma_i}
-\right)^2.
-$$
-
-Gaussian parameter priors werden als additive Strafterme behandelt:
-
-$$
-\chi^2_{\mathrm{prior}}(\theta)
-=
-\sum_j
-\left(
-\frac{\theta_j-\mu_j}{\tau_j}
-\right)^2.
-$$
-
-Die minimierte Chi-Quadrat-Kostenfunktion ist:
-
-$$
-C_{\chi^2}(\theta)
-=
-\chi^2_{\mathrm{data}}(\theta)
-+
-\chi^2_{\mathrm{prior}}(\theta).
-$$
-
-## Volle Gauß-NLL
-
-Bei multivariat normalverteilten Daten gilt:
-
-$$
-y \sim \mathcal{N}(m(x,\theta), V(\theta)).
-$$
-
-JuFitter verwendet die Konvention
-
-$$
-\mathrm{NLL}(\theta)=-2\log L(\theta).
-$$
-
-Damit ist:
-
-$$
-\mathrm{NLL}_{\mathrm{data}}(\theta)
+```math
+\mathrm{NLL}(\theta)
 =
 n\log(2\pi)
 +
 \log\det V(\theta)
 +
-r(\theta)^T V(\theta)^{-1} r(\theta).
-$$
+r(\theta)^T V(\theta)^{-1}r(\theta).
+```
 
-Der Term
+The log determinant is essential when ``V`` depends on ``\theta``.
 
-$$
-\log\det V(\theta)
-$$
+## Backend Selection
 
-ist konstant, wenn die Kovarianz parameterunabhaengig ist. Er ist aber
-notwendig, wenn die Kovarianz von den Parametern abhaengt.
+The fast path uses `LsqFit` for unbounded static chi-square fits. Analytic
+Jacobians are forwarded to the backend when provided, and the weighted Jacobian
+computed by `LsqFit` is reused when constructing the `FitResult`.
 
-Gaussian priors werden in der NLL inklusive Normierung addiert:
+The general path uses `Optimization.jl` for scalar objectives, bounds,
+constraints, priors, parameter-dependent covariance, and likelihood workflows.
 
-$$
-\mathrm{NLL}_{\mathrm{prior}}(\theta)
-=
-\sum_j
-\left[
-\log(2\pi\tau_j^2)
-+
-\left(
-\frac{\theta_j-\mu_j}{\tau_j}
-\right)^2
-\right].
-$$
+No-op bounds such as `[-Inf, Inf]` are normalized and do not block the fast
+least-squares path. This matters because generic APIs often pass bounds even
+when they do not mathematically constrain the problem.
 
-Die volle Kostenfunktion ist:
+## Covariance And Whitening
 
-$$
-C_{\mathrm{NLL}}(\theta)
-=
-\mathrm{NLL}_{\mathrm{data}}(\theta)
-+
-\mathrm{NLL}_{\mathrm{prior}}(\theta).
-$$
+Static uncertainty information is prepared in `FitEvaluationCache`.
 
-## Effektive Varianz bei x-Unsicherheiten
+Diagonal covariance stores inverse standard deviations and log determinants.
+Dense static covariance stores a Cholesky factor and log determinant. Residuals
+are whitened by linear solves, not by multiplying with an explicit inverse
+matrix.
 
-Fuer kleine x-Unsicherheiten verwendet JuFitter weiterhin die lokale
-effektive-Varianz-Approximation:
+Parameter-dependent covariance remains dynamic by design. Recomputing the
+effective covariance for x uncertainties or model-relative uncertainty is part
+of the statistical model, not accidental overhead.
 
-$$
-V_{\mathrm{eff}}(\theta)
-=
-V_y
-+
-J_x(\theta) V_x J_x(\theta)^T.
-$$
+## Parameter Mapping
 
-Punktweise diagonal wird daraus:
+Fixed parameters are removed from the optimizer-visible vector. JuFitter maps
+between:
 
-$$
-\sigma_{\mathrm{eff},i}^2(\theta)
-=
-\sigma_{y,i}^2
-+
-\left(
-\frac{\partial m(x_i,\theta)}{\partial x}
-\right)^2
-\sigma_{x,i}^2.
-$$
+- the full parameter vector used by the model,
+- the free parameter vector used by the optimizer,
+- reported parameter estimates and uncertainties.
 
-Weil diese Kovarianz von
+This keeps fixed parameters, priors, bounds, covariance dimensions, and degrees
+of freedom consistent.
 
-$$
-\theta
-$$
+## Diagnostics
 
-abhaengen kann, waehlt `cost=:auto` hier die volle Gauß-NLL.
+`FitDiagnostics` records warnings, condition numbers, active bounds, and
+structured diagnostic findings. The diagnostics layer must remain separate from
+the numerical result: it interprets the result, but it does not silently repair
+or modify it.
 
-## FitResult-Semantik
+Important cases that must stay visible:
 
-`FitResult.stats` unterscheidet jetzt:
+- optimizer non-convergence,
+- non-positive degrees of freedom,
+- unavailable goodness-of-fit statistics,
+- ill-conditioned covariance or Hessian matrices,
+- active bounds,
+- strong parameter correlations,
+- suspicious residual structure,
+- failed profile or contour refits.
 
-$$
-\texttt{cost}
-$$
+## Scaling Limits
 
-die gewaehlte Kostenfunktion,
+Diagonal and uncorrelated problems are the target class for very large datasets.
+Dense covariance matrices are supported and tested, but they scale as `O(n^2)`
+memory and `O(n^3)` factorization time.
 
-$$
-\texttt{cost\_min}
-$$
+Large correlated datasets need structured covariance or whitening operators:
+banded, Toeplitz, low-rank-plus-diagonal, sparse precision, or custom
+application-specific solvers. That is a data-structure extension, not a
+micro-optimization of dense matrices.
 
-den tatsaechlich minimierten Wert,
+## Extension Points
 
-$$
-\texttt{nll\_min}
-$$
+The main backend extension points are:
 
-die volle Gauß-NLL am Minimum, soweit fuer das aktuelle XY-Modell definiert,
-und
+- structured covariance and custom whitening operators,
+- in-place model and residual APIs for huge datasets,
+- analytic Jacobian hooks for likelihood workflows,
+- optimizer fallback and parameter scaling policies,
+- stronger profile/contour refinement,
+- ODE/PDE model adapters once the base fitting API is stable.
 
-$$
-\chi^2
-$$
-
-als Goodness-of-Fit-Groesse fuer die vorhandenen Gauß-Residualterme.
-
-AIC und BIC werden aus der NLL berechnet:
-
-$$
-\mathrm{AIC}=\mathrm{NLL}_{\min}+2k
-$$
-
-und
-
-$$
-\mathrm{BIC}=\mathrm{NLL}_{\min}+k\log n.
-$$
-
-## Solver-Auswahl
-
-`LsqFit` wird nur fuer unbeschraenkte statische Chi-Quadrat-Fits genutzt.
-Dabei werden analytische Jacobians, falls angegeben, jetzt an den Solver
-weitergereicht.
-
-Allgemeinere Kostenfunktionen, Bounds, Constraints, Priors und
-parameterabhaengige Kovarianzen laufen ueber `Optimization.jl`.
-
-## Implementierter Backend-Schritt
-
-Dieser Backend-Schritt ist das Fundament, aber noch nicht das Ende:
-
-- `scale_covariance` ist jetzt eine explizite Policy
-  `:auto | :never | :always`.
-- Fixed parameters haben eine eigene Parameterraum-Abbildung. Der Optimizer
-  sieht nur freie Parameter.
-- Asymmetrische Unsicherheiten fixer Parameter und asymmetrische Gaussian
-  parameter priors werden lokal unterstuetzt.
-- Profile und 2D-Contours re-minimieren die gewaehlte Kostenfunktion mit
-  fixierten Parametern.
-
-## Noch offen
-
-Die naechsten mathematisch wichtigen Erweiterungen sind:
-
-- Poisson-NLL, Histogram-Fits, Unbinned- und Extended-Unbinned-Fits,
-  IndexedFit, CustomFit, MultiFits mit Parameter-Mapping und korrelierte
-  Gaussian parameter constraints sind jetzt implementiert.
-- Benannte/deaktivierbare Fehlerkomponenten, Diagnoseplots und robuste inverse
-  Fallbacks sind jetzt implementiert.
-- Fuer spaetere Versionen bleiben Komfort-APIs fuer komplexe Fehlerbudgets und
-  weitere numerische Spezialfall-Benchmarks sinnvoll.
+Every extension should add reference tests before changing statistical
+semantics and benchmark coverage before changing a hot path.

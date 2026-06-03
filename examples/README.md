@@ -16,6 +16,9 @@ Generated figures are written to `examples/output/`, which is ignored by git.
 - `04_covariance_and_effective_variance.jl`: full y-covariance and effective-variance x-uncertainty examples.
 - `05_constraints_priors_profiles.jl`: bounds, inequality constraints, Gaussian priors, profile interval, and contour plot.
 - `06_likelihood_workflows.jl`: Poisson, histogram, unbinned, extended-unbinned, indexed, custom, and multi-dataset likelihood fits.
+- `07_plot_styles.jl`: clean default, dense-data minimal, and LaTeX-style paper plot layouts.
+- `08_damped_oscillator_decay.jl`: real damped oscillator data, x/y uncertainties, LaTeX labels, and light/dark docs export.
+- `09_docs_gallery_suite.jl`: generates the public documentation gallery assets.
 
 The gallery is intentionally systematic. Avoid adding loose one-off scripts at
 the top level; new examples should either extend an existing gallery file or add
