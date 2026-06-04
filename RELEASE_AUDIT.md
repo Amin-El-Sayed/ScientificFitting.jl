@@ -57,6 +57,10 @@ sufficient.
 - The Poisson-and-histogram workflow now uses sparse radioactive decay counts
   and an unequally binned detector spectrum, with integrated expected bin
   counts, empty-bin semantics, and count-specific deviance residuals.
+- The damped-oscillator workflow now treats a rejected constant-frequency fit
+  as a model-criticism case study, compares it with a frequency-drift model,
+  and makes the unresolved uncertainty-model problem explicit through pull
+  panels and diagnostics.
 - There is no formal link check in CI for the generated documentation.
 - There is no visual regression or snapshot test for documentation plots.
 - There is no documentation deployment workflow yet.

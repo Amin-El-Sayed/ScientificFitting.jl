@@ -17,7 +17,9 @@ Generated figures are written to `examples/output/`, which is ignored by git.
 - `05_constraints_priors_profiles.jl`: bounds, inequality constraints, Gaussian priors, profile interval, and contour plot.
 - `06_likelihood_workflows.jl`: Poisson, histogram, unbinned, extended-unbinned, indexed, custom, and multi-dataset likelihood fits.
 - `07_plot_styles.jl`: controlled comparison of every public plot style with identical scientific content.
-- `08_damped_oscillator_decay.jl`: real damped oscillator data, x/y uncertainties, LaTeX labels, and light/dark docs export.
+- `08_damped_oscillator_decay.jl`: real damped-oscillator data, x/y
+  uncertainties, constant-frequency versus frequency-drift model criticism,
+  pull diagnostics, and light/dark docs export.
 - `09_docs_gallery_suite.jl`: generates the public documentation gallery assets.
 
 The gallery is intentionally systematic. Avoid adding loose one-off scripts at

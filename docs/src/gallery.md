@@ -72,8 +72,9 @@ not be committed.
 <div>
 <span class="jufitter-tag">real data</span>
 <span class="jufitter-tag">nonlinear</span>
+<span class="jufitter-tag">model criticism</span>
 <h3><a href="gallery/resonance_decay.html">Damped oscillator</a></h3>
-<p>Fit a decaying mechanical oscillation with physically interpretable amplitude, damping, frequency, and phase. This is the main real-data example for nonlinear least squares.</p>
+<p>Discover why a visually convincing constant-frequency fit is statistically rejected, test a frequency-drift extension, and use pull structure to decide what must be investigated next.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
