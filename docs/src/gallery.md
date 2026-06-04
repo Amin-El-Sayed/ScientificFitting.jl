@@ -113,7 +113,7 @@ not be committed.
 <span class="jufitter-tag">likelihood</span>
 <span class="jufitter-tag">counts</span>
 <h3><a href="gallery/poisson_histogram.html">Poisson and histograms</a></h3>
-<p>Fit count data with a Poisson likelihood instead of pretending that every bin is Gaussian. This is the entry point for histograms, rates, and low-count regimes.</p>
+<p>Extract a radioactive half-life and a detector peak from sparse counts. Exact count semantics, integrated unequal bins, empty bins, and deviance residuals replace invented Gaussian error bars.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -158,8 +158,9 @@ but they should still read like serious scientific examples.
   effective-variance x uncertainty.
 - `05_constraints_priors_profiles.jl`: bounds, inequality constraints, Gaussian
   priors, profile intervals, and contours.
-- `06_likelihood_workflows.jl`: Poisson, histogram, unbinned,
-  extended-unbinned, indexed, custom, and multi-dataset likelihood fits.
+- `06_likelihood_workflows.jl`: radioactive decay counts, an integrated
+  detector spectrum, unbinned, extended-unbinned, indexed, custom, and
+  multi-dataset likelihood fits.
 - `07_plot_styles.jl`: controlled comparison of every public plot style using
   identical data, labels, bands, reports, and dimensions.
 - `08_damped_oscillator_decay.jl`: real mechanical oscillator decay with x/y
@@ -178,8 +179,8 @@ The next documentation passes should prioritize:
 
 - adding a genuinely non-parabolic profile/contour workflow where the visual
   difference from local covariance is scientifically meaningful,
-- expanding the Poisson/histogram page with count-specific residuals and
-  likelihood interpretation,
+- expanding the remaining short gallery pages into complete scientific
+  workflows with diagnostics and interpretation,
 - replacing any remaining toy-like synthetic examples with realistic data or
   clearly labeled controlled demonstrations,
 - checking every light and dark gallery asset visually after regeneration.

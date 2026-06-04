@@ -14,6 +14,9 @@ sufficient.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
   passes with 34 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds.
+- `julia --project=. -e 'using Test; include("test/statistics/likelihood_reference.jl")'`
+  passes with 49 likelihood reference checks after the Poisson-and-histogram
+  workflow rewrite.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 315
@@ -51,6 +54,9 @@ sufficient.
   non-parabolic amplitude-timescale degeneracy, compares profile results against
   the local covariance approximation, and connects the diagnostic to a concrete
   experimental-design decision.
+- The Poisson-and-histogram workflow now uses sparse radioactive decay counts
+  and an unequally binned detector spectrum, with integrated expected bin
+  counts, empty-bin semantics, and count-specific deviance residuals.
 - There is no formal link check in CI for the generated documentation.
 - There is no visual regression or snapshot test for documentation plots.
 - There is no documentation deployment workflow yet.

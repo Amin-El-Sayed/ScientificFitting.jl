@@ -1,8 +1,10 @@
 using CairoMakie
+using Distributions
 using JuFitter
 using LaTeXStrings
 using LinearAlgebra
 using Printf
+using SpecialFunctions
 
 const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
@@ -83,76 +85,157 @@ function gallery_theme(dark::Bool)
     )
 end
 
+function poisson_deviance_residuals(counts, expected)
+    return [
+        sign(n - mu) * sqrt(max(2 * (n == 0 ? mu : mu - n + n * log(n / mu)), 0.0))
+        for (n, mu) in zip(counts, expected)
+    ]
+end
+
 function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
     color = dark ? "#edf2f4" : "#14151a"
     fit_color = dark ? "#66d9ef" : "#0081a7"
-    band_color = dark ? ("#66d9ef", 0.18) : ("#a8dadc", 0.30)
+    band_color = dark ? ("#66d9ef", 0.16) : ("#a8dadc", 0.34)
+    residual_positive = dark ? "#66d9ef" : "#0081a7"
+    residual_negative = dark ? "#f4b860" : "#b45309"
     fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1180, 720), backgroundcolor=dark ? "#111318" : "#ffffff")
+        Figure(size=(1460, 850), backgroundcolor=dark ? "#111318" : "#ffffff")
     end
-    ax = Axis(fig[1, 1]; title="Poisson count model", xlabel="channel", ylabel="counts")
-    yerr = sqrt.(counts)
-    errorbars!(ax, x, counts, yerr; color=(color, 0.45), whiskerwidth=6)
-    scatter!(ax, x, counts; color=(color, 0.78), markersize=9, label="data")
+    ax = Axis(fig[1, 1]; title="Radioactive decay with detector background", ylabel="counts per 10 s")
     xg = collect(range(minimum(x), maximum(x); length=300))
     yg = model(xg, result.params)
-    band!(ax, xg, yg .- sqrt.(yg), yg .+ sqrt.(yg); color=band_color)
-    lines!(ax, xg, yg; color=fit_color, linewidth=3, label="model")
-    axislegend(ax; position=:lt)
-    panel = Axis(fig[1, 2]; backgroundcolor=:transparent)
+    lower = [quantile(Poisson(mu), 0.16) for mu in yg]
+    upper = [quantile(Poisson(mu), 0.84) for mu in yg]
+    band!(ax, xg, lower, upper; color=band_color, label="central 68% count interval")
+    lines!(ax, xg, yg; color=fit_color, linewidth=3, label="expected counts")
+    scatter!(ax, x, counts; color=color, markersize=11, label="observed counts")
+    hidexdecorations!(ax; grid=false)
+
+    expected = model(x, result.params)
+    residuals = poisson_deviance_residuals(counts, expected)
+    residual_colors = ifelse.(residuals .>= 0, residual_positive, residual_negative)
+    residual_ax = Axis(fig[2, 1]; xlabel="elapsed time (min)", ylabel="deviance residual")
+    barplot!(residual_ax, x, residuals; width=0.66, color=residual_colors)
+    hlines!(residual_ax, [0.0]; color=(color, 0.70), linewidth=1.5)
+    hlines!(residual_ax, [-2.0, 2.0]; color=(color, 0.32), linestyle=:dash, linewidth=1.5)
+    linkxaxes!(ax, residual_ax)
+
+    side = GridLayout()
+    fig[1:2, 2] = side
+    Legend(side[1, 1], ax; framevisible=false, tellheight=true)
+    panel = Axis(side[2, 1]; backgroundcolor=:transparent)
     hidedecorations!(panel)
     hidespines!(panel)
+    half_life = log(2) / result.params[2]
+    sigma_half_life = log(2) * result.param_stderr[2] / result.params[2]^2
     text!(
         panel,
         0,
         1;
-        text="log scale = $(round(result.params[1]; sigdigits=5))\n" *
-             "slope = $(round(result.params[2]; sigdigits=5))\n" *
-             "χ²/ndf = $(round(result.stats.chi2_ndf; sigdigits=4))\n" *
-             "P(χ²) = $(round(result.stats.pvalue; sigdigits=4))",
+        text="signal at t = 0\n" *
+             "  $(fmt_sig(result.params[1], 5)) ± $(fmt_sig(result.param_stderr[1], 2)) counts\n\n" *
+             "decay constant λ\n" *
+             "  $(fmt_sig(result.params[2], 5)) ± $(fmt_sig(result.param_stderr[2], 2)) min⁻¹\n\n" *
+             "background (local covariance)\n" *
+             "  $(fmt_sig(result.params[3], 4)) ± $(fmt_sig(result.param_stderr[3], 2)) counts\n\n" *
+             "half-life (local propagation)\n" *
+             "  $(fmt_sig(half_life, 4)) ± $(fmt_sig(sigma_half_life, 2)) min\n\n" *
+             "Poisson deviance / ndf\n" *
+             "  $(fmt_sig(result.stats.chi2, 4)) / $(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))\n" *
+             "asymptotic P(D) = $(fmt_sig(result.stats.pvalue, 4))",
         space=:relative,
         align=(:left, :top),
         color=color,
         fontsize=20,
         lineheight=1.1,
     )
-    colsize!(fig.layout, 2, Fixed(320))
-    rowsize!(fig.layout, 1, Auto(1))
+    rowsize!(side, 1, Auto())
+    rowsize!(side, 2, Relative(1))
+    rowsize!(fig.layout, 1, Relative(0.72))
+    rowsize!(fig.layout, 2, Relative(0.28))
+    colsize!(fig.layout, 2, Fixed(430))
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
 
 function save_histogram_fit(result, edges, counts, expected_counts, name; dark::Bool=false)
     color = dark ? "#edf2f4" : "#14151a"
     fit_color = dark ? "#66d9ef" : "#0081a7"
+    observed_color = dark ? ("#edf2f4", 0.28) : ("#4c78a8", 0.28)
+    background_color = dark ? ("#f4b860", 0.20) : ("#f4b183", 0.34)
+    residual_positive = dark ? "#66d9ef" : "#0081a7"
+    residual_negative = dark ? "#f4b860" : "#b45309"
     fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1180, 720), backgroundcolor=dark ? "#111318" : "#ffffff")
+        Figure(size=(1460, 850), backgroundcolor=dark ? "#111318" : "#ffffff")
     end
-    ax = Axis(fig[1, 1]; title="Histogram likelihood fit", xlabel="observable", ylabel="bin counts")
+    ax = Axis(fig[1, 1]; title="Binned detector spectrum", ylabel="events per bin")
     centers = [(edges[i] + edges[i + 1]) / 2 for i in 1:(length(edges) - 1)]
     widths = diff(edges)
-    barplot!(ax, centers, counts; width=0.92 .* widths, color=(fit_color, 0.22), strokecolor=(color, 0.30), strokewidth=1)
-    scatter!(ax, centers, counts; color=color, markersize=10)
     expected = expected_counts(edges, result.params)
-    lines!(ax, centers, expected; color=fit_color, linewidth=3)
-    panel = Axis(fig[1, 2]; backgroundcolor=:transparent)
+    background = result.params[4] .* widths
+    barplot!(ax, centers, background; width=widths, color=background_color, label="fitted background")
+    barplot!(
+        ax,
+        centers,
+        expected;
+        width=widths,
+        color=:transparent,
+        strokecolor=fit_color,
+        strokewidth=3,
+        label="expected bin counts",
+    )
+    barplot!(
+        ax,
+        centers,
+        counts;
+        width=0.82 .* widths,
+        color=observed_color,
+        strokecolor=(color, 0.65),
+        strokewidth=1.3,
+        label="observed bin counts",
+    )
+    scatter!(ax, centers, counts; color=color, markersize=8)
+    hidexdecorations!(ax; grid=false)
+
+    residuals = poisson_deviance_residuals(counts, expected)
+    residual_colors = ifelse.(residuals .>= 0, residual_positive, residual_negative)
+    residual_ax = Axis(fig[2, 1]; xlabel="pulse amplitude (V)", ylabel="deviance residual")
+    barplot!(residual_ax, centers, residuals; width=0.82 .* widths, color=residual_colors)
+    hlines!(residual_ax, [0.0]; color=(color, 0.70), linewidth=1.5)
+    hlines!(residual_ax, [-2.0, 2.0]; color=(color, 0.32), linestyle=:dash, linewidth=1.5)
+    linkxaxes!(ax, residual_ax)
+
+    side = GridLayout()
+    fig[1:2, 2] = side
+    Legend(side[1, 1], ax; framevisible=false, tellheight=true)
+    panel = Axis(side[2, 1]; backgroundcolor=:transparent)
     hidedecorations!(panel)
     hidespines!(panel)
     text!(
         panel,
         0,
         1;
-        text="scale = $(round(result.params[1]; sigdigits=5))\n" *
-             "slope = $(round(result.params[2]; sigdigits=5))\n" *
-             "χ²/ndf = $(round(result.stats.chi2_ndf; sigdigits=4))\n" *
-             "P(χ²) = $(round(result.stats.pvalue; sigdigits=4))",
+        text="peak yield\n" *
+             "  $(fmt_sig(result.params[1], 5)) ± $(fmt_sig(result.param_stderr[1], 2)) events\n\n" *
+             "centroid\n" *
+             "  $(fmt_sig(result.params[2], 5)) ± $(fmt_sig(result.param_stderr[2], 2)) V\n\n" *
+             "Gaussian width\n" *
+             "  $(fmt_sig(result.params[3], 5)) ± $(fmt_sig(result.param_stderr[3], 2)) V\n\n" *
+             "background density\n" *
+             "  $(fmt_sig(result.params[4], 4)) ± $(fmt_sig(result.param_stderr[4], 2)) events/V\n\n" *
+             "Poisson deviance / ndf\n" *
+             "  $(fmt_sig(result.stats.chi2, 4)) / $(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))\n" *
+             "asymptotic P(D) = $(fmt_sig(result.stats.pvalue, 4))",
         space=:relative,
         align=(:left, :top),
         color=color,
         fontsize=20,
         lineheight=1.1,
     )
-    colsize!(fig.layout, 2, Fixed(320))
-    rowsize!(fig.layout, 1, Auto(1))
+    rowsize!(side, 1, Auto())
+    rowsize!(side, 2, Relative(1))
+    rowsize!(fig.layout, 1, Relative(0.72))
+    rowsize!(fig.layout, 2, Relative(0.28))
+    colsize!(fig.layout, 2, Fixed(430))
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
 
@@ -611,30 +694,42 @@ plot_contour(
     format=:png,
 )
 
-# 6. Poisson counts and histogram likelihoods.
-x_counts = collect(1.0:10.0)
-counts = [2, 4, 5, 6, 9, 11, 12, 14, 15, 19]
-poisson_model(x, p) = @. exp(p[1] + p[2] * x)
+# 6. Poisson decay counts and a binned detector spectrum.
+x_counts = collect(0.0:1.0:18.0)
+counts = [48, 37, 35, 27, 27, 17, 22, 13, 16, 8, 13, 5, 11, 4, 7, 2, 6, 1, 5]
+poisson_model(t, p) = @. p[1] * exp(-p[2] * t) + p[3]
 poisson_result = fit_poisson_model(
     poisson_model,
     x_counts,
     counts;
-    p0=[0.0, 0.1],
-    bounds=([-10.0, -10.0], [10.0, 10.0]),
-    parameter_names=["log scale", "slope"],
+    p0=[40.0, 0.15, 3.0],
+    bounds=([1e-6, 1e-6, 1e-6], [200.0, 2.0, 50.0]),
+    parameter_names=["initial signal", "decay constant", "background"],
+    initial_guesses=[[40.0, 0.15, 3.0], [70.0, 0.30, 2.0], [25.0, 0.08, 5.0]],
 )
 save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=false)
 save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=true)
 
-edges = collect(0.0:1.0:5.0)
-hist_counts = [4, 9, 13, 20, 31]
-expected_counts(edges, p) = [p[1] * (edges[i + 1] - edges[i]) * exp(p[2] * (edges[i] + edges[i + 1]) / 2) for i in 1:(length(edges) - 1)]
+edges = [0.0, 0.4, 0.9, 1.5, 2.2, 3.0, 4.0, 5.2, 6.6, 8.2, 10.0]
+hist_counts = [0, 3, 9, 24, 47, 69, 51, 24, 8, 4]
+function expected_counts(edges, p)
+    peak_yield, centroid, width, background_density = p
+    return [
+        peak_yield * 0.5 * (
+            erf((edges[i + 1] - centroid) / (sqrt(2) * width)) -
+            erf((edges[i] - centroid) / (sqrt(2) * width))
+        ) + background_density * (edges[i + 1] - edges[i])
+        for i in 1:(length(edges) - 1)
+    ]
+end
 hist_result = fit_histogram_model(
     expected_counts,
     edges,
     hist_counts;
-    p0=[3.0, 0.3],
-    bounds=([1e-6, -5.0], [100.0, 5.0]),
+    p0=[210.0, 3.8, 1.0, 1.0],
+    bounds=([1e-6, 0.0, 0.05, 1e-6], [1000.0, 10.0, 5.0, 100.0]),
+    parameter_names=["peak yield", "centroid", "width", "background density"],
+    initial_guesses=[[210.0, 3.8, 1.0, 1.0], [300.0, 4.2, 1.5, 0.5], [150.0, 3.2, 0.7, 2.0]],
 )
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=false)
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=true)
