@@ -19,15 +19,17 @@ sufficient.
 - `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 315
   core checks in about 5m25s on the local machine after the diagnostic
   dashboard update.
-- `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 337 tests in about
-  5m51s on the local machine after the profile-region and Photoelectric
-  workflow update.
+- `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 340 tests in about
+  4m39s on the local machine after the profile-plot diagnostics and
+  constraints-and-profiles workflow update.
 - `julia --project=docs docs/make.jl` passes locally after the `siteinfo.js`
   source fix. The build output is ignored and must not be committed.
-- Focused plot regression tests pass with 18 checks after contour plots changed
+- Focused plot regression tests pass with 21 checks after contour plots changed
   from a heatmap-first default to labeled profile regions with an optional local
-  covariance overlay. The plot path also covers failed-refit cells and rejects
-  fully non-finite contour surfaces.
+  covariance overlay. Profile plots now label the actual scan, local parabolic
+  approximation, and interval threshold, and can focus the displayed delta-cost
+  range without changing the scan. The plot path also covers failed-refit cells,
+  invalid display limits, and fully non-finite contour surfaces.
 - Phase 3 is reopened as the release gate. The project no longer treats
   friendly-path examples or smoke tests as evidence of production robustness.
 
@@ -45,6 +47,10 @@ sufficient.
 - The gallery is directionally good, but several pages are still short API
   examples rather than complete scientific workflows with interpretation,
   formulas, full code, and diagnostics.
+- The constraints-and-profiles workflow now demonstrates a genuinely
+  non-parabolic amplitude-timescale degeneracy, compares profile results against
+  the local covariance approximation, and connects the diagnostic to a concrete
+  experimental-design decision.
 - There is no formal link check in CI for the generated documentation.
 - There is no visual regression or snapshot test for documentation plots.
 - There is no documentation deployment workflow yet.

@@ -517,29 +517,37 @@ lightdark_plot(
     figure_size=(1200, 760),
 )
 
-# 5. Constraints, prior, profile, and contour.
-x_quad = collect(range(-2.0, 2.3; length=28))
-quad_model(x, p) = @. p[1] * x^2 + p[2] * x + p[3]
-sigma_quad = fill(0.08, length(x_quad))
-y_quad = quad_model(x_quad, [0.65, -0.75, 0.35]) .+ sigma_quad .* cos.(2.0 .* x_quad)
-quad_result = fit_model(
-    quad_model,
-    x_quad,
-    y_quad;
-    p0=[0.25, -0.2, 0.0],
-    sigma_y=sigma_quad,
-    bounds=([0.0, -2.0, -1.0], [2.0, 2.0, 2.0]),
-    constraints=(ineq=p -> [-p[1]],),
-    parameter_priors=(index=3, mean=0.3, sigma=0.2),
+# 5. Bounds, prior, profile, and a genuinely non-elliptic contour.
+time_saturation = collect(range(0.15, 2.2; length=18))
+saturation_model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
+sigma_time = @. 0.010 + 0.004 * time_saturation
+sigma_response = @. 0.045 + 0.008 * time_saturation
+saturation_residual_pattern = [
+    0.50, -0.90, 0.30, 1.10, -0.70, 0.80, -1.00, 0.40, 0.90,
+    -0.60, 0.70, -0.80, 1.00, -0.40, 0.55, -0.75, 0.65, -0.35,
+]
+response_saturation =
+    saturation_model(time_saturation, [4.8, 3.4, 0.12]) .+
+    sigma_response .* saturation_residual_pattern
+saturation_result = fit_model(
+    saturation_model,
+    time_saturation,
+    response_saturation;
+    p0=[3.0, 2.0, 0.0],
+    sigma_y=sigma_response,
+    sigma_x=sigma_time,
+    bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
+    parameter_priors=(index=3, mean=0.10, sigma=0.08),
+    initial_guesses=[[3.0, 2.0, 0.0], [8.0, 7.0, 0.1], [2.0, 1.0, 0.2]],
 )
 lightdark_plot(
-    quad_result,
+    saturation_result,
     "constraints_priors";
-    title=L"\mathrm{Constrained\ quadratic\ model}",
-    model_label=L"y=a x^2+b x+c",
-    xlabel=L"x",
-    ylabel=L"response",
-    parameter_names=[L"a", L"b", L"c"],
+    title=L"\mathrm{Early\ saturation\ measurement}",
+    model_label=L"y(t)=A(1-e^{-t/\tau})+c",
+    xlabel=L"t\;(\mathrm{s})",
+    ylabel=L"y\;(\mathrm{V})",
+    parameter_names=[L"A", L"\tau", L"c"],
     latex_labels=true,
     latex_stats=true,
     band=:prediction,
@@ -552,33 +560,54 @@ lightdark_plot(
     stats_fontsize=20,
     figure_size=(1200, 760),
 )
-prof = JuFitter.profile(quad_result, 1; npoints=45, nsigma=3)
-cont = JuFitter.contour(quad_result, 1, 2; npoints=35, nsigma=3, adaptive=true, max_refinements=2)
-plot_profile(prof; theme=:minimal, title="Profile for curvature", xlabel="curvature", filename=gallery_path("curvature_profile_light.png"), format=:png)
-plot_profile(prof; theme=:dark, title="Profile for curvature", xlabel="curvature", line_color="#66d9ef", threshold_color="#edf2f4", filename=gallery_path("curvature_profile_dark.png"), format=:png)
+prof = JuFitter.profile(saturation_result, 1; npoints=61, nsigma=4)
+cont = JuFitter.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
+plot_profile(
+    prof;
+    theme=:minimal,
+    title="Profile cost versus local parabola",
+    xlabel="amplitude A",
+    local_sigma=saturation_result.param_stderr[1],
+    delta_max=8,
+    filename=gallery_path("saturation_profile_light.png"),
+    format=:png,
+)
+plot_profile(
+    prof;
+    theme=:dark,
+    title="Profile cost versus local parabola",
+    xlabel="amplitude A",
+    line_color="#66d9ef",
+    local_sigma=saturation_result.param_stderr[1],
+    local_color="#b8c1ca",
+    threshold_color="#edf2f4",
+    delta_max=8,
+    filename=gallery_path("saturation_profile_dark.png"),
+    format=:png,
+)
 plot_contour(
     cont;
     theme=:minimal,
     title="Profile contours versus local covariance",
-    xlabel="curvature",
-    ylabel="slope",
-    local_covariance=quad_result.param_covariance,
-    local_center=quad_result.params[[1, 2]],
+    xlabel="amplitude A",
+    ylabel="time constant τ",
+    local_covariance=saturation_result.param_covariance,
+    local_center=saturation_result.params[[1, 2]],
     figure_size=(980, 720),
-    filename=gallery_path("curvature_slope_contour_light.png"),
+    filename=gallery_path("amplitude_timescale_contour_light.png"),
     format=:png,
 )
 plot_contour(
     cont;
     theme=:dark,
     title="Profile contours versus local covariance",
-    xlabel="curvature",
-    ylabel="slope",
-    local_covariance=quad_result.param_covariance,
-    local_center=quad_result.params[[1, 2]],
+    xlabel="amplitude A",
+    ylabel="time constant τ",
+    local_covariance=saturation_result.param_covariance,
+    local_center=saturation_result.params[[1, 2]],
     local_line_color="#b8c1ca",
     figure_size=(980, 720),
-    filename=gallery_path("curvature_slope_contour_dark.png"),
+    filename=gallery_path("amplitude_timescale_contour_dark.png"),
     format=:png,
 )
 

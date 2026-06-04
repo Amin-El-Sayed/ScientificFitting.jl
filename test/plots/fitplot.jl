@@ -110,6 +110,10 @@ using Test
         local_center=[0.0, 0.0],
     ) !== nothing
     @test plot_contour(contour_result; filename=heatmap_out, format=:png, show_heatmap=true) !== nothing
+    profile_result = ProfileResult(1, contour_values, contour_values .^ 2, contour_values .^ 2, 1.0, 0.0)
+    profile_out = joinpath(mktempdir(), "profile_legend.png")
+    @test plot_profile(profile_result; filename=profile_out, format=:png, local_sigma=1.0, delta_max=4.0) !== nothing
+    @test_throws ArgumentError plot_profile(profile_result; delta_max=0.0)
     failed_delta = copy(contour_delta)
     failed_delta[2, 3] = Inf
     failed_contour = ContourResult((1, 2), contour_values, contour_values, failed_delta, failed_delta, [2.30, 6.18])
@@ -120,5 +124,6 @@ using Test
     )
     @test isfile(contour_out)
     @test isfile(heatmap_out)
+    @test isfile(profile_out)
     @test isfile(failed_out)
 end

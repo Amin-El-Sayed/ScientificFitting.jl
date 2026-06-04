@@ -1255,6 +1255,9 @@ Plot a one-dimensional profile-likelihood scan.
 Pass `local_sigma=result.param_stderr[i]` to overlay the local parabolic
 covariance approximation. If the profile and parabola disagree visibly, local
 symmetric errors should not be treated as the final uncertainty statement.
+Use `delta_max` to focus the view on scientifically relevant interval
+thresholds when a strongly non-parabolic tail would otherwise compress the
+minimum.
 """
 function plot_profile(
     profile_result::ProfileResult;
@@ -1272,6 +1275,11 @@ function plot_profile(
     local_linewidth::Real=2,
     local_linestyle=:dash,
     threshold_color=:black,
+    show_legend::Bool=true,
+    profile_label="profile cost",
+    local_label="local covariance parabola",
+    threshold_label=nothing,
+    delta_max::Union{Nothing, Real}=nothing,
     figure_size::Tuple{<:Real, <:Real}=(900, 620),
     axis_kwargs=NamedTuple(),
     line_kwargs=NamedTuple(),
@@ -1299,6 +1307,29 @@ function plot_profile(
         )
     end
     hlines!(ax, [profile_result.threshold]; color=threshold_color, linestyle=:dash)
+
+    if delta_max !== nothing
+        delta_limit = Float64(delta_max)
+        delta_limit > 0 || throw(ArgumentError("delta_max must be positive"))
+        ylims!(ax, 0, delta_limit)
+    end
+
+    if show_legend
+        handles = Any[LineElement(color=line_color, linewidth=line_width)]
+        labels = Any[profile_label]
+        if local_sigma !== nothing
+            push!(handles, LineElement(color=local_color, linewidth=local_linewidth, linestyle=local_linestyle))
+            push!(labels, local_label)
+        end
+        push!(handles, LineElement(color=threshold_color, linewidth=2, linestyle=:dash))
+        push!(
+            labels,
+            threshold_label === nothing ?
+            "interval threshold (Δcost = $(_fmt_value(profile_result.threshold; sigdigits=3)))" :
+            threshold_label,
+        )
+        Legend(fig[1, 2], handles, labels; framevisible=false)
+    end
 
     if filename !== nothing
         outpath = String(filename)

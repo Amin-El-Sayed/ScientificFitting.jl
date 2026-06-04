@@ -1,48 +1,56 @@
 using JuFitter
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
-x = collect(range(-2.0, 2.3; length=28))
-model(x, p) = @. p[1] * x^2 + p[2] * x + p[3]
-sigma_y = fill(0.08, length(x))
-y = model(x, [0.65, -0.75, 0.35]) .+ sigma_y .* cos.(2.0 .* x)
-
-constraints = (
-    ineq = p -> [-p[1]],  # p[1] >= 0: convex parabola
-)
+x = collect(range(0.15, 2.2; length=18))
+model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
+sigma_x = @. 0.010 + 0.004 * x
+sigma_y = @. 0.045 + 0.008 * x
+residual_pattern = [
+    0.50, -0.90, 0.30, 1.10, -0.70, 0.80, -1.00, 0.40, 0.90,
+    -0.60, 0.70, -0.80, 1.00, -0.40, 0.55, -0.75, 0.65, -0.35,
+]
+y = model(x, [4.8, 3.4, 0.12]) .+ sigma_y .* residual_pattern
 
 fit = fitplot(
     model,
     x,
     y;
-    p0=[0.25, -0.2, 0.0],
+    p0=[3.0, 2.0, 0.0],
     sigma_y=sigma_y,
-    bounds=([0.0, -2.0, -1.0], [2.0, 2.0, 2.0]),
-    constraints=constraints,
-    parameter_priors=(index=3, mean=0.3, sigma=0.2),
+    sigma_x=sigma_x,
+    bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
+    parameter_priors=(index=3, mean=0.10, sigma=0.08),
+    initial_guesses=[[3.0, 2.0, 0.0], [8.0, 7.0, 0.1], [2.0, 1.0, 0.2]],
     filename=example_output("05_constraints_priors_fit.pdf"),
-    title="Constrained quadratic fit",
-    xlabel="position",
-    ylabel="response",
-    parameter_names=["curvature", "slope", "offset"],
+    title="Early saturation measurement",
+    xlabel="time (s)",
+    ylabel="response (V)",
+    parameter_names=["amplitude", "time constant", "offset"],
     report=:both,
 )
 
 result = fit.result
-prof = profile(result, 1; npoints=41, nsigma=3)
+prof = profile(result, 1; npoints=61, nsigma=4)
 interval = profile_interval(result, 1; npoints=81, nsigma=4)
-cont = contour(result, 1, 2; npoints=25, nsigma=2)
+cont = contour(result, 1, 2; npoints=121, nsigma=4)
 
 plot_profile(
     prof;
-    filename=example_output("05_curvature_profile.pdf"),
-    xlabel="curvature",
+    filename=example_output("05_saturation_profile.pdf"),
+    title="Profile cost versus local parabola",
+    xlabel="amplitude A",
+    local_sigma=result.param_stderr[1],
+    delta_max=8,
 )
 plot_contour(
     cont;
-    filename=example_output("05_curvature_slope_contour.pdf"),
-    xlabel="curvature",
-    ylabel="slope",
+    filename=example_output("05_amplitude_timescale_contour.pdf"),
+    title="Profile contours versus local covariance",
+    xlabel="amplitude A",
+    ylabel="time constant tau",
+    local_covariance=result.param_covariance,
+    local_center=result.params[[1, 2]],
 )
 
-println("Profile interval for curvature: -", interval.uncertainty_minus, " +", interval.uncertainty_plus)
+println("Profile interval for amplitude: -", interval.uncertainty_minus, " +", interval.uncertainty_plus)
 println("Saved profile and contour plots.")

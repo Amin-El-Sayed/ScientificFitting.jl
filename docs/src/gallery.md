@@ -103,7 +103,7 @@ not be committed.
 <span class="jufitter-tag">constraints</span>
 <span class="jufitter-tag">profiles</span>
 <h3><a href="gallery/constraints_profiles.html">Constraints and profiles</a></h3>
-<p>Combine bounds, priors, profiles, and two-parameter contours. Use this when local covariance errors may be too optimistic or too symmetric.</p>
+<p>An early saturation measurement leaves amplitude and time constant nonlinearly coupled. Profiles and two-parameter regions show exactly why the local covariance summary fails.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -138,7 +138,7 @@ not be committed.
 | Damped oscillator | mechanical decay or resonance envelope | nonlinear least squares with correlated parameters | phase/frequency coupling, residual periodicity, profile asymmetry |
 | Full covariance | repeated readout with shared noise | whitening with dense covariance | correlation effect on uncertainty and p-value |
 | XY uncertainties | calibration with uncertain abscissa | effective-variance approximation | slope-dependent variance and approximation validity |
-| Constraints and profiles | physically bounded parameters | bounds, priors, profile intervals, contours | active constraints and non-parabolic cost shape |
+| Constraints and profiles | early saturation measurement | bounds, prior information, profile intervals, non-elliptic contours | unseen plateau and amplitude-timescale degeneracy |
 | Poisson and histograms | counts, rates, binned events | Poisson deviance and likelihood fits | low-count bins, deviance residuals, empty-bin behavior |
 | Multi-dataset fit | shared physics across runs | parameter mapping and joint costs | per-dataset residuals and shared-parameter tension |
 

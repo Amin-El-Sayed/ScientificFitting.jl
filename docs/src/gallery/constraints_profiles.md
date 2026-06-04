@@ -1,224 +1,306 @@
 # Constraints And Profiles
 
-This workflow fits a quadratic response with a physical curvature constraint,
-an external offset calibration, and nonlocal uncertainty diagnostics. It is the
-first gallery page to read when a fit returns parameter errors but you are not
-sure whether the local covariance approximation is trustworthy.
+Local covariance errors answer a local question: how curved is the cost
+function immediately around the optimum? This workflow shows a case where that
+answer is not enough. The fitted curve looks well determined over the measured
+interval, but two physical parameters remain strongly and nonlinearly coupled.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/constraints_priors_light.png" alt="Constrained quadratic fit">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/constraints_priors_dark.png" alt="Constrained quadratic fit in dark mode">
+<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/constraints_priors_light.png" alt="Early-time saturation fit with x and y uncertainties and a one-sigma prediction band">
+<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/constraints_priors_dark.png" alt="Early-time saturation fit with x and y uncertainties and a one-sigma prediction band in dark mode">
 ```
 
-## Question
+## Scientific Question
 
-A measured response is expected to be locally parabolic:
+A sensor approaches a steady response after a step input. Its expected response
+is
 
 ```math
-y(x) = a x^2 + b x + c.
+y(t) = A\left(1-e^{-t/\tau}\right) + c,
 ```
 
-The curvature ``a`` should be non-negative for physical reasons, and an
-independent calibration constrains the offset ``c`` near ``0.3``. The analysis
-asks:
+where ``A`` is the response above baseline, ``\tau`` is the time constant, and
+``c`` is the baseline. The measurement stops before the response reaches its
+plateau.
 
-- What curvature, slope, and offset best describe the data?
-- Is the curvature uncertainty symmetric enough for a standard ``\pm\sigma``
-  report?
-- How strongly are curvature and slope coupled?
-- Did the constraints affect the uncertainty statement?
+The analysis must answer more than "does the curve pass through the points?"
 
-## Data And Prior Information
+- Can the available time window determine ``A`` and ``\tau`` separately?
+- Is a symmetric covariance error a defensible uncertainty statement?
+- How much does an independent baseline calibration help?
+- What measurement should be added if the parameters remain degenerate?
 
-The example is controlled, not perfect. The data follow a quadratic trend with
-structured residuals so that the diagnostic tools have something meaningful to
-inspect. Each point has the same y uncertainty:
+## Why The Parameters Become Degenerate
+
+For times much shorter than the time constant,
 
 ```math
-\sigma_y = 0.08.
+1-e^{-t/\tau} \approx \frac{t}{\tau},
 ```
 
-The offset prior is external information, for example from a zero-point
-calibration:
+so the measured response is approximately
 
 ```math
-c = 0.30 \pm 0.20.
+y(t) \approx \frac{A}{\tau}t + c.
 ```
 
-The prior is not a hard constraint. It contributes a Gaussian penalty to the
-cost, so the data can still move ``c`` away from ``0.30`` when the measurement
-supports it.
+Early data therefore determine the ratio ``A/\tau`` much better than ``A`` or
+``\tau`` individually. A larger amplitude can be compensated by a longer time
+constant. This is a property of the experiment, not an optimizer defect.
 
-## Model, Bounds, And Cost
-
-The fit combines three kinds of information:
-
-- `sigma_y` for the measurement uncertainty,
-- `bounds` for hard parameter ranges,
-- `parameter_priors` for external Gaussian information.
-
-The curvature bound is
+The controlled dataset includes individual absolute uncertainties in both time
+and response:
 
 ```math
-a \ge 0.
+\sigma_{t,i} = 0.010 + 0.004t_i\ \mathrm{s},
+\qquad
+\sigma_{y,i} = 0.045 + 0.008t_i\ \mathrm{V}.
 ```
 
-The full cost is the measurement contribution plus the prior penalty:
+The residual pattern is fixed so that the page is reproducible, but it is not a
+perfect model-generated line. An independent zero measurement supplies the
+Gaussian prior
+
+```math
+c = 0.10 \pm 0.08\ \mathrm{V}.
+```
+
+## Bounds, Prior, And Cost
+
+Amplitude and time constant must be positive. Those statements are hard bounds:
+
+```math
+0.1 \le A \le 20,
+\qquad
+0.1\ \mathrm{s} \le \tau \le 20\ \mathrm{s}.
+```
+
+The baseline calibration is different. It is uncertain external information,
+so it enters as a Gaussian term rather than a fixed value. Define
+
+```math
+s_i^2(p)
+=
+\sigma_{y,i}^2
++
+\left(\frac{\partial f(t_i,p)}{\partial t}\sigma_{t,i}\right)^2.
+```
+
+Because this effective variance depends on the fitted parameters, `cost=:auto`
+selects the full Gaussian negative log-likelihood:
 
 ```math
 C(p) =
-\sum_i \left(\frac{y_i - f(x_i,p)}{\sigma_y}\right)^2
-+ \left(\frac{c - 0.30}{0.20}\right)^2.
+\sum_i
+\left[
+\log\!\left(2\pi s_i^2(p)\right)
++
+\frac{\left[y_i-f(t_i,p)\right]^2}{s_i^2(p)}
+\right]
++
+\log\!\left(2\pi\,0.08^2\right)
++
+\left(\frac{c-0.10}{0.08}\right)^2.
 ```
 
-When a bound or prior is important, the Hessian near the minimum may no longer
-tell the full story. That is why the workflow computes a profile and a contour
-after the fit.
+The effective-variance term propagates time uncertainty through the local model
+slope. It is appropriate when the time uncertainties are small enough for this
+first-order approximation. The log-variance term is essential because it
+prevents the optimizer from improving the residual term merely by inflating a
+parameter-dependent variance. A latent-variable or orthogonal-distance model
+is needed when the first-order approximation is not adequate.
 
-## Fit
-
-This is the complete code for the documentation example:
+## Complete Fit
 
 ```julia
 using JuFitter
 
-x = collect(range(-2.0, 2.3; length=28))
-quadratic_model(x, p) = @. p[1] * x^2 + p[2] * x + p[3]
+t = collect(range(0.15, 2.2; length=18))
+model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
 
-sigma_y = fill(0.08, length(x))
-y = quadratic_model(x, [0.65, -0.75, 0.35]) .+
-    sigma_y .* cos.(2.0 .* x)
-
-constraints = (
-    ineq = p -> [-p[1]],  # p[1] >= 0: convex parabola
-)
+sigma_t = @. 0.010 + 0.004 * t
+sigma_y = @. 0.045 + 0.008 * t
+residual_pattern = [
+    0.50, -0.90, 0.30, 1.10, -0.70, 0.80, -1.00, 0.40, 0.90,
+    -0.60, 0.70, -0.80, 1.00, -0.40, 0.55, -0.75, 0.65, -0.35,
+]
+y = model(t, [4.8, 3.4, 0.12]) .+ sigma_y .* residual_pattern
 
 result = fit_model(
-    quadratic_model,
-    x,
+    model,
+    t,
     y;
-    p0=[0.25, -0.2, 0.0],
+    p0=[3.0, 2.0, 0.0],
     sigma_y=sigma_y,
-    bounds=([0.0, -2.0, -1.0], [2.0, 2.0, 2.0]),
-    constraints=constraints,
-    parameter_priors=(index=3, mean=0.3, sigma=0.2),
+    sigma_x=sigma_t,
+    bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
+    parameter_priors=(index=3, mean=0.10, sigma=0.08),
+    initial_guesses=[
+        [3.0, 2.0, 0.0],
+        [8.0, 7.0, 0.1],
+        [2.0, 1.0, 0.2],
+    ],
 )
 
-curvature, slope, offset = result.params
-sigma_curvature, sigma_slope, sigma_offset = result.param_stderr
+amplitude_profile = profile(result, 1; npoints=61, nsigma=4)
+amplitude_interval = profile_interval(result, 1; npoints=81, nsigma=4)
+amplitude_timescale = contour(
+    result,
+    1,
+    2;
+    npoints=121,
+    nsigma=4,
+)
 
-profile_curvature = profile(result, 1; npoints=45, nsigma=3)
-interval_curvature = profile_interval(result, 1; npoints=81, nsigma=4)
-curvature_slope = contour(result, 1, 2; npoints=31, nsigma=2)
+plot_profile(
+    amplitude_profile;
+    local_sigma=result.param_stderr[1],
+    xlabel="amplitude A",
+    title="Profile cost versus local parabola",
+    delta_max=8,
+)
+plot_contour(
+    amplitude_timescale;
+    local_covariance=result.param_covariance,
+    local_center=result.params[[1, 2]],
+    xlabel="amplitude A",
+    ylabel="time constant tau",
+    title="Profile contours versus local covariance",
+)
 
-println("a = ", curvature, " +/- ", sigma_curvature)
-println("b = ", slope, " +/- ", sigma_slope)
-println("c = ", offset, " +/- ", sigma_offset)
-println("profile interval for a: -",
-        interval_curvature.uncertainty_minus,
-        " +",
-        interval_curvature.uncertainty_plus)
+println(amplitude_interval)
 println(diagnostic_dashboard_text(result))
 ```
 
-The gallery asset generator uses the same fit result to render the fit plot,
-the curvature profile, and the curvature-slope contour.
+Multiple starting points are deliberate. They do not cure an under-informative
+experiment, but they make it less likely that a local optimizer accident is
+mistaken for the physical minimum.
 
-## Profile Diagnostic
-
-```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/curvature_profile_light.png" alt="Curvature profile">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/curvature_profile_dark.png" alt="Curvature profile in dark mode">
-```
-
-A local covariance error assumes that the cost is parabolic near the minimum:
+The fit returns approximately
 
 ```math
-\Delta C(a) \approx \left(\frac{a-\hat a}{\sigma_a}\right)^2.
+A = 4.59 \pm 0.70\ \mathrm{V},
+\qquad
+\tau = 3.18 \pm 0.70\ \mathrm{s},
+\qquad
+c = 0.115 \pm 0.041\ \mathrm{V}.
 ```
 
-A profile scan tests this assumption directly. For each fixed value of
-curvature ``a``, JuFitter refits the remaining parameters and records the
-increase in cost. If the profile is parabolic, symmetric ``\pm\sigma`` errors
-are usually adequate. If the profile is skewed, clipped by a bound, or has a
-flat shoulder, report profile intervals instead.
+Those symmetric errors are only the local covariance summary. The fitted
+correlation between ``A`` and ``\tau`` is approximately ``0.9999``. That number
+is already a warning to inspect the cost away from the minimum.
 
-In the ``\chi^2`` convention, the common one-parameter thresholds are
-``\Delta C = 1`` for 1 sigma and ``\Delta C = 4`` for 2 sigma. The profile plot
-is therefore a diagnostic of the actual fitted cost, not an aesthetic extra.
-
-## Contour Diagnostic
+## Profile: Is The One-Parameter Error Symmetric?
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/curvature_slope_contour_light.png" alt="Curvature slope contour">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/curvature_slope_contour_dark.png" alt="Curvature slope contour in dark mode">
+<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/saturation_profile_light.png" alt="Profile cost for saturation amplitude compared with the local parabolic approximation">
+<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/saturation_profile_dark.png" alt="Profile cost for saturation amplitude compared with the local parabolic approximation in dark mode">
 ```
 
-The contour shows the joint uncertainty of curvature and slope after the offset
-and other parameters are refitted. This answers a different question from a
-profile:
-
-- The profile asks, "How far can one parameter move?"
-- The contour asks, "Which combinations of two parameters remain plausible?"
-
-An elongated contour means the two parameters compensate each other. A tilted
-ellipse is usually fine; a bent, clipped, or disconnected contour means the
-local covariance matrix is not enough evidence for a careful report.
-
-For two parameters, the common Gaussian thresholds are approximately
-``\Delta C = 2.30`` for 1 sigma and ``\Delta C = 6.18`` for 2 sigma. These
-thresholds are different from the one-parameter profile thresholds because the
-probability content is two-dimensional.
-
-The colored regions and solid boundaries are the actual profiled 1-sigma and
-2-sigma regions. The dashed curves are the local covariance approximation. In
-this controlled example they nearly overlap, so the local covariance is an
-adequate summary. A visible mismatch, clipping, or banana shape is the warning
-that the local symmetric errors should not be the final uncertainty statement.
-
-## Interpretation
-
-For the controlled dataset, the fitted curvature is positive and well inside
-the hard lower bound. That means the bound expresses physical knowledge but does
-not dominate the best fit. The offset prior contributes information without
-locking the offset to exactly ``0.30``.
-
-The fitted values are approximately
+For every fixed amplitude, the profile scan refits ``\tau`` and ``c`` and
+records
 
 ```math
-a = 0.6244 \pm 0.0102,\qquad
-b = -0.7425 \pm 0.0121,\qquad
-c = 0.3747 \pm 0.0225.
+\Delta C(A) = C\!\left(A,\widehat{\widehat{\tau}}(A),
+\widehat{\widehat{c}}(A)\right) - C_{\min}.
 ```
 
-The profile interval for ``a`` is nearly symmetric in this controlled case,
-about ``-0.0102`` and ``+0.0102``. That agreement is useful: it says the local
-curvature error is a good summary for this parameter. The diagnostic dashboard
-still reports `status = review`, because the residuals contain smooth structure.
-That warning concerns model adequacy, not a failed profile calculation.
+The double hat means "refitted while ``A`` is held fixed." The dashed parabola
+is what the local covariance matrix predicts:
 
-The useful conclusion is not only the parameter table. The profile and contour
-tell whether the reported local errors are a fair summary. If they agree with
-the local covariance approximation, the standard report is compact. If they do
-not, the profile interval and contour should be shown or cited explicitly.
+```math
+\Delta C_{\mathrm{local}}(A)
+=
+\left(\frac{A-\hat A}{\sigma_A}\right)^2.
+```
 
-## What Can Go Wrong
+The actual profile rises more slowly toward larger amplitudes. The one-sigma
+profile interval is approximately
 
-Do not treat a hard bound as harmless. If the minimum sits on a bound, symmetric
-Gaussian errors are usually misleading. Use profile intervals and state that the
-parameter is constrained.
+```math
+A = 4.59^{+0.90}_{-0.57}\ \mathrm{V},
+```
 
-Do not confuse priors with measurements. A prior should represent external
-information with a defensible uncertainty, not a way to force a preferred
-answer.
+not ``4.59 \pm 0.70\ \mathrm{V}``. The asymmetry is scientifically relevant:
+large amplitudes remain plausible because a longer time constant can hide the
+plateau beyond the measured interval.
 
-Do not read a contour as a decorative confidence blob. Its shape tells you
-whether parameters are correlated, whether the cost is locally quadratic, and
-whether a two-number covariance summary is enough.
+Here ``C=-2\log L`` up to constants. Under the usual regular likelihood-ratio
+assumptions, ``\Delta C=1`` is the asymptotic one-sigma threshold for one
+profiled parameter. The threshold line therefore turns the scan into an
+interval construction rather than a qualitative curve inspection.
 
-Do not overclaim profile reliability when scans fail or do not bracket the
-requested threshold. JuFitter exposes those cases through profile diagnostics;
-increase the scan range or inspect the model before reporting the interval.
+## Contour: Which Parameter Combinations Survive?
+
+```@raw html
+<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/amplitude_timescale_contour_light.png" alt="Profile confidence regions for amplitude and time constant compared with the local covariance ellipse">
+<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/amplitude_timescale_contour_dark.png" alt="Profile confidence regions for amplitude and time constant compared with the local covariance ellipse in dark mode">
+```
+
+The filled regions are the actual profiled one- and two-sigma regions. At every
+grid point in ``(A,\tau)``, JuFitter refits the baseline. The dashed curves are
+the local covariance ellipses.
+
+For two parameters under the same regular likelihood-ratio assumptions, the
+common thresholds are
+
+```math
+\Delta C = 2.30 \quad \text{and} \quad \Delta C = 6.18
+```
+
+for one and two sigma respectively. They differ from the one-parameter profile
+thresholds because a two-dimensional region must contain the stated
+probability.
+
+The profile region bends along combinations with similar early-time slope.
+The local ellipse cannot follow that curvature. Reporting only the covariance
+matrix would hide which high-``A``, high-``\tau`` combinations remain
+compatible with the measurement.
+
+## Decision In The Laboratory
+
+The contour does not merely say "the fit is correlated." It identifies why:
+the experiment has not observed enough of the saturation plateau.
+
+The useful next action is therefore specific:
+
+1. Extend the acquisition to times comparable to or larger than the fitted
+   ``\tau``.
+2. Keep the independent baseline measurement, because it prevents ``c`` from
+   absorbing part of the early rise.
+3. Report the profile interval or the profile contour until the added data make
+   the local approximation adequate.
+
+Changing optimizers, tightening tolerances, or adding more early-time points
+cannot create information about the unseen plateau.
+
+## Failure Modes To Inspect
+
+**The profile does not reach the requested threshold.** Increase the scan range
+only after checking whether the parameter is practically unidentifiable. A
+one-sided or unbounded interval may be the correct conclusion.
+
+**Profile refits fail.** Inspect `diagnose(profile_result)` or
+`diagnose(contour_result)`. Failed cells can indicate poor scaling, invalid
+model evaluations, active bounds, or a secondary minimum.
+
+**A narrow contour appears fragmented.** Repeat the scan with a denser grid
+before interpreting isolated regions as secondary minima. This example uses a
+``121\times121`` grid because the amplitude-timescale region is much narrower
+across the degeneracy than along it.
+
+**The best fit sits on a bound.** Do not report a symmetric covariance error as
+though the cost were unconstrained. State the bound and use a profile-based
+limit or interval.
+
+**The local band looks narrow although the parameters are uncertain.** This is
+possible: the measured part of the curve can be predicted well while its
+physical decomposition into ``A`` and ``\tau`` remains uncertain. Prediction
+uncertainty and parameter identifiability answer different questions.
+
+**The effective-variance approximation is questionable.** If time uncertainty
+is large or the model is strongly curved over one ``\sigma_t``, use a more
+complete errors-in-variables model instead of trusting first-order propagation.
 
 Next useful pages: [Fitting for Practitioners](@ref),
-[Statistical Foundations](@ref), and [Poisson And Histogram Fits](@ref).
+[Statistical Foundations](@ref), and [XY Uncertainties](@ref).
