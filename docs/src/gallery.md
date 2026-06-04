@@ -123,8 +123,9 @@ not be committed.
 <div>
 <span class="jufitter-tag">multi-fit</span>
 <span class="jufitter-tag">shared parameters</span>
+<span class="jufitter-tag">model comparison</span>
 <h3><a href="gallery/multi_dataset.html">Multi-dataset fit</a></h3>
-<p>Fit several datasets with shared and dataset-specific parameters. This is the pattern for comparing sensors, repeated runs, or coupled experiments.</p>
+<p>Test whether three calibration channels may share one gain, identify the incompatible channel from its pulls, and propagate the gain difference from the joint covariance.</p>
 </div>
 </div>
 </div>
@@ -167,6 +168,8 @@ but they should still read like serious scientific examples.
 - `08_damped_oscillator_decay.jl`: real mechanical oscillator decay with x/y
   uncertainties and light/dark documentation exports.
 - `09_docs_gallery_suite.jl`: reproducible documentation asset generator.
+- `10_multi_dataset_calibration.jl`: full versus partial parameter sharing,
+  per-dataset pulls, and joint-covariance propagation.
 
 ## Completion Status
 

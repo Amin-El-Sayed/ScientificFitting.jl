@@ -360,61 +360,6 @@ function save_photoelectric_work_function(
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
 
-function save_multi_dataset(result, x1, y1, x2, y2, sigma1, sigma2, name; dark::Bool=false)
-    color = dark ? "#edf2f4" : "#14151a"
-    fit_a = dark ? "#66d9ef" : "#0081a7"
-    fit_b = dark ? "#f59e0b" : "#b45309"
-    band_a = dark ? ("#66d9ef", 0.16) : ("#a8dadc", 0.28)
-    band_b = dark ? ("#f59e0b", 0.14) : ("#fed7aa", 0.42)
-    p = result.params
-    cov = result.param_covariance
-    fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1260, 760), backgroundcolor=dark ? "#111318" : "#ffffff")
-    end
-    ax = Axis(fig[1, 1]; title="Shared-slope calibration transfer", xlabel="input x", ylabel="response y")
-    errorbars!(ax, x1, y1, sigma1; color=(fit_a, 0.45), whiskerwidth=6)
-    errorbars!(ax, x2, y2, sigma2; color=(fit_b, 0.45), whiskerwidth=6)
-    scatter!(ax, x1, y1; color=fit_a, markersize=8, label="sensor A")
-    scatter!(ax, x2, y2; color=fit_b, markersize=8, marker=:rect, label="sensor B")
-    xg = collect(range(0, 5; length=250))
-    y_a = @. p[1] * xg + p[2]
-    y_b = @. p[1] * xg + p[3]
-    Ja = hcat(xg, ones(length(xg)), zeros(length(xg)))
-    Jb = hcat(xg, zeros(length(xg)), ones(length(xg)))
-    sigma_a = sqrt.(clamp.(vec(sum((Ja * cov) .* Ja; dims=2)), 0.0, Inf))
-    sigma_b = sqrt.(clamp.(vec(sum((Jb * cov) .* Jb; dims=2)), 0.0, Inf))
-    band!(ax, xg, y_a .- sigma_a, y_a .+ sigma_a; color=band_a, label="1σ fit band A")
-    band!(ax, xg, y_b .- sigma_b, y_b .+ sigma_b; color=band_b, label="1σ fit band B")
-    lines!(ax, xg, y_a; color=fit_a, linewidth=3, label="fit A")
-    lines!(ax, xg, y_b; color=fit_b, linewidth=3, label="fit B")
-    axislegend(ax; position=:lt, nbanks=2)
-    offset_gap = p[2] - p[3]
-    offset_grad = [0.0, 1.0, -1.0]
-    sigma_gap = sqrt(max(dot(offset_grad, cov * offset_grad), 0.0))
-    panel = Axis(fig[1, 2]; backgroundcolor=:transparent)
-    hidedecorations!(panel)
-    hidespines!(panel)
-    text!(
-        panel,
-        0,
-        1;
-        text="shared slope = $(round(p[1]; sigdigits=5))\n" *
-             "offset A = $(round(p[2]; sigdigits=5))\n" *
-             "offset B = $(round(p[3]; sigdigits=5))\n" *
-             "offset gap = $(round(offset_gap; sigdigits=5)) ± $(round(sigma_gap; sigdigits=2))\n" *
-             "χ²/ndf = $(round(result.stats.chi2_ndf; sigdigits=4))\n" *
-             "P(χ²) = $(round(result.stats.pvalue; sigdigits=4))",
-        space=:relative,
-        align=(:left, :top),
-        color=color,
-        fontsize=20,
-        lineheight=1.15,
-    )
-    colsize!(fig.layout, 2, Fixed(380))
-    rowsize!(fig.layout, 1, Auto(1))
-    save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
-end
-
 # 0. Quickstart plot matching docs/src/quickstart.md.
 quick_x = collect(range(0.0, 10.0; length=24))
 quick_sigma_y = @. 0.16 + 0.02 * quick_x
@@ -734,24 +679,7 @@ hist_result = fit_histogram_model(
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=false)
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=true)
 
-# 7. Multi-dataset fit with shared and local parameters.
-x1 = collect(0.0:1.0:5.0)
-x2 = collect(0.0:1.0:5.0)
-local_linear(x, p) = @. p[1] * x + p[2]
-sigma1 = fill(0.11, length(x1))
-sigma2 = fill(0.13, length(x2))
-y1 = local_linear(x1, [2.0, 1.0]) .+ sigma1 .* sin.(1.4 .* x1)
-y2 = local_linear(x2, [2.0, -1.0]) .+ sigma2 .* cos.(1.7 .* x2)
-multi_result = fit_multi_model(
-    [local_linear, local_linear],
-    [x1, x2],
-    [y1, y2];
-    p0=[1.7, 0.8, -0.8],
-    parameter_map=[[1, 2], [1, 3]],
-    sigma_y=[sigma1, sigma2],
-    parameter_names=["shared slope", "offset A", "offset B"],
-)
-save_multi_dataset(multi_result, x1, y1, x2, y2, sigma1, sigma2, "multi_dataset_shared_slope"; dark=false)
-save_multi_dataset(multi_result, x1, y1, x2, y2, sigma1, sigma2, "multi_dataset_shared_slope"; dark=true)
+# 7. Multi-dataset model criticism and partial parameter sharing.
+include(joinpath(@__DIR__, "10_multi_dataset_calibration.jl"))
 
 println("Generated documentation gallery assets in ", DOC_ASSET_DIR)

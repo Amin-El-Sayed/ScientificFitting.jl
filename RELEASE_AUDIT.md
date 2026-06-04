@@ -61,6 +61,10 @@ sufficient.
   as a model-criticism case study, compares it with a frequency-drift model,
   and makes the unresolved uncertainty-model problem explicit through pull
   panels and diagnostics.
+- The multi-dataset workflow now treats parameter sharing as a testable
+  scientific hypothesis, rejects an invalid all-shared-gain model, and
+  demonstrates partial sharing, per-dataset pulls, AIC comparison, and joint
+  covariance propagation.
 - There is no formal link check in CI for the generated documentation.
 - There is no visual regression or snapshot test for documentation plots.
 - There is no documentation deployment workflow yet.

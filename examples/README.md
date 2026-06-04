@@ -21,6 +21,9 @@ Generated figures are written to `examples/output/`, which is ignored by git.
   uncertainties, constant-frequency versus frequency-drift model criticism,
   pull diagnostics, and light/dark docs export.
 - `09_docs_gallery_suite.jl`: generates the public documentation gallery assets.
+- `10_multi_dataset_calibration.jl`: tests full versus partial parameter
+  sharing across three calibration channels with joint covariance propagation
+  and per-dataset pull diagnostics.
 
 The gallery is intentionally systematic. Avoid adding loose one-off scripts at
 the top level; new examples should either extend an existing gallery file or add
