@@ -47,6 +47,19 @@ large temporary matrices inside every objective call.
 - Full gallery generation will become expensive once docs embed many high
   quality plots; split fast docs checks from full visual builds if needed.
 
+## Plot Layout Rules
+
+- When `show_legend=true` and `stats_position=:right`, `plot_fit` places the
+  legend above the right-side report instead of consuming data-axis space.
+- Default fit plots use larger axis, tick, legend, and report typography than
+  the compact paper themes. Documentation assets use an additional web-specific
+  scale because raster plots are reduced inside the Documenter content column.
+- Documentation light/dark assets must share the
+  `jufitter-plot-light`/`jufitter-plot-dark` classes. CSS guarantees exactly one
+  visible variant for the active Documenter theme.
+- Gallery asset regeneration is a visual change and must be checked in both
+  themes before commit.
+
 ## Numerical Rules
 
 - Do not use explicit matrix inverse in production covariance calculations.

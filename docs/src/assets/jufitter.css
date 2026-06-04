@@ -212,16 +212,30 @@ html.theme--documenter-dark .jufitter-flow-step {
   overflow: hidden;
 }
 
-.jufitter-plot-dark {
-  display: none;
+@media (min-width: 900px) {
+  .content img.jufitter-plot {
+    display: block;
+    margin-left: 50%;
+    max-width: none !important;
+    transform: translateX(-50%);
+    width: min(1120px, calc(100vw - 24rem)) !important;
+  }
+}
+
+html:not(.theme--documenter-dark) .jufitter-plot-light {
+  display: block !important;
+}
+
+html:not(.theme--documenter-dark) .jufitter-plot-dark {
+  display: none !important;
 }
 
 html.theme--documenter-dark .jufitter-plot-light {
-  display: none;
+  display: none !important;
 }
 
 html.theme--documenter-dark .jufitter-plot-dark {
-  display: block;
+  display: block !important;
 }
 
 .jufitter-gallery-item div {

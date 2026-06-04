@@ -25,6 +25,25 @@ using Test
     @test quick.result.converged
     @test length(quick.result.params) == 2
 
+    right_panel_out = joinpath(mktempdir(), "fitplot_right_panel.png")
+    right_panel = fitplot(
+        x,
+        y;
+        sigma_y=sigma_y,
+        filename=right_panel_out,
+        format=:png,
+        report=:plot,
+        show_legend=true,
+        stats_position=:right,
+        stats_mode=:full,
+        band=:prediction,
+        band_label="1-sigma prediction band",
+        parameter_names=["m", "b"],
+    )
+
+    @test right_panel.figure !== nothing
+    @test isfile(right_panel_out)
+
     model(x, p) = @. p[1] * exp(-p[2] * x) + p[3]
     y2 = model(x, [2.0, 0.7, 0.1]) .+ sigma_y .* cos.(1.4 .* x)
     out = joinpath(mktempdir(), "fitplot.png")

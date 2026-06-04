@@ -89,6 +89,11 @@ println()
 println(diagnostic_dashboard_text(result))
 ```
 
+```@raw html
+<img class="jufitter-plot jufitter-plot-light" src="assets/gallery/quickstart_linear_light.png" alt="Quickstart calibration fit">
+<img class="jufitter-plot jufitter-plot-dark" src="assets/gallery/quickstart_linear_dark.png" alt="Quickstart calibration fit in dark mode">
+```
+
 `fitplot(x, y; sigma_y=...)` uses a straight-line model by default. If you want
 to make the model explicit, use:
 

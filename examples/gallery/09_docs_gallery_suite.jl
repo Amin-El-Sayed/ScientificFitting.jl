@@ -36,16 +36,16 @@ end
 function gallery_theme(dark::Bool)
     if dark
         return Theme(
-            fontsize=14,
+            fontsize=20,
             font="TeX Gyre Heros",
             Figure=(backgroundcolor="#111318",),
             Axis=(
                 backgroundcolor="#111318",
-                xlabelsize=18,
-                ylabelsize=18,
-                titlesize=18,
-                xticklabelsize=13,
-                yticklabelsize=13,
+                xlabelsize=27,
+                ylabelsize=27,
+                titlesize=26,
+                xticklabelsize=20,
+                yticklabelsize=20,
                 xlabelcolor="#edf2f4",
                 ylabelcolor="#edf2f4",
                 titlecolor="#edf2f4",
@@ -60,26 +60,26 @@ function gallery_theme(dark::Bool)
                 leftspinecolor="#b8c1ca",
                 bottomspinecolor="#b8c1ca",
             ),
-            Legend=(framevisible=false, labelcolor="#edf2f4", labelsize=13, patchsize=(18, 10)),
+            Legend=(framevisible=false, labelcolor="#edf2f4", labelsize=20, patchsize=(30, 16)),
         )
     end
     return Theme(
-        fontsize=14,
+        fontsize=20,
         font="TeX Gyre Heros",
         Figure=(backgroundcolor="#ffffff",),
         Axis=(
             backgroundcolor="#ffffff",
-            xlabelsize=18,
-            ylabelsize=18,
-            titlesize=18,
-            xticklabelsize=13,
-            yticklabelsize=13,
+            xlabelsize=27,
+            ylabelsize=27,
+            titlesize=26,
+            xticklabelsize=20,
+            yticklabelsize=20,
             xgridcolor=("#eef2f7", 0.9),
             ygridcolor=("#eef2f7", 0.9),
             topspinevisible=false,
             rightspinevisible=false,
         ),
-        Legend=(framevisible=false, labelsize=13, patchsize=(18, 10)),
+        Legend=(framevisible=false, labelsize=20, patchsize=(30, 16)),
     )
 end
 
@@ -88,7 +88,7 @@ function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
     fit_color = dark ? "#66d9ef" : "#0081a7"
     band_color = dark ? ("#66d9ef", 0.18) : ("#a8dadc", 0.30)
     fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1040, 610), backgroundcolor=dark ? "#111318" : "#ffffff")
+        Figure(size=(1180, 720), backgroundcolor=dark ? "#111318" : "#ffffff")
     end
     ax = Axis(fig[1, 1]; title="Poisson count model", xlabel="channel", ylabel="counts")
     yerr = sqrt.(counts)
@@ -113,10 +113,10 @@ function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
         space=:relative,
         align=(:left, :top),
         color=color,
-        fontsize=15,
+        fontsize=20,
         lineheight=1.1,
     )
-    colsize!(fig.layout, 2, Fixed(220))
+    colsize!(fig.layout, 2, Fixed(320))
     rowsize!(fig.layout, 1, Auto(1))
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
@@ -125,7 +125,7 @@ function save_histogram_fit(result, edges, counts, expected_counts, name; dark::
     color = dark ? "#edf2f4" : "#14151a"
     fit_color = dark ? "#66d9ef" : "#0081a7"
     fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1040, 610), backgroundcolor=dark ? "#111318" : "#ffffff")
+        Figure(size=(1180, 720), backgroundcolor=dark ? "#111318" : "#ffffff")
     end
     ax = Axis(fig[1, 1]; title="Histogram likelihood fit", xlabel="observable", ylabel="bin counts")
     centers = [(edges[i] + edges[i + 1]) / 2 for i in 1:(length(edges) - 1)]
@@ -148,10 +148,10 @@ function save_histogram_fit(result, edges, counts, expected_counts, name; dark::
         space=:relative,
         align=(:left, :top),
         color=color,
-        fontsize=15,
+        fontsize=20,
         lineheight=1.1,
     )
-    colsize!(fig.layout, 2, Fixed(220))
+    colsize!(fig.layout, 2, Fixed(320))
     rowsize!(fig.layout, 1, Auto(1))
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
@@ -172,7 +172,7 @@ function save_photoelectric_work_function(result, frequency, voltage, sigma_freq
     work_function_eV = -intercept
 
     fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1320, 760), backgroundcolor=dark ? "#111318" : "#ffffff")
+        Figure(size=(1260, 760), backgroundcolor=dark ? "#111318" : "#ffffff")
     end
     ax = Axis(
         fig[1, 1];
@@ -203,7 +203,7 @@ function save_photoelectric_work_function(result, frequency, voltage, sigma_freq
         intercept - 0.16;
         text="Φ = $(round(work_function_eV; sigdigits=4)) ± $(round(sigma_intercept; sigdigits=2)) eV",
         color=work_color,
-        fontsize=15,
+        fontsize=20,
         align=(:left, :top),
     )
     text!(
@@ -212,7 +212,7 @@ function save_photoelectric_work_function(result, frequency, voltage, sigma_freq
         0.22;
         text="ν₀ = $(round(threshold; sigdigits=4)) ± $(round(sigma_threshold; sigdigits=2)) THz",
         color=fit_color,
-        fontsize=15,
+        fontsize=20,
         align=(:left, :bottom),
     )
     axislegend(ax; position=:lt, nbanks=2)
@@ -236,10 +236,10 @@ function save_photoelectric_work_function(result, frequency, voltage, sigma_freq
         space=:relative,
         align=(:left, :top),
         color=color,
-        fontsize=15,
+        fontsize=20,
         lineheight=1.12,
     )
-    colsize!(fig.layout, 2, Fixed(330))
+    colsize!(fig.layout, 2, Fixed(380))
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
 
@@ -252,7 +252,7 @@ function save_multi_dataset(result, x1, y1, x2, y2, sigma1, sigma2, name; dark::
     p = result.params
     cov = result.param_covariance
     fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1320, 760), backgroundcolor=dark ? "#111318" : "#ffffff")
+        Figure(size=(1260, 760), backgroundcolor=dark ? "#111318" : "#ffffff")
     end
     ax = Axis(fig[1, 1]; title="Shared-slope calibration transfer", xlabel="input x", ylabel="response y")
     errorbars!(ax, x1, y1, sigma1; color=(fit_a, 0.45), whiskerwidth=6)
@@ -290,13 +290,41 @@ function save_multi_dataset(result, x1, y1, x2, y2, sigma1, sigma2, name; dark::
         space=:relative,
         align=(:left, :top),
         color=color,
-        fontsize=16,
+        fontsize=20,
         lineheight=1.15,
     )
-    colsize!(fig.layout, 2, Fixed(330))
+    colsize!(fig.layout, 2, Fixed(380))
     rowsize!(fig.layout, 1, Auto(1))
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
+
+# 0. Quickstart plot matching docs/src/quickstart.md.
+quick_x = collect(range(0.0, 10.0; length=24))
+quick_sigma_y = @. 0.16 + 0.02 * quick_x
+quick_y = @. 1.85 * quick_x + 0.7 + quick_sigma_y * sin(1.6 * quick_x)
+quick_model(x, p) = @. p[1] * x + p[2]
+quick_result = fit_model(quick_model, quick_x, quick_y; p0=[1.0, 0.0], sigma_y=quick_sigma_y)
+lightdark_plot(
+    quick_result,
+    "quickstart_linear";
+    title=L"\mathrm{Quickstart\ calibration}",
+    model_label=L"U(x)=m x+b",
+    xlabel=L"t",
+    xunit=L"\mathrm{s}",
+    ylabel=L"U",
+    yunit=L"\mathrm{V}",
+    parameter_names=[L"m", L"b"],
+    latex_labels=true,
+    latex_stats=true,
+    band=:prediction,
+    nsigma=1,
+    band_label=L"1\sigma\ \mathrm{prediction\ band}",
+    show_legend=true,
+    stats_position=:right,
+    stats_mode=:full,
+    stats_fontsize=20,
+    figure_size=(1200, 760),
+)
 
 # 1. Linear calibration with visible heteroscedastic uncertainties.
 x = collect(range(0.0, 10.0; length=28))
@@ -324,8 +352,8 @@ lightdark_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=13,
-    figure_size=(1320, 760),
+    stats_fontsize=20,
+    figure_size=(1200, 760),
 )
 
 # 2. Photoelectric work-function extraction with x/y uncertainties.
@@ -378,8 +406,8 @@ lightdark_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=13,
-    figure_size=(1320, 760),
+    stats_fontsize=20,
+    figure_size=(1200, 760),
 )
 
 # 4. Effective-variance fit with x and y uncertainties.
@@ -407,8 +435,8 @@ lightdark_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=13,
-    figure_size=(1320, 760),
+    stats_fontsize=20,
+    figure_size=(1200, 760),
 )
 
 # 5. Constraints, prior, profile, and contour.
@@ -443,8 +471,8 @@ lightdark_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=13,
-    figure_size=(1320, 760),
+    stats_fontsize=20,
+    figure_size=(1200, 760),
 )
 prof = JuFitter.profile(quad_result, 1; npoints=45, nsigma=3)
 cont = JuFitter.contour(quad_result, 1, 2; npoints=31, nsigma=2)

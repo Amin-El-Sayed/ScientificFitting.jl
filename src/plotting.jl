@@ -31,16 +31,16 @@ function _style_preset(theme::Symbol)
         return (
             data_color=(_JF_DARK_INK, 0.74),
             data_marker=:circle,
-            data_markersize=5.0,
+            data_markersize=6.8,
             data_strokecolor=_JF_DARK_PAPER,
             data_strokewidth=0.35,
             fit_color=_JF_DARK_FIT,
-            fit_linewidth=2.2,
+            fit_linewidth=3.0,
             band_color=_JF_DARK_BAND,
             band_alpha=0.20,
             xerr_color=(_JF_DARK_MUTED, 0.42),
             yerr_color=(_JF_DARK_MUTED, 0.42),
-            error_whiskerwidth=4.5,
+            error_whiskerwidth=6.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
             stats_accent_color=_JF_DARK_FIT,
@@ -49,16 +49,16 @@ function _style_preset(theme::Symbol)
         return (
             data_color=(_JF_MINIMAL_INK, 0.62),
             data_marker=:circle,
-            data_markersize=4.8,
+            data_markersize=6.5,
             data_strokecolor=_JF_MINIMAL_PAPER,
             data_strokewidth=0.25,
             fit_color=_JF_MINIMAL_FIT,
-            fit_linewidth=2.0,
+            fit_linewidth=2.8,
             band_color=_JF_MINIMAL_BAND,
             band_alpha=0.16,
             xerr_color=(_JF_MINIMAL_INK, 0.32),
             yerr_color=(_JF_MINIMAL_INK, 0.32),
-            error_whiskerwidth=4.5,
+            error_whiskerwidth=6.0,
             stats_color=_JF_MINIMAL_INK,
             stats_muted_color=_JF_MINIMAL_MUTED,
             stats_accent_color=_JF_MINIMAL_INK,
@@ -67,16 +67,16 @@ function _style_preset(theme::Symbol)
         return (
             data_color=:black,
             data_marker=:circle,
-            data_markersize=4.2,
+            data_markersize=5.6,
             data_strokecolor=:white,
             data_strokewidth=0.0,
             fit_color=_JF_PAPER_FIT,
-            fit_linewidth=1.25,
+            fit_linewidth=1.8,
             band_color=_JF_PAPER_BAND,
             band_alpha=0.09,
             xerr_color=(:black, 0.70),
             yerr_color=(:black, 0.70),
-            error_whiskerwidth=2.5,
+            error_whiskerwidth=4.0,
             stats_color=:black,
             stats_muted_color=:black,
             stats_accent_color=:black,
@@ -86,16 +86,16 @@ function _style_preset(theme::Symbol)
     return (
         data_color=(_JF_INK, 0.58),
         data_marker=:circle,
-        data_markersize=7.0,
+        data_markersize=8.2,
         data_strokecolor=_JF_INK,
         data_strokewidth=0.9,
         fit_color=_JF_TEAL,
-        fit_linewidth=2.8,
+        fit_linewidth=3.2,
         band_color=_JF_TEAL_SOFT,
         band_alpha=0.18,
         xerr_color=(_JF_INK, 0.38),
         yerr_color=(_JF_INK, 0.38),
-        error_whiskerwidth=6,
+        error_whiskerwidth=7,
         stats_color=_JF_INK,
         stats_muted_color=_JF_MUTED,
         stats_accent_color=_JF_INK,
@@ -104,16 +104,16 @@ end
 
 function _dark_theme()
     return Theme(
-        fontsize=14,
+        fontsize=16,
         font="TeX Gyre Heros",
-        figure_padding=(8, 10, 7, 8),
+        figure_padding=(14, 18, 12, 14),
         Figure=(backgroundcolor=_JF_DARK_PAPER,),
         Axis=(
-            xlabelsize=18,
-            ylabelsize=18,
-            titlesize=18,
-            xticklabelsize=13,
-            yticklabelsize=13,
+            xlabelsize=22,
+            ylabelsize=22,
+            titlesize=22,
+            xticklabelsize=16,
+            yticklabelsize=16,
             backgroundcolor=_JF_DARK_PAPER,
             xlabelcolor=_JF_DARK_INK,
             ylabelcolor=_JF_DARK_INK,
@@ -135,7 +135,7 @@ function _dark_theme()
             leftspinecolor=_JF_DARK_MUTED,
             bottomspinecolor=_JF_DARK_MUTED,
         ),
-        Legend=(framevisible=false, labelsize=13, labelcolor=_JF_DARK_INK, patchsize=(18, 10), rowgap=4),
+        Legend=(framevisible=false, labelsize=16, labelcolor=_JF_DARK_INK, patchsize=(24, 13), rowgap=6),
         Lines=(linewidth=1.75,),
         Scatter=(markersize=4.2,),
     )
@@ -143,16 +143,16 @@ end
 
 function _publication_theme()
     return Theme(
-        fontsize=10,
+        fontsize=12,
         font="CMU Serif",
-        figure_padding=(6, 8, 4, 6),
+        figure_padding=(10, 12, 8, 10),
         Figure=(backgroundcolor=_JF_PAPER_SOFT,),
         Axis=(
-            xlabelsize=13,
-            ylabelsize=13,
-            titlesize=13,
-            xticklabelsize=10,
-            yticklabelsize=10,
+            xlabelsize=15,
+            ylabelsize=15,
+            titlesize=15,
+            xticklabelsize=12,
+            yticklabelsize=12,
             backgroundcolor=_JF_PAPER_SOFT,
             xlabelcolor=_JF_INK,
             ylabelcolor=_JF_INK,
@@ -170,9 +170,9 @@ function _publication_theme()
         ),
         Legend=(
             framevisible=false,
-            labelsize=10,
+            labelsize=12,
             labelcolor=_JF_INK,
-            patchsize=(18, 10),
+            patchsize=(22, 12),
         ),
         Lines=(linewidth=1.8,),
         Scatter=(markersize=6,),
@@ -181,16 +181,16 @@ end
 
 function _clean_theme()
     return Theme(
-        fontsize=12,
+        fontsize=15,
         font="TeX Gyre Heros",
-        figure_padding=(7, 8, 5, 6),
+        figure_padding=(12, 14, 10, 12),
         Figure=(backgroundcolor=_JF_PAPER,),
         Axis=(
-            xlabelsize=14,
-            ylabelsize=14,
-            titlesize=14,
-            xticklabelsize=10,
-            yticklabelsize=10,
+            xlabelsize=19,
+            ylabelsize=19,
+            titlesize=19,
+            xticklabelsize=14,
+            yticklabelsize=14,
             backgroundcolor=_JF_PAPER,
             xlabelcolor=_JF_INK,
             ylabelcolor=_JF_INK,
@@ -214,10 +214,10 @@ function _clean_theme()
         ),
         Legend=(
             framevisible=false,
-            labelsize=11,
+            labelsize=15,
             labelcolor=_JF_INK,
-            patchsize=(18, 10),
-            rowgap=4,
+            patchsize=(24, 13),
+            rowgap=6,
         ),
         Lines=(linewidth=2.4,),
         Scatter=(markersize=5.8,),
@@ -226,16 +226,16 @@ end
 
 function _minimal_theme()
     return Theme(
-        fontsize=14,
+        fontsize=16,
         font="TeX Gyre Heros",
-        figure_padding=(8, 10, 7, 8),
+        figure_padding=(14, 18, 12, 14),
         Figure=(backgroundcolor=_JF_MINIMAL_PAPER,),
         Axis=(
-            xlabelsize=18,
-            ylabelsize=18,
-            titlesize=18,
-            xticklabelsize=13,
-            yticklabelsize=13,
+            xlabelsize=22,
+            ylabelsize=22,
+            titlesize=22,
+            xticklabelsize=16,
+            yticklabelsize=16,
             backgroundcolor=_JF_MINIMAL_PAPER,
             xlabelcolor=_JF_MINIMAL_INK,
             ylabelcolor=_JF_MINIMAL_INK,
@@ -257,7 +257,7 @@ function _minimal_theme()
             leftspinecolor=_JF_MINIMAL_INK,
             bottomspinecolor=_JF_MINIMAL_INK,
         ),
-        Legend=(framevisible=false, labelsize=13, labelcolor=_JF_MINIMAL_INK, patchsize=(18, 10), rowgap=4),
+        Legend=(framevisible=false, labelsize=16, labelcolor=_JF_MINIMAL_INK, patchsize=(24, 13), rowgap=6),
         Lines=(linewidth=1.55,),
         Scatter=(markersize=4.2,),
     )
@@ -265,16 +265,16 @@ end
 
 function _paper_theme()
     return Theme(
-        fontsize=10,
+        fontsize=11,
         font="CMU Serif",
-        figure_padding=(5, 7, 4, 5),
+        figure_padding=(8, 10, 6, 8),
         Figure=(backgroundcolor=:white,),
         Axis=(
-            xlabelsize=11,
-            ylabelsize=11,
-            titlesize=11,
-            xticklabelsize=9,
-            yticklabelsize=9,
+            xlabelsize=13,
+            ylabelsize=13,
+            titlesize=13,
+            xticklabelsize=10,
+            yticklabelsize=10,
             backgroundcolor=:white,
             xlabelcolor=:black,
             ylabelcolor=:black,
@@ -290,7 +290,7 @@ function _paper_theme()
             leftspinecolor=:black,
             bottomspinecolor=:black,
         ),
-        Legend=(framevisible=false, labelsize=9, labelcolor=:black, patchsize=(14, 8)),
+        Legend=(framevisible=false, labelsize=11, labelcolor=:black, patchsize=(18, 10)),
         Lines=(linewidth=1.45,),
         Scatter=(markersize=4.8,),
     )
@@ -298,15 +298,15 @@ end
 
 function _latex_theme()
     return Theme(
-        fontsize=12,
-        figure_padding=(6, 8, 4, 6),
+        fontsize=13,
+        figure_padding=(10, 12, 8, 10),
         Figure=(backgroundcolor=_JF_PAPER_SOFT,),
         Axis=(
-            xlabelsize=14,
-            ylabelsize=14,
-            titlesize=14,
-            xticklabelsize=10,
-            yticklabelsize=10,
+            xlabelsize=16,
+            ylabelsize=16,
+            titlesize=16,
+            xticklabelsize=12,
+            yticklabelsize=12,
             backgroundcolor=_JF_PAPER_SOFT,
             xlabelcolor=_JF_INK,
             ylabelcolor=_JF_INK,
@@ -323,7 +323,7 @@ function _latex_theme()
             bottomspinecolor=_JF_INK,
         ),
         font="CMU Serif",
-        Legend=(framevisible=false, labelsize=10, labelcolor=_JF_INK, patchsize=(18, 10)),
+        Legend=(framevisible=false, labelsize=12, labelcolor=_JF_INK, patchsize=(22, 12)),
         Lines=(linewidth=1.8,),
         Scatter=(markersize=6,),
     )
@@ -407,13 +407,13 @@ end
 function _panel_width_px(stats_panel_width, fig_width::Int, stats_lines)
     if stats_panel_width === :auto
         max_chars = maximum(length(string(line)) for line in stats_lines; init=24)
-        return clamp(90 + 7 * max_chars, 220, 380)
+        return clamp(130 + 8 * max_chars, 300, 520)
     end
 
     stats_panel_width isa Real || throw(ArgumentError("stats_panel_width must be :auto or a positive number"))
     stats_panel_width > 0 || throw(ArgumentError("stats_panel_width must be positive"))
     if stats_panel_width <= 1
-        return clamp(Int(round(fig_width * stats_panel_width)), 220, 420)
+        return clamp(Int(round(fig_width * stats_panel_width)), 300, 560)
     end
     return Int(round(stats_panel_width))
 end
@@ -686,15 +686,42 @@ function _draw_right_stats!(
     fig,
     stats_rows;
     panel_width_px::Int,
-    fontsize::Real=13,
+    fontsize::Real=15,
     title=nothing,
     model_label=nothing,
     color=_JF_INK,
     muted_color=_JF_MUTED,
     accent_color=_JF_TEAL,
+    legend_plots=nothing,
+    legend_labels=nothing,
+    legend_kwargs=NamedTuple(),
 )
+    panel_cell = if legend_plots !== nothing && legend_labels !== nothing
+        panel_grid = GridLayout(fig[1, 2])
+        Legend(
+            panel_grid[1, 1],
+            legend_plots,
+            legend_labels;
+            _merged_kwargs(
+                (
+                    framevisible=false,
+                    tellwidth=false,
+                    tellheight=true,
+                    labelsize=fontsize + 1,
+                    patchsize=(26, 14),
+                    rowgap=8,
+                ),
+                legend_kwargs,
+            )...,
+        )
+        rowgap!(panel_grid, 14)
+        panel_grid[2, 1]
+    else
+        fig[1, 2]
+    end
+
     panel_ax = Axis(
-        fig[1, 2];
+        panel_cell;
         xgridvisible=false,
         ygridvisible=false,
         xticksvisible=false,
@@ -718,7 +745,7 @@ function _draw_right_stats!(
             text=title,
             space=:relative,
             align=(:left, :top),
-            fontsize=fontsize,
+            fontsize=fontsize + 1,
             color=color,
         )
         y -= 0.070
@@ -731,15 +758,15 @@ function _draw_right_stats!(
             text=model_label,
             space=:relative,
             align=(:left, :top),
-            fontsize=fontsize,
+            fontsize=fontsize + 1,
             color=color,
         )
         y -= 0.095
     end
     y -= 0.012
 
-    step = 0.067
-    value_x = 0.48
+    step = clamp(0.0042 * Float64(fontsize), 0.062, 0.084)
+    value_x = 0.50
     for (i, (name, value)) in enumerate(stats_rows)
         row_y = y - (i - 1) * step
         text!(
@@ -887,7 +914,7 @@ end
         stats_panel_width=:auto,
         stats_position=:right,
         inside_stats_position=:lt,
-        panel_gap=4,
+        panel_gap=22,
         latex_labels=false,
         latex_stats=false,
         show_stats=true,
@@ -895,7 +922,7 @@ end
         tight_layout=true,
         stats_sigdigits=5,
         parameter_names=nothing,
-        stats_fontsize=13,
+        stats_fontsize=15,
         stats_title=nothing,
         stats_title=nothing,
         stats_box_color=_JF_PAPER_SOFT,
@@ -962,7 +989,7 @@ function plot_fit(
     stats_panel_width=:auto,
     stats_position::Symbol=:right,
     inside_stats_position::Symbol=:lt,
-    panel_gap::Real=4,
+    panel_gap::Real=22,
     latex_labels::Bool=false,
     latex_stats::Bool=false,
     show_stats::Bool=true,
@@ -970,7 +997,7 @@ function plot_fit(
     tight_layout::Bool=true,
     stats_sigdigits::Int=5,
     parameter_names::Union{Nothing, AbstractVector}=nothing,
-    stats_fontsize::Real=13,
+    stats_fontsize::Real=15,
     stats_title=nothing,
     stats_box_color=_JF_PAPER_SOFT,
     stats_box_alpha::Real=0.95,
@@ -1033,7 +1060,7 @@ function plot_fit(
     error_whiskerwidth = error_whiskerwidth === nothing ? style.error_whiskerwidth : error_whiskerwidth
     model_label = model_label === nothing ? _default_model_label(result) : model_label
 
-    base_size = show_stats && stats_position == :right ? (980, 600) : (860, 560)
+    base_size = show_stats && stats_position == :right ? (1220, 720) : (980, 640)
     fig_size = figure_size === nothing ? base_size : (Int(round(figure_size[1])), Int(round(figure_size[2])))
     fig = with_theme(thm) do
         Figure(size=fig_size, backgroundcolor=_fitplot_background(theme))
@@ -1130,18 +1157,19 @@ function plot_fit(
         xlims !== nothing && ylims !== nothing && limits!(ax, xlims..., ylims...)
     end
 
-    if show_legend
-        legend_plots = band != :none ? [bplot, fplot, dplot] : [fplot, dplot]
-        legend_labels = band != :none ?
-            [
-                _as_label_text(band_label, latex_labels),
-                _as_label_text(fit_label, latex_labels),
-                _as_label_text(data_label, latex_labels),
-            ] :
-            [
-                _as_label_text(fit_label, latex_labels),
-                _as_label_text(data_label, latex_labels),
-            ]
+    legend_plots = band != :none ? [dplot, fplot, bplot] : [dplot, fplot]
+    legend_labels = band != :none ?
+        [
+            _as_label_text(data_label, latex_labels),
+            _as_label_text(fit_label, latex_labels),
+            _as_label_text(band_label, latex_labels),
+        ] :
+        [
+            _as_label_text(data_label, latex_labels),
+            _as_label_text(fit_label, latex_labels),
+        ]
+
+    if show_legend && !(show_stats && stats_position == :right)
         axislegend(
             ax,
             legend_plots,
@@ -1189,6 +1217,9 @@ function plot_fit(
             color=style.stats_color,
             muted_color=style.stats_muted_color,
             accent_color=style.stats_accent_color,
+            legend_plots=show_legend ? legend_plots : nothing,
+            legend_labels=show_legend ? legend_labels : nothing,
+            legend_kwargs=legend_kwargs,
         )
     end
 
