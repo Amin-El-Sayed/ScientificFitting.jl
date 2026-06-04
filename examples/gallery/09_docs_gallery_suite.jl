@@ -156,23 +156,65 @@ function save_histogram_fit(result, edges, counts, expected_counts, name; dark::
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
 
-function save_photoelectric_work_function(result, frequency, voltage, sigma_frequency, sigma_voltage, fit_mask, name; dark::Bool=false)
+function line_intersection(emission_result, baseline_result)
+    emission_slope, emission_intercept = emission_result.params
+    baseline_slope, baseline_intercept = baseline_result.params
+    denominator = emission_slope - baseline_slope
+    threshold = (baseline_intercept - emission_intercept) / denominator
+
+    threshold_gradient_emission = [-threshold / denominator, -1 / denominator]
+    threshold_gradient_baseline = [threshold / denominator, 1 / denominator]
+    threshold_variance =
+        dot(threshold_gradient_emission, emission_result.param_covariance * threshold_gradient_emission) +
+        dot(threshold_gradient_baseline, baseline_result.param_covariance * threshold_gradient_baseline)
+
+    work_function_eV = emission_slope * threshold
+    work_gradient_emission = [
+        threshold + emission_slope * threshold_gradient_emission[1],
+        emission_slope * threshold_gradient_emission[2],
+    ]
+    work_gradient_baseline = emission_slope .* threshold_gradient_baseline
+    work_variance =
+        dot(work_gradient_emission, emission_result.param_covariance * work_gradient_emission) +
+        dot(work_gradient_baseline, baseline_result.param_covariance * work_gradient_baseline)
+
+    return (
+        threshold=threshold,
+        sigma_threshold=sqrt(max(threshold_variance, 0.0)),
+        work_function_eV=work_function_eV,
+        sigma_work_function_eV=sqrt(max(work_variance, 0.0)),
+    )
+end
+
+function save_photoelectric_work_function(
+    emission_result,
+    baseline_result,
+    frequency,
+    voltage,
+    sigma_frequency,
+    sigma_voltage,
+    emission_mask,
+    name;
+    dark::Bool=false,
+)
     color = dark ? "#edf2f4" : "#14151a"
     muted = dark ? "#b8c1ca" : "#5b6270"
-    fit_color = dark ? "#66d9ef" : "#0081a7"
-    work_color = dark ? "#f59e0b" : "#b45309"
-    band_color = dark ? ("#66d9ef", 0.20) : ("#a8dadc", 0.28)
+    emission_color = dark ? "#66d9ef" : "#007f9e"
+    baseline_color = dark ? "#f4b860" : "#b85c38"
+    threshold_color = dark ? "#f7e06e" : "#7a5c00"
+    emission_band = dark ? ("#66d9ef", 0.20) : ("#89d5e0", 0.30)
+    baseline_band = dark ? ("#f4b860", 0.18) : ("#f4b183", 0.30)
 
-    slope, intercept = result.params
-    cov = result.param_covariance
-    sigma_intercept = sqrt(max(cov[2, 2], 0.0))
-    threshold = -intercept / slope
-    threshold_grad = [intercept / slope^2, -1 / slope]
-    sigma_threshold = sqrt(max(dot(threshold_grad, cov * threshold_grad), 0.0))
-    work_function_eV = -intercept
+    derived = line_intersection(emission_result, baseline_result)
+    threshold = derived.threshold
+    sigma_threshold = derived.sigma_threshold
+    work_function_eV = derived.work_function_eV
+    sigma_work_function_eV = derived.sigma_work_function_eV
+    emission_slope, emission_intercept = emission_result.params
+    baseline_slope, baseline_intercept = baseline_result.params
 
     fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1260, 760), backgroundcolor=dark ? "#111318" : "#ffffff")
+        Figure(size=(1460, 800), backgroundcolor=dark ? "#111318" : "#ffffff")
     end
     ax = Axis(
         fig[1, 1];
@@ -183,63 +225,55 @@ function save_photoelectric_work_function(result, frequency, voltage, sigma_freq
 
     errorbars!(ax, frequency, voltage, sigma_voltage; color=(muted, 0.46), whiskerwidth=5)
     errorbars!(ax, frequency, voltage, sigma_frequency; direction=:x, color=(muted, 0.30), whiskerwidth=5)
-    scatter!(ax, frequency[fit_mask], voltage[fit_mask]; color=color, markersize=9, label="fit data")
-    scatter!(ax, frequency[.!fit_mask], voltage[.!fit_mask]; color=(muted, 0.55), marker=:diamond, markersize=9, label="below threshold")
+    scatter!(ax, frequency[emission_mask], voltage[emission_mask]; color=color, markersize=10, label="emission regime")
+    scatter!(ax, frequency[.!emission_mask], voltage[.!emission_mask]; color=baseline_color, marker=:diamond, markersize=10, label="baseline regime")
 
-    xg = collect(range(0.0, maximum(frequency) * 1.04; length=500))
-    yg = @. slope * xg + intercept
+    xmin, xmax = extrema(frequency)
+    xg = collect(range(xmin - 15, xmax + 15; length=500))
+    emission_y = @. emission_slope * xg + emission_intercept
+    baseline_y = @. baseline_slope * xg + baseline_intercept
     J = hcat(xg, ones(length(xg)))
-    sigma_band = sqrt.(clamp.(vec(sum((J * cov) .* J; dims=2)), 0.0, Inf))
-    band!(ax, xg, yg .- sigma_band, yg .+ sigma_band; color=band_color, label="1σ fit uncertainty")
-    lines!(ax, xg, yg; color=fit_color, linewidth=3.0, label="linear extrapolation")
+    emission_sigma = sqrt.(clamp.(vec(sum((J * emission_result.param_covariance) .* J; dims=2)), 0.0, Inf))
+    baseline_sigma = sqrt.(clamp.(vec(sum((J * baseline_result.param_covariance) .* J; dims=2)), 0.0, Inf))
+    band!(ax, xg, emission_y .- emission_sigma, emission_y .+ emission_sigma; color=emission_band, label="emission 1σ fit band")
+    band!(ax, xg, baseline_y .- baseline_sigma, baseline_y .+ baseline_sigma; color=baseline_band, label="baseline 1σ fit band")
+    lines!(ax, xg, emission_y; color=emission_color, linewidth=3.2, label="emission fit")
+    lines!(ax, xg, baseline_y; color=baseline_color, linewidth=3.2, label="baseline fit")
 
-    hlines!(ax, [0.0]; color=(muted, 0.55), linestyle=:dash)
-    vlines!(ax, [threshold]; color=(work_color, 0.75), linestyle=:dash)
-    scatter!(ax, [0.0], [intercept]; color=work_color, markersize=12, label="y-intercept")
-    scatter!(ax, [threshold], [0.0]; color=fit_color, marker=:utriangle, markersize=12, label="threshold frequency")
-    text!(
-        ax,
-        35,
-        intercept - 0.16;
-        text="Φ = $(round(work_function_eV; sigdigits=4)) ± $(round(sigma_intercept; sigdigits=2)) eV",
-        color=work_color,
-        fontsize=20,
-        align=(:left, :top),
-    )
-    text!(
-        ax,
-        threshold + 30,
-        0.22;
-        text="ν₀ = $(round(threshold; sigdigits=4)) ± $(round(sigma_threshold; sigdigits=2)) THz",
-        color=fit_color,
-        fontsize=20,
-        align=(:left, :bottom),
-    )
-    axislegend(ax; position=:lt, nbanks=2)
-    limits!(ax, 0, maximum(frequency) * 1.05, intercept - 0.55, maximum(voltage) + 0.65)
+    vspan!(ax, threshold - sigma_threshold, threshold + sigma_threshold; color=(threshold_color, 0.14), label="intersection 1σ interval")
+    vlines!(ax, [threshold]; color=(threshold_color, 0.85), linestyle=:dash, linewidth=2.5)
+    threshold_y = emission_slope * threshold + emission_intercept
+    scatter!(ax, [threshold], [threshold_y]; color=threshold_color, marker=:star5, markersize=18, label="line intersection")
+    limits!(ax, xmin - 20, xmax + 20, minimum(voltage .- sigma_voltage) - 0.16, maximum(voltage .+ sigma_voltage) + 0.25)
 
-    h_fit = slope * 1.602176634e-19 / 1e12
-    sigma_h = sqrt(max(cov[1, 1], 0.0)) * 1.602176634e-19 / 1e12
-    panel = Axis(fig[1, 2]; backgroundcolor=:transparent)
+    h_fit = emission_slope * 1.602176634e-19 / 1e12
+    sigma_h = sqrt(max(emission_result.param_covariance[1, 1], 0.0)) * 1.602176634e-19 / 1e12
+    side = GridLayout()
+    fig[1, 2] = side
+    Legend(side[1, 1], ax; framevisible=false, tellheight=true)
+    panel = Axis(side[2, 1]; backgroundcolor=:transparent)
     hidedecorations!(panel)
     hidespines!(panel)
     text!(
         panel,
         0,
         1;
-        text="slope h/e = $(fmt_sig(slope, 5)) V/THz\n" *
-             "h = $(fmt_sig(h_fit, 5)) ± $(fmt_sig(sigma_h, 2)) J s\n" *
-             "intercept = $(fmt_sig(intercept, 5)) ± $(fmt_sig(sigma_intercept, 2)) V\n" *
-             "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_intercept, 2)) eV\n" *
+        text="emission slope h/e = $(fmt_sig(emission_slope, 5)) V/THz\n" *
+             "h = $(fmt_sig(h_fit, 4)) ± $(fmt_sig(sigma_h, 2)) J s\n" *
+             "baseline slope = $(fmt_sig(baseline_slope, 4)) V/THz\n" *
              "ν₀ = $(fmt_sig(threshold, 5)) ± $(fmt_sig(sigma_threshold, 2)) THz\n" *
-             "χ²/ndf = $(fmt_sig(result.stats.chi2_ndf, 4))",
+             "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_work_function_eV, 2)) eV\n\n" *
+             "emission χ²/ndf = $(fmt_sig(emission_result.stats.chi2_ndf, 4))\n" *
+             "baseline χ²/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
         space=:relative,
         align=(:left, :top),
         color=color,
         fontsize=20,
         lineheight=1.12,
     )
-    colsize!(fig.layout, 2, Fixed(380))
+    rowsize!(side, 1, Auto())
+    rowsize!(side, 2, Relative(1))
+    colsize!(fig.layout, 2, Fixed(480))
     save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
 end
 
@@ -326,6 +360,33 @@ lightdark_plot(
     figure_size=(1200, 760),
 )
 
+# The same scientific content rendered through every public style preset.
+for style in (:clean, :minimal, :paper, :publication, :latex, :dark)
+    plot_fit(
+        quick_result;
+        theme=style,
+        filename=gallery_path("plot_style_$(style).png"),
+        format=:png,
+        title=L"\mathrm{Quickstart\ calibration}",
+        model_label=L"U(t)=m t+b",
+        xlabel=L"t",
+        xunit=L"\mathrm{s}",
+        ylabel=L"U",
+        yunit=L"\mathrm{V}",
+        parameter_names=[L"m", L"b"],
+        latex_labels=true,
+        latex_stats=true,
+        band=:prediction,
+        nsigma=1,
+        band_label=L"1\sigma\ \mathrm{prediction\ band}",
+        show_legend=true,
+        stats_position=:right,
+        stats_mode=:full,
+        stats_fontsize=20,
+        figure_size=(1200, 760),
+    )
+end
+
 # 1. Linear calibration with visible heteroscedastic uncertainties.
 x = collect(range(0.0, 10.0; length=28))
 scatter_scale = @. 0.22 + 0.025 * x
@@ -356,28 +417,45 @@ lightdark_plot(
     figure_size=(1200, 760),
 )
 
-# 2. Photoelectric work-function extraction with x/y uncertainties.
-const c = 299_792_458.0
-wavelength_nm = [150.0, 200.0, 250.0, 300.0, 350.0, 400.0, 450.0, 500.0, 550.0, 600.0]
-voltage = [5.99, 3.87, 2.69, 1.78, 1.28, 0.77, 0.50, 0.15, 0.0, 0.0]
-sigma_wavelength_nm = fill(0.01, length(wavelength_nm))
-sigma_voltage = fill(0.04, length(voltage))
-frequency_THz = @. c / (wavelength_nm * 1e-9) / 1e12
-sigma_frequency_THz = @. c * (sigma_wavelength_nm * 1e-9) / (wavelength_nm * 1e-9)^2 / 1e12
-fit_mask = voltage .> 0.0
+# 2. Photoelectric work-function extraction from the intersection of two regimes.
+frequency_THz = [350.0, 380.0, 410.0, 440.0, 470.0, 495.0, 515.0, 532.0,
+                 565.0, 590.0, 620.0, 655.0, 690.0, 730.0, 775.0, 825.0, 880.0, 940.0]
+sigma_frequency_THz = [4.5, 4.2, 4.0, 3.8, 3.6, 3.4, 3.2, 3.0,
+                       2.9, 2.8, 2.7, 2.6, 2.5, 2.5, 2.4, 2.4, 2.3, 2.3]
+sigma_voltage = [0.038, 0.040, 0.041, 0.043, 0.045, 0.047, 0.050, 0.052,
+                 0.048, 0.050, 0.052, 0.054, 0.057, 0.060, 0.064, 0.068, 0.073, 0.080]
+baseline_mask = frequency_THz .<= 532.0
+emission_mask = .!baseline_mask
 photo_model(f, p) = @. p[1] * f + p[2]
-photo_result = fit_model(
+baseline_truth = [0.00012, -0.045]
+emission_truth = [0.00413, -2.247]
+baseline_offsets = [0.9, -1.1, 0.35, 1.2, -0.85, 0.65, -0.45, 0.75]
+emission_offsets = [0.8, -1.2, 0.45, 1.0, -0.75, 1.15, -0.55, 0.7, -1.0, 0.35]
+voltage = similar(frequency_THz)
+voltage[baseline_mask] = photo_model(frequency_THz[baseline_mask], baseline_truth) .+
+                         sigma_voltage[baseline_mask] .* baseline_offsets
+voltage[emission_mask] = photo_model(frequency_THz[emission_mask], emission_truth) .+
+                         sigma_voltage[emission_mask] .* emission_offsets
+baseline_result = fit_model(
     photo_model,
-    frequency_THz[fit_mask],
-    voltage[fit_mask];
+    frequency_THz[baseline_mask],
+    voltage[baseline_mask];
+    p0=[0.0, 0.0],
+    sigma_y=sigma_voltage[baseline_mask],
+    sigma_x=sigma_frequency_THz[baseline_mask],
+)
+emission_result = fit_model(
+    photo_model,
+    frequency_THz[emission_mask],
+    voltage[emission_mask];
     p0=[0.004, -2.2],
-    sigma_y=sigma_voltage[fit_mask],
-    sigma_x=sigma_frequency_THz[fit_mask],
+    sigma_y=sigma_voltage[emission_mask],
+    sigma_x=sigma_frequency_THz[emission_mask],
     bounds=([0.0, -20.0], [0.02, 5.0]),
     initial_guesses=[[0.004, -2.2], [0.0042, -2.6], [0.0038, -1.8]],
 )
-save_photoelectric_work_function(photo_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, fit_mask, "photoelectric_threshold"; dark=false)
-save_photoelectric_work_function(photo_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, fit_mask, "photoelectric_threshold"; dark=true)
+save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=false)
+save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=true)
 
 # 3. Exponential decay with full covariance.
 x_cov = collect(range(0.0, 2.5; length=22))
@@ -475,11 +553,34 @@ lightdark_plot(
     figure_size=(1200, 760),
 )
 prof = JuFitter.profile(quad_result, 1; npoints=45, nsigma=3)
-cont = JuFitter.contour(quad_result, 1, 2; npoints=31, nsigma=2)
+cont = JuFitter.contour(quad_result, 1, 2; npoints=35, nsigma=3, adaptive=true, max_refinements=2)
 plot_profile(prof; theme=:minimal, title="Profile for curvature", xlabel="curvature", filename=gallery_path("curvature_profile_light.png"), format=:png)
 plot_profile(prof; theme=:dark, title="Profile for curvature", xlabel="curvature", line_color="#66d9ef", threshold_color="#edf2f4", filename=gallery_path("curvature_profile_dark.png"), format=:png)
-plot_contour(cont; theme=:minimal, title="Curvature-slope contour", xlabel="curvature", ylabel="slope", filename=gallery_path("curvature_slope_contour_light.png"), format=:png)
-plot_contour(cont; theme=:dark, title="Curvature-slope contour", xlabel="curvature", ylabel="slope", line_color="#edf2f4", filename=gallery_path("curvature_slope_contour_dark.png"), format=:png)
+plot_contour(
+    cont;
+    theme=:minimal,
+    title="Profile contours versus local covariance",
+    xlabel="curvature",
+    ylabel="slope",
+    local_covariance=quad_result.param_covariance,
+    local_center=quad_result.params[[1, 2]],
+    figure_size=(980, 720),
+    filename=gallery_path("curvature_slope_contour_light.png"),
+    format=:png,
+)
+plot_contour(
+    cont;
+    theme=:dark,
+    title="Profile contours versus local covariance",
+    xlabel="curvature",
+    ylabel="slope",
+    local_covariance=quad_result.param_covariance,
+    local_center=quad_result.params[[1, 2]],
+    local_line_color="#b8c1ca",
+    figure_size=(980, 720),
+    filename=gallery_path("curvature_slope_contour_dark.png"),
+    format=:png,
+)
 
 # 6. Poisson counts and histogram likelihoods.
 x_counts = collect(1.0:10.0)

@@ -61,9 +61,9 @@ not be committed.
 <img class="jufitter-plot-dark" src="assets/gallery/photoelectric_threshold_dark.png" alt="Photoelectric work-function fit dark">
 <div>
 <span class="jufitter-tag">x/y errors</span>
-<span class="jufitter-tag">extrapolation</span>
+<span class="jufitter-tag">line intersection</span>
 <h3><a href="gallery/photoelectric_threshold.html">Photoelectric work function</a></h3>
-<p>Determine a work function from a threshold extrapolation. The finished version must show the intercept marker, propagated uncertainty, and where the linear model is physically meaningful.</p>
+<p>Fit baseline and emission regimes separately, then propagate both covariance matrices into the threshold intersection and work function.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -134,7 +134,7 @@ not be committed.
 | Page | Scientific use case | Statistical focus | Diagnosis to inspect |
 | --- | --- | --- | --- |
 | Linear calibration | sensor or scale calibration | weighted Gaussian least squares | residual structure, prediction band, chi-square per degree of freedom |
-| Photoelectric work function | threshold extrapolation | x/y uncertainty and derived quantity propagation | extrapolation leverage, intercept uncertainty, model range |
+| Photoelectric work function | intersection of baseline and emission regimes | x/y uncertainty and derived quantity propagation | regime choice, intersection uncertainty, model range |
 | Damped oscillator | mechanical decay or resonance envelope | nonlinear least squares with correlated parameters | phase/frequency coupling, residual periodicity, profile asymmetry |
 | Full covariance | repeated readout with shared noise | whitening with dense covariance | correlation effect on uncertainty and p-value |
 | XY uncertainties | calibration with uncertain abscissa | effective-variance approximation | slope-dependent variance and approximation validity |
@@ -151,7 +151,7 @@ but they should still read like serious scientific examples.
 - `01_quickstart_linear.jl`: minimal weighted Gaussian fit with visible
   uncertainty semantics.
 - `02_xy_uncertainties_photoelectric.jl`: photoelectric threshold fit with x/y
-  uncertainties, extrapolation, and diagnostic output.
+  uncertainties, two fitted regimes, and propagated intersection uncertainty.
 - `03_plot_customization.jl`: themes, units, reports, sigma bands, export, and
   Makie keyword passthrough.
 - `04_covariance_and_effective_variance.jl`: dense y covariance and
@@ -160,7 +160,8 @@ but they should still read like serious scientific examples.
   priors, profile intervals, and contours.
 - `06_likelihood_workflows.jl`: Poisson, histogram, unbinned,
   extended-unbinned, indexed, custom, and multi-dataset likelihood fits.
-- `07_plot_styles.jl`: default, dense-data, and paper-style plot layouts.
+- `07_plot_styles.jl`: controlled comparison of every public plot style using
+  identical data, labels, bands, reports, and dimensions.
 - `08_damped_oscillator_decay.jl`: real mechanical oscillator decay with x/y
   uncertainties and light/dark documentation exports.
 - `09_docs_gallery_suite.jl`: reproducible documentation asset generator.
@@ -175,10 +176,8 @@ trusted.
 
 The next documentation passes should prioritize:
 
-- turning the photoelectric page into a complete extrapolation workflow with
-  work-function uncertainty and visual markers,
-- adding profile/contour diagnostics that explain non-parabolic likelihood
-  shapes,
+- adding a genuinely non-parabolic profile/contour workflow where the visual
+  difference from local covariance is scientifically meaningful,
 - expanding the Poisson/histogram page with count-specific residuals and
   likelihood interpretation,
 - replacing any remaining toy-like synthetic examples with realistic data or

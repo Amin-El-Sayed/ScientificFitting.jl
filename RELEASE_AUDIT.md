@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-06-03
+Status: 2026-06-04
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -12,17 +12,22 @@ sufficient.
 - `julia --project=. -e 'include("test/torture_runtests.jl")'` passes with 14
   torture checks in about 2m44s on the local machine.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 30 profile/contour reference checks in about 18s after
-  precompilation.
+  passes with 34 profile/contour reference checks, including validation of
+  finite positive ordered contour thresholds.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. -e 'include("test/core_runtests.jl")'` passes with 315
   core checks in about 5m25s on the local machine after the diagnostic
   dashboard update.
-- `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 324 tests in about
-  8m36s on the local machine after the diagnostic dashboard update.
+- `julia --project=. -e 'using Pkg; Pkg.test()'` passes with 337 tests in about
+  5m51s on the local machine after the profile-region and Photoelectric
+  workflow update.
 - `julia --project=docs docs/make.jl` passes locally after the `siteinfo.js`
   source fix. The build output is ignored and must not be committed.
+- Focused plot regression tests pass with 18 checks after contour plots changed
+  from a heatmap-first default to labeled profile regions with an optional local
+  covariance overlay. The plot path also covers failed-refit cells and rejects
+  fully non-finite contour surfaces.
 - Phase 3 is reopened as the release gate. The project no longer treats
   friendly-path examples or smoke tests as evidence of production robustness.
 
@@ -76,8 +81,9 @@ sufficient.
   full uncertainty model expected from kafe2-level workflows.
 - Benchmarks exist, but there is no enforced performance budget in CI.
 - `diagnostic_dashboard(...)` now summarizes structured findings into status,
-  severity counts, and deduplicated next actions. Diagnostic plots, profile
-  contours, residual/pull views, and external report legends are still not yet
+  severity counts, and deduplicated next actions. Profile contours now default
+  to directly labeled 1-sigma/2-sigma regions with local-covariance comparison;
+  residual/pull views and the combined diagnostic dashboard are still not yet
   at the level needed to compete with kafe2/Minuit-style workflows.
 
 ## Documentation Blockers

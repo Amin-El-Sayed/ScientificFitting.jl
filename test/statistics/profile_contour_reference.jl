@@ -67,6 +67,19 @@ using Test
             f -> f.code == :contour_not_elliptic,
             diagnose(cont; local_covariance=covariance, local_center=result.params[[1, 2]]).findings,
         )
+
+        sorted_cont = contour(
+            result,
+            1,
+            2;
+            xvalues=slope_values,
+            yvalues=offset_values,
+            levels=[6.18, 2.30, 2.30],
+        )
+        @test sorted_cont.levels == [2.30, 6.18]
+        @test_throws ArgumentError contour(result, 1, 2; levels=Float64[])
+        @test_throws ArgumentError contour(result, 1, 2; levels=[0.0, 2.30])
+        @test_throws ArgumentError contour(result, 1, 2; levels=[NaN, 2.30])
     end
 
     @testset "Adaptive contour refines level-crossing cells" begin

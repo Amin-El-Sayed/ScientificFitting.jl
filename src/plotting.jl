@@ -1316,6 +1316,11 @@ end
 
 Plot a two-dimensional profile-likelihood contour grid.
 
+The default emphasizes directly interpretable profile regions and labeled
+two-parameter 1-sigma/2-sigma contour levels. Set `show_heatmap=true` for an
+explicit delta-cost surface view; heatmaps are not the default diagnostic
+because they make confidence thresholds harder to read quickly.
+
 Pass `local_covariance=result.param_covariance` and
 `local_center=result.params[[i, j]]` to overlay the local covariance ellipse in
 the same parameter plane. Non-elliptic profile contours indicate that local
@@ -1331,7 +1336,12 @@ function plot_contour(
     xlabel="parameter 1",
     ylabel="parameter 2",
     colormap=:viridis,
-    line_color=:black,
+    show_heatmap::Bool=false,
+    show_regions::Bool=true,
+    show_legend::Bool=true,
+    level_colors=("#4c78a8", "#72b7b2", "#f2cf5b"),
+    region_colors=(("#4c78a8", 0.24), ("#72b7b2", 0.16), ("#f2cf5b", 0.12)),
+    line_color=nothing,
     local_covariance=nothing,
     local_center=nothing,
     local_line_color=:gray35,
@@ -1347,20 +1357,57 @@ function plot_contour(
         Figure(size=(Int(round(figure_size[1])), Int(round(figure_size[2]))), backgroundcolor=_fitplot_background(theme))
     end
     ax = Axis(fig[1, 1]; _merged_kwargs((title=title, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...)
-    hm = heatmap!(
-        ax,
-        contour_result.x_values,
-        contour_result.y_values,
-        contour_result.delta_cost;
-        _merged_kwargs((colormap=colormap, interpolate=false, rasterize=true), heatmap_kwargs)...,
-    )
-    contour!(
-        ax,
-        contour_result.x_values,
-        contour_result.y_values,
-        contour_result.delta_cost;
-        _merged_kwargs((levels=contour_result.levels, color=line_color, linewidth=2), contour_kwargs)...,
-    )
+    hm = if show_heatmap
+        heatmap!(
+            ax,
+            contour_result.x_values,
+            contour_result.y_values,
+            contour_result.delta_cost;
+            _merged_kwargs((colormap=colormap, interpolate=false, rasterize=true), heatmap_kwargs)...,
+        )
+    end
+
+    plot_levels = sort(unique(contour_result.levels))
+    isempty(plot_levels) && throw(ArgumentError("contour_result levels must not be empty"))
+    all(isfinite, plot_levels) || throw(ArgumentError("contour_result levels must be finite"))
+    all(>(0.0), plot_levels) || throw(ArgumentError("contour_result levels must be positive delta-cost thresholds"))
+
+    colors = collect(level_colors)
+    isempty(colors) && throw(ArgumentError("level_colors must contain at least one color"))
+    regions = collect(region_colors)
+    if show_regions && !show_heatmap
+        isempty(regions) && throw(ArgumentError("region_colors must contain at least one color when show_regions=true"))
+        contourf!(
+            ax,
+            contour_result.x_values,
+            contour_result.y_values,
+            contour_result.delta_cost;
+            levels=vcat(0.0, plot_levels),
+            colormap=regions,
+        )
+    end
+
+    contour_level_label(level) =
+        isapprox(level, 2.30; atol=0.015) ? "profile 1σ (2 parameters)" :
+        isapprox(level, 6.18; atol=0.015) ? "profile 2σ (2 parameters)" :
+        "profile Δcost = $(_fmt_value(level; sigdigits=3))"
+    contour_handles = Any[]
+    contour_labels = String[]
+    for (index, level) in enumerate(plot_levels)
+        color = line_color === nothing ? colors[mod1(index, length(colors))] : line_color
+        contour!(
+            ax,
+            contour_result.x_values,
+            contour_result.y_values,
+            contour_result.delta_cost;
+            _merged_kwargs((levels=[level], color=color, linewidth=3), contour_kwargs)...,
+        )
+        push!(contour_handles, LineElement(color=color, linewidth=3))
+        push!(contour_labels, contour_level_label(level))
+    end
+
+    local_handles = Any[]
+    local_labels = String[]
     if local_covariance !== nothing
         cov = Matrix{Float64}(local_covariance)
         if size(cov) != (2, 2)
@@ -1382,18 +1429,54 @@ function plot_contour(
             delta = [contour_result.x_values[ix] - center[1], contour_result.y_values[iy] - center[2]]
             local_delta[ix, iy] = dot(delta, precision * delta)
         end
-        contour!(
-            ax,
-            contour_result.x_values,
-            contour_result.y_values,
-            local_delta;
-            _merged_kwargs(
-                (levels=contour_result.levels, color=local_line_color, linewidth=local_linewidth, linestyle=local_linestyle),
-                local_contour_kwargs,
-            )...,
-        )
+        for level in plot_levels
+            contour!(
+                ax,
+                contour_result.x_values,
+                contour_result.y_values,
+                local_delta;
+                _merged_kwargs(
+                    (levels=[level], color=local_line_color, linewidth=local_linewidth, linestyle=local_linestyle),
+                    local_contour_kwargs,
+                )...,
+            )
+            push!(local_handles, LineElement(color=local_line_color, linewidth=local_linewidth, linestyle=local_linestyle))
+            push!(local_labels, "local covariance")
+        end
     end
-    Colorbar(fig[1, 2], hm; label="Delta cost")
+    finite_surface = replace(vec(contour_result.delta_cost), NaN => Inf)
+    any(isfinite, finite_surface) ||
+        throw(ArgumentError("contour_result must contain at least one finite cost value"))
+    center_index = argmin(finite_surface)
+    center_cartesian = CartesianIndices(contour_result.delta_cost)[center_index]
+    scatter!(
+        ax,
+        [contour_result.x_values[center_cartesian[1]]],
+        [contour_result.y_values[center_cartesian[2]]];
+        marker=:cross,
+        markersize=18,
+        strokewidth=3,
+        color=line_color === nothing ? colors[1] : line_color,
+    )
+
+    if show_heatmap
+        Colorbar(fig[1, 2], hm; label="Δ cost")
+    elseif show_legend
+        handles = Any[MarkerElement(
+            marker=:cross,
+            markersize=18,
+            strokewidth=3,
+            color=line_color === nothing ? colors[1] : line_color,
+        )]
+        labels = ["profile minimum"]
+        append!(handles, contour_handles)
+        append!(labels, contour_labels)
+        if !isempty(local_handles)
+            push!(handles, first(local_handles))
+            push!(labels, first(local_labels))
+        end
+        Legend(fig[1, 2], handles, labels; framevisible=false)
+    end
 
     if filename !== nothing
         outpath = String(filename)

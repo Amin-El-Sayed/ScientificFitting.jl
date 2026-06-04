@@ -170,6 +170,12 @@ For two parameters, the common Gaussian thresholds are approximately
 thresholds are different from the one-parameter profile thresholds because the
 probability content is two-dimensional.
 
+The colored regions and solid boundaries are the actual profiled 1-sigma and
+2-sigma regions. The dashed curves are the local covariance approximation. In
+this controlled example they nearly overlap, so the local covariance is an
+adequate summary. A visible mismatch, clipping, or banana shape is the warning
+that the local symmetric errors should not be the final uncertainty statement.
+
 ## Interpretation
 
 For the controlled dataset, the fitted curvature is positive and well inside

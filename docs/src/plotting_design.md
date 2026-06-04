@@ -47,6 +47,24 @@ Additional built-in styles cover common production needs:
   a restrained fit accent suitable for physics-style publications.
 - `:dark`: native dark export for documentation dark mode and talks.
 
+## Controlled Style Comparison
+
+Style comparisons are only meaningful when the scientific content is held
+fixed. Every image below uses the same data, uncertainties, fitted result,
+1-sigma prediction band, legend, report fields, labels, and output size. Only
+the public `theme` keyword changes.
+
+```@raw html
+<div class="jufitter-gallery-grid">
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_clean.png" alt="Clean plot style"><div><h3>clean</h3><p>Readable default for notebooks, reports, and the gallery.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_minimal.png" alt="Minimal plot style"><div><h3>minimal</h3><p>Fine geometry for dense datasets without sacrificing readable labels.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_paper.png" alt="Paper plot style"><div><h3>paper</h3><p>Compact black-and-white structure with a restrained fit accent.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_publication.png" alt="Publication plot style"><div><h3>publication</h3><p>Publication-oriented sizing and hierarchy.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_latex.png" alt="LaTeX plot style"><div><h3>latex</h3><p>Computer Modern typography and mathematical labels.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_dark.png" alt="Dark plot style"><div><h3>dark</h3><p>Native dark rendering rather than a CSS-inverted light image.</p></div></div>
+</div>
+```
+
 The documentation should follow
 [Beautiful Makie](https://beautiful.makie.org/dev/) as the canonical visual
 reference: visual examples first, concise code next to the rendered output,
@@ -62,6 +80,8 @@ gallery look.
 - `band=:none | :confidence | :prediction`
 - `nsigma`
 - `show_legend`, `stats_position=:right | :inside`, `show_residuals`, `show_pulls`
+- `plot_contour(...; show_regions=true, show_heatmap=false)` for threshold-first
+  contour diagnostics; heatmaps remain available for explicit surface analysis
 - `axis_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`,
   `legend_kwargs`
 

@@ -59,6 +59,12 @@ large temporary matrices inside every objective call.
   visible variant for the active Documenter theme.
 - Gallery asset regeneration is a visual change and must be checked in both
   themes before commit.
+- Contour diagnostics default to labeled confidence regions and an optional
+  local-covariance overlay. Delta-cost heatmaps are opt-in because they are
+  useful for surface inspection but slower to interpret as uncertainty regions.
+- A gallery plot must state the uncertainty model, band type, and sigma level.
+  Controlled demonstrations must be labeled as such; constructed data must
+  never be presented as archival measurements.
 
 ## Numerical Rules
 
@@ -79,6 +85,9 @@ large temporary matrices inside every objective call.
   profile threshold. `contour(...; adaptive=true)` refines grid cells whose
   corner values bracket requested contour levels. These refinements improve
   diagnostic resolution without making the whole scan uniformly dense.
+- Contour levels are finite, positive delta-cost thresholds. JuFitter sorts and
+  deduplicates them before scanning so adaptive refinement and filled-region
+  plotting use one unambiguous ordering.
 - `diagnostic_dashboard(...)` is a summary layer over `diagnose(...)`. It must
   not introduce independent statistical rules; it only converts structured
   findings into status, counts, and prioritized next actions for lab use.

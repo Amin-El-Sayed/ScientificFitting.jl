@@ -493,6 +493,10 @@ function contour(
     xs = xvalues === nothing ? _default_contour_grid(result, i; npoints=npoints, nsigma=nsigma) : collect(Float64, xvalues)
     ys = yvalues === nothing ? _default_contour_grid(result, j; npoints=npoints, nsigma=nsigma) : collect(Float64, yvalues)
     level_values = collect(Float64, levels)
+    isempty(level_values) && throw(ArgumentError("contour levels must not be empty"))
+    all(isfinite, level_values) || throw(ArgumentError("contour levels must be finite"))
+    all(>(0.0), level_values) || throw(ArgumentError("contour levels must be positive delta-cost thresholds"))
+    level_values = sort!(unique!(level_values))
     if adaptive
         return _adaptive_contour(
             result,

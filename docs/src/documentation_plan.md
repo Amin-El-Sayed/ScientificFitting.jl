@@ -71,6 +71,30 @@ Synthetic data are acceptable only for controlled demonstrations of a method.
 The main gallery should use real or realistically messy datasets with visible
 uncertainties, imperfect residuals, and meaningful interpretation.
 
+Across the gallery, uncertainty examples must deliberately cover diagonal and
+correlated covariance, absolute and relative components, x and y uncertainty,
+heteroskedastic point-wise uncertainty, confidence bands, prediction bands, and
+derived-quantity propagation. Individual pages should use the uncertainty model
+that belongs to their scientific question rather than adding complexity only to
+tick a coverage box.
+
+Current coverage and remaining gaps:
+
+| Workflow | Uncertainty semantics | Status |
+| --- | --- | --- |
+| Linear calibration | heteroskedastic absolute y errors; 1-sigma prediction band | covered |
+| Photoelectric threshold | heteroskedastic x/y errors; two 1-sigma fit bands; propagated line intersection | covered |
+| Damped oscillator | x/y errors in a nonlinear model | covered |
+| Full-covariance decay | dense correlated y covariance | covered |
+| XY calibration | effective-variance x/y propagation | covered |
+| Constraints and profiles | data uncertainty, prior information, local covariance versus profile regions | covered |
+| Poisson and histogram fits | likelihood-defined count uncertainty rather than Gaussian error bars | covered |
+| Multi-dataset fit | dataset-specific absolute y errors with shared parameters | covered |
+| Relative uncertainty components | instrument scale or gain error | missing gallery workflow |
+| Correlated x uncertainty | shared calibration uncertainty on the independent variable | missing gallery workflow |
+
+This table is a coverage audit, not a reason to make every figure visually busy.
+
 ## Mathematics And Statistics Standard
 
 The mathematics section is not a library manual. It must justify the methods in

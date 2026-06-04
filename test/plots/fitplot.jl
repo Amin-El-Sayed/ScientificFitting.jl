@@ -94,4 +94,31 @@ using Test
 
     @test isfile(minimal_out)
     @test isfile(paper_out)
+
+    contour_values = collect(range(-2.0, 2.0; length=17))
+    contour_delta = [xv^2 + 0.5 * xv * yv + yv^2 for xv in contour_values, yv in contour_values]
+    contour_result = ContourResult((1, 2), contour_values, contour_values, contour_delta, contour_delta, [2.30, 6.18])
+    contour_out = joinpath(mktempdir(), "contour_levels.png")
+    heatmap_out = joinpath(mktempdir(), "contour_heatmap.png")
+    failed_out = joinpath(mktempdir(), "contour_failed_refit.png")
+
+    @test plot_contour(
+        contour_result;
+        filename=contour_out,
+        format=:png,
+        local_covariance=[1.0 -0.25; -0.25 1.0],
+        local_center=[0.0, 0.0],
+    ) !== nothing
+    @test plot_contour(contour_result; filename=heatmap_out, format=:png, show_heatmap=true) !== nothing
+    failed_delta = copy(contour_delta)
+    failed_delta[2, 3] = Inf
+    failed_contour = ContourResult((1, 2), contour_values, contour_values, failed_delta, failed_delta, [2.30, 6.18])
+    @test plot_contour(failed_contour; filename=failed_out, format=:png) !== nothing
+    all_failed = fill(Inf, size(contour_delta))
+    @test_throws ArgumentError plot_contour(
+        ContourResult((1, 2), contour_values, contour_values, all_failed, all_failed, [2.30]),
+    )
+    @test isfile(contour_out)
+    @test isfile(heatmap_out)
+    @test isfile(failed_out)
 end
