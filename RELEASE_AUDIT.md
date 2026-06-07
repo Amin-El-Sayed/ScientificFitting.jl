@@ -340,7 +340,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   edit-test loop. It now avoids Makie asset rendering via
   `JUFITTER_DOC_SNAPSHOT_ONLY=1`; further speedups require reducing expensive
   fits or caching documented snapshot computations.
-- The math section needs a clean beginner path before the full formal reference.
+- The math section now starts with a beginner path, model-choice table, and
+  minimal mental model before the formal likelihood/covariance reference. It
+  still needs human subject-matter review before broad promotion.
 - Technical maintenance notes should remain accessible, but should not dominate
   the user-facing navigation.
 - Private/local dataset language is now covered by the public documentation

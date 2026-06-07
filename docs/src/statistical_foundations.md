@@ -15,6 +15,64 @@ the data model, uncertainty model, and cost function you choose.
 </div>
 ```
 
+## How To Use This Page
+
+If you are fitting lab or engineering data for the first time, read this page in
+three passes:
+
+1. Pick the row in the decision table below that matches your data.
+2. Read only the corresponding cost-function section.
+3. Come back to profiles and contours when the dashboard warns that local
+   covariance errors may not be enough.
+
+If you already know likelihood theory, use the same page as a convention
+reference: JuFitter uses the ``-2\log L`` convention, reports local covariance
+from curvature, and treats profile/contour scans as the check on that local
+approximation.
+
+## Which Statistical Model Should I Use?
+
+The fit is only as meaningful as the probability model behind it. The table
+below is the practical starting point.
+
+| data situation | use | why |
+| --- | --- | --- |
+| y measurements with independent standard uncertainties | `sigma_y` with Gaussian least squares | each residual is measured in its own standard deviations |
+| x and y measurements both have relevant uncertainty | `sigma_x` plus `sigma_y` | x uncertainty is propagated through the local model slope |
+| points share calibration, baseline, normalization, or readout noise | `cov_y`, `cov_x`, or uncertainty components | off-diagonal covariance prevents shared noise from being counted as independent evidence |
+| counts in bins or detector channels | Poisson or histogram likelihood | count variance follows the expected count, especially when counts are small |
+| unbinned samples from a distribution | unbinned likelihood | no information is lost by arbitrary binning |
+| external knowledge about parameters | priors, fixed parameters, or parameter constraints | external information belongs in parameter space, not as fake data points |
+| suspicious local errors, bounds, weak data, nonlinear model | profiles and contours | the likelihood shape, not the Hessian alone, defines credible intervals |
+
+Two common mistakes are worth avoiding:
+
+- Do not use ordinary least squares just because it is familiar. If the data
+  are counts, sparse histograms, or strongly correlated measurements, the cost
+  function should reflect that.
+- Do not treat `param_stderr` as final when the likelihood is visibly
+  non-parabolic. It is a local approximation; profiles and contours test when
+  that approximation is safe.
+
+## A Minimal Mental Model
+
+For independent Gaussian measurements, each point contributes roughly
+
+```math
+\left(\frac{\text{observed}-\text{predicted}}{\text{standard uncertainty}}\right)^2.
+```
+
+A residual of one standard deviation contributes about one unit to ``\chi^2``.
+Ten independent residuals of typical size one therefore give
+``\chi^2 \approx 10``. This is why ``\chi^2/\mathrm{ndf}`` near one is a useful
+first sanity check.
+
+Correlations change this mental model. If two points share the same baseline
+error, they are not two fully independent pieces of evidence. A covariance
+matrix tells the fit which residual patterns are plausible together. That is
+why the same visible scatter can imply different parameter errors depending on
+whether the points are independent or correlated.
+
 ## Data, Model, Residual
 
 For a vector of observations ``d`` and model predictions ``m(\theta)``, the
