@@ -80,7 +80,7 @@ No-op bounds such as `[-Inf, Inf]` are normalized and do not block the fast
 least-squares path. This matters because generic APIs often pass bounds even
 when they do not mathematically constrain the problem.
 
-## Covariance And Whitening
+## Covariance and Whitening
 
 Static uncertainty information is prepared in `FitEvaluationCache`.
 

@@ -6,8 +6,12 @@ feature: if the model is steep enough, uncertainty in ``x`` contributes to the
 statistical cost and to the fitted parameter errors.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/xy_uncertainties_light.png" alt="XY uncertainty fit">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/xy_uncertainties_dark.png" alt="XY uncertainty fit in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="workbench" src="../assets/gallery/xy_uncertainties_workbench_light.png" alt="XY uncertainty fit in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="workbench" src="../assets/gallery/xy_uncertainties_workbench_dark.png" alt="XY uncertainty fit in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="showcase" src="../assets/gallery/xy_uncertainties_showcase_light.png" alt="XY uncertainty fit in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="showcase" src="../assets/gallery/xy_uncertainties_showcase_dark.png" alt="XY uncertainty fit in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="publication" src="../assets/gallery/xy_uncertainties_publication_light.png" alt="XY uncertainty fit in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="publication" src="../assets/gallery/xy_uncertainties_publication_dark.png" alt="XY uncertainty fit in publication dark style">
 ```
 
 ## Question
@@ -39,7 +43,7 @@ The visible horizontal and vertical error bars correspond to these standard
 uncertainties. The 1-sigma prediction band in the plot includes the fitted
 parameter uncertainty and the observation noise used by the plotting routine.
 
-## Model And Cost
+## Model and Cost
 
 For a model ``f(x,p)``, an uncertainty in ``x`` changes the vertical residual
 through the local model slope:
@@ -63,6 +67,12 @@ For a straight line this becomes
 \sigma_{\mathrm{eff},i}^2 = \sigma_y^2 + (m\sigma_x)^2.
 ```
 
+The size of the effect is easy to estimate before fitting. If ``m\approx0.85``
+and ``\sigma_x=0.16``, the x-resolution contributes about
+``m\sigma_x\approx0.14`` in vertical units. That is already larger than
+``\sigma_y=0.10``. In this situation drawing horizontal error bars but fitting
+as if x were exact would understate the parameter uncertainty.
+
 JuFitter uses this effective variance when `sigma_x` is supplied. This is a
 local first-order approximation. It is appropriate for smooth models and
 moderate x errors; it is not a full errors-in-variables model.
@@ -74,15 +84,18 @@ This is the complete code for the documentation example:
 ```julia
 using JuFitter
 
-x_true = collect(range(0.0, 4.0; length=18))
+# Both coordinates are measured. sigma_x and sigma_y are standard
+# uncertainties, not visual-only error-bar lengths.
+x_measured = [0.1600, 0.3743, 0.5522, 0.7087, 0.8645, 1.0403, 1.2519,
+              1.5053, 1.7958, 2.1091, 2.4246, 2.7213, 2.9831, 3.2032,
+              3.3854, 3.5437, 3.6982, 3.8702]
+y_measured = [1.3916, 1.6286, 1.7960, 1.9189, 2.0226, 2.1280, 2.2593,
+              2.4549, 2.7506, 3.1234, 3.4764, 3.7327, 3.9024, 4.0345,
+              4.1591, 4.2893, 4.4392, 4.6294]
+sigma_x = fill(0.16, length(x_measured))
+sigma_y = fill(0.10, length(x_measured))
+
 line_model(x, p) = @. p[1] * x + p[2]
-
-sigma_x = fill(0.16, length(x_true))
-sigma_y = fill(0.10, length(x_true))
-
-x_measured = x_true .+ sigma_x .* cos.(2.2 .* x_true)
-y_measured = line_model(x_measured, [0.9, 1.2]) .+
-             sigma_y .* sin.(3.1 .* x_measured)
 
 result = fit_model(
     line_model,
@@ -101,9 +114,28 @@ println("b = ", intercept, " +/- ", sigma_intercept)
 println(diagnostic_dashboard_text(result))
 ```
 
-The documentation asset generator uses the same data and result, then renders a
-light and dark Makie plot with x/y error bars, the fitted line, a 1-sigma
-prediction band, legend, and side report panel.
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>m = 0.8542596063464186 +/- 0.03220459924722076
+b = 1.289983732168427 +/- 0.07606775503455655
+
+Fit diagnostic dashboard
+status = review - inspect diagnostics
+critical = 0, warning = 3, info = 0
+3 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+  2. The uncertainties may be too large, correlations may be ignored, or the data may not be independent.
+  3. Uncertainties may be overestimated, correlations may be ignored, or the data may have been smoothed/averaged.</pre>
+</div>
+```
+
+The documentation asset generator uses these same arrays and result, then
+renders a light/dark Makie plot for each supported documentation style. The
+visible band is a 1-sigma prediction band; it is not a profile interval and not
+a confidence band for the mean line alone.
 
 ## Diagnostics
 
@@ -164,5 +196,6 @@ Do not assume this solves all x-error problems. Large x errors, latent true
 abscissae, and calibration transfer problems may require a full measurement
 model with nuisance parameters or a structured covariance description.
 
-Next useful pages: [Photoelectric Work Function](@ref), [Full Covariance](@ref),
-and [Statistical Foundations](@ref).
+Next useful pages: [Full Covariance](@ref),
+[Damped Oscillator](resonance_decay.md), and
+[Statistical Foundations](@ref).

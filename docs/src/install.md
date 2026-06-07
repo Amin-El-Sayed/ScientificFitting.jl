@@ -21,6 +21,9 @@ Then:
 using JuFitter
 ```
 
+This loads the fitting, likelihood, diagnostics, profiling, and reporting core.
+It does not load Makie.
+
 When JuFitter is registered, the intended user-facing installation path is:
 
 ```julia
@@ -28,12 +31,24 @@ using Pkg
 Pkg.add("JuFitter")
 ```
 
+For plotting, install a Makie backend in the same environment and load it before
+calling JuFitter plot functions:
+
+```julia
+using Pkg
+Pkg.add(["JuFitter", "CairoMakie"])
+
+using JuFitter
+using CairoMakie
+```
+
 ## First Compile
 
-The first run can take noticeably longer because Julia compiles JuFitter,
-Makie, Optimization.jl, and their dependencies. This is startup and
-precompilation cost, not fit runtime. After the package is compiled, repeated
-fits in the same environment use the compiled methods.
+The first fitting-only run should compile JuFitter's numerical core without
+Makie. The first plotting run can still take noticeably longer because Julia
+compiles CairoMakie and its rendering dependencies. This is startup and
+precompilation cost, not fit runtime. After the relevant methods are compiled,
+repeated fits and plots in the same environment reuse the compiled code.
 
 For a clean local check:
 
@@ -43,10 +58,11 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 
 ## Plot Backends
 
-JuFitter currently uses CairoMakie for static publication output. It is the
-right default for PNG, PDF, and SVG documentation figures. Later interactive
-examples can add GLMakie or WGLMakie workflows, but static output stays the
-default for reproducible docs.
+JuFitter's plotting API is provided by an optional CairoMakie extension. The
+core package remains usable for fitting and reporting without CairoMakie. Static
+documentation figures use CairoMakie because it is the right default for PNG,
+PDF, and SVG output. Later interactive examples can add GLMakie or WGLMakie
+workflows, but static output stays the default for reproducible docs.
 
 ## Troubleshooting
 

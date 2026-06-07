@@ -50,6 +50,24 @@ For correlated Gaussian uncertainties, use the covariance matrix ``V``:
 \chi^2(\theta)=r(\theta)^T V^{-1} r(\theta).
 ```
 
+The off-diagonal entries of ``V`` describe which residual patterns are plausible
+together. For two points with identical variance ``\sigma^2`` and correlation
+``\rho``,
+
+```math
+V=\sigma^2
+\begin{pmatrix}
+1 & \rho \\
+\rho & 1
+\end{pmatrix}.
+```
+
+Positive ``\rho`` means "both residuals high" is less surprising than one high
+and one low. This is exactly what baseline drift, shared calibration constants,
+or finite-memory electronics can do. A fully systematic scale error is often
+better handled as a nuisance parameter or separate propagated uncertainty than
+as a short-range covariance matrix.
+
 JuFitter does not form ``V^{-1}`` explicitly in production calculations. It
 uses factorization and linear solves, because those are more stable and faster
 than materializing an inverse matrix.
@@ -200,7 +218,7 @@ uncertainties, outliers, wrong correlations, or optimizer failure. Very large
 p-values can indicate overestimated uncertainties, hidden correlations, or
 over-smoothed data.
 
-## Profiles And Contours
+## Profiles and Contours
 
 Local covariance errors assume the cost is parabolic near the minimum:
 

@@ -1,5 +1,6 @@
 using Documenter
 using JuFitter
+using CairoMakie
 
 makedocs(;
     modules=[JuFitter],
@@ -16,14 +17,15 @@ makedocs(;
         "Getting Started" => [
             "Install" => "install.md",
             "Quickstart" => "quickstart.md",
+            "How JuFitter Works" => "how_jufitter_works.md",
         ],
         "Gallery" => [
             "Overview" => "gallery.md",
             "Linear Calibration" => "gallery/linear_calibration.md",
-            "Photoelectric Work Function" => "gallery/photoelectric_threshold.md",
-            "Damped Oscillator" => "gallery/resonance_decay.md",
-            "Full Covariance" => "gallery/full_covariance.md",
             "XY Uncertainties" => "gallery/xy_uncertainties.md",
+            "Full Covariance" => "gallery/full_covariance.md",
+            "Damped Oscillator" => "gallery/resonance_decay.md",
+            "Photoelectric Work Function" => "gallery/photoelectric_threshold.md",
             "Constraints and Profiles" => "gallery/constraints_profiles.md",
             "Poisson and Histograms" => "gallery/poisson_histogram.md",
             "Multi-Dataset Fit" => "gallery/multi_dataset.md",
@@ -32,20 +34,17 @@ makedocs(;
             "Fitting for Practitioners" => "fitting_for_practitioners.md",
             "Plotting Design" => "plotting_design.md",
         ],
-        "Mathematics And Statistics" => [
+        "Mathematics and Statistics" => [
             "Statistical Foundations" => "statistical_foundations.md",
         ],
         "Reference" => [
             "API Reference" => "api.md",
             "Overview" => "overview.md",
         ],
-        "Development Notes" => [
+        "Engineering Notes" => [
             "Backend Design" => "backend_design.md",
             "Performance" => "performance.md",
-            "Roadmap" => "roadmap.md",
-            "Documentation Plan" => "documentation_plan.md",
             "Maintenance Notes" => "maintenance.md",
-            "Research Landscape" => "research_landscape.md",
         ],
     ],
     checkdocs=:none,

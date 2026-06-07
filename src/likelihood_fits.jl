@@ -81,12 +81,27 @@ function _likelihood_cost(problem::LikelihoodFitProblem, p::AbstractVector)
     return problem.objective(p) + _prior_nll(problem, p) + _parameter_constraint_nll(problem, p)
 end
 
+struct LikelihoodEvaluationCache{TP, TC}
+    problem::TP
+    parameter_constraints::TC
+end
+
+function _prepare_likelihood_cache(problem::LikelihoodFitProblem)
+    return LikelihoodEvaluationCache(problem, _prepare_parameter_constraints(problem))
+end
+
+function _likelihood_cost(cache::LikelihoodEvaluationCache, p::AbstractVector)
+    problem = cache.problem
+    return problem.objective(p) + _prior_nll(problem, p) + _parameter_constraint_nll(cache.parameter_constraints, p)
+end
+
 function _likelihood_gof(problem::LikelihoodFitProblem, p::AbstractVector)
     return problem.gof === nothing ? NaN : Float64(problem.gof(p))
 end
 
 function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOptions)
-    objective = (q, prob) -> _likelihood_cost(prob, _expand_free_parameters(prob, q))
+    cache = _prepare_likelihood_cache(problem)
+    objective = (q, cache) -> _likelihood_cost(cache, _expand_free_parameters(cache.problem, q))
     free_constraints = _free_constraints(problem.constraints, problem)
     free_bounds = _free_bounds(problem)
     lb = free_bounds === nothing ? nothing : free_bounds[1]
@@ -96,11 +111,11 @@ function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOpti
         cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
         ad = DifferentiationInterface.SecondOrder(Optimization.AutoForwardDiff(), Optimization.AutoForwardDiff())
         optf = OptimizationFunction(objective, ad; cons=cons!)
-        optprob = OptimizationProblem(optf, _free_p0(problem), problem; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
+        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
         sol = solve(optprob, OptimizationOptimJL.IPNewton(); maxiters=options.maxiters, abstol=options.tol, reltol=options.tol)
     else
         optf = OptimizationFunction(objective, Optimization.AutoForwardDiff())
-        optprob = OptimizationProblem(optf, _free_p0(problem), problem; lb=lb, ub=ub)
+        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub)
         sol = solve(optprob, OptimizationOptimJL.LBFGS(); maxiters=options.maxiters, abstol=options.tol, reltol=options.tol)
     end
 
@@ -112,13 +127,18 @@ function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOpti
 end
 
 function _likelihood_covariance(problem::LikelihoodFitProblem, params::Vector{Float64})
+    return _likelihood_covariance(_prepare_likelihood_cache(problem), params)
+end
+
+function _likelihood_covariance(cache::LikelihoodEvaluationCache, params::Vector{Float64})
+    problem = cache.problem
     free_idx = _free_indices(problem)
     if isempty(free_idx)
         return _embed_free_covariance(problem, zeros(Float64, 0, 0))
     end
 
     q = params[free_idx]
-    H = ForwardDiff.hessian(qq -> _likelihood_cost(problem, _expand_free_parameters(problem, qq)), q)
+    H = ForwardDiff.hessian(qq -> _likelihood_cost(cache, _expand_free_parameters(problem, qq)), q)
     free_cov = 2.0 .* _stable_symmetric_inverse(H)
     return _embed_free_covariance(problem, free_cov)
 end
@@ -131,7 +151,8 @@ function _build_likelihood_result(
     iterations::Int,
     message::String,
 )
-    cost_min = Float64(_likelihood_cost(problem, params))
+    cache = _prepare_likelihood_cache(problem)
+    cost_min = Float64(_likelihood_cost(cache, params))
     gof = _likelihood_gof(problem, params)
     nconstraint_obs = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
     nobs = problem.nobs + length(problem.parameter_priors) + nconstraint_obs
@@ -141,12 +162,12 @@ function _build_likelihood_result(
     pvalue = isfinite(gof) && ndf > 0 ? ccdf(Chisq(ndf), gof) : NaN
     aic = cost_min + 2.0 * npar
     bic = cost_min + log(nobs) * npar
-    cov = _likelihood_covariance(problem, params)
+    cov = _likelihood_covariance(cache, params)
     stderr = sqrt.(clamp.(diag(cov), 0.0, Inf))
     corr = _correlation_from_covariance(cov)
     stats = FitStatistics(problem.cost_name, cost_min, cost_min, gof, gof_ndf, ndf, pvalue, aic, bic)
     free_idx = _free_indices(problem)
-    hessian = isempty(free_idx) ? nothing : ForwardDiff.hessian(q -> _likelihood_cost(problem, _expand_free_parameters(problem, q)), params[free_idx])
+    hessian = isempty(free_idx) ? nothing : ForwardDiff.hessian(q -> _likelihood_cost(cache, _expand_free_parameters(problem, q)), params[free_idx])
     diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=gof)
 
     return LikelihoodFitResult(problem, options, :optimization, converged, iterations, message, params, stderr, cov, corr, stats, diagnostics)

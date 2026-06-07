@@ -69,10 +69,12 @@ low-rank-plus-diagonal structure, sparse precision matrices, or custom
 whitening operators. Dense-matrix micro-optimization cannot fix the asymptotic
 scaling.
 
-Makie/CairoMakie dominates first-use plotting latency. This is a startup-cost
-issue, not a fitting-engine hot path. Long term, plotting should move behind a
-package extension or optional plotting submodule so users who only need fitting
-do not pay the full plotting load cost.
+Makie/CairoMakie dominates first-use plotting latency. Plotting is therefore
+loaded through an optional package extension: users who only fit and print
+reports do not load Makie, while users who call plotting functions opt into
+`using CairoMakie`. This separates fitting-engine latency from rendering
+latency, but it does not remove CairoMakie's first-use compilation cost for
+plot-heavy workflows.
 
 ## Rules For Future Optimizations
 

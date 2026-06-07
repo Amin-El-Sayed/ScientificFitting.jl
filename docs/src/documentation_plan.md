@@ -21,12 +21,13 @@ through the same path.
 
 The site order follows that priority:
 
-1. Getting Started.
-2. Gallery.
+1. Getting Started: install, first fit, and how the fit machinery works.
+2. Gallery: a gradual progression from basic least squares to advanced
+   diagnostics and multi-dataset workflows.
 3. Guides.
-4. Mathematics And Statistics.
+4. Mathematics and Statistics.
 5. Reference.
-6. Development Notes.
+6. Engineering Notes for maintainers and contributors.
 
 The Gallery comes before Guides because many scientists learn fitting by
 recognizing a workflow close to their own experiment. Guides explain general
@@ -95,7 +96,17 @@ Current coverage and remaining gaps:
 
 This table is a coverage audit, not a reason to make every figure visually busy.
 
-## Mathematics And Statistics Standard
+Visible tutorial code should look like a real notebook. Prefer explicit curated
+arrays or small CSV reads. Synthetic or controlled data generation belongs in
+asset generator scripts, not in beginner-facing code blocks, unless the page is
+explicitly teaching simulation.
+
+Documentation plot style switching must use real Makie-rendered assets for
+each supported style and appearance. CSS recoloring or image inversion is not
+acceptable because it changes typography, contrast, and scientific hierarchy
+outside the plotting backend.
+
+## Mathematics and Statistics Standard
 
 The mathematics section is not a library manual. It must justify the methods in
 a scientific context.

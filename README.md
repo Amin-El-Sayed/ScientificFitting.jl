@@ -5,7 +5,7 @@ JuFitter is a Julia fitting utility focused on fast scientific workflows:
 - weighted nonlinear least-squares fitting
 - optional full covariance for `x` and `y`
 - constraint-aware fitting (hybrid backend)
-- publication-ready CairoMakie plots with one-call `fitplot(...)` workflows
+- optional CairoMakie plots with one-call `fitplot(...)` workflows
 
 ## Install (in this repo)
 
@@ -19,6 +19,7 @@ Pkg.instantiate()
 
 ```julia
 using JuFitter
+using CairoMakie
 
 x = collect(range(0.0, 10.0; length=200))
 model(x, p) = @. p[1] * x + p[2]
@@ -60,7 +61,7 @@ result = fit.result
 - `fit_multi_model(models, xs, ys; p0, sigma_y=nothing, kwargs...)`
 - `fitplot(x, y; sigma_y=nothing, kwargs...)`
 - `fitplot(model, x, y; p0, sigma_y=nothing, kwargs...)`
-- `plot_fit(result; xgrid=nothing, filename=nothing, format=:pdf, theme=:clean, ...)`
+- `plot_fit(result; xgrid=nothing, filename=nothing, format=:pdf, theme=:workbench, ...)`
 - `plot_residuals(result; kind=:pull, filename=nothing, format=:pdf, ...)`
 - `plot_diagnostics(result; filename=nothing, format=:pdf, ...)`
 - `fit_report(result; parameter_names=nothing)`
@@ -95,9 +96,11 @@ Key `plot_fit` customization kwargs:
   - `xerr_color`, `yerr_color`, `error_whiskerwidth`
   - `show_legend`, `legend_position`
 - theme/font control:
-  - `theme` (`:clean`, `:minimal`, `:paper`, `:publication`, `:latex`, or custom base)
-  - `theme=:minimal` for dense datasets with fine markers and precise black/white styling
-  - `theme=:paper` for LaTeX-like physics publication styling
+  - `theme` (`:workbench`, `:showcase`, `:publication`, or custom base)
+  - `theme=:workbench` for robust notebook and laboratory plots
+  - `theme=:showcase` for documentation and presentations
+  - `theme=:publication` for compact black-and-white paper figures
+  - `appearance=:light | :dark` independently controls the background scheme
   - `theme_override=Theme(...)` for global style overrides, including fonts/font sizes
 - direct Makie keyword forwarding:
   - `axis_kwargs`, `legend_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`
@@ -291,7 +294,7 @@ plot_diagnostics(result; filename="fit_diagnostics.pdf")
 Run examples from the repository root with:
 
 ```julia
-julia --project=. examples/gallery/01_quickstart_linear.jl
+julia --project=docs examples/gallery/01_quickstart_linear.jl
 ```
 
 Generated plots are written to `examples/output/`, which is intentionally

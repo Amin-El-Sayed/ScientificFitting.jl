@@ -17,6 +17,11 @@ a clear fit curve, and a compact right-side summary without requiring manual
 layout tuning. In-axis statistic boxes remain available, but they are not the
 default because they compete with the data.
 
+`plot_fit` preserves the requested `figure_size`. A short report must not
+collapse the data area into a shallow banner, and a long report must not silently
+change the exported dimensions. The right-side panel is top-aligned while the
+data axis controls the row height.
+
 ## Design Principles
 
 - Beautiful defaults first; customization second.
@@ -25,10 +30,13 @@ default because they compete with the data.
 - All high-level options should map cleanly to Makie concepts.
 - Export quality must be consistent across PNG, PDF, and SVG.
 - Plot functions should return the Makie `Figure` for further user control.
+- Adding Makie elements after `plot_fit` returns must not resize or invalidate
+  the existing plot. Users can add labels, axes, markers, annotations, or new
+  layout rows and then export the same figure.
 
 ## Plot Design Direction
 
-The default `:clean` style is intentionally restrained and scientific:
+The default `:workbench` style is intentionally restrained and scientific:
 
 - white background for print, slides, and documentation
 - dark ink for axes, labels, and data
@@ -36,16 +44,29 @@ The default `:clean` style is intentionally restrained and scientific:
 - a single restrained fit color in the data area
 - soft confidence bands that stay behind the data
 - no legend by default when the visual mapping is obvious
-- compact right-side fit summary instead of a box covering the data
+- compact, left-aligned right-side legend and fit summary instead of a box
+  covering the data
 - model formula and goodness-of-fit numbers in the summary area
 
-Additional built-in styles cover common production needs:
+JuFitter has three style contracts. They correspond to real output contexts,
+not minor visual variations:
 
-- `:minimal`: white background, fine markers, thin fit line, subtle grid, and
-  high precision for dense datasets.
-- `:paper`: white background, Computer Modern typography, black axes/data, and
-  a restrained fit accent suitable for physics-style publications.
-- `:dark`: native dark export for documentation dark mode and talks.
+- `:workbench`: robust notebook and laboratory default. Neutral data, one blue
+  fit accent, subtle grid, and readable plain-text reporting.
+- `:showcase`: documentation and presentation style. It uses a restrained
+  two-color palette while preserving the same scientific hierarchy.
+- `:publication`: compact black-and-white structure, Computer Modern
+  typography, no grid, and geometry suitable for vector export.
+
+Light and dark rendering are selected independently through
+`appearance=:light | :dark`. LaTeX conversion is also independent:
+`latex_labels=true` and `latex_stats=true` opt into math rendering. This avoids
+the previous ambiguity where style names silently mixed color, typography,
+LaTeX, and output density.
+
+The legacy names `:clean`, `:minimal`, `:paper`, `:latex`, and `:dark` remain
+accepted as compatibility aliases, but new code should use the three contracts
+above plus `appearance`.
 
 ## Controlled Style Comparison
 
@@ -55,13 +76,10 @@ fixed. Every image below uses the same data, uncertainties, fitted result,
 the public `theme` keyword changes.
 
 ```@raw html
-<div class="jufitter-gallery-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_clean.png" alt="Clean plot style"><div><h3>clean</h3><p>Readable default for notebooks, reports, and the gallery.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_minimal.png" alt="Minimal plot style"><div><h3>minimal</h3><p>Fine geometry for dense datasets without sacrificing readable labels.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_paper.png" alt="Paper plot style"><div><h3>paper</h3><p>Compact black-and-white structure with a restrained fit accent.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_publication.png" alt="Publication plot style"><div><h3>publication</h3><p>Publication-oriented sizing and hierarchy.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_latex.png" alt="LaTeX plot style"><div><h3>latex</h3><p>Computer Modern typography and mathematical labels.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_dark.png" alt="Dark plot style"><div><h3>dark</h3><p>Native dark rendering rather than a CSS-inverted light image.</p></div></div>
+<div class="jufitter-gallery-grid jufitter-style-grid">
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_workbench.png" alt="Workbench plot style"><div><h3>workbench</h3><p>Reliable default for notebooks, laboratory work, and ordinary reports.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_showcase.png" alt="Showcase plot style"><div><h3>showcase</h3><p>Restrained color and strong hierarchy for documentation and presentations.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_publication.png" alt="Publication plot style"><div><h3>publication</h3><p>Compact black-and-white geometry and Computer Modern typography for papers.</p></div></div>
 </div>
 ```
 
@@ -73,7 +91,9 @@ gallery look.
 
 ## High-Level Controls
 
-- `theme=:clean | :minimal | :paper | :publication | :latex | :dark | custom`
+- `theme=:workbench | :showcase | :publication | :custom`
+- `appearance=:auto | :light | :dark`
+- `latex_labels`, `latex_stats`
 - `xlabel`, `ylabel`, `xunit`, `yunit`, `title`, `model_label`
 - `parameter_names`
 - `report=:plot | :console | :both | :none`
@@ -82,8 +102,45 @@ gallery look.
 - `show_legend`, `stats_position=:right | :inside`, `show_residuals`, `show_pulls`
 - `plot_contour(...; show_regions=true, show_heatmap=false)` for threshold-first
   contour diagnostics; heatmaps remain available for explicit surface analysis
+- `plot_profile_matrix(...)` for a compact multi-parameter overview with
+  diagonal profile scans, lower-triangle pairwise contours, local covariance
+  overlays, and upper-triangle correlation coefficients
 - `axis_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`,
   `legend_kwargs`
+- `plot_theme(...)`, `plot_palette(...)`, and `plot_info_panel!(...)` for
+  custom Makie figures that should preserve JuFitter's visual system
+- `fit_axis(fig)` plus `add_curve!`, `add_points!`, `add_vline!`,
+  `add_hline!`, `add_vband!`, and `add_hband!` for post-fit annotations
+  without recomputing the fit
+
+For compound plots, allocate the scientific panels first and place
+`plot_info_panel!` in a dedicated cell or span. The information panel does not
+dictate parent height, so a fit axis, residual stack, or diagnostic grid remains
+stable even when report content changes.
+
+Post-fit annotation helpers are deliberately thin Makie wrappers. They return
+the created Makie plot object, accept ordinary Makie keyword arguments such as
+`color`, `linestyle`, `linewidth`, `marker`, and `label`, and do not modify the
+underlying `FitResult`. Use them for threshold markers, extrapolation curves,
+derived-quantity points, accepted physical regions, and notebook annotations.
+
+The same `theme` and `appearance` contract applies to `plot_profile`,
+`plot_contour`, `plot_residuals`, and `plot_diagnostics`. Their default colors
+are derived from the selected style; explicit color keywords remain available
+when a scientific convention requires them.
+
+## Documentation-Wide Style Switching
+
+A documentation-wide plot-style switch is feasible without recoloring images
+in CSS. The reliable implementation is to pre-render each documentation figure
+for the supported style and appearance combinations, then let the page select
+the matching asset. This preserves exact Makie geometry, typography, and
+contrast.
+
+Before enabling that switch, every custom gallery figure must use
+`plot_theme`, `plot_palette`, and `plot_info_panel!`. Standard JuFitter plots
+already satisfy this contract. A few compound gallery figures still own manual
+Makie layouts and are being migrated before the switch becomes public.
 
 ## Diagnostic Plot Direction
 
@@ -111,7 +168,9 @@ Practical notebook diagnostic layout:
 - top: short diagnosis summary with actionable findings,
 - main: data, fit, uncertainty band, and highlighted suspicious points,
 - residual/pull panel: structure, outliers, and autocorrelation cues,
-- parameter panel: profile/parabola and contour/ellipse comparisons,
+- parameter panel: profile/parabola, contour/ellipse comparisons, or a
+  `plot_profile_matrix` overview when more than two parameters need a quick
+  scan,
 - side panel: goodness-of-fit, active bounds, condition numbers, and suggested
   next actions.
 
@@ -121,6 +180,14 @@ Practical notebook diagnostic layout:
 - Dense datasets do not obscure the fit curve.
 - Error bars and confidence bands are fully inside the visible range.
 - Long labels, LaTeX labels, and parameter summaries are not clipped.
+- The default right-side report does not change the requested output size.
+- A custom Makie element can be added after `plot_fit` without collapsing the
+  existing layout.
+- JuFitter annotation helpers can add curves, points, lines, and bands to an
+  existing fit axis without rerunning the fit.
+- Wide documentation plots never overlap the navigation sidebar.
 - Multi-dataset and multi-fit plots use clear visual hierarchy.
 - Profile plots can overlay the local parabolic approximation.
 - Contour plots can overlay the local covariance ellipse.
+- Profile-matrix plots can export a multi-parameter overview and reject invalid
+  parameter selections.

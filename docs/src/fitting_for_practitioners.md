@@ -34,6 +34,29 @@ Use `cov_y` when y uncertainties are correlated. This is required when several
 points share a calibration constant, a baseline correction, a normalization, or
 any other systematic effect.
 
+Separate three cases mentally before choosing the input:
+
+- independent scatter: each point gets its own ``\sigma_i`` and the noise does
+  not know about neighboring points;
+- correlated scatter: several points move together, so the covariance matrix
+  must contain off-diagonal entries;
+- external systematic effects: a calibration scale, alignment, or reference
+  value affects the final result and is often better represented as a nuisance
+  parameter, prior, or separate propagated contribution.
+
+A tiny covariance sketch helps: if two adjacent points share half of their
+readout noise, their normalized covariance might look like
+
+```math
+\begin{pmatrix}
+1 & 0.5 \\
+0.5 & 1
+\end{pmatrix}.
+```
+
+Treating that as the identity matrix would count the same shared fluctuation
+twice as independent evidence.
+
 Use likelihood fits for counts, histograms, and unbinned samples. Least squares
 is not the right statistical object for small Poisson counts or distribution
 fits.
@@ -153,15 +176,17 @@ For a shorter lab-facing summary, use:
 dashboard = diagnostic_dashboard(result)
 ```
 
-The dashboard turns the same findings into a status:
+The dashboard turns the same findings into a reader-facing status:
 
-- `:ok`: no current diagnostic warnings,
-- `:review`: warnings exist; inspect before publication,
-- `:stop`: at least one critical issue exists; do not trust the fit yet.
+- `ok - no immediate issue`: no current diagnostic warnings,
+- `review - inspect diagnostics`: warnings exist; inspect before using the
+  result,
+- `critical - fix before use`: at least one critical issue exists and must be
+  fixed before the result is used for conclusions.
 
 It also lists the highest-priority next actions, deduplicated across findings.
 
-## Why Profile And Contour Diagnostics Matter
+## Why Profile and Contour Diagnostics Matter
 
 The parameter covariance matrix is a local approximation. Near the minimum it
 assumes the cost function is quadratic:

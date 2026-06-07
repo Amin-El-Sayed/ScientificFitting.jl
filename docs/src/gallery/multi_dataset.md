@@ -9,8 +9,12 @@ channels may use one common gain. The answer is no: channels A and B are
 compatible, while channel C requires a separate gain.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/multi_dataset_shared_slope_light.png" alt="Three-channel calibration transfer with all-shared and partial-sharing models, local fit bands, and pull panels">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/multi_dataset_shared_slope_dark.png" alt="Three-channel calibration transfer with all-shared and partial-sharing models, local fit bands, and pull panels in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="workbench" src="../assets/gallery/multi_dataset_shared_slope_workbench_light.png" alt="Multi-dataset calibration transfer in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="workbench" src="../assets/gallery/multi_dataset_shared_slope_workbench_dark.png" alt="Multi-dataset calibration transfer in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="showcase" src="../assets/gallery/multi_dataset_shared_slope_showcase_light.png" alt="Multi-dataset calibration transfer in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="showcase" src="../assets/gallery/multi_dataset_shared_slope_showcase_dark.png" alt="Multi-dataset calibration transfer in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="publication" src="../assets/gallery/multi_dataset_shared_slope_publication_light.png" alt="Multi-dataset calibration transfer in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="publication" src="../assets/gallery/multi_dataset_shared_slope_publication_dark.png" alt="Multi-dataset calibration transfer in publication dark style">
 ```
 
 The solid lines show the accepted partial-sharing model. The dashed lines show
@@ -41,6 +45,30 @@ deliberately incompatible gain for channel C.
 The controlled construction is useful here because the correct sharing
 structure is known. It tests whether the analysis finds the hidden gain
 mismatch rather than merely producing three attractive lines.
+
+A useful mental model is three readout channels that share a sensor type but
+not necessarily the whole electronics chain:
+
+```math
+\begin{array}{c|c|c}
+\text{channel} & \text{gain source} & \text{offset source} \\
+\hline
+A & \text{amplifier family 1} & \text{own zero point} \\
+B & \text{amplifier family 1} & \text{own zero point} \\
+C & \text{replacement amplifier} & \text{own zero point}
+\end{array}
+```
+
+The statistical question is therefore not only whether each line fits its own
+points. It is whether the apparatus justifies sharing a parameter across
+datasets.
+
+## Data
+
+The code below uses three explicit calibration channels. Each channel has its
+own x grid, absolute y uncertainty, offset, and deterministic residual pattern.
+The values are controlled so the correct sharing structure is known: channels A
+and B have compatible gain, while channel C has a different gain.
 
 ## The Multi-Dataset Cost
 
@@ -143,10 +171,93 @@ sigma_gain_gap = sqrt(dot(
     partial_shared_result.param_covariance * gain_gap_gradient,
 ))
 
+println("All-shared-gain hypothesis")
 println(report_text(all_shared_result))
+println()
+println("Partial-sharing model")
 println(report_text(partial_shared_result))
 println("gain C - gain A/B = ", gain_gap, " +/- ", sigma_gain_gap)
+println()
+println("All-shared diagnostic dashboard")
+println(diagnostic_dashboard_text(all_shared_result))
+println("Partial-sharing diagnostic dashboard")
+println(diagnostic_dashboard_text(partial_shared_result))
 ```
+
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>All-shared-gain hypothesis
+Fit report
+backend = optimization
+converged = true
+iterations = 4
+message = Success
+
+Parameters:
+  shared gain = 1.84775 +/- 0.0067733
+  offset A = 0.61983 +/- 0.0401546
+  offset B = -0.566252 +/- 0.0448925
+  offset C = 0.340211 +/- 0.0447551
+
+Statistics:
+  cost = multi_chi2
+  cost_min = 52.9085
+  nll_min = 52.9085
+  chi2 = 52.9085
+  ndf = 26
+  chi2/ndf = 2.03494
+  pvalue = 0.00139032
+  AIC = 60.9085
+  BIC = 66.5133
+
+Partial-sharing model
+Fit report
+backend = optimization
+converged = true
+iterations = 5
+message = Success
+
+Parameters:
+  gain A/B = 1.8232 +/- 0.00807553
+  offset A = 0.707442 +/- 0.0431124
+  offset B = -0.46491 +/- 0.0484239
+  gain C = 1.906 +/- 0.0124389
+  offset C = 0.139048 +/- 0.0574583
+
+Statistics:
+  cost = multi_chi2
+  cost_min = 21.7427
+  nll_min = 21.7427
+  chi2 = 21.7427
+  ndf = 25
+  chi2/ndf = 0.869706
+  pvalue = 0.650557
+  AIC = 31.7427
+  BIC = 38.7486
+
+gain C - gain A/B = 0.08279274159345795 +/- 0.01483039808128878
+
+All-shared diagnostic dashboard
+Fit diagnostic dashboard
+status = ok - no immediate issue
+critical = 0, warning = 0, info = 0
+No major diagnostic issues detected by the current checks.
+No next action required by the current diagnostic checks.
+
+Partial-sharing diagnostic dashboard
+Fit diagnostic dashboard
+status = ok - no immediate issue
+critical = 0, warning = 0, info = 0
+No major diagnostic issues detected by the current checks.
+No next action required by the current diagnostic checks.</pre>
+</div>
+```
+
+The automatic dashboard is intentionally not the final decision maker here. It
+checks generic fit pathologies; the scientific question is a model-comparison
+question about parameter sharing. The p-value, per-dataset pulls, gain
+difference, and AIC comparison below are the decisive diagnostics.
 
 `parameter_map` is the essential part of the interface. The same local function
 `linear_channel(x, p)` is reused for every channel, while the maps define which
@@ -287,12 +398,12 @@ The tracked script contains the complete fits, covariance propagation, pull
 construction, local bands, and light/dark Makie figure:
 
 ```bash
-julia --project=. examples/gallery/10_multi_dataset_calibration.jl
+julia --project=docs examples/gallery/10_multi_dataset_calibration.jl
 ```
 
 The practical conclusion is precise: **transfer the gain between channels A and
 B, but calibrate channel C separately.**
 
 Next, use [Full Covariance](full_covariance.md) when datasets share systematic
-uncertainty, or [Constraints And Profiles](constraints_profiles.md) when the
+uncertainty, or [Constraints and Profiles](constraints_profiles.md) when the
 shared-parameter geometry is nonlinear and local errors may fail.

@@ -1,10 +1,26 @@
-using CairoMakie
+const MULTI_SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
+const MULTI_RENDER_DOC_ASSETS = !MULTI_SNAPSHOT_ONLY
+
+if MULTI_RENDER_DOC_ASSETS
+    using CairoMakie
+end
+
 using JuFitter
 using LinearAlgebra
 using Printf
 
 const MULTI_OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const MULTI_DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
+const MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
+
+function emit_multi_doc_output_snapshot(body::Function, id::AbstractString)
+    MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
+
+    println("=== JUFITTER_DOC_OUTPUT_BEGIN ", id, " ===")
+    body()
+    println("=== JUFITTER_DOC_OUTPUT_END ", id, " ===")
+    return nothing
+end
 
 linear_channel(x, p) = @. p[1] * x + p[2]
 
@@ -115,22 +131,35 @@ end
 
 fmt(x, digits=4) = @sprintf("%.*g", digits, x)
 
-function save_multi_dataset_calibration(filename; dark::Bool=false)
-    foreground = dark ? "#edf2f4" : "#14151a"
-    muted = dark ? "#b8c1ca" : "#5b6270"
-    background = dark ? "#111318" : "#ffffff"
-    colors = dark ? ["#66d9ef", "#f4b860", "#f28fad"] : ["#007f9e", "#b45309", "#b83280"]
-    bands = dark ?
-            [("#66d9ef", 0.15), ("#f4b860", 0.14), ("#f28fad", 0.14)] :
-            [("#89d5e0", 0.30), ("#f4b183", 0.28), ("#e7a5ca", 0.28)]
-    pull_1sigma = dark ? ("#66d9ef", 0.13) : ("#a8dadc", 0.30)
-    pull_2sigma = dark ? ("#66d9ef", 0.06) : ("#a8dadc", 0.14)
+function save_multi_dataset_calibration(
+    filename;
+    dark::Union{Nothing, Bool}=nothing,
+    style::Symbol=:showcase,
+    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+)
+    MULTI_RENDER_DOC_ASSETS || return nothing
+
+    dark_mode = appearance == :dark
+    palette = plot_palette(style; appearance=appearance)
+    foreground = palette.stats_color
+    muted = palette.stats_muted_color
+    background = dark_mode ? "#111318" : (style == :showcase ? "#fbfcfd" : "#ffffff")
+    colors = if style == :publication
+        dark_mode ? ["#edf2f4", "#b8c1ca", "#8d96a3"] : ["#101216", "#606874", "#8a929c"]
+    elseif style == :showcase
+        dark_mode ? [palette.fit_color, "#f0b35f", "#d686bd"] : [palette.fit_color, "#b05a36", "#9b4d86"]
+    else
+        dark_mode ? [palette.fit_color, "#c8a04d", "#af7ac5"] : [palette.fit_color, "#8a6f22", "#6e5aae"]
+    end
+    bands = [(colors[i], style == :publication ? 0.10 : (dark_mode ? 0.14 : 0.24)) for i in eachindex(colors)]
+    pull_1sigma = (palette.band_color, dark_mode ? 0.13 : 0.24)
+    pull_2sigma = (palette.band_color, dark_mode ? 0.06 : 0.12)
     markers = [:circle, :rect, :diamond]
     labels = ["channel A", "channel B", "channel C"]
     partial_maps = [[1, 2], [1, 3], [4, 5]]
     all_shared_maps = [[1, 2], [1, 3], [1, 4]]
 
-    figure = with_theme(multi_theme(dark)) do
+    figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(1680, 1040), backgroundcolor=background)
     end
     fit_axis = Axis(
@@ -176,23 +205,30 @@ function save_multi_dataset_calibration(filename; dark::Bool=false)
             all_shared_prediction;
             color=(colors[i], 0.48),
             linestyle=:dash,
-            linewidth=2.0,
+            linewidth=max(1.5, palette.fit_linewidth - 0.5),
         )
         lines!(
             fit_axis,
             x_grid,
             partial_prediction;
             color=colors[i],
-            linewidth=2.8,
+            linewidth=palette.fit_linewidth,
         )
-        errorbars!(fit_axis, x_sets[i], y_sets[i], sigma_sets[i]; color=(colors[i], 0.50), whiskerwidth=5)
+        errorbars!(
+            fit_axis,
+            x_sets[i],
+            y_sets[i],
+            sigma_sets[i];
+            color=(colors[i], 0.50),
+            whiskerwidth=palette.error_whiskerwidth,
+        )
         scatter!(
             fit_axis,
             x_sets[i],
-            y_sets[i];
+        y_sets[i];
             color=colors[i],
             marker=markers[i],
-            markersize=9,
+            markersize=palette.data_markersize + 1.2,
         )
     end
     hidexdecorations!(fit_axis; grid=false)
@@ -221,9 +257,9 @@ function save_multi_dataset_calibration(filename; dark::Bool=false)
     append!(
         legend_elements,
         [
-            LineElement(color=foreground, linewidth=3),
-            LineElement(color=(foreground, 0.55), linestyle=:dash, linewidth=2),
-            PolyElement(color=dark ? ("#66d9ef", 0.18) : ("#89d5e0", 0.32)),
+            LineElement(color=foreground, linewidth=palette.fit_linewidth),
+            LineElement(color=(foreground, 0.55), linestyle=:dash, linewidth=max(1.5, palette.fit_linewidth - 0.5)),
+            PolyElement(color=(palette.band_color, dark_mode ? 0.18 : 0.28)),
         ],
     )
     Legend(
@@ -238,7 +274,7 @@ function save_multi_dataset_calibration(filename; dark::Bool=false)
         framevisible=false,
         tellheight=true,
         nbanks=2,
-        labelsize=17,
+        labelsize=palette.stats_fontsize + 1,
     )
     report_axis = Axis(side[2, 1]; backgroundcolor=:transparent)
     hidedecorations!(report_axis)
@@ -266,7 +302,7 @@ function save_multi_dataset_calibration(filename; dark::Bool=false)
         space=:relative,
         align=(:left, :top),
         color=foreground,
-        fontsize=18,
+        fontsize=palette.stats_fontsize + 2,
         lineheight=1.08,
     )
 
@@ -279,18 +315,28 @@ function save_multi_dataset_calibration(filename; dark::Bool=false)
     save(filename, figure)
 end
 
-mkpath(MULTI_OUTPUT_DIR)
-mkpath(MULTI_DOC_ASSET_DIR)
+if MULTI_RENDER_DOC_ASSETS
+    mkpath(MULTI_OUTPUT_DIR)
+    mkpath(MULTI_DOC_ASSET_DIR)
 
-for (dark, suffix) in ((false, "light"), (true, "dark"))
-    save_multi_dataset_calibration(
-        joinpath(MULTI_OUTPUT_DIR, "10_multi_dataset_calibration_$(suffix).png");
-        dark=dark,
-    )
-    save_multi_dataset_calibration(
-        joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(suffix).png");
-        dark=dark,
-    )
+    for (dark, suffix) in ((false, "light"), (true, "dark"))
+        save_multi_dataset_calibration(
+            joinpath(MULTI_OUTPUT_DIR, "10_multi_dataset_calibration_$(suffix).png");
+            dark=dark,
+        )
+        save_multi_dataset_calibration(
+            joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(suffix).png");
+            dark=dark,
+        )
+    end
+
+    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+        save_multi_dataset_calibration(
+            joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
+            style=style,
+            appearance=appearance,
+        )
+    end
 end
 
 println("All-shared-gain hypothesis")
@@ -299,3 +345,21 @@ println()
 println("Partial-sharing model")
 println(report_text(partial_shared_result))
 println("gain C - gain A/B = ", gain_gap, " +/- ", sigma_gain_gap)
+println()
+println("All-shared diagnostic dashboard")
+println(diagnostic_dashboard_text(all_shared_result))
+println("Partial-sharing diagnostic dashboard")
+println(diagnostic_dashboard_text(partial_shared_result))
+emit_multi_doc_output_snapshot("multi_dataset") do
+    println("All-shared-gain hypothesis")
+    println(report_text(all_shared_result))
+    println()
+    println("Partial-sharing model")
+    println(report_text(partial_shared_result))
+    println("gain C - gain A/B = ", gain_gap, " +/- ", sigma_gain_gap)
+    println()
+    println("All-shared diagnostic dashboard")
+    println(diagnostic_dashboard_text(all_shared_result))
+    println("Partial-sharing diagnostic dashboard")
+    println(diagnostic_dashboard_text(partial_shared_result))
+end

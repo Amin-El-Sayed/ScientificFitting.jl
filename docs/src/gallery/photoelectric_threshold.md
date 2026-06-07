@@ -7,8 +7,12 @@ fitted separately, and the threshold is the intersection of those two fitted
 lines with uncertainty propagated from both covariance matrices.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/photoelectric_threshold_light.png" alt="Photoelectric work-function fit">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/photoelectric_threshold_dark.png" alt="Photoelectric work-function fit in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="workbench" src="../assets/gallery/photoelectric_threshold_workbench_light.png" alt="Photoelectric work-function fit in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="workbench" src="../assets/gallery/photoelectric_threshold_workbench_dark.png" alt="Photoelectric work-function fit in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="showcase" src="../assets/gallery/photoelectric_threshold_showcase_light.png" alt="Photoelectric work-function fit in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="showcase" src="../assets/gallery/photoelectric_threshold_showcase_dark.png" alt="Photoelectric work-function fit in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="publication" src="../assets/gallery/photoelectric_threshold_publication_light.png" alt="Photoelectric work-function fit in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="publication" src="../assets/gallery/photoelectric_threshold_publication_dark.png" alt="Photoelectric work-function fit in publication dark style">
 ```
 
 ## Question
@@ -64,6 +68,12 @@ The threshold frequency is the intersection:
 \frac{b_\mathrm{base}-b_\mathrm{emit}}
      {m_\mathrm{emit}-m_\mathrm{base}}.
 ```
+
+This formula also explains the uncertainty problem. The denominator is the
+difference of two fitted slopes. If the two lines were nearly parallel, the
+same voltage noise would move the intersection by a large amount. JuFitter does
+not read the threshold error from either fit line alone; it propagates the
+covariance matrices of both fitted lines through this intersection formula.
 
 The work function follows from the threshold photon energy:
 
@@ -152,35 +162,83 @@ sigma_work_function_eV = sqrt(work_variance)
 println("h = ", h_fit, " +/- ", sigma_h, " J s")
 println("Phi = ", work_function_eV, " +/- ", sigma_work_function_eV, " eV")
 println("nu0 = ", threshold_THz, " +/- ", sigma_threshold_THz, " THz")
+println("baseline")
 println(diagnostic_dashboard_text(baseline))
+println("emission")
 println(diagnostic_dashboard_text(emission))
 ```
 
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>h = 6.5685852427077865e-34 +/- 2.7224195755727264e-35 J s
+Phi = 2.2502554018606444 +/- 0.12470393526540183 eV
+nu0 = 548.8711027075259 +/- 11.278256662286788 THz
+
+baseline
+Fit diagnostic dashboard
+status = review - inspect diagnostics
+critical = 0, warning = 1, info = 0
+1 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.
+
+emission
+Fit diagnostic dashboard
+status = review - inspect diagnostics
+critical = 0, warning = 1, info = 0
+1 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
+</div>
+```
+
+The two line fits both ask for review because slope and intercept are strongly
+correlated over a limited frequency range. That does not invalidate the
+threshold calculation by itself. It means the derived ``\nu_0`` and ``\Phi``
+must be propagated from the full covariance matrices instead of from rounded
+slope and intercept errors.
+
 ## Plot Construction
 
-The plot is ordinary Makie code layered on JuFitter results. This is deliberate:
-the fit and uncertainty semantics remain structured, while experiment-specific
-annotations do not require a special plotting language.
+The plot is not a separate fitting workflow. The numerical work is already in
+`baseline`, `emission`, and the propagated intersection quantities. The figure
+then layers experiment-specific Makie annotations on top while still using
+JuFitter's style contract and information panel. This is the intended pattern
+for lab notebooks: fit once, keep the `FitResult`s, then add the threshold,
+accepted region, literature line, or derived quantity marker as visual
+annotations.
 
 ```julia
 using CairoMakie
+using JuFitter
 
-fig = Figure(size=(1120, 700))
-ax = Axis(
-    fig[1, 1];
+style = :showcase
+appearance = :light
+palette = plot_palette(style; appearance=appearance)
+
+fig = with_theme(plot_theme(style; appearance=appearance)) do
+    Figure(size=(1120, 700))
+end
+
+ax = Axis(fig[1, 1];
     title="Photoelectric threshold from two fitted regimes",
     xlabel="frequency ν (THz)",
-    ylabel="stopping voltage U₀ (V)",
-)
+    ylabel="stopping voltage U₀ (V)")
 
 errorbars!(ax, frequency_THz, voltage_V, sigma_voltage_V;
-           color=(:gray35, 0.55))
+           color=palette.yerr_color,
+           whiskerwidth=palette.error_whiskerwidth)
 errorbars!(ax, frequency_THz, voltage_V, sigma_frequency_THz;
-           direction=:x, color=(:gray35, 0.40))
+           direction=:x,
+           color=palette.xerr_color,
+           whiskerwidth=palette.error_whiskerwidth)
 scatter!(ax, frequency_THz[baseline_mask], voltage_V[baseline_mask];
          color="#b85c38", marker=:diamond, label="baseline")
 scatter!(ax, frequency_THz[emission_mask], voltage_V[emission_mask];
-         color="#14151a", label="emission")
+         color=palette.data_color, label="emission")
 
 xgrid = collect(range(minimum(frequency_THz) - 15,
                       maximum(frequency_THz) + 15; length=500))
@@ -195,22 +253,50 @@ for (result, color, label) in (
     sigma_fit = sqrt.(clamp.(variance, 0.0, Inf))
     band!(ax, xgrid, ygrid .- sigma_fit, ygrid .+ sigma_fit;
           color=(color, 0.22), label="$label 1σ")
-    lines!(ax, xgrid, ygrid; color=color, linewidth=3, label=label)
+    lines!(ax, xgrid, ygrid;
+           color=color, linewidth=palette.fit_linewidth, label=label)
 end
 
-vspan!(ax,
-       threshold_THz - sigma_threshold_THz,
-       threshold_THz + sigma_threshold_THz;
-       color=("#7a5c00", 0.14), label="threshold 1σ")
-vlines!(ax, [threshold_THz]; color="#7a5c00", linestyle=:dash)
+add_vband!(ax,
+           threshold_THz - sigma_threshold_THz,
+           threshold_THz + sigma_threshold_THz;
+           color=("#7a5c00", 0.14),
+           label="threshold 1σ")
+add_vline!(ax, threshold_THz;
+           color="#7a5c00", linestyle=:dash, linewidth=2)
 intersection_voltage = line_model([threshold_THz], emission.params)[1]
-scatter!(ax, [threshold_THz], [intersection_voltage];
-         marker=:star5, markersize=18, color="#7a5c00",
-         label="line intersection")
+add_points!(ax, [threshold_THz], [intersection_voltage];
+            marker=:star5, markersize=18, color="#7a5c00",
+            label="line intersection")
 
-Legend(fig[1, 2], ax; framevisible=false)
+plot_info_panel!(
+    fig[1, 2];
+    legend_source=ax,
+    model_label="U0(ν) = mᵣν + bᵣ",
+    parameter_lines=[
+        "m_emit = $(round(me; sigdigits=5)) V/THz",
+        "h = $(round(h_fit; sigdigits=4)) ± $(round(sigma_h; sigdigits=2)) J s",
+        "m_base = $(round(mb; sigdigits=4)) V/THz",
+        "ν0 = $(round(threshold_THz; sigdigits=5)) ± $(round(sigma_threshold_THz; sigdigits=2)) THz",
+        "Φ = $(round(work_function_eV; sigdigits=5)) ± $(round(sigma_work_function_eV; sigdigits=2)) eV",
+    ],
+    statistic_lines=[
+        "χ²_emit/ndf = $(round(emission.stats.chi2_ndf; sigdigits=4))",
+        "χ²_base/ndf = $(round(baseline.stats.chi2_ndf; sigdigits=4))",
+    ],
+    color=palette.stats_color,
+    muted_color=palette.stats_muted_color,
+)
+
+colsize!(fig.layout, 2, Fixed(430))
 save("photoelectric_threshold.pdf", fig)
 ```
+
+Only the threshold color is hard-coded here because it has semantic meaning in
+this experiment. Error bars, line widths, report typography, and default data
+colors come from the selected JuFitter plot style. Switching to
+`style=:workbench`, `style=:publication`, or `appearance=:dark` therefore
+changes the whole figure coherently instead of requiring manual restyling.
 
 ## Error Propagation
 
@@ -294,4 +380,4 @@ implausibly small, or the profile is non-parabolic, the local symmetric errors
 are not enough evidence for a careful scientific report.
 
 Next useful pages: [XY Uncertainties](@ref),
-[Constraints And Profiles](@ref), and [Statistical Foundations](@ref).
+[Constraints and Profiles](@ref), and [Statistical Foundations](@ref).

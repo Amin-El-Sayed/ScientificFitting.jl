@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "258c1f8aa19ea27438a537c63570590d239283c4"
+project_hash = "e04e8dbf6d9742b807a969e39d273f53c5768c43"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "bbc22a9a08a0ef6460041086d8a7b27940ed4ffd"
@@ -919,10 +919,14 @@ uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
 version = "3.1.5+0"
 
 [[deps.JuFitter]]
-deps = ["ADTypes", "CairoMakie", "DifferentiationInterface", "Distributions", "ForwardDiff", "LaTeXStrings", "LinearAlgebra", "LsqFit", "Optimization", "OptimizationOptimJL", "QuadGK", "SparseArrays", "SpecialFunctions", "Statistics"]
+deps = ["ADTypes", "DifferentiationInterface", "Distributions", "ForwardDiff", "LaTeXStrings", "LinearAlgebra", "LsqFit", "Optimization", "OptimizationOptimJL", "QuadGK", "SparseArrays", "SpecialFunctions", "Statistics"]
 path = "/Users/aminelsayed/Documents/Projekte & Arbeit/JuFitter"
 uuid = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
 version = "0.1.0"
+weakdeps = ["CairoMakie"]
+
+    [deps.JuFitter.extensions]
+    JuFitterCairoMakieExt = "CairoMakie"
 
 [[deps.JuliaSyntaxHighlighting]]
 deps = ["StyledStrings"]

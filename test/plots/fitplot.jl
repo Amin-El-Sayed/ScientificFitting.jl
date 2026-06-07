@@ -1,4 +1,5 @@
 using JuFitter
+using CairoMakie: Label, save
 using Test
 
 @testset "fitplot convenience API" begin
@@ -43,6 +44,37 @@ using Test
 
     @test right_panel.figure !== nothing
     @test isfile(right_panel_out)
+    @test size(right_panel.figure.scene) == (1220, 720)
+
+    custom_out = joinpath(mktempdir(), "fitplot_customized.png")
+    Label(
+        right_panel.figure[2, 1:2],
+        "User annotation";
+        tellwidth=false,
+        halign=:left,
+    )
+    save(custom_out, right_panel.figure)
+    @test size(right_panel.figure.scene) == (1220, 720)
+    @test isfile(custom_out)
+
+    extension_out = joinpath(mktempdir(), "fitplot_extensions.png")
+    ax = fit_axis(right_panel.figure)
+    @test ax !== nothing
+    @test add_curve!(ax, x -> 1.5 * x - 0.2; color=:black, linestyle=:dash, label="reference") !== nothing
+    @test add_curve!(ax, [0.5, 2.5], [0.7, 3.4]; color=:gray40) !== nothing
+    @test add_points!(ax, 1.2, 1.6; marker=:star5, color=:gold) !== nothing
+    @test add_vline!(ax, 1.0; color=:gray50, linestyle=:dot) !== nothing
+    @test add_hline!(ax, 2.0; color=:gray50, linestyle=:dot) !== nothing
+    @test add_vband!(ax, 1.4, 1.7; color=(:gray70, 0.18)) !== nothing
+    @test add_hband!(ax, 2.2, 2.6; color=(:gray70, 0.12)) !== nothing
+    save(extension_out, right_panel.figure)
+    @test size(right_panel.figure.scene) == (1220, 720)
+    @test isfile(extension_out)
+    @test_throws ArgumentError fit_axis(right_panel.figure; index=0)
+    @test_throws ArgumentError add_curve!(ax, [1.0, 2.0], [1.0])
+    @test_throws ArgumentError add_curve!(ax, x -> x; n=1)
+    @test_throws ArgumentError add_vband!(ax, 2.0, 1.0)
+    @test_throws ArgumentError add_hband!(ax, 2.0, 1.0)
 
     model(x, p) = @. p[1] * exp(-p[2] * x) + p[3]
     y2 = model(x, [2.0, 0.7, 0.1]) .+ sigma_y .* cos.(1.4 .* x)
@@ -67,33 +99,50 @@ using Test
     @test nonlinear.result.converged
     @test isfile(out)
 
-    minimal_out = joinpath(mktempdir(), "fitplot_minimal.png")
-    paper_out = joinpath(mktempdir(), "fitplot_paper.png")
+    workbench_out = joinpath(mktempdir(), "fitplot_workbench.png")
+    showcase_out = joinpath(mktempdir(), "fitplot_showcase_dark.png")
+    publication_out = joinpath(mktempdir(), "fitplot_publication.png")
 
     fitplot(
         x,
         y;
         sigma_y=sigma_y,
-        filename=minimal_out,
+        filename=workbench_out,
         format=:png,
         report=:none,
-        theme=:minimal,
+        theme=:workbench,
         parameter_names=["m", "b"],
     )
     fitplot(
         x,
         y;
         sigma_y=sigma_y,
-        filename=paper_out,
+        filename=showcase_out,
         format=:png,
         report=:none,
-        theme=:paper,
+        theme=:showcase,
+        appearance=:dark,
+        parameter_names=["m", "b"],
+    )
+    fitplot(
+        x,
+        y;
+        sigma_y=sigma_y,
+        filename=publication_out,
+        format=:png,
+        report=:none,
+        theme=:publication,
         parameter_names=["m", "b"],
         model_label="y = m x + b",
     )
 
-    @test isfile(minimal_out)
-    @test isfile(paper_out)
+    @test isfile(workbench_out)
+    @test isfile(showcase_out)
+    @test isfile(publication_out)
+    @test plot_theme(:showcase; appearance=:dark) !== nothing
+    @test plot_palette(:publication).fit_color == "#000000"
+    @test_throws ArgumentError plot_fit(quick.result; theme=:unknown)
+    @test_throws ArgumentError plot_fit(quick.result; theme=:dark, appearance=:light)
 
     contour_values = collect(range(-2.0, 2.0; length=17))
     contour_delta = [xv^2 + 0.5 * xv * yv + yv^2 for xv in contour_values, yv in contour_values]
@@ -106,13 +155,23 @@ using Test
         contour_result;
         filename=contour_out,
         format=:png,
+        theme=:showcase,
+        appearance=:dark,
         local_covariance=[1.0 -0.25; -0.25 1.0],
         local_center=[0.0, 0.0],
     ) !== nothing
     @test plot_contour(contour_result; filename=heatmap_out, format=:png, show_heatmap=true) !== nothing
     profile_result = ProfileResult(1, contour_values, contour_values .^ 2, contour_values .^ 2, 1.0, 0.0)
     profile_out = joinpath(mktempdir(), "profile_legend.png")
-    @test plot_profile(profile_result; filename=profile_out, format=:png, local_sigma=1.0, delta_max=4.0) !== nothing
+    @test plot_profile(
+        profile_result;
+        filename=profile_out,
+        format=:png,
+        theme=:workbench,
+        appearance=:dark,
+        local_sigma=1.0,
+        delta_max=4.0,
+    ) !== nothing
     @test_throws ArgumentError plot_profile(profile_result; delta_max=0.0)
     failed_delta = copy(contour_delta)
     failed_delta[2, 3] = Inf
@@ -126,4 +185,38 @@ using Test
     @test isfile(heatmap_out)
     @test isfile(profile_out)
     @test isfile(failed_out)
+
+    matrix_out = joinpath(mktempdir(), "profile_matrix.png")
+    matrix_fig = plot_profile_matrix(
+        quick.result;
+        parameters=[1, 2],
+        parameter_names=["m", "b"],
+        filename=matrix_out,
+        format=:png,
+        theme=:workbench,
+    )
+    @test matrix_fig !== nothing
+    @test isfile(matrix_out)
+    @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=Int[])
+    @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 1])
+    @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 3])
+
+    residual_out = joinpath(mktempdir(), "residual_showcase_dark.png")
+    diagnostics_out = joinpath(mktempdir(), "diagnostics_workbench_dark.png")
+    @test plot_residuals(
+        quick.result;
+        filename=residual_out,
+        format=:png,
+        theme=:showcase,
+        appearance=:dark,
+    ) !== nothing
+    @test plot_diagnostics(
+        quick.result;
+        filename=diagnostics_out,
+        format=:png,
+        theme=:workbench,
+        appearance=:dark,
+    ) !== nothing
+    @test isfile(residual_out)
+    @test isfile(diagnostics_out)
 end

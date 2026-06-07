@@ -1,4 +1,4 @@
-# Poisson Counts And Histograms
+# Poisson Counts and Histograms
 
 Counts are not measurements with an automatically attached symmetric error bar.
 They are realizations of a discrete probability distribution. This page follows
@@ -24,8 +24,12 @@ T_{1/2} = \frac{\log 2}{\lambda}.
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/poisson_counts_light.png" alt="Radioactive decay count fit with a central 68-percent Poisson count interval and deviance residuals">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/poisson_counts_dark.png" alt="Radioactive decay count fit with a central 68-percent Poisson count interval and deviance residuals in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="workbench" src="../assets/gallery/poisson_counts_workbench_light.png" alt="Radioactive decay count fit in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="workbench" src="../assets/gallery/poisson_counts_workbench_dark.png" alt="Radioactive decay count fit in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="showcase" src="../assets/gallery/poisson_counts_showcase_light.png" alt="Radioactive decay count fit in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="showcase" src="../assets/gallery/poisson_counts_showcase_dark.png" alt="Radioactive decay count fit in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="publication" src="../assets/gallery/poisson_counts_publication_light.png" alt="Radioactive decay count fit in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="publication" src="../assets/gallery/poisson_counts_publication_dark.png" alt="Radioactive decay count fit in publication dark style">
 ```
 
 The observed points deliberately have no ``\sqrt n`` error bars. Such bars are
@@ -36,7 +40,26 @@ is a **prediction interval for discrete observations**, not a confidence band
 for the mean curve. It is conditional on the fitted mean and does not include
 parameter uncertainty.
 
-## Poisson Likelihood And Deviance
+## Data
+
+The count arrays are listed explicitly in the fit sections. The first dataset is
+a short radioactive-decay count series with a low-count tail. The second is an
+unequally binned pulse-height spectrum with one empty bin. Both features are
+intentional: they are exactly where Gaussian error-bar shortcuts become
+misleading.
+
+A one-bin sanity check shows why this matters. If the model predicts
+``\mu=0.7`` counts, observing ``n=0`` is not pathological; it has probability
+``e^{-0.7}\approx0.50``. A Gaussian least-squares fit with ``\sqrt n`` would
+assign zero uncertainty to the same observation. The likelihood handles it
+without inventing an error bar.
+
+For a Gaussian measurement a central 68% interval would be called roughly
+``1σ``. For Poisson counts the plotted interval is the discrete analogue: it is
+computed from the count distribution itself, not from a symmetric standard
+deviation drawn around the observed count.
+
+## Poisson Likelihood and Deviance
 
 For independent counts,
 
@@ -125,12 +148,31 @@ half_life = log(2) / lambda
 sigma_half_life = log(2) * sigma_lambda / lambda^2
 
 println("half-life = ", half_life, " +/- ", sigma_half_life, " min")
+println("deviance/ndf = ", decay_result.stats.chi2_ndf)
+println("P(D) = ", decay_result.stats.pvalue)
 println(diagnostic_dashboard_text(decay_result))
+```
+
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>half-life = 4.234427509199143 +/- 0.862970344023104 min
+deviance/ndf = 1.0149737171631132
+P(D) = 0.43636863300559847
+
+Fit diagnostic dashboard
+status = ok - no immediate issue
+critical = 0, warning = 0, info = 0
+No major diagnostic issues detected by the current checks.
+No next action required by the current diagnostic checks.</pre>
+</div>
 ```
 
 Multiple initial guesses are cheap insurance for this nonlinear signal-plus-
 background model. They do not replace diagnostics, but they reduce the chance
 that one poor starting point defines the reported result.
+
+## Interpretation: Decay Result
 
 The result is approximately
 
@@ -163,8 +205,12 @@ bin. The fitted quantities are peak yield ``N``, centroid ``m``, Gaussian width
 ``s``, and background density ``\rho_B``.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/histogram_likelihood_light.png" alt="Unequally binned detector spectrum with expected bin counts, fitted background, and deviance residuals">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/histogram_likelihood_dark.png" alt="Unequally binned detector spectrum with expected bin counts, fitted background, and deviance residuals in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="workbench" src="../assets/gallery/histogram_likelihood_workbench_light.png" alt="Histogram likelihood fit in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="workbench" src="../assets/gallery/histogram_likelihood_workbench_dark.png" alt="Histogram likelihood fit in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="showcase" src="../assets/gallery/histogram_likelihood_showcase_light.png" alt="Histogram likelihood fit in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="showcase" src="../assets/gallery/histogram_likelihood_showcase_dark.png" alt="Histogram likelihood fit in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="publication" src="../assets/gallery/histogram_likelihood_publication_light.png" alt="Histogram likelihood fit in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="publication" src="../assets/gallery/histogram_likelihood_publication_dark.png" alt="Histogram likelihood fit in publication dark style">
 ```
 
 The model must return the expected count in each bin, not the density evaluated
@@ -223,7 +269,24 @@ spectrum_result = fit_histogram_model(
 
 println("centroid = ", spectrum_result.params[2],
         " +/- ", spectrum_result.param_stderr[2], " V")
+println("deviance/ndf = ", spectrum_result.stats.chi2_ndf)
+println("P(D) = ", spectrum_result.stats.pvalue)
 println(diagnostic_dashboard_text(spectrum_result))
+```
+
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>centroid = 3.5052733326011354 +/- 0.10294632833399764 V
+deviance/ndf = 1.1394503306696233
+P(D) = 0.336213402280547
+
+Fit diagnostic dashboard
+status = ok - no immediate issue
+critical = 0, warning = 0, info = 0
+No major diagnostic issues detected by the current checks.
+No next action required by the current diagnostic checks.</pre>
+</div>
 ```
 
 The fitted centroid and width are approximately
@@ -239,11 +302,23 @@ many low-amplitude events. Replacing its uncertainty by ``\sqrt{0}=0`` in a
 Gaussian least-squares fit would either make the calculation singular or tempt
 the analyst to invent an arbitrary error bar.
 
-The deviance is approximately ``6.84`` for ``6`` degrees of freedom, with an
-asymptotic p-value near ``0.34``. The deviance residual panel shows no obvious
-localized mismatch around the peak or in the tails.
+## Diagnostics
 
-## What To Inspect Before Reporting
+The deviance is approximately ``6.84`` for ``6`` degrees of freedom, with an
+asymptotic p-value near ``0.34``. That is a useful first check, but not the whole
+diagnosis: a count model can have an acceptable global deviance while still
+missing structure in a narrow peak, a tail, or the empty bins. The deviance
+residual panel is therefore the practical object to inspect next. Look for runs
+of same-sign residuals, one tail that is systematically high, or a peak that is
+too narrow.
+
+The automatic dashboard reports `ok` because the optimizer converged, the
+covariance estimate is usable, and no generic fit pathology was detected. It
+does not prove that the Poisson process is the correct physical counting model.
+For sparse counts, active bounds, or claims that depend on tail probabilities,
+calibrate the deviance by simulation before treating the p-value as final.
+
+## What Can Go Wrong
 
 **The counts are background-subtracted.** Differences of Poisson variables are
 not Poisson and can be negative. Fit source and background measurements jointly,
@@ -269,5 +344,5 @@ critical claim.
 asymptotic likelihood-ratio thresholds may be unreliable. Inspect a profile and
 report a one-sided limit when appropriate.
 
-Next useful pages: [Constraints And Profiles](@ref),
+Next useful pages: [Constraints and Profiles](@ref),
 [Fitting for Practitioners](@ref), and [Statistical Foundations](@ref).

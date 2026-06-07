@@ -1,4 +1,4 @@
-# Constraints And Profiles
+# Constraints and Profiles
 
 Local covariance errors answer a local question: how curved is the cost
 function immediately around the optimum? This workflow shows a case where that
@@ -6,8 +6,12 @@ answer is not enough. The fitted curve looks well determined over the measured
 interval, but two physical parameters remain strongly and nonlinearly coupled.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/constraints_priors_light.png" alt="Early-time saturation fit with x and y uncertainties and a one-sigma prediction band">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/constraints_priors_dark.png" alt="Early-time saturation fit with x and y uncertainties and a one-sigma prediction band in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="workbench" src="../assets/gallery/constraints_priors_workbench_light.png" alt="Constrained saturation fit in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="workbench" src="../assets/gallery/constraints_priors_workbench_dark.png" alt="Constrained saturation fit in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="showcase" src="../assets/gallery/constraints_priors_showcase_light.png" alt="Constrained saturation fit in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="showcase" src="../assets/gallery/constraints_priors_showcase_dark.png" alt="Constrained saturation fit in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="publication" src="../assets/gallery/constraints_priors_publication_light.png" alt="Constrained saturation fit in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="publication" src="../assets/gallery/constraints_priors_publication_dark.png" alt="Constrained saturation fit in publication dark style">
 ```
 
 ## Scientific Question
@@ -29,6 +33,14 @@ The analysis must answer more than "does the curve pass through the points?"
 - Is a symmetric covariance error a defensible uncertainty statement?
 - How much does an independent baseline calibration help?
 - What measurement should be added if the parameters remain degenerate?
+
+## Data
+
+The controlled dataset below mimics an early-time step-response measurement:
+the plateau is not reached, each time point has its own uncertainty, and an
+independent baseline calibration supplies external information. The numerical
+values are reproducible, but the structure is the realistic part: early data
+mostly constrain the initial slope.
 
 ## Why The Parameters Become Degenerate
 
@@ -168,8 +180,32 @@ plot_contour(
     title="Profile contours versus local covariance",
 )
 
-println(amplitude_interval)
+println("amplitude center = ", result.params[1])
+println("amplitude 1sigma lower = ", amplitude_interval.lower)
+println("amplitude 1sigma upper = ", amplitude_interval.upper)
+println("amplitude -sigma = ", amplitude_interval.uncertainty_minus)
+println("amplitude +sigma = ", amplitude_interval.uncertainty_plus)
 println(diagnostic_dashboard_text(result))
+```
+
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>amplitude center = 4.5851070904210935
+amplitude 1sigma lower = 4.016607430313673
+amplitude 1sigma upper = 5.480983264573968
+amplitude -sigma = 0.5684996601074204
+amplitude +sigma = 0.8958761741528747
+
+Fit diagnostic dashboard
+status = review - inspect diagnostics
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+  2. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
+</div>
 ```
 
 Multiple starting points are deliberate. They do not cure an under-informative
@@ -190,11 +226,21 @@ Those symmetric errors are only the local covariance summary. The fitted
 correlation between ``A`` and ``\tau`` is approximately ``0.9999``. That number
 is already a warning to inspect the cost away from the minimum.
 
+## Diagnostics: Profile and Contour Checks
+
+The diagnostics are the profiles and contours. They answer whether the local
+covariance matrix is a faithful uncertainty summary or only a tangent
+approximation near the minimum.
+
 ## Profile: Is The One-Parameter Error Symmetric?
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/saturation_profile_light.png" alt="Profile cost for saturation amplitude compared with the local parabolic approximation">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/saturation_profile_dark.png" alt="Profile cost for saturation amplitude compared with the local parabolic approximation in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="workbench" src="../assets/gallery/saturation_profile_workbench_light.png" alt="Saturation amplitude profile in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="workbench" src="../assets/gallery/saturation_profile_workbench_dark.png" alt="Saturation amplitude profile in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="showcase" src="../assets/gallery/saturation_profile_showcase_light.png" alt="Saturation amplitude profile in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="showcase" src="../assets/gallery/saturation_profile_showcase_dark.png" alt="Saturation amplitude profile in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="publication" src="../assets/gallery/saturation_profile_publication_light.png" alt="Saturation amplitude profile in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="publication" src="../assets/gallery/saturation_profile_publication_dark.png" alt="Saturation amplitude profile in publication dark style">
 ```
 
 For every fixed amplitude, the profile scan refits ``\tau`` and ``c`` and
@@ -233,8 +279,12 @@ interval construction rather than a qualitative curve inspection.
 ## Contour: Which Parameter Combinations Survive?
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/amplitude_timescale_contour_light.png" alt="Profile confidence regions for amplitude and time constant compared with the local covariance ellipse">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/amplitude_timescale_contour_dark.png" alt="Profile confidence regions for amplitude and time constant compared with the local covariance ellipse in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="workbench" src="../assets/gallery/amplitude_timescale_contour_workbench_light.png" alt="Amplitude-timescale contour in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="workbench" src="../assets/gallery/amplitude_timescale_contour_workbench_dark.png" alt="Amplitude-timescale contour in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="showcase" src="../assets/gallery/amplitude_timescale_contour_showcase_light.png" alt="Amplitude-timescale contour in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="showcase" src="../assets/gallery/amplitude_timescale_contour_showcase_dark.png" alt="Amplitude-timescale contour in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="publication" src="../assets/gallery/amplitude_timescale_contour_publication_light.png" alt="Amplitude-timescale contour in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="publication" src="../assets/gallery/amplitude_timescale_contour_publication_dark.png" alt="Amplitude-timescale contour in publication dark style">
 ```
 
 The filled regions are the actual profiled one- and two-sigma regions. At every

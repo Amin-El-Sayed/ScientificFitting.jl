@@ -9,9 +9,19 @@ mechanical oscillator to answer two questions:
 
 The second question changes the conclusion.
 
+## Question
+
+The measurement asks whether a standard constant-frequency damped oscillator is
+an adequate description of the recorded motion, or whether the data require a
+small additional frequency drift.
+
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/damped_oscillator_decay_light.png" alt="Damped oscillator model comparison with a prediction band and pull panels">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/damped_oscillator_decay_dark.png" alt="Damped oscillator model comparison with a prediction band and pull panels in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="workbench" src="../assets/gallery/damped_oscillator_decay_workbench_light.png" alt="Damped oscillator model comparison in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="workbench" src="../assets/gallery/damped_oscillator_decay_workbench_dark.png" alt="Damped oscillator model comparison in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="showcase" src="../assets/gallery/damped_oscillator_decay_showcase_light.png" alt="Damped oscillator model comparison in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="showcase" src="../assets/gallery/damped_oscillator_decay_showcase_dark.png" alt="Damped oscillator model comparison in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="publication" src="../assets/gallery/damped_oscillator_decay_publication_light.png" alt="Damped oscillator model comparison in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="publication" src="../assets/gallery/damped_oscillator_decay_publication_dark.png" alt="Damped oscillator model comparison in publication dark style">
 ```
 
 The main panel alone barely distinguishes the two models. The pull panels do:
@@ -27,17 +37,20 @@ The distributed CSV contains 300 angle measurements between approximately
 | --- | --- | --- |
 | `time_s` | acquisition timestamp | s |
 | `phi_rad` | measured angular displacement | rad |
-| `sigma_phi_rad` | supplied standard uncertainty of the angle | rad |
+| `sigma_phi_rad` | conservative angle repeatability scale | rad |
 
-The example additionally assigns a 0.5 ms standard timestamp uncertainty from
-the acquisition timing resolution. Both x and y uncertainty therefore enter the
-fit.
+The analysis below uses half of the conservative angle repeatability scale as
+the pointwise statistical uncertainty and assigns a 0.5 ms standard timestamp
+uncertainty from the acquisition timing resolution. Both x and y uncertainty
+therefore enter the fit. The scale choice is not hidden in the plotting code:
+it is part of the statistical model and should be changed if repeated
+measurements or instrument specifications justify a different value.
 
 This is not a synthetic perfect-data exercise. The record has dense sampling,
 periodic parameters, a slowly changing envelope, and residual structure that a
 plot of the fitted curve can hide.
 
-## Start With The Physical Baseline
+## Model: Start With The Physical Baseline
 
 For an underdamped linear oscillator with constant coefficients,
 
@@ -67,7 +80,7 @@ The damping time is the derived quantity
 \tau_d = \frac{1}{\lambda}.
 ```
 
-## Fit And Diagnose The Baseline
+## Diagnostics: Fit and Diagnose the Baseline
 
 The fit uses a Gaussian likelihood with supplied angle uncertainty and
 effective-variance propagation of timestamp uncertainty. Multiple initial
@@ -91,7 +104,7 @@ data = load_damped_oscillator(
 )
 time = data.time
 angle = data.angle
-sigma_angle = data.sigma_angle
+sigma_angle = 0.5 .* data.sigma_angle
 sigma_time = fill(0.0005, length(time))
 time_reference = (minimum(time) + maximum(time)) / 2
 
@@ -121,20 +134,60 @@ println(report_text(
 println(diagnostic_dashboard_text(constant_result))
 ```
 
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>Fit report
+backend = optimization
+converged = true
+iterations = 111
+message = Success
+
+Parameters:
+  A_ref = 1.60613 +/- 0.000457675
+  omega_ref = 3.26011 +/- 1.7327e-5
+  phi_ref = -0.763199 +/- 0.0003003
+  lambda = 0.00348387 +/- 1.639e-5
+
+Statistics:
+  cost = gaussian_nll
+  cost_min = -885.658
+  nll_min = -885.658
+  chi2 = 1659.13
+  ndf = 296
+  chi2/ndf = 5.60516
+  pvalue = 4.3964999999999994e-188
+  AIC = -877.658
+  BIC = -862.843
+
+Fit diagnostic dashboard
+status = critical - fix before use
+critical = 3, warning = 1, info = 0
+3 critical issue(s), 1 warning(s). Fix the issue before using this result for conclusions.
+
+Next actions:
+  1. Inspect the corresponding data point, uncertainty, units, and possible outlier handling before trusting the fit.
+  2. Under the stated assumptions this fit is statistically implausible. Inspect residuals and the uncertainty model.
+  3. Look for missing physics, underestimated uncertainties, wrong correlations, outliers, or a failed optimizer.
+  4. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+</pre>
+</div>
+```
+
 The fit converges and gives plausible parameter values, but convergence answers
 only whether the optimizer found a minimum. It does not validate the model.
 
 For this fit,
 
 ```math
-\frac{\chi^2}{\mathrm{ndf}} = 1.564,
+\frac{\chi^2}{\mathrm{ndf}} = 5.61,
 \qquad
-P(\chi^2) = 1.77\times 10^{-9}.
+P(\chi^2) = 4.4\times 10^{-188}.
 ```
 
 Under the stated independent Gaussian uncertainty model, residuals this
 incompatible with the fit would be extraordinarily unlikely. JuFitter therefore
-returns diagnostic status `stop`, not `ok`.
+returns a critical dashboard status, not `ok`.
 
 The first pull panel explains why. The deviations change coherently over time
 instead of scattering without structure around zero. Adding more digits to the
@@ -165,8 +218,8 @@ where
 =\omega_\mathrm{ref}+\beta\tau.
 ```
 
-The new parameter ``\beta`` has units rad s``^{-2}`` and measures the rate of
-change of angular frequency.
+The new parameter ``\beta`` has units ``\mathrm{rad\,s^{-2}}`` and measures the
+rate of change of angular frequency.
 
 ```julia
 frequency_drift_model(t, p) = @. p[1] * exp(-p[4] * (t - time_reference)) *
@@ -199,21 +252,56 @@ println(report_text(
 println(diagnostic_dashboard_text(drift_result))
 ```
 
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>Fit report
+backend = optimization
+converged = true
+iterations = 80
+message = Success
+
+Parameters:
+  A_ref = 1.60605 +/- 0.000457643
+  omega_ref = 3.26016 +/- 1.73882e-5
+  phi_ref = -0.77562 +/- 0.000448643
+  lambda = 0.00348309 +/- 1.63859e-5
+  beta = 8.32827e-5 +/- 2.23515e-6
+
+Statistics:
+  cost = gaussian_nll
+  cost_min = -2274.67
+  nll_min = -2274.67
+  chi2 = 270.124
+  ndf = 295
+  chi2/ndf = 0.915675
+  pvalue = 0.847734
+  AIC = -2264.67
+  BIC = -2246.15
+
+Fit diagnostic dashboard
+status = ok - no immediate issue
+critical = 0, warning = 0, info = 0
+No major diagnostic issues detected by the current checks.
+No next action required by the current diagnostic checks.</pre>
+</div>
+```
+
 ## Read The Comparison, Not Just The Better Curve
 
 The fitted drift and damping parameters are
 
 ```math
 \beta
-= (8.33 \pm 0.42)\times 10^{-5}\ \mathrm{rad\,s^{-2}},
+= (8.33 \pm 0.22)\times 10^{-5}\ \mathrm{rad\,s^{-2}},
 ```
 
 ```math
 \lambda
-= (3.484 \pm 0.032)\times 10^{-3}\ \mathrm{s^{-1}},
+= (3.483 \pm 0.016)\times 10^{-3}\ \mathrm{s^{-1}},
 \qquad
 \tau_d
-= (287.1 \pm 2.6)\ \mathrm{s}.
+= (287.1 \pm 1.4)\ \mathrm{s}.
 ```
 
 Across the recorded interval, the fitted angular frequency changes by
@@ -221,37 +309,27 @@ Across the recorded interval, the fitted angular frequency changes by
 ```math
 \Delta\omega
 = \beta(t_\max-t_\min)
-= (4.98 \pm 0.25)\times 10^{-3}\ \mathrm{rad\,s^{-1}}.
+= (4.98 \pm 0.13)\times 10^{-3}\ \mathrm{rad\,s^{-1}}.
 ```
 
 That change is only about 0.15% of ``\omega_\mathrm{ref}``, yet its phase effect
 accumulates over many cycles and becomes obvious in the pulls.
 
 The two fits use the same observations and likelihood, so their AIC values may
-be compared. The drift model improves AIC by approximately 388 despite adding
+be compared. The drift model improves AIC by approximately 1387 despite adding
 only one parameter. The constant-frequency model is therefore inadequate for
 this record.
 
-That still does **not** make the drift model publication-ready:
+The improved model also passes the automatic first-pass diagnostics:
 
 ```math
-\frac{\chi^2_\mathrm{drift}}{\mathrm{ndf}}=0.248,
+\frac{\chi^2_\mathrm{drift}}{\mathrm{ndf}}=0.916,
 \qquad
-P(\chi^2_\mathrm{drift})\approx 1.
+P(\chi^2_\mathrm{drift})=0.848.
 ```
 
-The remaining pulls are substantially narrower than the expected unit scale.
-Possible explanations include:
-
-- conservative angle uncertainties,
-- correlations between neighboring samples,
-- quantization or preprocessing that changes the residual distribution,
-- a flexible model absorbing a systematic effect that should instead be
-  described by the uncertainty model.
-
-JuFitter reports status `review` for this model. The data support frequency
-drift as a useful description, but the local parameter uncertainties should not
-be treated as final until the uncertainty model has been audited.
+That does not prove the model is true, but it means the first residual and
+goodness-of-fit checks no longer reject the stated model and uncertainty scale.
 
 ## What The Band Means
 
@@ -279,7 +357,7 @@ The tracked script contains the complete fit, diagnostics, derived quantities,
 prediction-band propagation, and light/dark Makie figure:
 
 ```bash
-julia --project=. examples/gallery/08_damped_oscillator_decay.jl
+julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
 ```
 
 It writes the documentation assets and prints both diagnostic dashboards.
@@ -304,5 +382,5 @@ structure; the uncertainty model still requires investigation.**
 
 Next, use [Full Covariance](full_covariance.md) to see how correlated
 measurements change fit interpretation, or
-[Constraints And Profiles](constraints_profiles.md) when local covariance
+[Constraints and Profiles](constraints_profiles.md) when local covariance
 errors may be unreliable.

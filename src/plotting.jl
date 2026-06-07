@@ -1,69 +1,129 @@
 const _JF_PAPER = "#ffffff"
-const _JF_PAPER_SOFT = "#ffffff"
-const _JF_INK = "#14151a"
-const _JF_MUTED = "#14151a"
-const _JF_GRID = "#edf1f7"
-const _JF_TEAL = "#0077b6"
-const _JF_TEAL_SOFT = "#90c9e8"
-const _JF_MINIMAL_PAPER = "#ffffff"
-const _JF_MINIMAL_INK = "#101010"
-const _JF_MINIMAL_MUTED = "#101010"
-const _JF_MINIMAL_GRID = "#eef2f7"
-const _JF_MINIMAL_FIT = "#0081a7"
-const _JF_MINIMAL_BAND = "#a8dadc"
+const _JF_PAPER_SOFT = "#fbfcfd"
+const _JF_INK = "#17191f"
+const _JF_MUTED = "#5f6873"
+const _JF_GRID = "#e8edf2"
+const _JF_BLUE = "#0077a8"
+const _JF_BLUE_SOFT = "#8ecae6"
+const _JF_WORKBENCH_FIT = "#0069a8"
+const _JF_WORKBENCH_BAND = "#b9dff2"
+const _JF_SHOWCASE_FIT = "#0b7f78"
+const _JF_SHOWCASE_DATA = "#2a2f36"
+const _JF_SHOWCASE_ACCENT = "#b05a36"
+const _JF_SHOWCASE_BAND = "#94d2c8"
 const _JF_PAPER_FIT = "#000000"
 const _JF_PAPER_BAND = "#000000"
 const _JF_DARK_PAPER = "#111318"
-const _JF_DARK_PANEL = "#171b22"
 const _JF_DARK_INK = "#edf2f4"
 const _JF_DARK_MUTED = "#b8c1ca"
 const _JF_DARK_GRID = "#2a313a"
 const _JF_DARK_FIT = "#66d9ef"
 const _JF_DARK_BAND = "#66d9ef"
 
-function _fitplot_background(theme::Symbol)
-    theme == :dark && return _JF_DARK_PAPER
-    return :white
+const _JF_STYLE_ALIASES = Dict(
+    :clean => :workbench,
+    :minimal => :workbench,
+    :paper => :publication,
+    :latex => :publication,
+)
+
+function _resolve_plot_style(theme::Symbol, appearance::Symbol)
+    appearance in (:auto, :light, :dark) ||
+        throw(ArgumentError("appearance must be :auto, :light, or :dark"))
+
+    if theme == :dark
+        appearance == :light &&
+            throw(ArgumentError("theme=:dark conflicts with appearance=:light"))
+        return :workbench, :dark
+    end
+
+    style = get(_JF_STYLE_ALIASES, theme, theme)
+    style in (:workbench, :showcase, :publication, :custom) ||
+        throw(ArgumentError(
+            "theme must be :workbench, :showcase, :publication, :custom, or a supported legacy alias",
+        ))
+    return style, appearance == :auto ? :light : appearance
 end
 
-function _style_preset(theme::Symbol)
-    if theme == :dark
+function _fitplot_background(appearance::Symbol)
+    appearance == :dark && return _JF_DARK_PAPER
+    return _JF_PAPER
+end
+
+function _style_preset(style::Symbol, appearance::Symbol)
+    if appearance == :dark && style == :showcase
         return (
-            data_color=(_JF_DARK_INK, 0.74),
+            data_color=("#f0a07f", 0.82),
             data_marker=:circle,
             data_markersize=6.8,
             data_strokecolor=_JF_DARK_PAPER,
-            data_strokewidth=0.35,
-            fit_color=_JF_DARK_FIT,
-            fit_linewidth=3.0,
-            band_color=_JF_DARK_BAND,
-            band_alpha=0.20,
-            xerr_color=(_JF_DARK_MUTED, 0.42),
-            yerr_color=(_JF_DARK_MUTED, 0.42),
-            error_whiskerwidth=6.0,
+            data_strokewidth=0.45,
+            fit_color="#49c5bc",
+            fit_linewidth=2.8,
+            band_color="#49c5bc",
+            band_alpha=0.18,
+            xerr_color=(_JF_DARK_MUTED, 0.40),
+            yerr_color=(_JF_DARK_MUTED, 0.40),
+            error_whiskerwidth=4.5,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_accent_color=_JF_DARK_FIT,
+            stats_fontsize=16,
         )
-    elseif theme == :minimal
+    elseif appearance == :dark && style == :publication
         return (
-            data_color=(_JF_MINIMAL_INK, 0.62),
+            data_color=_JF_DARK_INK,
             data_marker=:circle,
-            data_markersize=6.5,
-            data_strokecolor=_JF_MINIMAL_PAPER,
-            data_strokewidth=0.25,
-            fit_color=_JF_MINIMAL_FIT,
-            fit_linewidth=2.8,
-            band_color=_JF_MINIMAL_BAND,
-            band_alpha=0.16,
-            xerr_color=(_JF_MINIMAL_INK, 0.32),
-            yerr_color=(_JF_MINIMAL_INK, 0.32),
-            error_whiskerwidth=6.0,
-            stats_color=_JF_MINIMAL_INK,
-            stats_muted_color=_JF_MINIMAL_MUTED,
-            stats_accent_color=_JF_MINIMAL_INK,
+            data_markersize=5.6,
+            data_strokecolor=_JF_DARK_PAPER,
+            data_strokewidth=0.0,
+            fit_color=_JF_DARK_INK,
+            fit_linewidth=1.8,
+            band_color=_JF_DARK_INK,
+            band_alpha=0.10,
+            xerr_color=(_JF_DARK_INK, 0.70),
+            yerr_color=(_JF_DARK_INK, 0.70),
+            error_whiskerwidth=4.0,
+            stats_color=_JF_DARK_INK,
+            stats_muted_color=_JF_DARK_MUTED,
+            stats_fontsize=13,
         )
-    elseif theme in (:paper, :latex, :publication)
+    elseif appearance == :dark
+        return (
+            data_color=(_JF_DARK_INK, 0.74),
+            data_marker=:circle,
+            data_markersize=5.8,
+            data_strokecolor=_JF_DARK_PAPER,
+            data_strokewidth=0.25,
+            fit_color="#5ab9e6",
+            fit_linewidth=2.4,
+            band_color="#5ab9e6",
+            band_alpha=0.16,
+            xerr_color=(_JF_DARK_MUTED, 0.36),
+            yerr_color=(_JF_DARK_MUTED, 0.36),
+            error_whiskerwidth=3.5,
+            stats_color=_JF_DARK_INK,
+            stats_muted_color=_JF_DARK_MUTED,
+            stats_fontsize=16,
+        )
+    elseif style == :showcase
+        return (
+            data_color=(_JF_SHOWCASE_ACCENT, 0.78),
+            data_marker=:circle,
+            data_markersize=6.8,
+            data_strokecolor=_JF_PAPER,
+            data_strokewidth=0.45,
+            fit_color=_JF_SHOWCASE_FIT,
+            fit_linewidth=2.8,
+            band_color=_JF_SHOWCASE_BAND,
+            band_alpha=0.20,
+            xerr_color=(_JF_MUTED, 0.38),
+            yerr_color=(_JF_MUTED, 0.38),
+            error_whiskerwidth=4.5,
+            stats_color=_JF_INK,
+            stats_muted_color=_JF_MUTED,
+            stats_fontsize=16,
+        )
+    elseif style == :publication
         return (
             data_color=:black,
             data_marker=:circle,
@@ -79,254 +139,175 @@ function _style_preset(theme::Symbol)
             error_whiskerwidth=4.0,
             stats_color=:black,
             stats_muted_color=:black,
-            stats_accent_color=:black,
+            stats_fontsize=13,
         )
     end
 
     return (
-        data_color=(_JF_INK, 0.58),
+        data_color=(_JF_INK, 0.66),
         data_marker=:circle,
-        data_markersize=8.2,
-        data_strokecolor=_JF_INK,
-        data_strokewidth=0.9,
-        fit_color=_JF_TEAL,
-        fit_linewidth=3.2,
-        band_color=_JF_TEAL_SOFT,
-        band_alpha=0.18,
-        xerr_color=(_JF_INK, 0.38),
-        yerr_color=(_JF_INK, 0.38),
-        error_whiskerwidth=7,
+        data_markersize=5.8,
+        data_strokecolor=_JF_PAPER,
+        data_strokewidth=0.35,
+        fit_color=_JF_WORKBENCH_FIT,
+        fit_linewidth=2.4,
+        band_color=_JF_WORKBENCH_BAND,
+        band_alpha=0.16,
+        xerr_color=(_JF_INK, 0.34),
+        yerr_color=(_JF_INK, 0.34),
+        error_whiskerwidth=3.5,
         stats_color=_JF_INK,
         stats_muted_color=_JF_MUTED,
-        stats_accent_color=_JF_INK,
+        stats_fontsize=16,
     )
 end
 
-function _dark_theme()
+function _workbench_theme(appearance::Symbol)
+    dark = appearance == :dark
+    paper = dark ? _JF_DARK_PAPER : _JF_PAPER
+    ink = dark ? _JF_DARK_INK : _JF_INK
+    muted = dark ? _JF_DARK_MUTED : _JF_MUTED
+    grid = dark ? _JF_DARK_GRID : _JF_GRID
     return Theme(
         fontsize=16,
         font="TeX Gyre Heros",
-        figure_padding=(14, 18, 12, 14),
-        Figure=(backgroundcolor=_JF_DARK_PAPER,),
+        figure_padding=(12, 16, 12, 12),
+        Figure=(backgroundcolor=paper,),
         Axis=(
-            xlabelsize=22,
-            ylabelsize=22,
-            titlesize=22,
-            xticklabelsize=16,
-            yticklabelsize=16,
-            backgroundcolor=_JF_DARK_PAPER,
-            xlabelcolor=_JF_DARK_INK,
-            ylabelcolor=_JF_DARK_INK,
-            titlecolor=_JF_DARK_INK,
-            xticklabelcolor=_JF_DARK_MUTED,
-            yticklabelcolor=_JF_DARK_MUTED,
-            xtickcolor=_JF_DARK_MUTED,
-            ytickcolor=_JF_DARK_MUTED,
+            xlabelsize=18,
+            ylabelsize=18,
+            titlesize=20,
+            titlegap=12,
+            xticklabelsize=14,
+            yticklabelsize=14,
+            backgroundcolor=paper,
+            xlabelcolor=ink,
+            ylabelcolor=ink,
+            titlecolor=ink,
+            xticklabelcolor=muted,
+            yticklabelcolor=muted,
+            xtickcolor=muted,
+            ytickcolor=muted,
             xgridvisible=true,
             ygridvisible=true,
             xminorgridvisible=false,
             yminorgridvisible=false,
-            xgridcolor=(_JF_DARK_GRID, 0.82),
-            ygridcolor=(_JF_DARK_GRID, 0.82),
-            xgridwidth=0.55,
-            ygridwidth=0.55,
+            xgridcolor=(grid, dark ? 0.70 : 0.55),
+            ygridcolor=(grid, dark ? 0.70 : 0.55),
+            xgridwidth=0.45,
+            ygridwidth=0.45,
             topspinevisible=false,
             rightspinevisible=false,
-            leftspinecolor=_JF_DARK_MUTED,
-            bottomspinecolor=_JF_DARK_MUTED,
+            leftspinecolor=muted,
+            bottomspinecolor=muted,
         ),
-        Legend=(framevisible=false, labelsize=16, labelcolor=_JF_DARK_INK, patchsize=(24, 13), rowgap=6),
-        Lines=(linewidth=1.75,),
-        Scatter=(markersize=4.2,),
-    )
-end
-
-function _publication_theme()
-    return Theme(
-        fontsize=12,
-        font="CMU Serif",
-        figure_padding=(10, 12, 8, 10),
-        Figure=(backgroundcolor=_JF_PAPER_SOFT,),
-        Axis=(
-            xlabelsize=15,
-            ylabelsize=15,
-            titlesize=15,
-            xticklabelsize=12,
-            yticklabelsize=12,
-            backgroundcolor=_JF_PAPER_SOFT,
-            xlabelcolor=_JF_INK,
-            ylabelcolor=_JF_INK,
-            titlecolor=_JF_INK,
-            xticklabelcolor=_JF_INK,
-            yticklabelcolor=_JF_INK,
-            xtickcolor=_JF_MUTED,
-            ytickcolor=_JF_MUTED,
-            xgridvisible=false,
-            ygridvisible=false,
-            topspinevisible=false,
-            rightspinevisible=false,
-            leftspinecolor=_JF_INK,
-            bottomspinecolor=_JF_INK,
-        ),
-        Legend=(
-            framevisible=false,
-            labelsize=12,
-            labelcolor=_JF_INK,
-            patchsize=(22, 12),
-        ),
-        Lines=(linewidth=1.8,),
-        Scatter=(markersize=6,),
-    )
-end
-
-function _clean_theme()
-    return Theme(
-        fontsize=15,
-        font="TeX Gyre Heros",
-        figure_padding=(12, 14, 10, 12),
-        Figure=(backgroundcolor=_JF_PAPER,),
-        Axis=(
-            xlabelsize=19,
-            ylabelsize=19,
-            titlesize=19,
-            xticklabelsize=14,
-            yticklabelsize=14,
-            backgroundcolor=_JF_PAPER,
-            xlabelcolor=_JF_INK,
-            ylabelcolor=_JF_INK,
-            titlecolor=_JF_INK,
-            xticklabelcolor=_JF_INK,
-            yticklabelcolor=_JF_INK,
-            xtickcolor=_JF_MUTED,
-            ytickcolor=_JF_MUTED,
-            xgridvisible=false,
-            ygridvisible=false,
-            xminorgridvisible=false,
-            yminorgridvisible=false,
-            xgridcolor=(_JF_GRID, 0.78),
-            ygridcolor=(_JF_GRID, 0.78),
-            xgridwidth=0.65,
-            ygridwidth=0.65,
-            topspinevisible=false,
-            rightspinevisible=false,
-            leftspinecolor=_JF_INK,
-            bottomspinecolor=_JF_INK,
-        ),
-        Legend=(
-            framevisible=false,
-            labelsize=15,
-            labelcolor=_JF_INK,
-            patchsize=(24, 13),
-            rowgap=6,
-        ),
-        Lines=(linewidth=2.4,),
+        Legend=(framevisible=false, labelsize=15, labelcolor=ink, patchsize=(23, 12), rowgap=3),
+        Lines=(linewidth=2.2,),
         Scatter=(markersize=5.8,),
     )
 end
 
-function _minimal_theme()
-    return Theme(
-        fontsize=16,
-        font="TeX Gyre Heros",
-        figure_padding=(14, 18, 12, 14),
-        Figure=(backgroundcolor=_JF_MINIMAL_PAPER,),
-        Axis=(
-            xlabelsize=22,
-            ylabelsize=22,
-            titlesize=22,
-            xticklabelsize=16,
-            yticklabelsize=16,
-            backgroundcolor=_JF_MINIMAL_PAPER,
-            xlabelcolor=_JF_MINIMAL_INK,
-            ylabelcolor=_JF_MINIMAL_INK,
-            titlecolor=_JF_MINIMAL_INK,
-            xticklabelcolor=_JF_MINIMAL_INK,
-            yticklabelcolor=_JF_MINIMAL_INK,
-            xtickcolor=_JF_MINIMAL_MUTED,
-            ytickcolor=_JF_MINIMAL_MUTED,
-            xgridvisible=true,
-            ygridvisible=true,
-            xminorgridvisible=false,
-            yminorgridvisible=false,
-            xgridcolor=(_JF_MINIMAL_GRID, 0.78),
-            ygridcolor=(_JF_MINIMAL_GRID, 0.78),
-            xgridwidth=0.55,
-            ygridwidth=0.55,
-            topspinevisible=false,
-            rightspinevisible=false,
-            leftspinecolor=_JF_MINIMAL_INK,
-            bottomspinecolor=_JF_MINIMAL_INK,
+function _showcase_theme(appearance::Symbol)
+    base = _workbench_theme(appearance)
+    dark = appearance == :dark
+    paper = dark ? _JF_DARK_PAPER : _JF_PAPER_SOFT
+    ink = dark ? _JF_DARK_INK : _JF_INK
+    grid = dark ? _JF_DARK_GRID : "#e5ecec"
+    return merge(
+        base,
+        Theme(
+            Figure=(backgroundcolor=paper,),
+            Axis=(
+                backgroundcolor=paper,
+                titlesize=21,
+                titlegap=13,
+                xgridcolor=(grid, dark ? 0.74 : 0.62),
+                ygridcolor=(grid, dark ? 0.74 : 0.62),
+                xgridwidth=0.55,
+                ygridwidth=0.55,
+                titlecolor=ink,
+            ),
+            Legend=(framevisible=false, labelsize=16, labelcolor=ink, patchsize=(24, 13), rowgap=4),
         ),
-        Legend=(framevisible=false, labelsize=16, labelcolor=_JF_MINIMAL_INK, patchsize=(24, 13), rowgap=6),
-        Lines=(linewidth=1.55,),
-        Scatter=(markersize=4.2,),
     )
 end
 
-function _paper_theme()
-    return Theme(
-        fontsize=11,
-        font="CMU Serif",
-        figure_padding=(8, 10, 6, 8),
-        Figure=(backgroundcolor=:white,),
-        Axis=(
-            xlabelsize=13,
-            ylabelsize=13,
-            titlesize=13,
-            xticklabelsize=10,
-            yticklabelsize=10,
-            backgroundcolor=:white,
-            xlabelcolor=:black,
-            ylabelcolor=:black,
-            titlecolor=:black,
-            xticklabelcolor=:black,
-            yticklabelcolor=:black,
-            xtickcolor=:black,
-            ytickcolor=:black,
-            xgridvisible=false,
-            ygridvisible=false,
-            topspinevisible=false,
-            rightspinevisible=false,
-            leftspinecolor=:black,
-            bottomspinecolor=:black,
-        ),
-        Legend=(framevisible=false, labelsize=11, labelcolor=:black, patchsize=(18, 10)),
-        Lines=(linewidth=1.45,),
-        Scatter=(markersize=4.8,),
-    )
-end
-
-function _latex_theme()
+function _publication_theme(appearance::Symbol)
+    dark = appearance == :dark
+    paper = dark ? _JF_DARK_PAPER : _JF_PAPER
+    ink = dark ? _JF_DARK_INK : :black
+    muted = dark ? _JF_DARK_MUTED : :black
     return Theme(
         fontsize=13,
+        font="CMU Serif",
         figure_padding=(10, 12, 8, 10),
-        Figure=(backgroundcolor=_JF_PAPER_SOFT,),
+        Figure=(backgroundcolor=paper,),
         Axis=(
-            xlabelsize=16,
-            ylabelsize=16,
+            xlabelsize=14,
+            ylabelsize=14,
             titlesize=16,
-            xticklabelsize=12,
-            yticklabelsize=12,
-            backgroundcolor=_JF_PAPER_SOFT,
-            xlabelcolor=_JF_INK,
-            ylabelcolor=_JF_INK,
-            titlecolor=_JF_INK,
-            xticklabelcolor=_JF_INK,
-            yticklabelcolor=_JF_INK,
-            xtickcolor=_JF_MUTED,
-            ytickcolor=_JF_MUTED,
+            titlegap=7,
+            xticklabelsize=11,
+            yticklabelsize=11,
+            backgroundcolor=paper,
+            xlabelcolor=ink,
+            ylabelcolor=ink,
+            titlecolor=ink,
+            xticklabelcolor=ink,
+            yticklabelcolor=ink,
+            xtickcolor=muted,
+            ytickcolor=muted,
             xgridvisible=false,
             ygridvisible=false,
             topspinevisible=false,
             rightspinevisible=false,
-            leftspinecolor=_JF_INK,
-            bottomspinecolor=_JF_INK,
+            leftspinecolor=ink,
+            bottomspinecolor=ink,
         ),
-        font="CMU Serif",
-        Legend=(framevisible=false, labelsize=12, labelcolor=_JF_INK, patchsize=(22, 12)),
+        Legend=(
+            framevisible=false,
+            labelsize=13,
+            labelcolor=ink,
+            patchsize=(22, 12),
+            rowgap=3,
+        ),
         Lines=(linewidth=1.8,),
         Scatter=(markersize=6,),
     )
+end
+
+function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Theme)
+    thm = style == :workbench ? _workbench_theme(appearance) :
+        style == :showcase ? _showcase_theme(appearance) :
+        style == :publication ? _publication_theme(appearance) :
+        Theme()
+    return merge(thm, theme_override)
+end
+
+"""
+    plot_theme(theme=:workbench; appearance=:auto, theme_override=Theme())
+
+Return the Makie theme used by JuFitter plots. Use this when composing a custom
+Makie figure that should remain visually consistent with `plot_fit`.
+"""
+function plot_theme(
+    theme::Symbol=:workbench;
+    appearance::Symbol=:auto,
+    theme_override::Theme=Theme(),
+)
+    style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    return _theme_from_style(style, resolved_appearance, theme_override)
+end
+
+"""
+    plot_palette(theme=:workbench; appearance=:auto)
+
+Return the data, fit, uncertainty-band, error-bar, and report colors used by a
+JuFitter plot style.
+"""
+function plot_palette(theme::Symbol=:workbench; appearance::Symbol=:auto)
+    style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    return _style_preset(style, resolved_appearance)
 end
 
 function _normalize_kwargs(kwargs)
@@ -432,8 +413,10 @@ function _plot_title(title)
     return title
 end
 
-function _default_model_label(result::FitResult)
-    result.problem.model === _default_linear_model && return L"y = p_1 x + p_2"
+function _default_model_label(result::FitResult, latex_labels::Bool)
+    if result.problem.model === _default_linear_model
+        return latex_labels ? L"y = p_1 x + p_2" : "y = p₁ x + p₂"
+    end
     return nothing
 end
 
@@ -489,20 +472,14 @@ function _default_grid(x::AbstractVector)
     return collect(range(xlo, xhi; length=800))
 end
 
-function _fmt_value(x::Real; sigdigits::Int=5)
-    if isnan(x)
-        return "NaN"
-    elseif isinf(x)
-        return signbit(x) ? "-Inf" : "Inf"
-    end
-    return string(round(Float64(x); sigdigits=sigdigits))
-end
-
-function _strip_math_delims(s::AbstractString)
-    if startswith(s, "\$") && endswith(s, "\$") && ncodeunits(s) >= 2
-        return s[2:(end - 1)]
-    end
-    return s
+function _latex_number_expr(value::AbstractString)
+    value == "NaN" && return "\\mathrm{NaN}"
+    value == "Inf" && return "\\infty"
+    value == "-Inf" && return "-\\infty"
+    scientific = match(r"^(.+)[eE]([+-]?\d+)$", value)
+    scientific === nothing && return value
+    mantissa, exponent = scientific.captures
+    return mantissa * "\\times10^{" * string(parse(Int, exponent)) * "}"
 end
 
 function _to_latex_text(s::AbstractString)
@@ -541,7 +518,9 @@ function _stats_panel_lines(
         e = _fmt_value(result.param_stderr[i]; sigdigits=sigdigits)
         if latex_stats
             pexpr = _latex_symbol_expr(names[i])
-            push!(lines, LaTeXString(pexpr * " = " * v * " \\pm " * e))
+            push!(lines, LaTeXString(
+                pexpr * " = " * _latex_number_expr(v) * " \\pm " * _latex_number_expr(e),
+            ))
         else
             push!(lines, string(names[i], " = ", v, " ± ", e))
         end
@@ -552,9 +531,13 @@ function _stats_panel_lines(
     ndf_text = string(result.stats.ndf)
 
     if latex_stats
-        push!(lines, L"\chi^2/\mathrm{n_{dof}} = %$chi2_ndf_text")
-        stats_mode == :full && push!(lines, L"\chi^2 = %$chi2_text")
-        push!(lines, L"\mathrm{n_{dof}} = %$ndf_text")
+        push!(lines, LaTeXString(
+            "\\chi^2/\\mathrm{n_{dof}} = " * _latex_number_expr(chi2_ndf_text),
+        ))
+        stats_mode == :full && push!(lines, LaTeXString(
+            "\\chi^2 = " * _latex_number_expr(chi2_text),
+        ))
+        push!(lines, LaTeXString("\\mathrm{n_{dof}} = " * ndf_text))
     else
         push!(lines, string("chi2/ndf = ", chi2_ndf_text))
         stats_mode == :full && push!(lines, string("chi2 = ", chi2_text))
@@ -585,24 +568,52 @@ function _plain_stats_rows(
         value = _fmt_value(result.params[i]; sigdigits=sigdigits)
         err = _fmt_value(result.param_stderr[i]; sigdigits=sigdigits)
         name = latex_stats ? LaTeXString(_latex_symbol_expr(names[i])) : string(names[i])
-        uncertainty = latex_stats ? LaTeXString(value * " \\pm " * err) : string(value, " ± ", err)
+        uncertainty = latex_stats ?
+            LaTeXString(_latex_number_expr(value) * " \\pm " * _latex_number_expr(err)) :
+            string(value, " ± ", err)
         push!(rows, (name, uncertainty))
     end
 
-    push!(rows, (latex_stats ? L"\chi^2" : "χ²", _fmt_value(result.stats.chi2; sigdigits=sigdigits)))
-    push!(rows, (latex_stats ? L"\chi^2/\mathrm{ndf}" : "χ²/ndf", _fmt_value(result.stats.chi2_ndf; sigdigits=sigdigits)))
-    push!(rows, (latex_stats ? L"P(\chi^2)" : "χ² prob.", _fmt_value(result.stats.pvalue; sigdigits=sigdigits)))
-    push!(rows, ("ndf", string(result.stats.ndf)))
+    stat_value(value) = latex_stats ? LaTeXString(_latex_number_expr(string(value))) : string(value)
+    push!(rows, (
+        latex_stats ? L"\chi^2" : "χ²",
+        stat_value(_fmt_value(result.stats.chi2; sigdigits=sigdigits)),
+    ))
+    push!(rows, (
+        latex_stats ? L"\chi^2/\mathrm{ndf}" : "χ²/ndf",
+        stat_value(_fmt_value(result.stats.chi2_ndf; sigdigits=sigdigits)),
+    ))
+    push!(rows, (
+        latex_stats ? L"P(\chi^2)" : "χ² probability",
+        stat_value(_fmt_value(result.stats.pvalue; sigdigits=sigdigits)),
+    ))
+    push!(rows, (latex_stats ? L"\mathrm{ndf}" : "ndf", stat_value(result.stats.ndf)))
     if stats_mode == :full
-        push!(rows, ("cost", _fmt_value(result.stats.cost_min; sigdigits=sigdigits)))
-        push!(rows, ("AIC", _fmt_value(result.stats.aic; sigdigits=sigdigits)))
-        push!(rows, ("BIC", _fmt_value(result.stats.bic; sigdigits=sigdigits)))
+        push!(rows, (
+            latex_stats ? L"\mathrm{cost}" : "cost",
+            stat_value(_fmt_value(result.stats.cost_min; sigdigits=sigdigits)),
+        ))
+        push!(rows, (
+            latex_stats ? L"\mathrm{AIC}" : "AIC",
+            stat_value(_fmt_value(result.stats.aic; sigdigits=sigdigits)),
+        ))
+        push!(rows, (
+            latex_stats ? L"\mathrm{BIC}" : "BIC",
+            stat_value(_fmt_value(result.stats.bic; sigdigits=sigdigits)),
+        ))
     end
     return rows
 end
 
-function _stats_row_texts(stats_rows)
-    return [string(name, " ", value) for (name, value) in stats_rows]
+function _stats_row_line(name, value, latex_stats::Bool)
+    latex_stats || return string(name, " = ", value)
+    name_expr = _strip_math_delims(String(name))
+    value_expr = _strip_math_delims(String(value))
+    return LaTeXString(name_expr * " = " * value_expr)
+end
+
+function _stats_row_lines(stats_rows, latex_stats::Bool)
+    return [_stats_row_line(name, value, latex_stats) for (name, value) in stats_rows]
 end
 
 function _as_label_text(value, latex_labels::Bool)
@@ -682,114 +693,138 @@ function _draw_inside_stats!(
     return nothing
 end
 
-function _draw_right_stats!(
-    fig,
-    stats_rows;
-    panel_width_px::Int,
+"""
+    plot_info_panel!(
+        cell;
+        legend_source=nothing,
+        legend_plots=nothing,
+        legend_labels=nothing,
+        model_label=nothing,
+        parameter_lines=Any[],
+        statistic_lines=Any[],
+        ...
+    )
+
+Add a compact, left-aligned information panel to a Makie layout cell. The
+panel is intended for custom scientific figures that should use the same
+legend, model, parameter, and statistic hierarchy as `plot_fit`.
+"""
+function plot_info_panel!(
+    cell;
+    legend_source=nothing,
+    legend_plots=nothing,
+    legend_labels=nothing,
+    parameter_lines=Any[],
+    statistic_lines=Any[],
     fontsize::Real=15,
     title=nothing,
     model_label=nothing,
     color=_JF_INK,
     muted_color=_JF_MUTED,
-    accent_color=_JF_TEAL,
-    legend_plots=nothing,
-    legend_labels=nothing,
     legend_kwargs=NamedTuple(),
 )
-    panel_cell = if legend_plots !== nothing && legend_labels !== nothing
-        panel_grid = GridLayout(fig[1, 2])
+    # The panel must not dictate the height of its parent row. Otherwise a
+    # compact report vertically centers and shrinks the adjacent data axis.
+    panel_grid = GridLayout(cell; tellwidth=false, tellheight=false, valign=:top)
+    row = 1
+    generous_gaps = Int[]
+
+    legend_defaults = (
+        framevisible=false,
+        tellwidth=false,
+        tellheight=true,
+        halign=:left,
+        valign=:top,
+        labelsize=fontsize,
+        patchsize=(26, 14),
+        rowgap=4,
+    )
+    if legend_source !== nothing
+        Legend(panel_grid[row, 1], legend_source; _merged_kwargs(legend_defaults, legend_kwargs)...)
+        push!(generous_gaps, row)
+        row += 1
+    elseif legend_plots !== nothing && legend_labels !== nothing
         Legend(
-            panel_grid[1, 1],
+            panel_grid[row, 1],
             legend_plots,
             legend_labels;
-            _merged_kwargs(
-                (
-                    framevisible=false,
-                    tellwidth=false,
-                    tellheight=true,
-                    labelsize=fontsize + 1,
-                    patchsize=(26, 14),
-                    rowgap=8,
-                ),
-                legend_kwargs,
-            )...,
+            _merged_kwargs(legend_defaults, legend_kwargs)...,
         )
-        rowgap!(panel_grid, 14)
-        panel_grid[2, 1]
-    else
-        fig[1, 2]
+        push!(generous_gaps, row)
+        row += 1
     end
 
-    panel_ax = Axis(
-        panel_cell;
-        xgridvisible=false,
-        ygridvisible=false,
-        xticksvisible=false,
-        yticksvisible=false,
-        xticklabelsvisible=false,
-        yticklabelsvisible=false,
-        topspinevisible=false,
-        rightspinevisible=false,
-        bottomspinevisible=false,
-        leftspinevisible=false,
-        backgroundcolor=:transparent,
-    )
-    xlims!(panel_ax, 0, 1)
-    ylims!(panel_ax, 0, 1)
-    y = 0.965
     if title !== nothing && !isempty(string(title))
-        text!(
-            panel_ax,
-            0.0,
-            y;
-            text=title,
-            space=:relative,
-            align=(:left, :top),
+        Label(
+            panel_grid[row, 1],
+            title;
+            halign=:left,
+            tellwidth=false,
             fontsize=fontsize + 1,
             color=color,
         )
-        y -= 0.070
+        row += 1
     end
-    if model_label !== nothing && !isempty(string(model_label))
-        text!(
-            panel_ax,
-            0.0,
-            y;
-            text=model_label,
-            space=:relative,
-            align=(:left, :top),
-            fontsize=fontsize + 1,
-            color=color,
-        )
-        y -= 0.095
-    end
-    y -= 0.012
 
-    step = clamp(0.0042 * Float64(fontsize), 0.062, 0.084)
-    value_x = 0.50
-    for (i, (name, value)) in enumerate(stats_rows)
-        row_y = y - (i - 1) * step
-        text!(
-            panel_ax,
-            0.0,
-            row_y;
-            text=name,
-            space=:relative,
-            align=(:left, :top),
-            fontsize=fontsize,
+    if model_label !== nothing && !isempty(string(model_label))
+        Label(
+            panel_grid[row, 1],
+            model_label;
+            halign=:left,
+            tellwidth=false,
+            fontsize=fontsize + 1,
             color=color,
         )
-        text!(
-            panel_ax,
-            value_x,
-            row_y;
-            text=value,
-            space=:relative,
-            align=(:left, :top),
-            fontsize=fontsize,
-            color=color,
-        )
+        push!(generous_gaps, row)
+        row += 1
     end
+
+    for line in parameter_lines
+        Label(
+            panel_grid[row, 1],
+            line;
+            halign=:left,
+            tellwidth=false,
+            fontsize=fontsize,
+            color=color,
+        )
+        row += 1
+    end
+
+    !isempty(parameter_lines) && !isempty(statistic_lines) && push!(generous_gaps, row - 1)
+    for line in statistic_lines
+        Label(
+            panel_grid[row, 1],
+            line;
+            halign=:left,
+            tellwidth=false,
+            fontsize=fontsize,
+            color=muted_color,
+        )
+        row += 1
+    end
+
+    row > 2 && rowgap!(panel_grid, 2)
+    for gap_index in generous_gaps
+        gap_index < row - 1 || continue
+        rowgap!(panel_grid, gap_index, 11)
+    end
+    return panel_grid
+end
+
+function _draw_right_stats!(
+    fig,
+    stats_lines;
+    panel_width_px::Int,
+    parameter_count::Int,
+    kwargs...,
+)
+    plot_info_panel!(
+        fig[1, 2];
+        parameter_lines=stats_lines[1:parameter_count],
+        statistic_lines=stats_lines[(parameter_count + 1):end],
+        kwargs...,
+    )
     colsize!(fig.layout, 2, Fixed(panel_width_px))
     colsize!(fig.layout, 1, Auto(1))
     return nothing
@@ -898,10 +933,10 @@ end
         xgrid=nothing,
         filename=nothing,
         format=:pdf,
-        theme=:clean,
+        theme=:workbench,
+        appearance=:auto,
         theme_override=Theme(),
         title=nothing,
-        model_label=nothing,
         model_label=nothing,
         xlabel="x",
         ylabel="y",
@@ -922,8 +957,7 @@ end
         tight_layout=true,
         stats_sigdigits=5,
         parameter_names=nothing,
-        stats_fontsize=15,
-        stats_title=nothing,
+        stats_fontsize=nothing,
         stats_title=nothing,
         stats_box_color=_JF_PAPER_SOFT,
         stats_box_alpha=0.95,
@@ -940,8 +974,6 @@ end
         data_color=nothing,
         data_marker=nothing,
         data_markersize=nothing,
-        data_strokecolor=nothing,
-        data_strokewidth=nothing,
         data_strokecolor=nothing,
         data_strokewidth=nothing,
         scatter_kwargs=NamedTuple(),
@@ -963,8 +995,11 @@ end
         data_label="data",
     )
 
-Create a publication-style fit plot with data, error bars, best-fit curve, optional
-uncertainty band, and an optional right-side statistics panel. `band=:confidence`
+Create a scientific fit plot with data, error bars, best-fit curve, optional
+uncertainty band, and an optional right-side information panel. Use
+`theme=:workbench`, `:showcase`, or `:publication` for the intended output
+context; `appearance=:light` or `:dark` controls the color scheme independently.
+`band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
 includes observation uncertainty in y and effective x uncertainty. Makie keyword
 containers can be passed as `NamedTuple`s or `Dict`s via the `*_kwargs` arguments.
@@ -974,7 +1009,8 @@ function plot_fit(
     xgrid=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:clean,
+    theme::Symbol=:workbench,
+    appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title=nothing,
     model_label=nothing,
@@ -997,7 +1033,7 @@ function plot_fit(
     tight_layout::Bool=true,
     stats_sigdigits::Int=5,
     parameter_names::Union{Nothing, AbstractVector}=nothing,
-    stats_fontsize::Real=15,
+    stats_fontsize::Union{Nothing, Real}=nothing,
     stats_title=nothing,
     stats_box_color=_JF_PAPER_SOFT,
     stats_box_alpha::Real=0.95,
@@ -1037,15 +1073,10 @@ function plot_fit(
     band in (:confidence, :prediction, :none) || throw(ArgumentError("band must be :confidence, :prediction, or :none"))
     stats_position in (:inside, :right) || throw(ArgumentError("stats_position must be :inside or :right"))
 
-    thm = theme == :clean ? _clean_theme() :
-        theme == :minimal ? _minimal_theme() :
-        theme == :dark ? _dark_theme() :
-        theme == :paper ? _paper_theme() :
-        theme == :publication ? _publication_theme() :
-        theme == :latex ? _latex_theme() :
-        Theme()
-    thm = merge(thm, theme_override)
-    style = _style_preset(theme)
+    resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)
+    style = _style_preset(resolved_style, resolved_appearance)
+    stats_fontsize = stats_fontsize === nothing ? style.stats_fontsize : Float64(stats_fontsize)
     data_color = data_color === nothing ? style.data_color : data_color
     data_marker = data_marker === nothing ? style.data_marker : data_marker
     data_markersize = data_markersize === nothing ? style.data_markersize : data_markersize
@@ -1058,12 +1089,12 @@ function plot_fit(
     xerr_color = xerr_color === nothing ? style.xerr_color : xerr_color
     yerr_color = yerr_color === nothing ? style.yerr_color : yerr_color
     error_whiskerwidth = error_whiskerwidth === nothing ? style.error_whiskerwidth : error_whiskerwidth
-    model_label = model_label === nothing ? _default_model_label(result) : model_label
+    model_label = model_label === nothing ? _default_model_label(result, latex_labels) : model_label
 
     base_size = show_stats && stats_position == :right ? (1220, 720) : (980, 640)
     fig_size = figure_size === nothing ? base_size : (Int(round(figure_size[1])), Int(round(figure_size[2])))
     fig = with_theme(thm) do
-        Figure(size=fig_size, backgroundcolor=_fitplot_background(theme))
+        Figure(size=fig_size, backgroundcolor=_fitplot_background(resolved_appearance))
     end
 
     if show_stats
@@ -1193,6 +1224,7 @@ function plot_fit(
         latex_stats=latex_stats,
         stats_mode=stats_mode,
     ) : nothing
+    right_stats_lines = show_stats ? _stats_row_lines(right_stats_rows, latex_stats) : nothing
 
     if show_stats && stats_position == :inside
         _draw_inside_stats!(
@@ -1206,24 +1238,27 @@ function plot_fit(
             box_strokewidth=stats_box_strokewidth,
         )
     elseif show_stats && stats_position == :right
-        panel_width_px = _panel_width_px(stats_panel_width, fig_size[1], _stats_row_texts(right_stats_rows))
+        panel_width_px = _panel_width_px(stats_panel_width, fig_size[1], right_stats_lines)
         _draw_right_stats!(
             fig,
-            right_stats_rows;
+            right_stats_lines;
             panel_width_px=panel_width_px,
+            parameter_count=length(result.params),
             fontsize=stats_fontsize,
             title=stats_title,
             model_label=model_label,
             color=style.stats_color,
             muted_color=style.stats_muted_color,
-            accent_color=style.stats_accent_color,
             legend_plots=show_legend ? legend_plots : nothing,
             legend_labels=show_legend ? legend_labels : nothing,
             legend_kwargs=legend_kwargs,
         )
     end
 
-    tight_layout && resize_to_layout!(fig)
+    # Preserve the declared output footprint. Resizing to the layout makes a
+    # compact side panel collapse the figure height and destabilizes custom
+    # elements added after `plot_fit` returns.
+    tight_layout && trim!(fig.layout)
 
     if filename !== nothing
         outpath = String(filename)
@@ -1236,15 +1271,144 @@ function plot_fit(
     return fig
 end
 
-function _theme_from_symbol(theme::Symbol, theme_override::Theme)
-    thm = theme == :clean ? _clean_theme() :
-        theme == :minimal ? _minimal_theme() :
-        theme == :dark ? _dark_theme() :
-        theme == :paper ? _paper_theme() :
-        theme == :publication ? _publication_theme() :
-        theme == :latex ? _latex_theme() :
-        Theme()
-    return merge(thm, theme_override)
+function _axis_limits(axis::Axis)
+    rect = axis.finallimits[]
+    xmin = rect.origin[1]
+    ymin = rect.origin[2]
+    xmax = xmin + rect.widths[1]
+    ymax = ymin + rect.widths[2]
+    return (xmin, xmax), (ymin, ymax)
+end
+
+"""
+    fit_axis(figure; index=1)
+
+Return the `index`-th Makie `Axis` stored in a JuFitter figure.
+
+This is a small convenience for post-fit annotation workflows:
+`fig = plot_fit(result); ax = fit_axis(fig); add_vline!(ax, x0)`. It searches
+the figure layout instead of relying on manual cell indices, so the same call
+works for ordinary fit plots with or without a right-side report.
+"""
+function fit_axis(figure::Figure; index::Integer=1)
+    index >= 1 || throw(ArgumentError("index must be >= 1"))
+    axes = [object for object in contents(figure.layout) if object isa Axis]
+    index <= length(axes) || throw(ArgumentError("figure contains only $(length(axes)) axis object(s)"))
+    return axes[Int(index)]
+end
+
+"""
+    add_curve!(axis, f; xgrid=nothing, xspan=nothing, n=400, label=nothing, kwargs...)
+    add_curve!(axis, x, y; label=nothing, kwargs...)
+
+Add a curve to an existing Makie axis and return the created plot object.
+
+The function-valued method samples `f` either on `xgrid`, on `xspan=(xmin,
+xmax)`, or on the current visible x-range of `axis`. This is useful for adding
+extrapolations, reference models, or derived physical relationships after a fit
+has already been computed.
+"""
+function add_curve!(
+    axis::Axis,
+    f;
+    xgrid=nothing,
+    xspan=nothing,
+    n::Integer=400,
+    label=nothing,
+    kwargs...,
+)
+    n >= 2 || throw(ArgumentError("n must be >= 2"))
+    xs = if xgrid !== nothing
+        collect(Float64, xgrid)
+    elseif xspan !== nothing
+        length(xspan) == 2 || throw(ArgumentError("xspan must contain exactly two values"))
+        collect(range(Float64(xspan[1]), Float64(xspan[2]); length=Int(n)))
+    else
+        limits, _ = _axis_limits(axis)
+        collect(range(limits[1], limits[2]; length=Int(n)))
+    end
+    ys = [f(x) for x in xs]
+    return lines!(axis, xs, ys; label=label, kwargs...)
+end
+
+function add_curve!(axis::Axis, x::AbstractVector, y::AbstractVector; label=nothing, kwargs...)
+    length(x) == length(y) || throw(ArgumentError("x and y must have equal length"))
+    return lines!(axis, x, y; label=label, kwargs...)
+end
+
+"""
+    add_points!(axis, x, y; label=nothing, kwargs...)
+
+Add marker points to an existing fit axis. This is intended for derived
+quantities, thresholds, extrapolated intersections, or highlighted data points;
+it does not rerun or modify the fit.
+"""
+function add_points!(axis::Axis, x, y; label=nothing, kwargs...)
+    xs = x isa Number ? [Float64(x)] : collect(Float64, x)
+    ys = y isa Number ? [Float64(y)] : collect(Float64, y)
+    length(xs) == length(ys) || throw(ArgumentError("x and y must have equal length"))
+    return scatter!(axis, xs, ys; label=label, kwargs...)
+end
+
+"""
+    add_vline!(axis, x; label=nothing, kwargs...)
+    add_hline!(axis, y; label=nothing, kwargs...)
+
+Add vertical or horizontal reference lines to an existing axis. These wrap
+Makie's `vlines!` and `hlines!` with JuFitter-style argument validation.
+"""
+function add_vline!(axis::Axis, x; label=nothing, kwargs...)
+    xs = x isa Number ? [Float64(x)] : collect(Float64, x)
+    return vlines!(axis, xs; label=label, kwargs...)
+end
+
+function add_hline!(axis::Axis, y; label=nothing, kwargs...)
+    ys = y isa Number ? [Float64(y)] : collect(Float64, y)
+    return hlines!(axis, ys; label=label, kwargs...)
+end
+
+"""
+    add_vband!(axis, xmin, xmax; label=nothing, kwargs...)
+    add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
+
+Add a vertical or horizontal uncertainty/reference band to an existing axis.
+The band spans the currently visible orthogonal axis range, so it remains a
+simple annotation layer rather than a new data model.
+"""
+function add_vband!(axis::Axis, xmin::Real, xmax::Real; label=nothing, kwargs...)
+    xmin <= xmax || throw(ArgumentError("xmin must be <= xmax"))
+    _, (ymin, ymax) = _axis_limits(axis)
+    return band!(axis, [Float64(xmin), Float64(xmax)], [ymin, ymin], [ymax, ymax]; label=label, kwargs...)
+end
+
+function add_hband!(axis::Axis, ymin::Real, ymax::Real; label=nothing, kwargs...)
+    ymin <= ymax || throw(ArgumentError("ymin must be <= ymax"))
+    (xmin, xmax), _ = _axis_limits(axis)
+    return band!(axis, [xmin, xmax], [Float64(ymin), Float64(ymin)], [Float64(ymax), Float64(ymax)]; label=label, kwargs...)
+end
+
+function _diagnostic_colors(style::Symbol, appearance::Symbol)
+    preset = _style_preset(style, appearance)
+    if style == :publication
+        return (
+            levels=(:black, :gray35, :gray60),
+            regions=((:black, 0.18), (:black, 0.10), (:black, 0.06)),
+            local_color=preset.stats_muted_color,
+        )
+    elseif style == :showcase
+        levels=(preset.fit_color, preset.data_color, preset.stats_muted_color)
+        return (
+            levels=levels,
+            regions=((preset.fit_color, 0.26), (preset.fit_color, 0.15), (preset.fit_color, 0.08)),
+            local_color=preset.stats_muted_color,
+        )
+    end
+    levels=(preset.fit_color, preset.stats_muted_color, preset.stats_muted_color)
+    return (
+        levels=levels,
+        regions=((preset.fit_color, 0.24), (preset.fit_color, 0.14), (preset.fit_color, 0.07)),
+        local_color=preset.stats_muted_color,
+    )
 end
 
 """
@@ -1264,17 +1428,18 @@ function plot_profile(
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
     theme::Symbol=:publication,
+    appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Profile",
     xlabel="parameter",
     ylabel="Delta cost",
-    line_color=:dodgerblue4,
+    line_color=nothing,
     line_width::Real=3,
     local_sigma=nothing,
-    local_color=:gray35,
+    local_color=nothing,
     local_linewidth::Real=2,
     local_linestyle=:dash,
-    threshold_color=:black,
+    threshold_color=nothing,
     show_legend::Bool=true,
     profile_label="profile cost",
     local_label="local covariance parabola",
@@ -1285,8 +1450,16 @@ function plot_profile(
     line_kwargs=NamedTuple(),
     local_line_kwargs=NamedTuple(),
 )
-    fig = with_theme(_theme_from_symbol(theme, theme_override)) do
-        Figure(size=(Int(round(figure_size[1])), Int(round(figure_size[2]))), backgroundcolor=_fitplot_background(theme))
+    resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    style = _style_preset(resolved_style, resolved_appearance)
+    line_color = line_color === nothing ? style.fit_color : line_color
+    local_color = local_color === nothing ? style.stats_muted_color : local_color
+    threshold_color = threshold_color === nothing ? style.stats_color : threshold_color
+    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
+        Figure(
+            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
+            backgroundcolor=_fitplot_background(resolved_appearance),
+        )
     end
     ax = Axis(fig[1, 1]; _merged_kwargs((title=title, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...)
     lines!(
@@ -1362,6 +1535,7 @@ function plot_contour(
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
     theme::Symbol=:publication,
+    appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Contour",
     xlabel="parameter 1",
@@ -1370,12 +1544,12 @@ function plot_contour(
     show_heatmap::Bool=false,
     show_regions::Bool=true,
     show_legend::Bool=true,
-    level_colors=("#4c78a8", "#72b7b2", "#f2cf5b"),
-    region_colors=(("#4c78a8", 0.24), ("#72b7b2", 0.16), ("#f2cf5b", 0.12)),
+    level_colors=nothing,
+    region_colors=nothing,
     line_color=nothing,
     local_covariance=nothing,
     local_center=nothing,
-    local_line_color=:gray35,
+    local_line_color=nothing,
     local_linewidth::Real=2,
     local_linestyle=:dash,
     figure_size::Tuple{<:Real, <:Real}=(820, 700),
@@ -1384,8 +1558,16 @@ function plot_contour(
     contour_kwargs=NamedTuple(),
     local_contour_kwargs=NamedTuple(),
 )
-    fig = with_theme(_theme_from_symbol(theme, theme_override)) do
-        Figure(size=(Int(round(figure_size[1])), Int(round(figure_size[2]))), backgroundcolor=_fitplot_background(theme))
+    resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    diagnostic_colors = _diagnostic_colors(resolved_style, resolved_appearance)
+    level_colors = level_colors === nothing ? diagnostic_colors.levels : level_colors
+    region_colors = region_colors === nothing ? diagnostic_colors.regions : region_colors
+    local_line_color = local_line_color === nothing ? diagnostic_colors.local_color : local_line_color
+    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
+        Figure(
+            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
+            backgroundcolor=_fitplot_background(resolved_appearance),
+        )
     end
     ax = Axis(fig[1, 1]; _merged_kwargs((title=title, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...)
     hm = if show_heatmap
@@ -1520,6 +1702,191 @@ function plot_contour(
     return fig
 end
 
+function _parameter_names(result, parameters, parameter_names)
+    parameter_names !== nothing && return collect(String, parameter_names)
+    if hasproperty(result.problem, :parameter_names) && result.problem.parameter_names !== nothing
+        return result.problem.parameter_names[parameters]
+    end
+    return ["p$(index)" for index in parameters]
+end
+
+function _local_contour_delta(covariance::AbstractMatrix, center, xs, ys)
+    cov = Matrix{Float64}(covariance)
+    size(cov) == (2, 2) || throw(ArgumentError("local contour covariance must be 2x2"))
+    precision = Symmetric(cov) \ Matrix{Float64}(I, 2, 2)
+    out = Matrix{Float64}(undef, length(xs), length(ys))
+    @inbounds for ix in eachindex(xs), iy in eachindex(ys)
+        delta = [xs[ix] - center[1], ys[iy] - center[2]]
+        out[ix, iy] = dot(delta, precision * delta)
+    end
+    return out
+end
+
+"""
+    plot_profile_matrix(result; parameters=nothing, parameter_names=nothing, ...)
+
+Create a kafe2-inspired profile/contour overview for several fitted
+parameters.
+
+Diagonal panels show one-parameter profile scans against the local covariance
+parabola. Lower-triangle panels show two-parameter profile contours against the
+local covariance ellipse. Upper-triangle panels show the local correlation
+coefficient. The plot is intended as a fast diagnostic: if profile curves are
+not parabolic, or profile contours do not resemble the local ellipse, symmetric
+local covariance errors should not be treated as the final uncertainty
+statement.
+"""
+function plot_profile_matrix(
+    result;
+    parameters=nothing,
+    parameter_names=nothing,
+    filename::Union{Nothing, AbstractString}=nothing,
+    format::Symbol=:pdf,
+    theme::Symbol=:publication,
+    appearance::Symbol=:auto,
+    theme_override::Theme=Theme(),
+    npoints_profile::Int=61,
+    npoints_contour::Int=25,
+    nsigma::Real=3,
+    profile_threshold::Real=1.0,
+    contour_levels::AbstractVector=[2.30, 6.18],
+    adaptive::Bool=false,
+    max_refinements::Int=2,
+    max_points::Int=1200,
+    delta_max::Union{Nothing, Real}=nothing,
+    figure_size=nothing,
+)
+    selected = parameters === nothing ? collect(eachindex(result.params)) : collect(Int, parameters)
+    isempty(selected) && throw(ArgumentError("parameters must contain at least one parameter index"))
+    all(index -> 1 <= index <= length(result.params), selected) ||
+        throw(ArgumentError("parameters contains an out-of-range parameter index"))
+    length(unique(selected)) == length(selected) ||
+        throw(ArgumentError("parameters must be unique"))
+    names = _parameter_names(result, selected, parameter_names)
+    length(names) == length(selected) || throw(ArgumentError("parameter_names length must match parameters"))
+
+    resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    style = _style_preset(resolved_style, resolved_appearance)
+    diagnostic_colors = _diagnostic_colors(resolved_style, resolved_appearance)
+    n = length(selected)
+    cell = n <= 3 ? 285 : 235
+    fig_size = figure_size === nothing ? (cell * n + 80, cell * n + 70) :
+        (Int(round(figure_size[1])), Int(round(figure_size[2])))
+
+    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
+        Figure(size=fig_size, backgroundcolor=_fitplot_background(resolved_appearance))
+    end
+
+    profile_color = style.fit_color
+    local_color = diagnostic_colors.local_color
+    level_colors = collect(diagnostic_colors.levels)
+    isempty(level_colors) && (level_colors = [style.fit_color])
+    corr_color = style.stats_muted_color
+
+    for row in 1:n, col in 1:n
+        ax = Axis(
+            fig[row, col];
+            xlabel=row == n ? names[col] : "",
+            ylabel=col == 1 ? (row == col ? "Δcost" : names[row]) : "",
+            title=row == 1 ? names[col] : "",
+        )
+
+        if row == col
+            index = selected[row]
+            prof = profile(
+                result,
+                index;
+                npoints=npoints_profile,
+                nsigma=nsigma,
+                threshold=profile_threshold,
+                adaptive=adaptive,
+                max_refinements=max_refinements,
+                max_points=max_points,
+            )
+            lines!(ax, prof.values, prof.delta_cost; color=profile_color, linewidth=2.2)
+            sigma = result.param_stderr[index]
+            if isfinite(sigma) && sigma > 0
+                local_delta = @. abs2((prof.values - result.params[index]) / sigma)
+                lines!(ax, prof.values, local_delta; color=local_color, linewidth=1.8, linestyle=:dash)
+            end
+            hlines!(ax, [Float64(profile_threshold)]; color=style.stats_color, linestyle=:dot)
+            ylimit = delta_max === nothing ?
+                max(4.0 * Float64(profile_threshold), maximum(Float64.(contour_levels); init=0.0)) :
+                Float64(delta_max)
+            isfinite(ylimit) && ylimit > 0 && ylims!(ax, 0, ylimit)
+        elseif row > col
+            xindex = selected[col]
+            yindex = selected[row]
+            cont = contour(
+                result,
+                xindex,
+                yindex;
+                npoints=npoints_contour,
+                nsigma=nsigma,
+                levels=contour_levels,
+                adaptive=adaptive,
+                max_refinements=max_refinements,
+                max_points=max_points,
+            )
+            for (level_index, level) in enumerate(cont.levels)
+                contour!(
+                    ax,
+                    cont.x_values,
+                    cont.y_values,
+                    cont.delta_cost;
+                    levels=[level],
+                    color=level_colors[mod1(level_index, length(level_colors))],
+                    linewidth=2.2,
+                )
+            end
+            local_cov = result.param_covariance[[xindex, yindex], [xindex, yindex]]
+            if all(isfinite, local_cov)
+                local_delta = _local_contour_delta(local_cov, result.params[[xindex, yindex]], cont.x_values, cont.y_values)
+                for level in cont.levels
+                    contour!(
+                        ax,
+                        cont.x_values,
+                        cont.y_values,
+                        local_delta;
+                        levels=[level],
+                        color=local_color,
+                        linewidth=1.5,
+                        linestyle=:dash,
+                    )
+                end
+            end
+            scatter!(ax, [result.params[xindex]], [result.params[yindex]]; marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color)
+        else
+            hidedecorations!(ax)
+            hidespines!(ax)
+            corr = result.param_correlation[selected[row], selected[col]]
+            label = isfinite(corr) ? "ρ = $(_fmt_value(corr; sigdigits=3))" : "ρ unavailable"
+            text!(ax, 0.5, 0.5; text=label, space=:relative, align=(:center, :center), color=corr_color, fontsize=15)
+        end
+
+        row < n && hidexdecorations!(ax; grid=false, label=false)
+        col > 1 && row >= col && hideydecorations!(ax; grid=false, label=false)
+    end
+
+    handles = Any[
+        LineElement(color=profile_color, linewidth=2.2),
+        LineElement(color=local_color, linewidth=1.8, linestyle=:dash),
+        MarkerElement(marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color),
+    ]
+    labels = ["profile scan / contour", "local covariance approximation", "fit minimum"]
+    Legend(fig[n + 1, 1:n], handles, labels; framevisible=false, orientation=:horizontal, tellheight=true)
+
+    if filename !== nothing
+        outpath = String(filename)
+        if isempty(splitext(outpath)[2])
+            outpath *= ".$(String(format))"
+        end
+        save(outpath, fig)
+    end
+
+    return fig
+end
+
 function _diagnostic_values(result::FitResult, kind::Symbol)
     x = result.problem.x
     yhat = result.model_y
@@ -1547,10 +1914,12 @@ function plot_residuals(
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
     theme::Symbol=:publication,
+    appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 520),
     xlabel="x",
-    color=:black,
+    color=nothing,
+    reference_color=nothing,
     marker=:circle,
     markersize::Real=9,
     axis_kwargs=NamedTuple(),
@@ -1558,11 +1927,18 @@ function plot_residuals(
     errorbars_kwargs=NamedTuple(),
 )
     x, values, errors, title, ylabel, reference = _diagnostic_values(result, kind)
-    fig = with_theme(_theme_from_symbol(theme, theme_override)) do
-        Figure(size=(Int(round(figure_size[1])), Int(round(figure_size[2]))))
+    resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    style = _style_preset(resolved_style, resolved_appearance)
+    color = color === nothing ? style.data_color : color
+    reference_color = reference_color === nothing ? style.fit_color : reference_color
+    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
+        Figure(
+            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
+            backgroundcolor=_fitplot_background(resolved_appearance),
+        )
     end
     ax = Axis(fig[1, 1]; _merged_kwargs((title=title, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...)
-    hlines!(ax, [reference]; color=:gray35, linestyle=:dash)
+    hlines!(ax, [reference]; color=reference_color, linestyle=:dash)
     if errors !== nothing
         errorbars!(ax, x, values, errors; _merged_kwargs((color=color, whiskerwidth=8), errorbars_kwargs)...)
     end
@@ -1589,22 +1965,31 @@ function plot_diagnostics(
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
     theme::Symbol=:publication,
+    appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 900),
     xlabel="x",
-    color=:black,
+    color=nothing,
+    reference_color=nothing,
     marker=:circle,
     markersize::Real=8,
     axis_kwargs=NamedTuple(),
 )
-    fig = with_theme(_theme_from_symbol(theme, theme_override)) do
-        Figure(size=(Int(round(figure_size[1])), Int(round(figure_size[2]))))
+    resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
+    style = _style_preset(resolved_style, resolved_appearance)
+    color = color === nothing ? style.data_color : color
+    reference_color = reference_color === nothing ? style.fit_color : reference_color
+    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
+        Figure(
+            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
+            backgroundcolor=_fitplot_background(resolved_appearance),
+        )
     end
 
     for (row, kind) in enumerate((:residual, :pull, :ratio))
         x, values, errors, title, ylabel, reference = _diagnostic_values(result, kind)
         ax = Axis(fig[row, 1]; _merged_kwargs((title=title, xlabel=row == 3 ? xlabel : "", ylabel=ylabel), axis_kwargs)...)
-        hlines!(ax, [reference]; color=:gray35, linestyle=:dash)
+        hlines!(ax, [reference]; color=reference_color, linestyle=:dash)
         if errors !== nothing
             errorbars!(ax, x, values, errors; color=color, whiskerwidth=8)
         end

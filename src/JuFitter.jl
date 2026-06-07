@@ -1,6 +1,5 @@
 module JuFitter
 
-using CairoMakie
 using ADTypes
 using Distributions
 using DifferentiationInterface
@@ -15,6 +14,7 @@ using SpecialFunctions
 using SparseArrays
 using Statistics
 
+include("formatting.jl")
 include("types.jl")
 include("parameters.jl")
 include("diagnostics.jl")
@@ -23,7 +23,7 @@ include("costs.jl")
 include("fit.jl")
 include("likelihood_fits.jl")
 include("profile.jl")
-include("plotting.jl")
+include("plotting_api.jl")
 include("report.jl")
 
 export ConstraintSpec
@@ -62,10 +62,21 @@ export profile_interval
 export contour
 export fitplot
 export plot_fit
+export fit_axis
+export add_curve!
+export add_points!
+export add_vline!
+export add_hline!
+export add_vband!
+export add_hband!
+export plot_theme
+export plot_palette
+export plot_info_panel!
 export plot_residuals
 export plot_diagnostics
 export plot_profile
 export plot_contour
+export plot_profile_matrix
 export diagnose
 export diagnose_text
 export diagnostic_dashboard

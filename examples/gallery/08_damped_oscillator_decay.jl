@@ -1,4 +1,10 @@
-using CairoMakie
+const SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
+const RENDER_DOC_ASSETS = !SNAPSHOT_ONLY
+
+if RENDER_DOC_ASSETS
+    using CairoMakie
+end
+
 using JuFitter
 using LinearAlgebra
 using Printf
@@ -6,6 +12,7 @@ using Printf
 const DATA_FILE = joinpath(@__DIR__, "..", "data", "damped_oscillator", "pohl_wheel_free_decay.csv")
 const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
+const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 
 function load_damped_oscillator(path)
     rows = readlines(path)[2:end]
@@ -20,7 +27,7 @@ end
 data = load_damped_oscillator(DATA_FILE)
 time = data.time
 angle = data.angle
-sigma_angle = data.sigma_angle
+sigma_angle = 0.5 .* data.sigma_angle
 sigma_time = fill(0.0005, length(time))
 time_reference = (minimum(time) + maximum(time)) / 2
 
@@ -88,38 +95,17 @@ end
 
 fmt(x, digits=4) = @sprintf("%.*g", digits, x)
 
-function oscillator_theme(dark::Bool)
-    foreground = dark ? "#edf2f4" : "#14151a"
-    muted = dark ? "#b8c1ca" : "#5b6270"
-    grid = dark ? ("#2a313a", 0.85) : ("#e9eef4", 0.95)
-    background = dark ? "#111318" : "#ffffff"
-    return Theme(
-        fontsize=20,
-        font="TeX Gyre Heros",
-        Figure=(backgroundcolor=background,),
-        Axis=(
-            backgroundcolor=background,
-            xlabelsize=27,
-            ylabelsize=27,
-            titlesize=26,
-            xticklabelsize=20,
-            yticklabelsize=20,
-            xlabelcolor=foreground,
-            ylabelcolor=foreground,
-            titlecolor=foreground,
-            xticklabelcolor=muted,
-            yticklabelcolor=muted,
-            xtickcolor=muted,
-            ytickcolor=muted,
-            xgridcolor=grid,
-            ygridcolor=grid,
-            topspinevisible=false,
-            rightspinevisible=false,
-            leftspinecolor=muted,
-            bottomspinecolor=muted,
-        ),
-        Legend=(framevisible=false, labelcolor=foreground, labelsize=19, patchsize=(30, 16)),
-    )
+function style_asset_suffix(dark, style::Symbol, appearance::Symbol)
+    return dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
+end
+
+function emit_doc_output_snapshot(body::Function, id::AbstractString)
+    EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
+
+    println("=== JUFITTER_DOC_OUTPUT_BEGIN ", id, " ===")
+    body()
+    println("=== JUFITTER_DOC_OUTPUT_END ", id, " ===")
+    return nothing
 end
 
 function add_pull_reference!(axis, xmin, xmax, color_1sigma, color_2sigma, zero_color)
@@ -128,19 +114,29 @@ function add_pull_reference!(axis, xmin, xmax, color_1sigma, color_2sigma, zero_
     hlines!(axis, [0.0]; color=zero_color, linewidth=1.4)
 end
 
-function save_model_comparison(filename; dark::Bool=false)
-    foreground = dark ? "#edf2f4" : "#14151a"
-    muted = dark ? "#b8c1ca" : "#5b6270"
-    constant_color = dark ? "#f4b860" : "#b45309"
-    drift_color = dark ? "#66d9ef" : "#007f9e"
-    measurement_color = dark ? "#edf2f4" : "#14151a"
-    prediction_color = dark ? ("#66d9ef", 0.20) : ("#89d5e0", 0.34)
-    pull_1sigma = dark ? ("#66d9ef", 0.13) : ("#a8dadc", 0.30)
-    pull_2sigma = dark ? ("#66d9ef", 0.06) : ("#a8dadc", 0.14)
-    background = dark ? "#111318" : "#ffffff"
+function save_model_comparison(
+    filename;
+    dark::Union{Nothing, Bool}=nothing,
+    style::Symbol=:showcase,
+    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+)
+    RENDER_DOC_ASSETS || return nothing
 
-    figure = with_theme(oscillator_theme(dark)) do
-        Figure(size=(1720, 1040), backgroundcolor=background)
+    dark_mode = appearance == :dark
+    palette = plot_palette(style; appearance=appearance)
+    foreground = palette.stats_color
+    muted = palette.stats_muted_color
+    constant_color = style == :publication ? (dark_mode ? "#c8cdd4" : "#505761") :
+                     (style == :showcase ? (dark_mode ? "#f0b35f" : "#b05a36") : muted)
+    drift_color = palette.fit_color
+    measurement_color = palette.data_color
+    prediction_color = (palette.band_color, palette.band_alpha)
+    pull_1sigma = (palette.band_color, dark_mode ? 0.15 : 0.24)
+    pull_2sigma = (palette.band_color, dark_mode ? 0.07 : 0.11)
+    background = dark_mode ? "#111318" : (style == :showcase ? "#fbfcfd" : "#ffffff")
+
+    figure = with_theme(plot_theme(style; appearance=appearance)) do
+        Figure(size=(1540, 960), backgroundcolor=background)
     end
     fit_axis = Axis(
         figure[1, 1];
@@ -151,18 +147,14 @@ function save_model_comparison(filename; dark::Bool=false)
         figure[2, 1];
         title="Pulls: constant-frequency model",
         titlealign=:left,
-        titlesize=19,
         ylabel="pull rᵢ",
-        ylabelsize=22,
     )
     drift_pull_axis = Axis(
         figure[3, 1];
         title="Pulls: frequency-drift model",
         titlealign=:left,
-        titlesize=19,
         xlabel="elapsed time t (s)",
         ylabel="pull rᵢ",
-        ylabelsize=22,
     )
 
     time_grid = collect(range(minimum(time), maximum(time); length=1800))
@@ -186,7 +178,7 @@ function save_model_comparison(filename; dark::Bool=false)
         constant_grid;
         color=constant_color,
         linestyle=:dash,
-        linewidth=2.2,
+        linewidth=max(1.8, palette.fit_linewidth - 0.3),
         label="constant-frequency model",
     )
     lines!(
@@ -194,25 +186,25 @@ function save_model_comparison(filename; dark::Bool=false)
         time_grid,
         drift_grid;
         color=drift_color,
-        linewidth=2.6,
+        linewidth=palette.fit_linewidth,
         label="frequency-drift model",
     )
-    errorbars!(fit_axis, time, angle, sigma_angle; color=(muted, 0.28), whiskerwidth=3)
+    errorbars!(fit_axis, time, angle, sigma_angle; color=palette.yerr_color, whiskerwidth=palette.error_whiskerwidth)
     errorbars!(
         fit_axis,
         time,
         angle,
         sigma_time;
         direction=:x,
-        color=(muted, 0.18),
-        whiskerwidth=3,
+        color=palette.xerr_color,
+        whiskerwidth=palette.error_whiskerwidth,
     )
     scatter!(
         fit_axis,
         time,
         angle;
-        color=(measurement_color, 0.72),
-        markersize=4.4,
+        color=measurement_color,
+        markersize=max(3.8, palette.data_markersize - 1.4),
         label="measured angle",
     )
     hidexdecorations!(fit_axis; grid=false)
@@ -229,13 +221,6 @@ function save_model_comparison(filename; dark::Bool=false)
     ylims!(constant_pull_axis, -3.2, 3.2)
     ylims!(drift_pull_axis, -3.2, 3.2)
 
-    side = GridLayout()
-    figure[1:3, 2] = side
-    Legend(side[1, 1], fit_axis; framevisible=false, tellheight=true)
-    report_axis = Axis(side[2, 1]; backgroundcolor=:transparent)
-    hidedecorations!(report_axis)
-    hidespines!(report_axis)
-
     beta = drift_result.params[5]
     sigma_beta = drift_result.param_stderr[5]
     time_span = maximum(time) - minimum(time)
@@ -245,55 +230,73 @@ function save_model_comparison(filename; dark::Bool=false)
     sigma_damping_time = drift_result.param_stderr[4] / drift_result.params[4]^2
     delta_aic = constant_result.stats.aic - drift_result.stats.aic
 
-    text!(
-        report_axis,
-        0,
-        1;
-        text="frequency-drift model\n" *
-             "  ωref = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹\n" *
-             "  β = $(fmt(1e3 * beta, 5)) ± $(fmt(1e3 * sigma_beta, 2)) mrad s⁻²\n" *
-             "  Δω over 60 s\n" *
-             "    $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹\n" *
-             "  λ = $(fmt(drift_result.params[4], 5)) ± $(fmt(drift_result.param_stderr[4], 2)) s⁻¹\n" *
-             "  τd = $(fmt(damping_time, 5)) ± $(fmt(sigma_damping_time, 2)) s\n\n" *
-             "constant-frequency model\n" *
-             "  χ²/ndf = $(fmt(constant_result.stats.chi2_ndf, 4))\n" *
-             "  P(χ²) = $(fmt(constant_result.stats.pvalue, 3))\n" *
-             "  diagnostic status: $(diagnostic_dashboard(constant_result).status)\n\n" *
-             "frequency-drift model\n" *
-             "  χ²/ndf = $(fmt(drift_result.stats.chi2_ndf, 4))\n" *
-             "  P(χ²) = $(fmt(drift_result.stats.pvalue, 3))\n" *
-             "  diagnostic status: $(diagnostic_dashboard(drift_result).status)\n\n" *
-             "ΔAIC = $(fmt(delta_aic, 5)) in favor of drift\n" *
-             "but χ²/ndf ≪ 1 requires review",
-        space=:relative,
-        align=(:left, :top),
+    parameter_lines = [
+        "ωref = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹",
+        "β = $(fmt(1e3 * beta, 5)) ± $(fmt(1e3 * sigma_beta, 2)) mrad s⁻²",
+        "Δω over 60 s = $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹",
+        "λ = $(fmt(drift_result.params[4], 5)) ± $(fmt(drift_result.param_stderr[4], 2)) s⁻¹",
+        "τd = $(fmt(damping_time, 5)) ± $(fmt(sigma_damping_time, 2)) s",
+    ]
+    statistic_lines = [
+        "constant model: χ²/ndf = $(fmt(constant_result.stats.chi2_ndf, 4))",
+        "constant model: P(χ²) = $(fmt(constant_result.stats.pvalue, 3))",
+        "constant diagnostic = $(diagnostic_dashboard(constant_result).status)",
+        "drift model: χ²/ndf = $(fmt(drift_result.stats.chi2_ndf, 4))",
+        "drift model: P(χ²) = $(fmt(drift_result.stats.pvalue, 3))",
+        "drift diagnostic = $(diagnostic_dashboard(drift_result).status)",
+        "ΔAIC = $(fmt(delta_aic, 5)) in favor of drift",
+        "χ²/ndf ≪ 1 still requires review",
+    ]
+    plot_info_panel!(
+        figure[1:3, 2];
+        legend_source=fit_axis,
+        title="Frequency-drift result",
+        model_label="A exp(-λt) cos(ωref t + βt²/2 + φ)",
+        parameter_lines=parameter_lines,
+        statistic_lines=statistic_lines,
         color=foreground,
-        fontsize=18,
-        lineheight=1.08,
+        muted_color=muted,
+        fontsize=palette.stats_fontsize,
     )
 
-    rowsize!(side, 1, Auto())
-    rowsize!(side, 2, Relative(1))
     rowsize!(figure.layout, 1, Relative(0.62))
     rowsize!(figure.layout, 2, Relative(0.19))
     rowsize!(figure.layout, 3, Relative(0.19))
-    colsize!(figure.layout, 2, Fixed(540))
+    colsize!(figure.layout, 2, Fixed(470))
+    colgap!(figure.layout, 24)
     save(filename, figure)
 end
 
-mkpath(OUTPUT_DIR)
-mkpath(DOC_ASSET_DIR)
+if RENDER_DOC_ASSETS
+    mkpath(OUTPUT_DIR)
+    mkpath(DOC_ASSET_DIR)
 
-for (dark, suffix) in ((false, "light"), (true, "dark"))
-    save_model_comparison(joinpath(OUTPUT_DIR, "08_damped_oscillator_decay_$(suffix).png"); dark=dark)
-    save_model_comparison(joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(suffix).png"); dark=dark)
+    for (dark, suffix) in ((false, "light"), (true, "dark"))
+        save_model_comparison(joinpath(OUTPUT_DIR, "08_damped_oscillator_decay_$(suffix).png"); dark=dark)
+        save_model_comparison(joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(suffix).png"); dark=dark)
+    end
+
+    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+        save_model_comparison(
+            joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style_asset_suffix(nothing, style, appearance)).png");
+            style=style,
+            appearance=appearance,
+        )
+    end
 end
 
 println("Constant-frequency model")
 println(report_text(constant_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda"]))
 println(diagnostic_dashboard_text(constant_result))
+emit_doc_output_snapshot("resonance_constant") do
+    println(report_text(constant_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda"]))
+    println(diagnostic_dashboard_text(constant_result))
+end
 println()
 println("Frequency-drift model")
 println(report_text(drift_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda", "beta"]))
 println(diagnostic_dashboard_text(drift_result))
+emit_doc_output_snapshot("resonance_drift") do
+    println(report_text(drift_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda", "beta"]))
+    println(diagnostic_dashboard_text(drift_result))
+end

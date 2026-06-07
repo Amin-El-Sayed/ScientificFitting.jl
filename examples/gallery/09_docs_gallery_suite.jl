@@ -1,4 +1,10 @@
-using CairoMakie
+const SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
+const RENDER_DOC_ASSETS = !SNAPSHOT_ONLY
+
+if RENDER_DOC_ASSETS
+    using CairoMakie
+end
+
 using Distributions
 using JuFitter
 using LaTeXStrings
@@ -8,31 +14,82 @@ using SpecialFunctions
 
 const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
+const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 
-mkpath(OUTPUT_DIR)
-mkpath(DOC_ASSET_DIR)
+if RENDER_DOC_ASSETS
+    mkpath(OUTPUT_DIR)
+    mkpath(DOC_ASSET_DIR)
+end
 
 function gallery_path(name)
     return joinpath(DOC_ASSET_DIR, name)
 end
 
+function emit_doc_output_snapshot(body::Function, id::AbstractString)
+    EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
+
+    println("=== JUFITTER_DOC_OUTPUT_BEGIN ", id, " ===")
+    body()
+    println("=== JUFITTER_DOC_OUTPUT_END ", id, " ===")
+    return nothing
+end
+
+function style_asset_suffix(dark, style::Symbol, appearance::Symbol)
+    return dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
+end
+
 fmt_sig(x, digits::Integer=4) = @sprintf("%.*g", digits, x)
+function fmt_tex(x, digits::Integer=4)
+    value = fmt_sig(x, digits)
+    scientific = match(r"^(.+)[eE]([+-]?\d+)$", value)
+    scientific === nothing && return value
+    mantissa, exponent = scientific.captures
+    return mantissa * "\\times10^{" * string(parse(Int, exponent)) * "}"
+end
 
 function lightdark_plot(result, name; kwargs...)
+    RENDER_DOC_ASSETS || return nothing
+
     plot_fit(
         result;
         kwargs...,
-        theme=:minimal,
+        theme=:showcase,
+        appearance=:light,
         filename=gallery_path("$(name)_light.png"),
         format=:png,
     )
     plot_fit(
         result;
         kwargs...,
-        theme=:dark,
+        theme=:showcase,
+        appearance=:dark,
         filename=gallery_path("$(name)_dark.png"),
         format=:png,
     )
+end
+
+function style_variant_plot(
+    result,
+    name;
+    styles=(:workbench, :showcase, :publication),
+    plain=NamedTuple(),
+    latex=plain,
+    kwargs...,
+)
+    RENDER_DOC_ASSETS || return nothing
+
+    for style in styles, appearance in (:light, :dark)
+        typography = style == :publication ? latex : plain
+        plot_fit(
+            result;
+            kwargs...,
+            typography...,
+            theme=style,
+            appearance=appearance,
+            filename=gallery_path("$(name)_$(style)_$(appearance).png"),
+            format=:png,
+        )
+    end
 end
 
 function gallery_theme(dark::Bool)
@@ -92,14 +149,30 @@ function poisson_deviance_residuals(counts, expected)
     ]
 end
 
-function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
-    color = dark ? "#edf2f4" : "#14151a"
-    fit_color = dark ? "#66d9ef" : "#0081a7"
-    band_color = dark ? ("#66d9ef", 0.16) : ("#a8dadc", 0.34)
-    residual_positive = dark ? "#66d9ef" : "#0081a7"
-    residual_negative = dark ? "#f4b860" : "#b45309"
-    fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1460, 850), backgroundcolor=dark ? "#111318" : "#ffffff")
+function save_poisson_counts(
+    result,
+    x,
+    counts,
+    model,
+    name;
+    dark::Union{Nothing, Bool}=nothing,
+    style::Symbol=:showcase,
+    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+)
+    RENDER_DOC_ASSETS || return nothing
+
+    dark_mode = appearance == :dark
+    palette = plot_palette(style; appearance=appearance)
+    foreground = palette.stats_color
+    muted = palette.stats_muted_color
+    data_color = palette.data_color
+    fit_color = palette.fit_color
+    band_color = (palette.band_color, max(palette.band_alpha, 0.16))
+    residual_positive = fit_color
+    residual_negative = style == :publication ? (dark_mode ? "#d7d7d7" : "#5f6873") :
+                        (dark_mode ? "#f0b35f" : "#b45309")
+    fig = with_theme(plot_theme(style; appearance=appearance)) do
+        Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
     end
     ax = Axis(fig[1, 1]; title="Radioactive decay with detector background", ylabel="counts per 10 s")
     xg = collect(range(minimum(x), maximum(x); length=300))
@@ -108,7 +181,7 @@ function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
     upper = [quantile(Poisson(mu), 0.84) for mu in yg]
     band!(ax, xg, lower, upper; color=band_color, label="central 68% count interval")
     lines!(ax, xg, yg; color=fit_color, linewidth=3, label="expected counts")
-    scatter!(ax, x, counts; color=color, markersize=11, label="observed counts")
+    scatter!(ax, x, counts; color=data_color, markersize=palette.data_markersize + 2.0, label="observed counts")
     hidexdecorations!(ax; grid=false)
 
     expected = model(x, result.params)
@@ -116,8 +189,8 @@ function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
     residual_colors = ifelse.(residuals .>= 0, residual_positive, residual_negative)
     residual_ax = Axis(fig[2, 1]; xlabel="elapsed time (min)", ylabel="deviance residual")
     barplot!(residual_ax, x, residuals; width=0.66, color=residual_colors)
-    hlines!(residual_ax, [0.0]; color=(color, 0.70), linewidth=1.5)
-    hlines!(residual_ax, [-2.0, 2.0]; color=(color, 0.32), linestyle=:dash, linewidth=1.5)
+    hlines!(residual_ax, [0.0]; color=(foreground, 0.70), linewidth=1.5)
+    hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
     linkxaxes!(ax, residual_ax)
 
     side = GridLayout()
@@ -128,6 +201,7 @@ function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
     hidespines!(panel)
     half_life = log(2) / result.params[2]
     sigma_half_life = log(2) * result.param_stderr[2] / result.params[2]^2
+    deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
     text!(
         panel,
         0,
@@ -136,36 +210,53 @@ function save_poisson_counts(result, x, counts, model, name; dark::Bool=false)
              "  $(fmt_sig(result.params[1], 5)) ± $(fmt_sig(result.param_stderr[1], 2)) counts\n\n" *
              "decay constant λ\n" *
              "  $(fmt_sig(result.params[2], 5)) ± $(fmt_sig(result.param_stderr[2], 2)) min⁻¹\n\n" *
-             "background (local covariance)\n" *
+             "background\n" *
              "  $(fmt_sig(result.params[3], 4)) ± $(fmt_sig(result.param_stderr[3], 2)) counts\n\n" *
-             "half-life (local propagation)\n" *
+             "half-life\n" *
              "  $(fmt_sig(half_life, 4)) ± $(fmt_sig(sigma_half_life, 2)) min\n\n" *
              "Poisson deviance / ndf\n" *
              "  $(fmt_sig(result.stats.chi2, 4)) / $(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))\n" *
-             "asymptotic P(D) = $(fmt_sig(result.stats.pvalue, 4))",
+             "P(D) = $(fmt_sig(deviance_pvalue, 4))",
         space=:relative,
         align=(:left, :top),
-        color=color,
-        fontsize=20,
+        color=foreground,
+        fontsize=palette.stats_fontsize + 4,
         lineheight=1.1,
     )
     rowsize!(side, 1, Auto())
     rowsize!(side, 2, Relative(1))
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
-    colsize!(fig.layout, 2, Fixed(430))
-    save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
+    colsize!(fig.layout, 2, Fixed(500))
+    save(gallery_path("$(name)_$(style_asset_suffix(dark, style, appearance)).png"), fig)
 end
 
-function save_histogram_fit(result, edges, counts, expected_counts, name; dark::Bool=false)
-    color = dark ? "#edf2f4" : "#14151a"
-    fit_color = dark ? "#66d9ef" : "#0081a7"
-    observed_color = dark ? ("#edf2f4", 0.28) : ("#4c78a8", 0.28)
-    background_color = dark ? ("#f4b860", 0.20) : ("#f4b183", 0.34)
-    residual_positive = dark ? "#66d9ef" : "#0081a7"
-    residual_negative = dark ? "#f4b860" : "#b45309"
-    fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1460, 850), backgroundcolor=dark ? "#111318" : "#ffffff")
+function save_histogram_fit(
+    result,
+    edges,
+    counts,
+    expected_counts,
+    name;
+    dark::Union{Nothing, Bool}=nothing,
+    style::Symbol=:showcase,
+    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+)
+    RENDER_DOC_ASSETS || return nothing
+
+    dark_mode = appearance == :dark
+    palette = plot_palette(style; appearance=appearance)
+    foreground = palette.stats_color
+    data_color = palette.data_color
+    fit_color = palette.fit_color
+    observed_color = style == :publication ? (foreground, dark_mode ? 0.20 : 0.14) :
+                     (palette.fit_color, dark_mode ? 0.20 : 0.22)
+    background_base = style == :publication ? foreground : (dark_mode ? "#f0b35f" : "#b45309")
+    background_color = (background_base, style == :publication ? 0.10 : 0.20)
+    residual_positive = fit_color
+    residual_negative = style == :publication ? (dark_mode ? "#d7d7d7" : "#5f6873") :
+                        (dark_mode ? "#f0b35f" : "#b45309")
+    fig = with_theme(plot_theme(style; appearance=appearance)) do
+        Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
     end
     ax = Axis(fig[1, 1]; title="Binned detector spectrum", ylabel="events per bin")
     centers = [(edges[i] + edges[i + 1]) / 2 for i in 1:(length(edges) - 1)]
@@ -189,19 +280,19 @@ function save_histogram_fit(result, edges, counts, expected_counts, name; dark::
         counts;
         width=0.82 .* widths,
         color=observed_color,
-        strokecolor=(color, 0.65),
+        strokecolor=(foreground, 0.65),
         strokewidth=1.3,
         label="observed bin counts",
     )
-    scatter!(ax, centers, counts; color=color, markersize=8)
+    scatter!(ax, centers, counts; color=data_color, markersize=palette.data_markersize + 1.4)
     hidexdecorations!(ax; grid=false)
 
     residuals = poisson_deviance_residuals(counts, expected)
     residual_colors = ifelse.(residuals .>= 0, residual_positive, residual_negative)
     residual_ax = Axis(fig[2, 1]; xlabel="pulse amplitude (V)", ylabel="deviance residual")
     barplot!(residual_ax, centers, residuals; width=0.82 .* widths, color=residual_colors)
-    hlines!(residual_ax, [0.0]; color=(color, 0.70), linewidth=1.5)
-    hlines!(residual_ax, [-2.0, 2.0]; color=(color, 0.32), linestyle=:dash, linewidth=1.5)
+    hlines!(residual_ax, [0.0]; color=(foreground, 0.70), linewidth=1.5)
+    hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
     linkxaxes!(ax, residual_ax)
 
     side = GridLayout()
@@ -210,6 +301,7 @@ function save_histogram_fit(result, edges, counts, expected_counts, name; dark::
     panel = Axis(side[2, 1]; backgroundcolor=:transparent)
     hidedecorations!(panel)
     hidespines!(panel)
+    deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
     text!(
         panel,
         0,
@@ -221,22 +313,22 @@ function save_histogram_fit(result, edges, counts, expected_counts, name; dark::
              "Gaussian width\n" *
              "  $(fmt_sig(result.params[3], 5)) ± $(fmt_sig(result.param_stderr[3], 2)) V\n\n" *
              "background density\n" *
-             "  $(fmt_sig(result.params[4], 4)) ± $(fmt_sig(result.param_stderr[4], 2)) events/V\n\n" *
-             "Poisson deviance / ndf\n" *
+             "  $(fmt_sig(result.params[4], 4)) ± $(fmt_sig(result.param_stderr[4], 2)) ev/V\n\n" *
+             "deviance / ndf\n" *
              "  $(fmt_sig(result.stats.chi2, 4)) / $(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))\n" *
-             "asymptotic P(D) = $(fmt_sig(result.stats.pvalue, 4))",
+             "P(D) = $(fmt_sig(deviance_pvalue, 4))",
         space=:relative,
         align=(:left, :top),
-        color=color,
-        fontsize=20,
+        color=foreground,
+        fontsize=palette.stats_fontsize + 4,
         lineheight=1.1,
     )
     rowsize!(side, 1, Auto())
     rowsize!(side, 2, Relative(1))
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
-    colsize!(fig.layout, 2, Fixed(430))
-    save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
+    colsize!(fig.layout, 2, Fixed(500))
+    save(gallery_path("$(name)_$(style_asset_suffix(dark, style, appearance)).png"), fig)
 end
 
 function line_intersection(emission_result, baseline_result)
@@ -278,15 +370,25 @@ function save_photoelectric_work_function(
     sigma_voltage,
     emission_mask,
     name;
-    dark::Bool=false,
+    dark::Union{Nothing, Bool}=nothing,
+    style::Symbol=:showcase,
+    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
-    color = dark ? "#edf2f4" : "#14151a"
-    muted = dark ? "#b8c1ca" : "#5b6270"
-    emission_color = dark ? "#66d9ef" : "#007f9e"
-    baseline_color = dark ? "#f4b860" : "#b85c38"
-    threshold_color = dark ? "#f7e06e" : "#7a5c00"
-    emission_band = dark ? ("#66d9ef", 0.20) : ("#89d5e0", 0.30)
-    baseline_band = dark ? ("#f4b860", 0.18) : ("#f4b183", 0.30)
+    RENDER_DOC_ASSETS || return nothing
+
+    dark_mode = appearance == :dark
+    palette = plot_palette(style; appearance=appearance)
+    color = palette.data_color
+    muted = palette.stats_muted_color
+    emission_color = palette.fit_color
+    baseline_color = style == :publication ? (dark_mode ? "#d7d7d7" : "#555555") :
+        (dark_mode ? "#f0b35f" : "#ad5a3a")
+    threshold_color = style == :publication ? (dark_mode ? "#f2d16b" : "#5c4a00") :
+        (dark_mode ? "#f5d86e" : "#7a5c00")
+    emission_band = (palette.band_color, max(palette.band_alpha, 0.16))
+    baseline_band = (baseline_color, style == :publication ? 0.09 : 0.18)
+    error_whiskerwidth = palette.error_whiskerwidth
+    fit_linewidth = palette.fit_linewidth
 
     derived = line_intersection(emission_result, baseline_result)
     threshold = derived.threshold
@@ -296,8 +398,8 @@ function save_photoelectric_work_function(
     emission_slope, emission_intercept = emission_result.params
     baseline_slope, baseline_intercept = baseline_result.params
 
-    fig = with_theme(gallery_theme(dark)) do
-        Figure(size=(1460, 800), backgroundcolor=dark ? "#111318" : "#ffffff")
+    fig = with_theme(plot_theme(style; appearance=appearance)) do
+        Figure(size=(1460, 800), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
     end
     ax = Axis(
         fig[1, 1];
@@ -306,10 +408,18 @@ function save_photoelectric_work_function(
         ylabel="stopping voltage U₀ (V)",
     )
 
-    errorbars!(ax, frequency, voltage, sigma_voltage; color=(muted, 0.46), whiskerwidth=5)
-    errorbars!(ax, frequency, voltage, sigma_frequency; direction=:x, color=(muted, 0.30), whiskerwidth=5)
-    scatter!(ax, frequency[emission_mask], voltage[emission_mask]; color=color, markersize=10, label="emission regime")
-    scatter!(ax, frequency[.!emission_mask], voltage[.!emission_mask]; color=baseline_color, marker=:diamond, markersize=10, label="baseline regime")
+    errorbars!(ax, frequency, voltage, sigma_voltage; color=(muted, 0.44), whiskerwidth=error_whiskerwidth)
+    errorbars!(ax, frequency, voltage, sigma_frequency; direction=:x, color=(muted, 0.30), whiskerwidth=error_whiskerwidth)
+    scatter!(ax, frequency[emission_mask], voltage[emission_mask]; color=color, markersize=palette.data_markersize, label="emission regime")
+    scatter!(
+        ax,
+        frequency[.!emission_mask],
+        voltage[.!emission_mask];
+        color=baseline_color,
+        marker=:diamond,
+        markersize=palette.data_markersize,
+        label="baseline regime",
+    )
 
     xmin, xmax = extrema(frequency)
     xg = collect(range(xmin - 15, xmax + 15; length=500))
@@ -320,44 +430,66 @@ function save_photoelectric_work_function(
     baseline_sigma = sqrt.(clamp.(vec(sum((J * baseline_result.param_covariance) .* J; dims=2)), 0.0, Inf))
     band!(ax, xg, emission_y .- emission_sigma, emission_y .+ emission_sigma; color=emission_band, label="emission 1σ fit band")
     band!(ax, xg, baseline_y .- baseline_sigma, baseline_y .+ baseline_sigma; color=baseline_band, label="baseline 1σ fit band")
-    lines!(ax, xg, emission_y; color=emission_color, linewidth=3.2, label="emission fit")
-    lines!(ax, xg, baseline_y; color=baseline_color, linewidth=3.2, label="baseline fit")
+    lines!(ax, xg, emission_y; color=emission_color, linewidth=fit_linewidth, label="emission fit")
+    lines!(ax, xg, baseline_y; color=baseline_color, linewidth=fit_linewidth, label="baseline fit")
 
     vspan!(ax, threshold - sigma_threshold, threshold + sigma_threshold; color=(threshold_color, 0.14), label="intersection 1σ interval")
-    vlines!(ax, [threshold]; color=(threshold_color, 0.85), linestyle=:dash, linewidth=2.5)
+    vlines!(ax, [threshold]; color=(threshold_color, 0.85), linestyle=:dash, linewidth=max(1.8, fit_linewidth - 0.2))
     threshold_y = emission_slope * threshold + emission_intercept
-    scatter!(ax, [threshold], [threshold_y]; color=threshold_color, marker=:star5, markersize=18, label="line intersection")
+    scatter!(
+        ax,
+        [threshold],
+        [threshold_y];
+        color=threshold_color,
+        marker=:star5,
+        markersize=style == :publication ? 13 : 16,
+        label="line intersection",
+    )
     limits!(ax, xmin - 20, xmax + 20, minimum(voltage .- sigma_voltage) - 0.16, maximum(voltage .+ sigma_voltage) + 0.25)
 
     h_fit = emission_slope * 1.602176634e-19 / 1e12
     sigma_h = sqrt(max(emission_result.param_covariance[1, 1], 0.0)) * 1.602176634e-19 / 1e12
-    side = GridLayout()
-    fig[1, 2] = side
-    Legend(side[1, 1], ax; framevisible=false, tellheight=true)
-    panel = Axis(side[2, 1]; backgroundcolor=:transparent)
-    hidedecorations!(panel)
-    hidespines!(panel)
-    text!(
-        panel,
-        0,
-        1;
-        text="emission slope h/e = $(fmt_sig(emission_slope, 5)) V/THz\n" *
-             "h = $(fmt_sig(h_fit, 4)) ± $(fmt_sig(sigma_h, 2)) J s\n" *
-             "baseline slope = $(fmt_sig(baseline_slope, 4)) V/THz\n" *
-             "ν₀ = $(fmt_sig(threshold, 5)) ± $(fmt_sig(sigma_threshold, 2)) THz\n" *
-             "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_work_function_eV, 2)) eV\n\n" *
-             "emission χ²/ndf = $(fmt_sig(emission_result.stats.chi2_ndf, 4))\n" *
-             "baseline χ²/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
-        space=:relative,
-        align=(:left, :top),
-        color=color,
-        fontsize=20,
-        lineheight=1.12,
+    parameter_lines = if style == :publication
+        [
+            LaTeXString("m_{\\mathrm{emit}} = $(fmt_tex(emission_slope, 5))\\;\\mathrm{V/THz}"),
+            LaTeXString("h = $(fmt_tex(h_fit, 4)) \\pm $(fmt_tex(sigma_h, 2))\\;\\mathrm{J\\,s}"),
+            LaTeXString("m_{\\mathrm{base}} = $(fmt_tex(baseline_slope, 4))\\;\\mathrm{V/THz}"),
+            LaTeXString("\\nu_0 = $(fmt_tex(threshold, 5)) \\pm $(fmt_tex(sigma_threshold, 2))\\;\\mathrm{THz}"),
+            LaTeXString("\\Phi = $(fmt_tex(work_function_eV, 5)) \\pm $(fmt_tex(sigma_work_function_eV, 2))\\;\\mathrm{eV}"),
+        ]
+    else
+        [
+            "m_emit = $(fmt_sig(emission_slope, 5)) V/THz",
+            "h = $(fmt_sig(h_fit, 4)) ± $(fmt_sig(sigma_h, 2)) J s",
+            "m_base = $(fmt_sig(baseline_slope, 4)) V/THz",
+            "ν0 = $(fmt_sig(threshold, 5)) ± $(fmt_sig(sigma_threshold, 2)) THz",
+            "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_work_function_eV, 2)) eV",
+        ]
+    end
+    statistic_lines = if style == :publication
+        [
+            LaTeXString("\\chi^2_{\\mathrm{emit}}/\\mathrm{ndf} = $(fmt_tex(emission_result.stats.chi2_ndf, 4))"),
+            LaTeXString("\\chi^2_{\\mathrm{base}}/\\mathrm{ndf} = $(fmt_tex(baseline_result.stats.chi2_ndf, 4))"),
+        ]
+    else
+        [
+            "χ²_emit/ndf = $(fmt_sig(emission_result.stats.chi2_ndf, 4))",
+            "χ²_base/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
+        ]
+    end
+    plot_info_panel!(
+        fig[1, 2];
+        legend_source=ax,
+        model_label=style == :publication ? L"U_0(\nu)=m_r\nu+b_r" : "U0(ν) = mr ν + br",
+        parameter_lines=parameter_lines,
+        statistic_lines=statistic_lines,
+        color=palette.stats_color,
+        fontsize=palette.stats_fontsize + 4,
+        muted_color=muted,
     )
-    rowsize!(side, 1, Auto())
-    rowsize!(side, 2, Relative(1))
     colsize!(fig.layout, 2, Fixed(480))
-    save(gallery_path("$(name)_$(dark ? "dark" : "light").png"), fig)
+    suffix = dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
+    save(gallery_path("$(name)_$(suffix).png"), fig)
 end
 
 # 0. Quickstart plot matching docs/src/quickstart.md.
@@ -366,6 +498,11 @@ quick_sigma_y = @. 0.16 + 0.02 * quick_x
 quick_y = @. 1.85 * quick_x + 0.7 + quick_sigma_y * sin(1.6 * quick_x)
 quick_model(x, p) = @. p[1] * x + p[2]
 quick_result = fit_model(quick_model, quick_x, quick_y; p0=[1.0, 0.0], sigma_y=quick_sigma_y)
+emit_doc_output_snapshot("quickstart") do
+    println(report_text(quick_result; parameter_names=["slope", "offset"]))
+    println()
+    println(diagnostic_dashboard_text(quick_result))
+end
 lightdark_plot(
     quick_result,
     "quickstart_linear";
@@ -387,14 +524,22 @@ lightdark_plot(
     stats_fontsize=20,
     figure_size=(1200, 760),
 )
-
-# The same scientific content rendered through every public style preset.
-for style in (:clean, :minimal, :paper, :publication, :latex, :dark)
-    plot_fit(
-        quick_result;
-        theme=style,
-        filename=gallery_path("plot_style_$(style).png"),
-        format=:png,
+style_variant_plot(
+    quick_result,
+    "quickstart_linear";
+    plain=(
+        title="Quickstart calibration",
+        model_label="U(t) = m t + b",
+        xlabel="t",
+        xunit="s",
+        ylabel="U",
+        yunit="V",
+        parameter_names=["m", "b"],
+        latex_labels=false,
+        latex_stats=false,
+        band_label="1σ prediction band",
+    ),
+    latex=(
         title=L"\mathrm{Quickstart\ calibration}",
         model_label=L"U(t)=m t+b",
         xlabel=L"t",
@@ -404,15 +549,61 @@ for style in (:clean, :minimal, :paper, :publication, :latex, :dark)
         parameter_names=[L"m", L"b"],
         latex_labels=true,
         latex_stats=true,
-        band=:prediction,
-        nsigma=1,
         band_label=L"1\sigma\ \mathrm{prediction\ band}",
-        show_legend=true,
-        stats_position=:right,
-        stats_mode=:full,
-        stats_fontsize=20,
-        figure_size=(1200, 760),
-    )
+    ),
+    band=:prediction,
+    nsigma=1,
+    show_legend=true,
+    stats_position=:right,
+    stats_mode=:full,
+    stats_fontsize=20,
+    figure_size=(1200, 760),
+)
+
+# The same scientific content rendered through every public style preset.
+if RENDER_DOC_ASSETS
+    for style in (:workbench, :showcase, :publication)
+        typography = if style == :publication
+            (
+                title=L"\mathrm{Quickstart\ calibration}",
+                model_label=L"U(t)=m t+b",
+                xlabel=L"t",
+                xunit=L"\mathrm{s}",
+                ylabel=L"U",
+                yunit=L"\mathrm{V}",
+                parameter_names=[L"m", L"b"],
+                latex_labels=true,
+                latex_stats=true,
+            )
+        else
+            (
+                title="Quickstart calibration",
+                model_label="U(t) = m t + b",
+                xlabel="t",
+                xunit="s",
+                ylabel="U",
+                yunit="V",
+                parameter_names=["m", "b"],
+                latex_labels=false,
+                latex_stats=false,
+            )
+        end
+        plot_fit(
+            quick_result;
+            typography...,
+            theme=style,
+            filename=gallery_path("plot_style_$(style).png"),
+            format=:png,
+            band=:prediction,
+            nsigma=1,
+            band_label=style == :publication ? L"1\sigma\ \mathrm{prediction\ band}" : "1σ prediction band",
+            show_legend=true,
+            stats_position=:right,
+            stats_mode=:full,
+            stats_fontsize=20,
+            figure_size=(1200, 760),
+        )
+    end
 end
 
 # 1. Linear calibration with visible heteroscedastic uncertainties.
@@ -422,6 +613,10 @@ sigma_y = @. 0.10 + 0.012 * x
 y = @. 0.82 + 1.72 * x + scatter_scale * (0.55 * sin(1.25 * x) + 0.18 * cos(3.7 * x))
 calibration_model(x, p) = @. p[1] * x + p[2]
 linear_result = fit_model(calibration_model, x, y; p0=[1.5, 0.5], sigma_y=sigma_y)
+emit_doc_output_snapshot("linear_calibration") do
+    println(report_text(linear_result; parameter_names=["m", "b"]))
+    println(diagnostic_dashboard_text(linear_result))
+end
 lightdark_plot(
     linear_result,
     "linear_calibration";
@@ -437,6 +632,42 @@ lightdark_plot(
     band=:prediction,
     nsigma=1,
     band_label=L"1\sigma\ \mathrm{prediction\ band}",
+    show_legend=true,
+    legend_position=:lt,
+    stats_position=:right,
+    stats_mode=:full,
+    stats_fontsize=20,
+    figure_size=(1200, 760),
+)
+style_variant_plot(
+    linear_result,
+    "linear_calibration";
+    plain=(
+        title="Sensor calibration",
+        model_label="U(x) = m x + b",
+        xlabel="x",
+        xunit="mm",
+        ylabel="U",
+        yunit="V",
+        parameter_names=["m", "b"],
+        latex_labels=false,
+        latex_stats=false,
+        band_label="1σ prediction band",
+    ),
+    latex=(
+        title=L"\mathrm{Sensor\ calibration}",
+        model_label=L"U(x)=m x + b",
+        xlabel=L"x",
+        xunit=L"\mathrm{mm}",
+        ylabel=L"U",
+        yunit=L"\mathrm{V}",
+        parameter_names=[L"m", L"b"],
+        latex_labels=true,
+        latex_stats=true,
+        band_label=L"1\sigma\ \mathrm{prediction\ band}",
+    ),
+    band=:prediction,
+    nsigma=1,
     show_legend=true,
     legend_position=:lt,
     stats_position=:right,
@@ -482,18 +713,62 @@ emission_result = fit_model(
     bounds=([0.0, -20.0], [0.02, 5.0]),
     initial_guesses=[[0.004, -2.2], [0.0042, -2.6], [0.0038, -1.8]],
 )
+emit_doc_output_snapshot("photoelectric_threshold") do
+    derived = line_intersection(emission_result, baseline_result)
+    elementary_charge = 1.602176634e-19
+    emission_slope = emission_result.params[1]
+    h_fit = emission_slope * elementary_charge / 1e12
+    sigma_h = sqrt(emission_result.param_covariance[1, 1]) * elementary_charge / 1e12
+
+    println("h = ", h_fit, " +/- ", sigma_h, " J s")
+    println("Phi = ", derived.work_function_eV, " +/- ", derived.sigma_work_function_eV, " eV")
+    println("nu0 = ", derived.threshold, " +/- ", derived.sigma_threshold, " THz")
+    println()
+    println("baseline")
+    println(diagnostic_dashboard_text(baseline_result))
+    println("emission")
+    println(diagnostic_dashboard_text(emission_result))
+end
 save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=false)
 save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=true)
+for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+    save_photoelectric_work_function(
+        emission_result,
+        baseline_result,
+        frequency_THz,
+        voltage,
+        sigma_frequency_THz,
+        sigma_voltage,
+        emission_mask,
+        "photoelectric_threshold";
+        style=style,
+        appearance=appearance,
+    )
+end
 
 # 3. Exponential decay with full covariance.
-x_cov = collect(range(0.0, 2.5; length=22))
+x_cov = [0.0, 0.1190, 0.2381, 0.3571, 0.4762, 0.5952, 0.7143, 0.8333,
+         0.9524, 1.0714, 1.1905, 1.3095, 1.4286, 1.5476, 1.6667, 1.7857,
+         1.9048, 2.0238, 2.1429, 2.2619, 2.3810, 2.5]
+y_cov = [2.25155, 2.00932, 1.79547, 1.60660, 1.44018, 1.29422, 1.16695,
+         1.05651, 0.96079, 0.87740, 0.80381, 0.73758, 0.67658, 0.61929,
+         0.56494, 0.51354, 0.46572, 0.42253, 0.38510, 0.35431, 0.33052,
+         0.31346]
 decay_model(x, p) = @. p[1] * exp(p[2] * x) + p[3]
 n = length(x_cov)
 base_sigma = 0.055
 corr_len = 2.3
 cov_y = [base_sigma^2 * exp(-abs(i - j) / corr_len) for i in 1:n, j in 1:n]
-y_cov = decay_model(x_cov, [2.0, -1.12, 0.24]) .+ 0.75 .* base_sigma .* (sin.(1.8 .* x_cov) .+ 0.28 .* cos.(4.1 .* x_cov))
 cov_result = fit_model(decay_model, x_cov, y_cov; p0=[1.5, -0.7, 0.0], cov_y=cov_y)
+emit_doc_output_snapshot("full_covariance") do
+    amplitude, decay_rate, offset = cov_result.params
+    sigma_amplitude, sigma_decay_rate, sigma_offset = cov_result.param_stderr
+
+    println("A = ", amplitude, " +/- ", sigma_amplitude)
+    println("lambda = ", -decay_rate, " +/- ", sigma_decay_rate)
+    println("C = ", offset, " +/- ", sigma_offset)
+    println(diagnostic_dashboard_text(cov_result))
+end
 lightdark_plot(
     cov_result,
     "full_covariance_decay";
@@ -515,15 +790,60 @@ lightdark_plot(
     stats_fontsize=20,
     figure_size=(1200, 760),
 )
+style_variant_plot(
+    cov_result,
+    "full_covariance_decay";
+    plain=(
+        title="Correlated decay data",
+        model_label="y(t) = A exp(-λ t) + C",
+        xlabel="t",
+        xunit="s",
+        ylabel="signal",
+        parameter_names=["A", "λ", "C"],
+        latex_labels=false,
+        latex_stats=false,
+        band_label="1σ prediction band",
+    ),
+    latex=(
+        title=L"\mathrm{Correlated\ decay\ data}",
+        model_label=L"y(t)=A e^{-\lambda t}+C",
+        xlabel=L"t",
+        xunit=L"\mathrm{s}",
+        ylabel=L"signal",
+        parameter_names=[L"A", L"\lambda", L"C"],
+        latex_labels=true,
+        latex_stats=true,
+        band_label=L"1\sigma\ \mathrm{prediction\ band}",
+    ),
+    band=:prediction,
+    nsigma=1,
+    show_legend=true,
+    legend_position=:lt,
+    stats_position=:right,
+    stats_mode=:full,
+    stats_fontsize=20,
+    figure_size=(1200, 760),
+)
 
 # 4. Effective-variance fit with x and y uncertainties.
-x_true = collect(range(0.0, 4.0; length=18))
 line_model(x, p) = @. p[1] * x + p[2]
-sigma_x = fill(0.16, length(x_true))
-sigma_y_xy = fill(0.10, length(x_true))
-x_obs = x_true .+ sigma_x .* cos.(2.2 .* x_true)
-y_obs = line_model(x_obs, [0.9, 1.2]) .+ sigma_y_xy .* sin.(3.1 .* x_obs)
+x_obs = [0.1600, 0.3743, 0.5522, 0.7087, 0.8645, 1.0403, 1.2519,
+         1.5053, 1.7958, 2.1091, 2.4246, 2.7213, 2.9831, 3.2032,
+         3.3854, 3.5437, 3.6982, 3.8702]
+y_obs = [1.3916, 1.6286, 1.7960, 1.9189, 2.0226, 2.1280, 2.2593,
+         2.4549, 2.7506, 3.1234, 3.4764, 3.7327, 3.9024, 4.0345,
+         4.1591, 4.2893, 4.4392, 4.6294]
+sigma_x = fill(0.16, length(x_obs))
+sigma_y_xy = fill(0.10, length(x_obs))
 xy_result = fit_model(line_model, x_obs, y_obs; p0=[0.5, 0.5], sigma_y=sigma_y_xy, sigma_x=sigma_x)
+emit_doc_output_snapshot("xy_uncertainties") do
+    slope, intercept = xy_result.params
+    sigma_slope, sigma_intercept = xy_result.param_stderr
+
+    println("m = ", slope, " +/- ", sigma_slope)
+    println("b = ", intercept, " +/- ", sigma_intercept)
+    println(diagnostic_dashboard_text(xy_result))
+end
 lightdark_plot(
     xy_result,
     "xy_uncertainties";
@@ -537,6 +857,38 @@ lightdark_plot(
     band=:prediction,
     nsigma=1,
     band_label=L"1\sigma\ \mathrm{prediction\ band}",
+    show_legend=true,
+    legend_position=:lt,
+    stats_position=:right,
+    stats_mode=:full,
+    stats_fontsize=20,
+    figure_size=(1200, 760),
+)
+style_variant_plot(
+    xy_result,
+    "xy_uncertainties";
+    plain=(
+        title="XY uncertainty propagation",
+        model_label="y = m x + b",
+        xlabel="x_meas",
+        ylabel="y_meas",
+        parameter_names=["m", "b"],
+        latex_labels=false,
+        latex_stats=false,
+        band_label="1σ prediction band",
+    ),
+    latex=(
+        title=L"\mathrm{XY\ uncertainty\ propagation}",
+        model_label=L"y=m x+b",
+        xlabel=L"x_\mathrm{meas}",
+        ylabel=L"y_\mathrm{meas}",
+        parameter_names=[L"m", L"b"],
+        latex_labels=true,
+        latex_stats=true,
+        band_label=L"1\sigma\ \mathrm{prediction\ band}",
+    ),
+    band=:prediction,
+    nsigma=1,
     show_legend=true,
     legend_position=:lt,
     stats_position=:right,
@@ -588,56 +940,132 @@ lightdark_plot(
     stats_fontsize=20,
     figure_size=(1200, 760),
 )
-prof = JuFitter.profile(saturation_result, 1; npoints=61, nsigma=4)
-cont = JuFitter.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
-plot_profile(
-    prof;
-    theme=:minimal,
-    title="Profile cost versus local parabola",
-    xlabel="amplitude A",
-    local_sigma=saturation_result.param_stderr[1],
-    delta_max=8,
-    filename=gallery_path("saturation_profile_light.png"),
-    format=:png,
+style_variant_plot(
+    saturation_result,
+    "constraints_priors";
+    plain=(
+        title="Early saturation measurement",
+        model_label="y(t) = A (1 - exp(-t / tau)) + c",
+        xlabel="t",
+        xunit="s",
+        ylabel="y",
+        yunit="V",
+        parameter_names=["A", "tau", "c"],
+        latex_labels=false,
+        latex_stats=false,
+        band_label="1σ prediction band",
+    ),
+    latex=(
+        title=L"\mathrm{Early\ saturation\ measurement}",
+        model_label=L"y(t)=A(1-e^{-t/\tau})+c",
+        xlabel=L"t",
+        xunit=L"\mathrm{s}",
+        ylabel=L"y",
+        yunit=L"\mathrm{V}",
+        parameter_names=[L"A", L"\tau", L"c"],
+        latex_labels=true,
+        latex_stats=true,
+        band_label=L"1\sigma\ \mathrm{prediction\ band}",
+    ),
+    band=:prediction,
+    nsigma=1,
+    show_legend=true,
+    legend_position=:lt,
+    stats_position=:right,
+    stats_mode=:full,
+    stats_fontsize=20,
+    figure_size=(1200, 760),
 )
-plot_profile(
-    prof;
-    theme=:dark,
-    title="Profile cost versus local parabola",
-    xlabel="amplitude A",
-    line_color="#66d9ef",
-    local_sigma=saturation_result.param_stderr[1],
-    local_color="#b8c1ca",
-    threshold_color="#edf2f4",
-    delta_max=8,
-    filename=gallery_path("saturation_profile_dark.png"),
-    format=:png,
-)
-plot_contour(
-    cont;
-    theme=:minimal,
-    title="Profile contours versus local covariance",
-    xlabel="amplitude A",
-    ylabel="time constant τ",
-    local_covariance=saturation_result.param_covariance,
-    local_center=saturation_result.params[[1, 2]],
-    figure_size=(980, 720),
-    filename=gallery_path("amplitude_timescale_contour_light.png"),
-    format=:png,
-)
-plot_contour(
-    cont;
-    theme=:dark,
-    title="Profile contours versus local covariance",
-    xlabel="amplitude A",
-    ylabel="time constant τ",
-    local_covariance=saturation_result.param_covariance,
-    local_center=saturation_result.params[[1, 2]],
-    local_line_color="#b8c1ca",
-    figure_size=(980, 720),
-    filename=gallery_path("amplitude_timescale_contour_dark.png"),
-    format=:png,
-)
+amplitude_interval = profile_interval(saturation_result, 1; npoints=81, nsigma=4)
+emit_doc_output_snapshot("constraints_profiles") do
+    println("amplitude center = ", saturation_result.params[1])
+    println("amplitude 1sigma lower = ", amplitude_interval.lower)
+    println("amplitude 1sigma upper = ", amplitude_interval.upper)
+    println("amplitude -sigma = ", amplitude_interval.uncertainty_minus)
+    println("amplitude +sigma = ", amplitude_interval.uncertainty_plus)
+    println(diagnostic_dashboard_text(saturation_result))
+end
+if RENDER_DOC_ASSETS
+    prof = JuFitter.profile(saturation_result, 1; npoints=61, nsigma=4)
+    cont = JuFitter.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
+
+    plot_profile(
+        prof;
+        theme=:workbench,
+        appearance=:light,
+        title="Profile cost versus local parabola",
+        xlabel="amplitude A",
+        local_sigma=saturation_result.param_stderr[1],
+        delta_max=8,
+        filename=gallery_path("saturation_profile_light.png"),
+        format=:png,
+    )
+    plot_profile(
+        prof;
+        theme=:workbench,
+        appearance=:dark,
+        title="Profile cost versus local parabola",
+        xlabel="amplitude A",
+        local_sigma=saturation_result.param_stderr[1],
+        delta_max=8,
+        filename=gallery_path("saturation_profile_dark.png"),
+        format=:png,
+    )
+    plot_contour(
+        cont;
+        theme=:workbench,
+        appearance=:light,
+        title="Profile contours versus local covariance",
+        xlabel="amplitude A",
+        ylabel="time constant τ",
+        local_covariance=saturation_result.param_covariance,
+        local_center=saturation_result.params[[1, 2]],
+        figure_size=(980, 720),
+        filename=gallery_path("amplitude_timescale_contour_light.png"),
+        format=:png,
+    )
+    plot_contour(
+        cont;
+        theme=:workbench,
+        appearance=:dark,
+        title="Profile contours versus local covariance",
+        xlabel="amplitude A",
+        ylabel="time constant τ",
+        local_covariance=saturation_result.param_covariance,
+        local_center=saturation_result.params[[1, 2]],
+        figure_size=(980, 720),
+        filename=gallery_path("amplitude_timescale_contour_dark.png"),
+        format=:png,
+    )
+    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+        plot_profile(
+            prof;
+            theme=style,
+            appearance=appearance,
+            title=style == :publication ? L"\mathrm{Profile\ cost\ versus\ local\ parabola}" :
+                  "Profile cost versus local parabola",
+            xlabel=style == :publication ? L"\mathrm{amplitude}\ A" : "amplitude A",
+            local_sigma=saturation_result.param_stderr[1],
+            delta_max=8,
+            filename=gallery_path("saturation_profile_$(style)_$(appearance).png"),
+            format=:png,
+        )
+        plot_contour(
+            cont;
+            theme=style,
+            appearance=appearance,
+            title=style == :publication ? L"\mathrm{Profile\ contours\ versus\ local\ covariance}" :
+                  "Profile contours versus local covariance",
+            xlabel=style == :publication ? L"\mathrm{amplitude}\ A" : "amplitude A",
+            ylabel=style == :publication ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
+            local_covariance=saturation_result.param_covariance,
+            local_center=saturation_result.params[[1, 2]],
+            figure_size=(980, 720),
+            filename=gallery_path("amplitude_timescale_contour_$(style)_$(appearance).png"),
+            format=:png,
+        )
+    end
+end
 
 # 6. Poisson decay counts and a binned detector spectrum.
 x_counts = collect(0.0:1.0:18.0)
@@ -652,8 +1080,30 @@ poisson_result = fit_poisson_model(
     parameter_names=["initial signal", "decay constant", "background"],
     initial_guesses=[[40.0, 0.15, 3.0], [70.0, 0.30, 2.0], [25.0, 0.08, 5.0]],
 )
+emit_doc_output_snapshot("poisson_decay") do
+    lambda = poisson_result.params[2]
+    sigma_lambda = poisson_result.param_stderr[2]
+    half_life = log(2) / lambda
+    sigma_half_life = log(2) * sigma_lambda / lambda^2
+
+    println("half-life = ", half_life, " +/- ", sigma_half_life, " min")
+    println("deviance/ndf = ", poisson_result.stats.chi2_ndf)
+    println("P(D) = ", poisson_result.stats.pvalue)
+    println(diagnostic_dashboard_text(poisson_result))
+end
 save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=false)
 save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=true)
+for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+    save_poisson_counts(
+        poisson_result,
+        x_counts,
+        counts,
+        poisson_model,
+        "poisson_counts";
+        style=style,
+        appearance=appearance,
+    )
+end
 
 edges = [0.0, 0.4, 0.9, 1.5, 2.2, 3.0, 4.0, 5.2, 6.6, 8.2, 10.0]
 hist_counts = [0, 3, 9, 24, 47, 69, 51, 24, 8, 4]
@@ -676,8 +1126,31 @@ hist_result = fit_histogram_model(
     parameter_names=["peak yield", "centroid", "width", "background density"],
     initial_guesses=[[210.0, 3.8, 1.0, 1.0], [300.0, 4.2, 1.5, 0.5], [150.0, 3.2, 0.7, 2.0]],
 )
+emit_doc_output_snapshot("histogram_likelihood") do
+    println(
+        "centroid = ",
+        hist_result.params[2],
+        " +/- ",
+        hist_result.param_stderr[2],
+        " V",
+    )
+    println("deviance/ndf = ", hist_result.stats.chi2_ndf)
+    println("P(D) = ", hist_result.stats.pvalue)
+    println(diagnostic_dashboard_text(hist_result))
+end
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=false)
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=true)
+for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+    save_histogram_fit(
+        hist_result,
+        edges,
+        hist_counts,
+        expected_counts,
+        "histogram_likelihood";
+        style=style,
+        appearance=appearance,
+    )
+end
 
 # 7. Multi-dataset model criticism and partial parameter sharing.
 include(joinpath(@__DIR__, "10_multi_dataset_calibration.jl"))

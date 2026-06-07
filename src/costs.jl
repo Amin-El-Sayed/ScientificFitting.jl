@@ -35,10 +35,16 @@ end
 function _parameter_constraint_chi2(problem, p::AbstractVector)
     isempty(problem.parameter_constraints) && return zero(eltype(p))
 
+    return _parameter_constraint_chi2(_prepare_parameter_constraints(problem), p)
+end
+
+function _parameter_constraint_chi2(prepared_constraints::AbstractVector{<:PreparedParameterConstraint}, p::AbstractVector)
+    isempty(prepared_constraints) && return zero(eltype(p))
+
     total = zero(eltype(p))
-    @inbounds for constraint in problem.parameter_constraints
+    @inbounds for constraint in prepared_constraints
         delta = p[constraint.indices] .- constraint.mean
-        z = _stable_cholesky(constraint.covariance).L \ delta
+        z = constraint.factor.L \ delta
         total += sum(abs2, z)
     end
     return total
@@ -59,14 +65,18 @@ end
 function _parameter_constraint_nll(problem, p::AbstractVector)
     isempty(problem.parameter_constraints) && return zero(eltype(p))
 
+    return _parameter_constraint_nll(_prepare_parameter_constraints(problem), p)
+end
+
+function _parameter_constraint_nll(prepared_constraints::AbstractVector{<:PreparedParameterConstraint}, p::AbstractVector)
+    isempty(prepared_constraints) && return zero(eltype(p))
+
     total = zero(eltype(p))
-    @inbounds for constraint in problem.parameter_constraints
+    @inbounds for constraint in prepared_constraints
         k = length(constraint.indices)
         delta = p[constraint.indices] .- constraint.mean
-        F = _stable_cholesky(constraint.covariance)
-        z = F.L \ delta
-        logdet = 2.0 * sum(log, diag(F.L))
-        total += k * LOG2PI + logdet + sum(abs2, z)
+        z = constraint.factor.L \ delta
+        total += k * LOG2PI + constraint.logdet + sum(abs2, z)
     end
     return total
 end
@@ -88,7 +98,7 @@ end
 
 function _chi2_cost(cache::FitEvaluationCache, p::AbstractVector)
     problem = cache.problem
-    return _data_chi2(cache, p) + _prior_chi2(problem, p) + _parameter_constraint_chi2(problem, p)
+    return _data_chi2(cache, p) + _prior_chi2(problem, p) + _parameter_constraint_chi2(cache.parameter_constraints, p)
 end
 
 function _covariance_logdet(cov, n::Int)
@@ -128,7 +138,7 @@ end
 
 function _gaussian_nll(cache::FitEvaluationCache, p::AbstractVector)
     problem = cache.problem
-    return _gaussian_data_nll(cache, p) + _prior_nll(problem, p) + _parameter_constraint_nll(problem, p)
+    return _gaussian_data_nll(cache, p) + _prior_nll(problem, p) + _parameter_constraint_nll(cache.parameter_constraints, p)
 end
 
 function _cost_value(problem::FitProblem, p::AbstractVector, cost::Symbol)

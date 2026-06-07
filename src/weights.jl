@@ -19,9 +19,25 @@ struct DensePreparedCovariance{F} <: PreparedCovariance
     logdet::Float64
 end
 
-struct FitEvaluationCache{C<:PreparedCovariance}
+"""
+    PreparedParameterConstraint
+
+Internal cached representation of a correlated Gaussian parameter constraint.
+The covariance factorization and log determinant are independent of the fitted
+parameters, so they must be prepared once instead of recomputed inside every
+objective call.
+"""
+struct PreparedParameterConstraint{F}
+    indices::Vector{Int}
+    mean::Vector{Float64}
+    factor::F
+    logdet::Float64
+end
+
+struct FitEvaluationCache{C<:PreparedCovariance, P}
     problem::FitProblem
     covariance::C
+    parameter_constraints::P
 end
 
 function _has_model_relative_y_uncertainty(problem::FitProblem)
@@ -49,12 +65,24 @@ function _prepare_covariance(cov, n::Int)
     return DensePreparedCovariance(F, logdet)
 end
 
+function _prepare_parameter_constraint(constraint::ParameterConstraint)
+    factor = _stable_cholesky(constraint.covariance)
+    logdet = 2.0 * sum(log, diag(factor.L))
+    return PreparedParameterConstraint(constraint.indices, constraint.mean, factor, logdet)
+end
+
+function _prepare_parameter_constraints(problem)
+    isempty(problem.parameter_constraints) && return PreparedParameterConstraint[]
+    return [_prepare_parameter_constraint(constraint) for constraint in problem.parameter_constraints]
+end
+
 function _prepare_fit_cache(problem::FitProblem)
+    prepared_constraints = _prepare_parameter_constraints(problem)
     if !_static_effective_covariance_available(problem)
-        return FitEvaluationCache(problem, DynamicPreparedCovariance())
+        return FitEvaluationCache(problem, DynamicPreparedCovariance(), prepared_constraints)
     end
     cov = _effective_covariance(problem, problem.p0)
-    return FitEvaluationCache(problem, _prepare_covariance(cov, length(problem.y)))
+    return FitEvaluationCache(problem, _prepare_covariance(cov, length(problem.y)), prepared_constraints)
 end
 
 function _model_values(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
@@ -261,12 +289,12 @@ function _weighted_residual(cache::FitEvaluationCache, p::AbstractVector)
     problem = cache.problem
     r = _residual(problem, p)
     rw_data = _whiten_residual(cache, p, r)
-    if !has_parameter_priors(problem) && !has_parameter_constraints(problem)
+    if !has_parameter_priors(problem) && isempty(cache.parameter_constraints)
         return rw_data
     end
 
     T = eltype(rw_data)
-    n_constraint_terms = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
+    n_constraint_terms = sum((length(c.indices) for c in cache.parameter_constraints); init=0)
     rw_priors = Vector{T}(undef, length(problem.parameter_priors) + n_constraint_terms)
     cursor = 1
     @inbounds for prior in problem.parameter_priors
@@ -274,9 +302,9 @@ function _weighted_residual(cache::FitEvaluationCache, p::AbstractVector)
         rw_priors[cursor] = (p[prior.index] - prior.mean) / sigma
         cursor += 1
     end
-    @inbounds for constraint in problem.parameter_constraints
+    @inbounds for constraint in cache.parameter_constraints
         delta = p[constraint.indices] .- constraint.mean
-        z = _stable_cholesky(constraint.covariance).L \ delta
+        z = constraint.factor.L \ delta
         rw_priors[cursor:(cursor + length(z) - 1)] .= z
         cursor += length(z)
     end

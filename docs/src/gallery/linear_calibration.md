@@ -5,11 +5,40 @@ point-by-point uncertainties, a weighted fit, and a plot that states exactly
 what its uncertainty band means.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" src="../assets/gallery/linear_calibration_light.png" alt="Linear calibration fit">
-<img class="jufitter-plot jufitter-plot-dark" src="../assets/gallery/linear_calibration_dark.png" alt="Linear calibration fit in dark mode">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="workbench" src="../assets/gallery/linear_calibration_workbench_light.png" alt="Linear calibration fit in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="workbench" src="../assets/gallery/linear_calibration_workbench_dark.png" alt="Linear calibration fit in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="showcase" src="../assets/gallery/linear_calibration_showcase_light.png" alt="Linear calibration fit in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="showcase" src="../assets/gallery/linear_calibration_showcase_dark.png" alt="Linear calibration fit in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="publication" src="../assets/gallery/linear_calibration_publication_light.png" alt="Linear calibration fit in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="publication" src="../assets/gallery/linear_calibration_publication_dark.png" alt="Linear calibration fit in publication dark style">
 ```
 
-## Model
+## Question
+
+A sensor produces a voltage ``U`` when the probe is moved to a known position
+``x``. The calibration question is deliberately ordinary:
+
+```math
+U(x) = m x + b.
+```
+
+The slope ``m`` is the sensitivity of the sensor and ``b`` is the electronic or
+mechanical zero offset. Even this simple case is useful because it contains the
+complete JuFitter loop: explicit data, stated uncertainties, weighted fit,
+diagnostics, and a plot whose band has a defined statistical meaning.
+
+## Data
+
+The arrays below are written explicitly, as they would be in a small lab
+notebook after reading a CSV or typing values from an instrument log. The
+uncertainties are one-standard-deviation voltage uncertainties. They grow
+slightly with position because the measurement range and readout scatter grow
+with the signal.
+
+The example intentionally does not hide a data generator in the code cell. A
+reader should see exactly which observations are fitted.
+
+## Model and Cost
 
 ```math
 U(x) = m x + b
@@ -35,11 +64,20 @@ using CairoMakie
 using JuFitter
 using LaTeXStrings
 
-x = collect(range(0.0, 10.0; length=28))
-scatter_scale = @. 0.22 + 0.025 * x
-sigma_y = @. 0.10 + 0.012 * x
-y = @. 0.82 + 1.72 * x +
-         scatter_scale * (0.55 * sin(1.25 * x) + 0.18 * cos(3.7 * x))
+# Calibration data: position in mm, sensor voltage in V, and individual
+# one-standard-deviation voltage uncertainties.
+x = [0.0, 0.3704, 0.7407, 1.1111, 1.4815, 1.8519, 2.2222, 2.5926,
+     2.9630, 3.3333, 3.7037, 4.0741, 4.4444, 4.8148, 5.1852, 5.5556,
+     5.9259, 6.2963, 6.6667, 7.0370, 7.4074, 7.7778, 8.1481, 8.5185,
+     8.8889, 9.2593, 9.6296, 10.0]
+y = [0.8596, 1.5216, 2.1594, 2.8399, 3.5361, 4.1533, 4.6783, 5.2132,
+     5.8284, 6.4639, 7.0427, 7.6164, 8.2992, 9.0838, 9.8358, 10.4881,
+     11.1291, 11.8393, 12.5375, 13.0958, 13.5503, 14.0656, 14.6970,
+     15.3255, 15.8751, 16.4603, 17.2153, 18.0676]
+sigma_y = [0.1000, 0.1044, 0.1089, 0.1133, 0.1178, 0.1222, 0.1267,
+           0.1311, 0.1356, 0.1400, 0.1444, 0.1489, 0.1533, 0.1578,
+           0.1622, 0.1667, 0.1711, 0.1756, 0.1800, 0.1844, 0.1889,
+           0.1933, 0.1978, 0.2022, 0.2067, 0.2111, 0.2156, 0.2200]
 
 model(x, p) = @. p[1] * x + p[2]
 
@@ -63,10 +101,102 @@ plot_fit(
     stats_position=:right,
     stats_mode=:full,
 )
+
+println(report_text(result; parameter_names=["m", "b"]))
+println(diagnostic_dashboard_text(result))
+```
+
+```@raw html
+<div class="jufitter-cell-output">
+<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<pre>Fit report
+backend = lsqfit
+converged = true
+iterations = 500
+message = Converged with LsqFit
+
+Parameters:
+  m = 1.70389 +/- 0.00973936
+  b = 0.890534 +/- 0.0448941
+
+Statistics:
+  cost = chi2
+  cost_min = 18.2874
+  nll_min = -34.3551
+  chi2 = 18.2874
+  ndf = 26
+  chi2/ndf = 0.703363
+  pvalue = 0.865067
+  AIC = -30.3551
+  BIC = -27.6907
+
+Fit diagnostic dashboard
+status = review - inspect diagnostics
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+  2. Look for missing curvature, drift, hysteresis, time dependence, or an incorrect independent variable transformation.</pre>
+</div>
 ```
 
 ## Run It
 
 ```bash
-julia --project=. examples/gallery/09_docs_gallery_suite.jl
+julia --project=docs examples/gallery/09_docs_gallery_suite.jl
 ```
+
+## Diagnostics
+
+The fit converges and the goodness-of-fit is not suspicious:
+
+```math
+\chi^2/\mathrm{ndf}=0.703,
+\qquad
+P(\chi^2)=0.865.
+```
+
+That does not mean the result should be copied blindly. The diagnostic dashboard
+asks for review because the residual pattern is not perfectly random. In a real
+calibration notebook the next quick checks are:
+
+- plot residuals against acquisition order, not only against ``x``;
+- verify that voltage uncertainties are one-standard-deviation quantities;
+- check whether repeated measurements at the same position share drift or
+  offset noise;
+- compare the result with a residual plot or a covariance model if the same
+  readout chain was used for all points.
+
+The lesson is intentionally modest: an `ok`-looking line plot is not the same
+as a completed measurement. JuFitter surfaces the first suspicious pattern
+without hiding the fitted numbers.
+
+## Interpretation
+
+For this dataset the calibration law is approximately
+
+```math
+U(x) = (1.7039 \pm 0.0097)\,x + (0.8905 \pm 0.0449).
+```
+
+The plotted 1-sigma prediction band answers: where would a new observation be
+expected under the fitted model and stated voltage uncertainty? It is wider
+than the uncertainty of the mean fitted line because a future measurement also
+contains observation noise.
+
+## What Can Go Wrong
+
+Do not use unweighted least squares if the points have different uncertainties.
+The later high-voltage points here are less precise and should not have the
+same statistical weight as the low-voltage points.
+
+Do not treat the right-side parameter panel as a substitute for residual
+inspection. A small p-value, a very large p-value, or structured pulls can all
+indicate that the uncertainty model is incomplete.
+
+Do not increase plot margins, hide bands, or round numbers until the statistical
+meaning is clear. Plot polish comes after the measurement model is defensible.
+
+Next useful pages: [XY Uncertainties](@ref), [Full Covariance](@ref), and
+[Fitting for Practitioners](@ref).

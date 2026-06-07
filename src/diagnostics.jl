@@ -390,7 +390,7 @@ function _diagnostic_summary(findings::Vector{DiagnosticFinding})
     critical = count(f -> f.severity == :critical, findings)
     warning = count(f -> f.severity == :warning, findings)
     if critical > 0
-        return "$critical critical issue(s), $warning warning(s). Do not treat this fit as publication-ready."
+        return "$critical critical issue(s), $warning warning(s). Fix the issue before using this result for conclusions."
     elseif warning > 0
         return "$warning warning(s). Inspect before trusting uncertainties or conclusions."
     end
@@ -455,6 +455,13 @@ function _diagnostic_status(findings::Vector{DiagnosticFinding})
     return :ok
 end
 
+function _diagnostic_status_label(status::Symbol)
+    status == :ok && return "ok - no immediate issue"
+    status == :review && return "review - inspect diagnostics"
+    status == :stop && return "critical - fix before use"
+    return string(status)
+end
+
 function _severity_counts(findings::Vector{DiagnosticFinding})
     counts = Dict(:critical => 0, :warning => 0, :info => 0)
     for finding in findings
@@ -488,11 +495,12 @@ Create a compact dashboard from `diagnose(...)` findings. The dashboard does
 not add new statistical tests; it summarizes the current findings into a lab
 workflow status and prioritized next actions.
 
-The status is:
+The internal status is:
 
 - `:ok`: no current warnings or critical findings,
-- `:review`: warnings exist and should be inspected before publication,
-- `:stop`: at least one critical finding exists; do not trust the fit yet.
+- `:review`: warnings exist and should be inspected before using the result,
+- `:stop`: at least one critical finding exists and must be fixed before the
+  result is used for conclusions.
 """
 function diagnostic_dashboard(report::DiagnosticReport; max_actions::Int=5)
     return DiagnosticDashboard(
@@ -510,7 +518,7 @@ function _diagnostic_dashboard_lines(dashboard::DiagnosticDashboard)
     counts = dashboard.severity_counts
     lines = String[
         "Fit diagnostic dashboard",
-        "status = $(dashboard.status)",
+        "status = $(_diagnostic_status_label(dashboard.status))",
         "critical = $(get(counts, :critical, 0)), warning = $(get(counts, :warning, 0)), info = $(get(counts, :info, 0))",
         dashboard.report.summary,
     ]

@@ -52,6 +52,11 @@ result = fit.result
 <p><a href="quickstart.html">Run the quickstart</a></p>
 </div>
 <div class="jufitter-card">
+<h3>How It Works</h3>
+<p>See the path from arrays and uncertainty models to cost functions, solvers, results, diagnostics, reports, and plots.</p>
+<p><a href="how_jufitter_works.html">Open the overview</a></p>
+</div>
+<div class="jufitter-card">
 <h3>Gallery</h3>
 <p>Start from complete scientific workflows: data, model, fit, diagnostics, interpretation.</p>
 <p><a href="gallery.html">Open the gallery</a></p>

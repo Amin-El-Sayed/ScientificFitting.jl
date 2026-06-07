@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }}
+  core:
+    name: Core tests - Julia ${{ matrix.version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,11 +22,25 @@ jobs:
       - uses: julia-actions/cache@v2
       - name: Instantiate
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
-      - name: Test
-        run: julia --project=. -e 'using Pkg; Pkg.test()'
+      - name: Core tests without plot rendering
+        run: julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'
+
+  package:
+    name: Full package test - Julia 1.12 - ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.12"
+      - uses: julia-actions/cache@v2
+      - name: Instantiate
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Pkg.test
+        run: julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'
 
   docs:
-    name: Documentation
+    name: Documentation, plots, and docs gates
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,5 +50,16 @@ jobs:
       - uses: julia-actions/cache@v2
       - name: Instantiate docs
         run: julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Source documentation gates
+        run: |
+          julia --project=. --startup-file=no test/docs_gallery_gate.jl
+          julia --project=. --startup-file=no test/docs_link_gate.jl
+          julia --project=. --startup-file=no test/docs_visual_asset_gate.jl
+      - name: Plot regression tests
+        run: julia --project=docs --startup-file=no test/plots/fitplot.jl
       - name: Build docs
-        run: julia --project=docs docs/make.jl
+        run: julia --project=docs --startup-file=no docs/make.jl
+      - name: Rendered documentation link gate
+        run: julia --project=. --startup-file=no test/docs_html_link_gate.jl
+      - name: Documentation output snapshot gate
+        run: julia --project=. --startup-file=no test/docs_output_snapshots.jl

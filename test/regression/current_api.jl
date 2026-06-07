@@ -214,19 +214,6 @@ using Test
         @test minimum(cont.delta_cost) <= 1e-5
         @test cont.parameter_indices == (1, 2)
 
-        profile_out = joinpath(mktempdir(), "profile.png")
-        contour_out = joinpath(mktempdir(), "contour.png")
-        @test plot_profile(prof; filename=profile_out, format=:png, local_sigma=result.param_stderr[1]) !== nothing
-        @test plot_contour(
-            cont;
-            filename=contour_out,
-            format=:png,
-            local_covariance=result.param_covariance,
-            local_center=result.params[[1, 2]],
-        ) !== nothing
-        @test isfile(profile_out)
-        @test isfile(contour_out)
-
         interval = profile_interval(result, 1; npoints=9, nsigma=2)
         @test interval.parameter_index == 1
         @test isfinite(interval.uncertainty_minus)
@@ -502,7 +489,7 @@ using Test
         @test occursin("cost_min", text)
     end
 
-    @testset "Plot smoke test" begin
+    @testset "Plotting extension boundary" begin
         x = collect(range(0.0, 4.0; length=50))
         p_true = [1.5, 0.6]
         model(x, p) = @. p[1] * x + p[2]
@@ -510,67 +497,15 @@ using Test
         y = model(x, p_true) .+ sigma_y .* cos.(3.3 .* x)
 
         result = fit_model(model, x, y; p0=[1.0, 0.2], sigma_y=sigma_y)
+        err = try
+            plot_fit(result; title="Linear Smoke Fit")
+            nothing
+        catch caught
+            caught
+        end
 
-        out = joinpath(mktempdir(), "fit_smoke.png")
-        fig = plot_fit(
-            result;
-            filename=out,
-            format=:png,
-            title="Linear Smoke Fit",
-            xlabel="x axis",
-            ylabel="y axis",
-            parameter_names=["m", "b"],
-            fit_color=:darkgreen,
-            band_color=:green,
-            data_marker=:diamond,
-            data_markersize=9,
-        )
-
-        @test fig !== nothing
-        @test isfile(out)
-
-        out_no_stats = joinpath(mktempdir(), "fit_no_stats.png")
-        fig_no_stats = plot_fit(
-            result;
-            filename=out_no_stats,
-            format=:png,
-            show_stats=false,
-            show_legend=false,
-            axis_kwargs=(titlesize=18,),
-            line_kwargs=(linestyle=:dash,),
-            scatter_kwargs=(strokewidth=1,),
-            band_kwargs=(visible=true,),
-            yerrorbars_kwargs=(linewidth=1,),
-        )
-
-        @test fig_no_stats !== nothing
-        @test isfile(out_no_stats)
-
-        out_tweaked = joinpath(mktempdir(), "fit_tweaked.svg")
-        fig_tweaked = plot_fit(
-            result;
-            filename=out_tweaked,
-            format=:svg,
-            stats_panel_width=300,
-            panel_gap=4,
-            stats_linegap=1,
-            stats_box_kwargs=(strokewidth=1.5,),
-            stats_label_kwargs=(fontsize=14,),
-            legend_kwargs=(framevisible=false,),
-        )
-
-        @test fig_tweaked !== nothing
-        @test isfile(out_tweaked)
-
-        residual_out = joinpath(mktempdir(), "residuals.png")
-        pull_out = joinpath(mktempdir(), "pulls.png")
-        diag_out = joinpath(mktempdir(), "diagnostics.png")
-
-        @test plot_residuals(result; kind=:residual, filename=residual_out, format=:png) !== nothing
-        @test plot_residuals(result; kind=:pull, filename=pull_out, format=:png) !== nothing
-        @test plot_diagnostics(result; filename=diag_out, format=:png) !== nothing
-        @test isfile(residual_out)
-        @test isfile(pull_out)
-        @test isfile(diag_out)
+        @test err isa ArgumentError
+        @test occursin("optional CairoMakie plotting extension", sprint(showerror, err))
+        @test occursin("using CairoMakie", sprint(showerror, err))
     end
 end

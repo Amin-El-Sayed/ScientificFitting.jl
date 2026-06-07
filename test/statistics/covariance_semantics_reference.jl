@@ -106,5 +106,20 @@ end
         @test isapprox(result.param_covariance, cov; atol=2e-7, rtol=2e-7)
         @test isapprox(result.stats.chi2, expected_chi2; atol=2e-8, rtol=2e-8)
         @test result.stats.ndf == length(x)
+
+        cache = JuFitter._prepare_fit_cache(result.problem)
+        @test length(cache.parameter_constraints) == 1
+        @test isapprox(
+            JuFitter._chi2_cost(cache, result.params),
+            JuFitter._chi2_cost(result.problem, result.params);
+            atol=2e-12,
+            rtol=2e-12,
+        )
+        @test isapprox(
+            JuFitter._gaussian_nll(cache, result.params),
+            JuFitter._gaussian_nll(result.problem, result.params);
+            atol=2e-12,
+            rtol=2e-12,
+        )
     end
 end

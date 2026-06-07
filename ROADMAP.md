@@ -18,6 +18,9 @@ JuFitter should compete by combining:
 - the one-liner convenience expected from SciPy/lmfit workflows,
 - the explicit covariance and constraint semantics expected from kafe2/Minuit,
 - Julia-native performance and composability,
+- a documented Python interoperability path through JuliaCall/PythonCall for
+  users who want to call the fitting/reporting engine from Python without
+  rewriting JuFitter,
 - publication-grade plots as a default outcome, not a later styling step,
 - documentation that teaches both usage and statistical meaning.
 
@@ -150,8 +153,16 @@ Current evidence:
 
 Open hardening work:
 
+- Apply small, local numerical optimizations before larger architecture work:
+  cache static parameter-constraint factorizations, avoid repeated
+  model-independent work inside objectives, and add tests for every such change.
 - Improve adaptive contour refinement for strongly curved/non-elliptic regions
   beyond simple level-bracketing cells.
+- Add a kafe2-inspired but JuFitter-native profile/contour matrix for quick
+  multi-parameter diagnosis: diagonal profile scans, lower-triangle pairwise
+  contours, local covariance overlays, compact labels, and machine-readable
+  diagnostics. This should explain what the scientist should conclude rather
+  than merely copying kafe2's visual grammar.
 - Turn the diagnostic dashboard into a visual Makie report that combines fit
   quality, pulls, profiles, contours, and next actions.
 - Add structured covariance/whitening operators for large correlated data.
@@ -173,20 +184,31 @@ Key deliverables:
 
 - Profile and contour plots with correct likelihood thresholds, labels, legends,
   and clear distinction between local covariance and profile intervals.
+- A profile/contour matrix that gives a fast overview of parameter uncertainty,
+  correlation, non-parabolicity, active bounds, and failed refits across several
+  parameters.
 - Residual and pull diagnostics that explain outliers, heteroscedasticity, and
   systematic model failures.
 - External legends/statistical reports that can sit beside the plot without
   wasting plot area.
 - User-extensible plot annotation API for physical extrapolations, thresholds,
   derived quantities, and uncertainty markers.
+- Modular plotting helpers for adding individual objects to existing fit
+  figures: extra curves, reference bands, vertical/horizontal thresholds,
+  derived-quantity markers, multi-fit legends, and consistent right-side
+  reports without rerunning or rewriting the fit.
 
 Acceptance criteria:
 
 - Diagnostic plots are backed by numerical tests for profile/contour semantics.
+- The profile/contour matrix is tested against a quadratic covariance reference
+  and at least one non-elliptic profile example.
 - Every diagnostic example explains what a scientist should conclude from the
   plot, not merely how to call the function.
 - The gallery includes difficult, messy examples before simple aesthetic
   showcase examples.
+- Plot objects can be added after `plot_fit` returns without changing the
+  exported figure footprint or invalidating the layout.
 
 ## Phase 4: Documentation and Gallery
 
@@ -211,6 +233,26 @@ Key deliverables:
 - Light and dark documentation design with matching plot themes.
 - A reproducible gallery pipeline, ideally via Literate-style examples, so code,
   text, and figures stay synchronized.
+- Gallery code should look like real notebook work. Prefer explicit curated
+  data arrays or small CSV inputs over long synthetic data-generation blocks on
+  beginner-facing pages. Synthetic generation belongs in hidden build scripts or
+  clearly labeled controlled-method demonstrations.
+- Reorder the gallery as a gradual progression: quick linear calibration,
+  uncertainty variants, full covariance, nonlinear resonance/oscillation,
+  constraints and profiles, likelihood/histogram workflows, multi-dataset
+  workflows, then advanced publication/custom-plot workflows. Photoelectric
+  threshold extraction should appear after the reader has seen linear fits and
+  uncertainty propagation.
+- Code examples must be commented like maintainable lab notebook code:
+  concise comments for data meaning, uncertainty model, statistical choice,
+  derived quantities, and plot annotations.
+- Statistical concepts should be introduced before they are used in examples,
+  or linked to a short explanation at first use. No unexplained chi-square,
+  p-value, profile likelihood, or Wilks-threshold references in beginner pages.
+- Notebook-style `Real output` blocks must be verified by
+  `test/docs_output_snapshots.jl`, not edited by hand. If a page shows terminal
+  output, the corresponding example script needs a snapshot marker or an
+  equivalent executable source of truth.
 
 Acceptance criteria:
 
@@ -219,9 +261,47 @@ Acceptance criteria:
 - Statistical concepts are explained with equations and practical settings.
 - Gallery examples include simple, dense-data, XY-uncertainty, full-covariance,
   profile/contour, histogram, likelihood, and multi-fit workflows.
+
+## Phase 4.5: Python Interoperability
+
+Status: planned, not release-claimed.
+
+Goal: Python users can call the mature JuFitter fitting/reporting engine without
+the project becoming a second Python implementation.
+
+Key deliverables:
+
+- Validate the current package through JuliaCall/PythonCall from a clean Python
+  environment.
+- Provide a minimal Python example that fits arrays, reads parameter estimates,
+  and prints `report_text(...)` without loading Makie.
+- Document array conversion and ownership rules for NumPy inputs and Julia
+  outputs.
+- Keep plotting optional: Python interoperability must work for fitting and
+  reports even when CairoMakie is not installed.
+- Add a CI or release-gate job that runs the Python interoperability example
+  when PythonCall/JuliaCall support is enabled.
+
+Acceptance criteria:
+
+- A documented `juliacall` example runs from Python on a clean checkout.
+- Returned fit parameters, uncertainties, diagnostics, and text reports are
+  accessible from Python.
+- Limitations are explicit: Julia startup cost, package environment setup, and
+  plotting-backend requirements are not hidden.
 - The first public release has a clear path from `Pkg.add` to first successful
   plot and report.
 - The docs explain when not to trust local errors, p-values, or chi-square/ndf.
+
+## Local Browser QA
+
+Browser-based documentation QA needs explicit permission for the local docs URL
+used by the in-app browser, currently `http://localhost:8010`. Without that
+permission, automated checks can still build the docs and inspect generated
+files, but they cannot verify visible sidebar/plot geometry in the browser.
+When browser access is available, each plot-layout change should measure the
+visible plot, article column, sidebar, viewport width, and horizontal overflow
+on at least one gallery page.
 
 ## Agent Operating Model
 
