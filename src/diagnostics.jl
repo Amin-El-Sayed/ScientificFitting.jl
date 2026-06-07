@@ -464,6 +464,14 @@ function _diagnostic_report_lines(report::DiagnosticReport)
     return lines
 end
 
+"""
+    diagnose_text(report::DiagnosticReport)
+    diagnose_text(result)
+
+Render structured diagnostics as plain text. Passing a fit result first calls
+`diagnose(result)`. Use this for terminal output, notebook logs, and
+documentation snapshots where Makie should not be required.
+"""
 function diagnose_text(report::DiagnosticReport)
     return join(_diagnostic_report_lines(report), "\n")
 end
@@ -561,6 +569,13 @@ function _diagnostic_dashboard_lines(dashboard::DiagnosticDashboard)
     return lines
 end
 
+"""
+    diagnostic_dashboard_text(dashboard::DiagnosticDashboard)
+    diagnostic_dashboard_text(result; max_actions=5)
+
+Render a compact diagnostic dashboard as plain text. The output contains an
+overall status, severity counts, and prioritized next actions.
+"""
 diagnostic_dashboard_text(dashboard::DiagnosticDashboard) =
     join(_diagnostic_dashboard_lines(dashboard), "\n")
 

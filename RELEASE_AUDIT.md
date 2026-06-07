@@ -66,6 +66,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language.
+- `julia --project=. --startup-file=no test/docs_api_reference_gate.jl` passes
+  locally. The gate verifies that every exported public binding except the
+  module name has a REPL/Documenter-visible docstring, preventing `@autodocs`
+  from exposing undocumented public names.
 - `README.md` has been rewritten from an API dump into a public landing page:
   concise project purpose, quickstart, installation status, documentation entry
   points, current scope, known limitations, development gates, and release
@@ -221,10 +225,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   was removed from the public
   documentation source, and the main technical concept pages are now in
   polished English.
-- The API reference is generated from docstrings, and the high-traffic plotting
-  entry points now have visible baseline docs. Many public functions still do
-  not yet have the level of parameter-by-parameter documentation expected from a
-  serious Julia package.
+- The API reference is generated from docstrings, and every exported public
+  binding now has baseline REPL/Documenter documentation. The next release
+  polish step is not missing docstrings, but richer parameter-by-parameter
+  reference entries for the highest-traffic workflows.
 - Source and rendered documentation links are covered locally by
   `test/docs_link_gate.jl` and `test/docs_html_link_gate.jl`, and both are wired
   into `.github/workflows/ci.yml`. Remote CI execution still needs to be

@@ -1,3 +1,12 @@
+"""
+    LikelihoodFitProblem(objective, gof, p0; nobs, cost_name, kwargs...)
+
+Internal problem representation for likelihood and custom-objective fits.
+`objective(p)` is minimized directly, while optional `gof(p)` supplies a
+chi-square-like goodness-of-fit statistic for reduced statistics and p-values.
+Most users create this through `fit_poisson_model`, `fit_histogram_model`,
+`fit_unbinned_model`, `fit_extended_unbinned_model`, or `fit_custom`.
+"""
 struct LikelihoodFitProblem{TF, TG}
     objective::TF
     gof::TG
@@ -12,6 +21,15 @@ struct LikelihoodFitProblem{TF, TG}
     parameter_names::Union{Nothing, Vector{String}}
 end
 
+"""
+    LikelihoodFitResult
+
+Result of a likelihood or custom-objective fit. It mirrors the parameter,
+covariance, statistics, and diagnostics fields of `FitResult`, but stores a
+`LikelihoodFitProblem` instead of x-y residual data. Plotting support depends on
+the specific likelihood workflow because not every objective has a natural
+curve representation.
+"""
 struct LikelihoodFitResult
     problem::LikelihoodFitProblem
     options::FitOptions

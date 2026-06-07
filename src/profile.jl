@@ -1,3 +1,11 @@
+"""
+    ProfileResult
+
+One-dimensional profile scan of the fitted cost function. `values` are the
+fixed parameter values, `cost_values` are the refitted objective values, and
+`delta_cost` is measured relative to the original fit minimum. The `threshold`
+field records the interval threshold requested by `profile`.
+"""
 struct ProfileResult
     parameter_index::Int
     values::Vector{Float64}
@@ -7,6 +15,13 @@ struct ProfileResult
     best_value::Float64
 end
 
+"""
+    ContourResult
+
+Two-parameter profile-contour scan. `x_values` and `y_values` define the scan
+grid for `parameter_indices`; `delta_cost` stores the refitted cost increase
+relative to the best fit, and `levels` stores the requested contour thresholds.
+"""
 struct ContourResult
     parameter_indices::Tuple{Int, Int}
     x_values::Vector{Float64}
@@ -16,6 +31,14 @@ struct ContourResult
     levels::Vector{Float64}
 end
 
+"""
+    ProfileInterval
+
+Asymmetric interval extracted from a `ProfileResult`. `lower` and `upper` are
+the threshold crossings; `uncertainty_minus` and `uncertainty_plus` are measured
+relative to the best-fit parameter value. Non-finite fields indicate that the
+scan did not bracket the requested threshold.
+"""
 struct ProfileInterval
     parameter_index::Int
     lower::Float64

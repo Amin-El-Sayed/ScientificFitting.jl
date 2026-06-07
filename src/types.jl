@@ -1,3 +1,12 @@
+"""
+    ConstraintSpec(; ineq=nothing, eq=nothing)
+
+Container for nonlinear parameter constraints passed to the general
+`Optimization.jl` backend. `ineq` and `eq` are user functions evaluated on the
+free parameter vector and interpreted as inequality and equality constraints.
+Use this only when simple bounds, fixed parameters, or Gaussian parameter
+constraints are not expressive enough.
+"""
 struct ConstraintSpec{FI, FE}
     ineq::FI
     eq::FE
@@ -7,6 +16,14 @@ ConstraintSpec(; ineq=nothing, eq=nothing) = ConstraintSpec(ineq, eq)
 
 has_constraints(spec::ConstraintSpec) = !(spec.ineq === nothing && spec.eq === nothing)
 
+"""
+    ParameterPrior(index, mean, sigma)
+    ParameterPrior(index, mean, sigma_minus, sigma_plus)
+
+Gaussian prior term for one fitted parameter. The prior contributes a
+chi-square-like penalty centered at `mean`; asymmetric uncertainties use
+`sigma_minus` below the mean and `sigma_plus` above the mean.
+"""
 struct ParameterPrior
     index::Int
     mean::Float64
@@ -20,6 +37,14 @@ ParameterPrior(index::Integer, mean::Real, sigma::Real) =
 ParameterPrior(index::Integer, mean::Real, sigma_minus::Real, sigma_plus::Real) =
     ParameterPrior(Int(index), Float64(mean), Float64(sigma_minus), Float64(sigma_plus))
 
+"""
+    FixedParameter(index, value[, sigma])
+    FixedParameter(index, value, sigma_minus, sigma_plus)
+
+Fix one parameter to `value` during the fit. Optional uncertainties describe
+the externally known value for reports and downstream uncertainty accounting;
+they do not make the parameter free again.
+"""
 struct FixedParameter
     index::Int
     value::Float64
@@ -36,12 +61,28 @@ FixedParameter(index::Integer, value::Real, sigma::Real) =
 FixedParameter(index::Integer, value::Real, sigma_minus::Real, sigma_plus::Real) =
     FixedParameter(Int(index), Float64(value), Float64(sigma_minus), Float64(sigma_plus))
 
+"""
+    ParameterConstraint(indices, mean, covariance)
+
+Correlated Gaussian constraint on several parameters. The contribution is
+formed from the selected parameter vector, the supplied `mean`, and the
+positive-definite covariance matrix. This is the parameter-space analogue of a
+correlated measurement.
+"""
 struct ParameterConstraint
     indices::Vector{Int}
     mean::Vector{Float64}
     covariance::Matrix{Float64}
 end
 
+"""
+    ErrorComponent(name, target, mode, values; active=true)
+
+Named uncertainty contribution used by component-based covariance models.
+`target` identifies the affected variable, `mode` describes how `values` are
+interpreted, and `active=false` keeps the component documented but excluded
+from the current fit.
+"""
 struct ErrorComponent
     name::Symbol
     target::Symbol
@@ -53,6 +94,14 @@ end
 ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=true) =
     ErrorComponent(name, target, mode, values, active)
 
+"""
+    FitOptions(; backend=:auto, cost=:auto, maxiters=500, tol=1e-10,
+                ci_level=0.6827, scale_covariance=:auto, multistart=1)
+
+Normalized solver and reporting options stored in a `FitResult`. User-facing
+fit functions expose these as keyword arguments; constructing `FitOptions`
+directly is mainly useful for lower-level workflows and tests.
+"""
 Base.@kwdef struct FitOptions
     backend::Symbol = :auto
     cost::Symbol = :auto
@@ -84,6 +133,14 @@ struct FitProblem{TF}
     x_derivative::Any
 end
 
+"""
+    FitStatistics
+
+Goodness-of-fit and information-criterion summary for a fit. The fields include
+the minimized objective, negative log-likelihood convention, chi-square-like
+goodness of fit, degrees of freedom, p-value, AIC, and BIC. Fields that are not
+meaningful for a given likelihood are set to `NaN`.
+"""
 struct FitStatistics
     cost::Symbol
     cost_min::Float64
@@ -96,6 +153,13 @@ struct FitStatistics
     bic::Float64
 end
 
+"""
+    DiagnosticFinding
+
+One structured diagnostic issue or note. Each finding has a `severity`
+(`:info`, `:warning`, or `:critical`), a stable machine-readable `code`,
+reader-facing `title`, concrete `evidence`, and a recommended next action.
+"""
 struct DiagnosticFinding
     severity::Symbol
     code::Symbol
@@ -104,6 +168,14 @@ struct DiagnosticFinding
     recommendation::String
 end
 
+"""
+    FitDiagnostics
+
+Numerical and statistical diagnostics stored with every fit result. It contains
+legacy warning strings, covariance/Hessian condition numbers, active-bound
+indices, and structured `DiagnosticFinding`s used by `diagnose` and diagnostic
+plots.
+"""
 struct FitDiagnostics
     warnings::Vector{String}
     covariance_condition::Float64
@@ -112,11 +184,25 @@ struct FitDiagnostics
     findings::Vector{DiagnosticFinding}
 end
 
+"""
+    DiagnosticReport
+
+Structured diagnostic report returned by `diagnose(result)`. It keeps the full
+list of findings plus a short summary suitable for notebook output or a lab log.
+Use `diagnose_text(report)` for a plain-text representation.
+"""
 struct DiagnosticReport
     findings::Vector{DiagnosticFinding}
     summary::String
 end
 
+"""
+    DiagnosticDashboard
+
+Compact, action-oriented summary returned by `diagnostic_dashboard(...)`. It
+groups diagnostic findings into an overall status, severity counts, and
+deduplicated next actions for quick interactive use.
+"""
 struct DiagnosticDashboard
     report::DiagnosticReport
     status::Symbol
@@ -124,6 +210,18 @@ struct DiagnosticDashboard
     next_actions::Vector{String}
 end
 
+"""
+    FitResult
+
+Result of a Gaussian/least-squares style fit. It stores the normalized
+`FitProblem`, solver options and status, fitted parameters, local covariance
+and correlation estimates, fitted model values, residuals, Jacobian,
+statistics, and diagnostics.
+
+The parameter covariance is a local quadratic approximation. For nonlinear
+models, active bounds, weak data, or asymmetric likelihoods, inspect
+`profile(...)` or `contour(...)` before treating symmetric errors as final.
+"""
 struct FitResult
     problem::FitProblem
     options::FitOptions

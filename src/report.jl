@@ -1,3 +1,11 @@
+"""
+    ParameterEstimate
+
+One fitted parameter as stored in a `FitReport`. It records the public name,
+best-fit value, symmetric display uncertainty, asymmetric lower/upper
+uncertainties when available, and whether the parameter was fixed rather than
+fitted.
+"""
 struct ParameterEstimate
     index::Int
     name::String
@@ -8,6 +16,14 @@ struct ParameterEstimate
     fixed::Bool
 end
 
+"""
+    FitReport
+
+Serializable summary returned by `fit_report(result)`. It separates parameter
+estimates, statistics, covariance/correlation matrices, solver status, and
+diagnostics from the full fit object so reports can be printed, tested, or
+exported without depending on Makie.
+"""
 struct FitReport
     parameters::Vector{ParameterEstimate}
     statistics::NamedTuple
@@ -181,6 +197,14 @@ function _report_lines(report::FitReport; sigdigits::Int=6)
     return lines
 end
 
+"""
+    report_text(report::FitReport; sigdigits=6)
+    report_text(result; parameter_names=nothing, sigdigits=6, kwargs...)
+
+Render a `FitReport` or fit result as plain text. The result method first calls
+`fit_report`, so keyword arguments such as `errors=:profile` are forwarded to
+the report builder.
+"""
 function report_text(report::FitReport; sigdigits::Int=6)
     return join(_report_lines(report; sigdigits=sigdigits), "\n")
 end

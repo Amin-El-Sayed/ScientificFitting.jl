@@ -12,6 +12,8 @@ The test suite is split by purpose, not by implementation file.
 - `docs_public_release_gate.jl`: fast hygiene gate for public Documenter pages
   and README. It rejects AI/placeholder markers, private paths, and
   course-internal wording before broad promotion.
+- `docs_api_reference_gate.jl`: fast API-reference gate that requires every
+  exported public binding to have a REPL/Documenter-visible docstring.
 - `docs_link_gate.jl`: fast local-link gate for Markdown links, HTML links, and
   image sources under `docs/src`.
 - `docs_html_link_gate.jl`: rendered-site link gate for `docs/build` after
@@ -59,6 +61,7 @@ Run the documentation release gates with:
 ```julia
 include("test/docs_gallery_gate.jl")
 include("test/docs_public_release_gate.jl")
+include("test/docs_api_reference_gate.jl")
 include("test/docs_link_gate.jl")
 include("test/docs_visual_asset_gate.jl")
 # Run after `julia --project=docs docs/make.jl`.

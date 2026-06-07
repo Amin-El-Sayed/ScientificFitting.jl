@@ -1364,16 +1364,21 @@ end
 
 """
     add_vline!(axis, x; label=nothing, kwargs...)
-    add_hline!(axis, y; label=nothing, kwargs...)
 
-Add vertical or horizontal reference lines to an existing axis. These wrap
-Makie's `vlines!` and `hlines!` with JuFitter-style argument validation.
+Add vertical reference line(s) to an existing axis. This wraps Makie's
+`vlines!` with JuFitter-style argument validation.
 """
 function add_vline!(axis::Axis, x; label=nothing, kwargs...)
     xs = _finite_annotation_vector("x", x; min_length=1)
     return vlines!(axis, xs; label=label, kwargs...)
 end
 
+"""
+    add_hline!(axis, y; label=nothing, kwargs...)
+
+Add horizontal reference line(s) to an existing axis. This wraps Makie's
+`hlines!` with JuFitter-style argument validation.
+"""
 function add_hline!(axis::Axis, y; label=nothing, kwargs...)
     ys = _finite_annotation_vector("y", y; min_length=1)
     return hlines!(axis, ys; label=label, kwargs...)
@@ -1381,11 +1386,10 @@ end
 
 """
     add_vband!(axis, xmin, xmax; label=nothing, kwargs...)
-    add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
 
-Add a vertical or horizontal uncertainty/reference band to an existing axis.
-The band spans the currently visible orthogonal axis range, so it remains a
-simple annotation layer rather than a new data model.
+Add a vertical uncertainty/reference band to an existing axis. The band spans
+the currently visible y-range, so it remains a simple annotation layer rather
+than a new data model.
 """
 function add_vband!(axis::Axis, xmin::Real, xmax::Real; label=nothing, kwargs...)
     isfinite(xmin) && isfinite(xmax) || throw(ArgumentError("xmin and xmax must be finite"))
@@ -1394,6 +1398,13 @@ function add_vband!(axis::Axis, xmin::Real, xmax::Real; label=nothing, kwargs...
     return band!(axis, [Float64(xmin), Float64(xmax)], [ymin, ymin], [ymax, ymax]; label=label, kwargs...)
 end
 
+"""
+    add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
+
+Add a horizontal uncertainty/reference band to an existing axis. The band spans
+the currently visible x-range, so it remains a simple annotation layer rather
+than a new data model.
+"""
 function add_hband!(axis::Axis, ymin::Real, ymax::Real; label=nothing, kwargs...)
     isfinite(ymin) && isfinite(ymax) || throw(ArgumentError("ymin and ymax must be finite"))
     ymin <= ymax || throw(ArgumentError("ymin must be <= ymax"))

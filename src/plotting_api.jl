@@ -56,21 +56,32 @@ function add_points! end
 
 """
     add_vline!(axis, x; label=nothing, kwargs...)
-    add_hline!(axis, y; label=nothing, kwargs...)
 
-Add vertical or horizontal reference lines to an existing fit axis.
+Add vertical reference line(s) to an existing fit axis.
 """
 function add_vline! end
+
+"""
+    add_hline!(axis, y; label=nothing, kwargs...)
+
+Add horizontal reference line(s) to an existing fit axis.
+"""
 function add_hline! end
 
 """
     add_vband!(axis, xmin, xmax; label=nothing, kwargs...)
-    add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
 
-Add vertical or horizontal uncertainty bands, acceptance regions, excluded
-regions, or physical thresholds to an existing fit axis.
+Add a vertical uncertainty band, acceptance region, excluded region, or physical
+threshold to an existing fit axis.
 """
 function add_vband! end
+
+"""
+    add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
+
+Add a horizontal uncertainty band, acceptance region, excluded region, or
+physical threshold to an existing fit axis.
+"""
 function add_hband! end
 
 """
