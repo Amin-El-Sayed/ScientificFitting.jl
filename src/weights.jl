@@ -40,6 +40,10 @@ struct FitEvaluationCache{C<:PreparedCovariance, P}
     parameter_constraints::P
 end
 
+# Validation checks need plain values, but numerical paths must keep Duals.
+_finite_value(x) = x
+_finite_value(x::ForwardDiff.Dual) = _finite_value(ForwardDiff.value(x))
+
 function _has_model_relative_y_uncertainty(problem::FitProblem)
     return any(c -> c.active && c.target == :y && c.mode == :model_relative, problem.error_components)
 end
@@ -89,7 +93,7 @@ function _model_values(problem::FitProblem, p::AbstractVector; x::AbstractVector
     values = problem.model(x, p)
     length(values) == length(x) || throw(ArgumentError("model output length must match x length"))
     collected = collect(values)
-    finite_values = ForwardDiff.value.(collected)
+    finite_values = _finite_value.(collected)
     all(isfinite, finite_values) || throw(ArgumentError("model output must contain only finite values"))
     return collected
 end
@@ -206,11 +210,11 @@ function _effective_covariance(problem::FitProblem, p::AbstractVector)
 end
 
 function _stable_cholesky(cov::AbstractMatrix)
-    cov_mat = Matrix{Float64}(ForwardDiff.value.(cov))
-    all(isfinite, cov_mat) || throw(ArgumentError("covariance matrix must contain only finite values"))
-    isapprox(cov_mat, cov_mat'; rtol=1e-12, atol=1e-12) ||
+    cov_values = Matrix{Float64}(_finite_value.(cov))
+    all(isfinite, cov_values) || throw(ArgumentError("covariance matrix must contain only finite values"))
+    isapprox(cov_values, cov_values'; rtol=1e-12, atol=1e-12) ||
         throw(ArgumentError("covariance matrix must be symmetric"))
-    cov_sym = Symmetric(cov_mat)
+    cov_sym = Symmetric(Matrix(cov))
     try
         return cholesky(cov_sym)
     catch
@@ -225,7 +229,7 @@ function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::Abst
     end
 
     if cov isa AbstractVector
-        cov_values = ForwardDiff.value.(cov)
+        cov_values = _finite_value.(cov)
         any(cov_values .<= 0.0) && throw(ArgumentError("all effective variances must be positive"))
         return collect(residual ./ sqrt.(cov))
     end

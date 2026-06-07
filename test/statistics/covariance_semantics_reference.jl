@@ -1,4 +1,5 @@
 using Distributions
+using ForwardDiff
 using JuFitter
 using LinearAlgebra
 using Test
@@ -15,6 +16,35 @@ function _linear_reference_from_covariance(x, y, covariance)
     residuals = y .- X * params
     chi2 = sum(abs2, F.L \ residuals)
     return (; params, cov, residuals, chi2)
+end
+
+function _finite_difference_gradient(f, p; h=1e-6)
+    gradient = similar(p)
+    for i in eachindex(p)
+        step = zeros(length(p))
+        step[i] = h
+        gradient[i] = (f(p .+ step) - f(p .- step)) / (2h)
+    end
+    return gradient
+end
+
+function _finite_difference_hessian(f, p; h=2e-5)
+    n = length(p)
+    hessian = Matrix{Float64}(undef, n, n)
+    for i in 1:n, j in 1:n
+        ei = zeros(n)
+        ej = zeros(n)
+        ei[i] = h
+        ej[j] = h
+        hessian[i, j] =
+            (
+                f(p .+ ei .+ ej) -
+                f(p .+ ei .- ej) -
+                f(p .- ei .+ ej) +
+                f(p .- ei .- ej)
+            ) / (4h^2)
+    end
+    return hessian
 end
 
 @testset "Covariance and constraint semantics" begin
@@ -120,6 +150,45 @@ end
             JuFitter._gaussian_nll(result.problem, result.params);
             atol=2e-12,
             rtol=2e-12,
+        )
+    end
+
+    @testset "Parameter-dependent dense covariance preserves AD derivatives" begin
+        x = [0.0, 0.6, 1.4]
+        y = [1.1, 1.7, 2.4]
+        sigma_y = fill(0.12, length(x))
+        cov_x = [
+            0.040 0.012 0.006
+            0.012 0.050 0.010
+            0.006 0.010 0.030
+        ]
+        model(x, p) = @. p[1] * x + p[2]^2
+        p = [0.9, 1.0]
+
+        problem = JuFitter.FitProblem(model, x, y; p0=p, sigma_y=sigma_y, cov_x=cov_x)
+        cache = JuFitter._prepare_fit_cache(problem)
+        nll = q -> JuFitter._gaussian_nll(cache, q)
+
+        function reference_nll(q)
+            dydx = fill(q[1], length(x))
+            covariance = Diagonal(sigma_y .^ 2) + Diagonal(dydx) * cov_x * Diagonal(dydx)
+            residual = y .- model(x, q)
+            factor = cholesky(Symmetric(Matrix(covariance)))
+            return length(x) * log(2pi) + 2sum(log, diag(factor.L)) + sum(abs2, factor.L \ residual)
+        end
+
+        @test isapprox(nll(p), reference_nll(p); atol=2e-12, rtol=2e-12)
+        @test isapprox(
+            ForwardDiff.gradient(nll, p),
+            _finite_difference_gradient(reference_nll, p);
+            atol=2e-5,
+            rtol=2e-5,
+        )
+        @test isapprox(
+            ForwardDiff.hessian(nll, p),
+            _finite_difference_hessian(reference_nll, p);
+            atol=5e-3,
+            rtol=5e-3,
         )
     end
 end

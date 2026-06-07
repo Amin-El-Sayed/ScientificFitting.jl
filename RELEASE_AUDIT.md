@@ -22,8 +22,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   passes with 49 likelihood reference checks after the Poisson-and-histogram
   workflow rewrite.
 - `julia --project=. -e 'using Test; include("test/statistics/covariance_semantics_reference.jl")'`
-  passes with 20 covariance and constraint reference checks after static
-  correlated parameter constraints were moved into prepared objective caches.
+  passes with 23 covariance and constraint reference checks. This includes a
+  finite-difference reference for value, gradient, and Hessian of a Gaussian NLL
+  with full `cov_x` propagation, where the effective dense covariance depends on
+  the fitted model parameter.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
@@ -230,13 +232,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Objective functions still allocate substantially through `ForwardDiff`
   Jacobians/Hessians and array-returning model calls. Very large datasets need
   an in-place residual/model API.
-- Audit candidate: parameter-dependent dense covariance derivatives. Some
-  Cholesky preparation paths use `ForwardDiff.value`/`Float64` for robust value
-  factorization. That is correct for static covariance and likely fine for
-  diagonal effective-variance `sigma_x` workflows, but it may drop derivative
-  information through a full parameter-dependent dense covariance. Before
-  claiming full Gaussian-NLL correctness for that case, add gradient/Hessian
-  reference tests against finite differences or analytic derivatives.
+- The parameter-dependent dense covariance audit found and fixed a real AD
+  defect: Cholesky validation stripped `ForwardDiff` dual information before
+  factorization. Validation now strips duals only for finite/symmetry checks,
+  while the factorization itself preserves AD values. A focused finite-
+  difference regression test covers Gaussian-NLL value, gradient, and Hessian
+  for dense `cov_x` propagation. This is not a substitute for future structured
+  covariance operators or large-scale performance work.
 - Invalid covariance matrices must not be silently repaired. If a future
   regularization/jitter policy is added, it must be explicit in the API and
   visible in diagnostics.
