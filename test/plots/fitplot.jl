@@ -219,4 +219,9 @@ using Test
     ) !== nothing
     @test isfile(residual_out)
     @test isfile(diagnostics_out)
+
+    zero_model(x, p) = p[1] .* x
+    zero_result = fit_model(zero_model, x, zero.(x); p0=[0.0], sigma_y=sigma_y)
+    @test_throws ArgumentError plot_residuals(zero_result; kind=:ratio)
+    @test_throws ArgumentError plot_diagnostics(zero_result)
 end

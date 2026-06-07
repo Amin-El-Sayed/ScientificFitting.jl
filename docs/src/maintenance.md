@@ -96,6 +96,10 @@ belongs in a cache.
   color and light/dark appearance through the same style contract. A
   documentation-wide style selector must only reference plots that have
   rendered variants for every supported style and appearance.
+- Residual, pull, and ratio plots must not render non-finite diagnostic values.
+  In particular, `data / fit` ratios are undefined where the model prediction
+  is zero; fail clearly instead of exporting a plot with hidden `Inf` or `NaN`
+  values.
 - `plot_profile_matrix` is a composition layer over existing profile and
   contour refits. It must not introduce independent confidence-threshold
   semantics; threshold interpretation belongs to `profile`, `contour`, and the
