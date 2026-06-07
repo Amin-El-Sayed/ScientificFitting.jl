@@ -62,7 +62,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:workbench`/`:showcase`/`:publication` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 177 checks. The gate first verifies that every page in the public
+  with 183 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
