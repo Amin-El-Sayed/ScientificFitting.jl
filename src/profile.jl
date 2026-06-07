@@ -126,6 +126,23 @@ function _validate_adaptive_controls(max_refinements::Int, max_points::Int)
     return nothing
 end
 
+function _validate_profile_controls(npoints::Int, nsigma::Real, threshold::Real; default_grid::Bool)
+    if default_grid
+        npoints >= 3 || throw(ArgumentError("npoints must be at least 3"))
+        isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and > 0"))
+    end
+    isfinite(threshold) && threshold > 0 || throw(ArgumentError("threshold must be finite and > 0"))
+    return nothing
+end
+
+function _validate_contour_controls(npoints::Int, nsigma::Real; default_x_grid::Bool, default_y_grid::Bool)
+    if default_x_grid || default_y_grid
+        npoints >= 2 || throw(ArgumentError("npoints must be at least 2"))
+        isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and > 0"))
+    end
+    return nothing
+end
+
 function _unique_sorted(values::AbstractVector{<:Real})
     cleaned = sort!(collect(Float64, values))
     isempty(cleaned) && return cleaned
@@ -136,6 +153,13 @@ function _unique_sorted(values::AbstractVector{<:Real})
         end
     end
     return out
+end
+
+function _validated_scan_values(values, name::AbstractString; min_points::Int)
+    cleaned = _unique_sorted(collect(Float64, values))
+    length(cleaned) >= min_points || throw(ArgumentError("$name must contain at least $min_points distinct values"))
+    all(isfinite, cleaned) || throw(ArgumentError("$name must contain only finite values"))
+    return cleaned
 end
 
 function _profile_refinement_candidates(values, delta, thresholds)
@@ -213,7 +237,10 @@ function profile(
     on_failure::Symbol=:inf,
 )
     1 <= index <= length(result.params) || throw(ArgumentError("profile index out of range"))
-    grid = values === nothing ? _default_profile_grid(result, index; npoints=npoints, nsigma=nsigma) : collect(Float64, values)
+    _validate_profile_controls(npoints, nsigma, threshold; default_grid=values === nothing)
+    grid = values === nothing ?
+        _validated_scan_values(_default_profile_grid(result, index; npoints=npoints, nsigma=nsigma), "profile values"; min_points=3) :
+        _validated_scan_values(values, "profile values"; min_points=3)
     if adaptive
         return _adaptive_profile(
             result,
@@ -490,9 +517,14 @@ function contour(
     i != j || throw(ArgumentError("contour requires two distinct parameter indices"))
     1 <= i <= length(result.params) || throw(ArgumentError("first contour index out of range"))
     1 <= j <= length(result.params) || throw(ArgumentError("second contour index out of range"))
+    _validate_contour_controls(npoints, nsigma; default_x_grid=xvalues === nothing, default_y_grid=yvalues === nothing)
 
-    xs = xvalues === nothing ? _default_contour_grid(result, i; npoints=npoints, nsigma=nsigma) : collect(Float64, xvalues)
-    ys = yvalues === nothing ? _default_contour_grid(result, j; npoints=npoints, nsigma=nsigma) : collect(Float64, yvalues)
+    xs = xvalues === nothing ?
+        _validated_scan_values(_default_contour_grid(result, i; npoints=npoints, nsigma=nsigma), "xvalues"; min_points=2) :
+        _validated_scan_values(xvalues, "xvalues"; min_points=2)
+    ys = yvalues === nothing ?
+        _validated_scan_values(_default_contour_grid(result, j; npoints=npoints, nsigma=nsigma), "yvalues"; min_points=2) :
+        _validated_scan_values(yvalues, "yvalues"; min_points=2)
     level_values = collect(Float64, levels)
     isempty(level_values) && throw(ArgumentError("contour levels must not be empty"))
     all(isfinite, level_values) || throw(ArgumentError("contour levels must be finite"))

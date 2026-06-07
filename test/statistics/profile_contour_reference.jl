@@ -48,6 +48,18 @@ using Test
         @test isapprox(upper, result.params[1] + slope_sigma; atol=5e-3, rtol=5e-3)
     end
 
+    @testset "Profile inputs fail clearly before refits" begin
+        slope_values = result.params[1] .+ slope_sigma .* [-1.0, 0.0, 1.0]
+
+        @test profile(result, 1; values=slope_values, npoints=1).values == sort(slope_values)
+        @test_throws ArgumentError profile(result, 1; npoints=2)
+        @test_throws ArgumentError profile(result, 1; nsigma=Inf)
+        @test_throws ArgumentError profile(result, 1; threshold=0.0)
+        @test_throws ArgumentError profile(result, 1; threshold=NaN)
+        @test_throws ArgumentError profile(result, 1; values=[slope_values[1], NaN, slope_values[3]])
+        @test_throws ArgumentError profile(result, 1; values=[slope_values[1], slope_values[1], slope_values[3]])
+    end
+
     @testset "Two-dimensional contour follows covariance quadratic form" begin
         slope_values = result.params[1] .+ slope_sigma .* [-1.0, 0.0, 1.0]
         offset_values = result.params[2] .+ offset_sigma .* [-1.0, 0.0, 1.0]
@@ -80,6 +92,12 @@ using Test
         @test_throws ArgumentError contour(result, 1, 2; levels=Float64[])
         @test_throws ArgumentError contour(result, 1, 2; levels=[0.0, 2.30])
         @test_throws ArgumentError contour(result, 1, 2; levels=[NaN, 2.30])
+        @test contour(result, 1, 2; xvalues=slope_values, yvalues=offset_values, npoints=1).levels == [2.30, 6.18]
+        @test_throws ArgumentError contour(result, 1, 2; npoints=1)
+        @test_throws ArgumentError contour(result, 1, 2; nsigma=NaN)
+        @test_throws ArgumentError contour(result, 1, 2; xvalues=[slope_values[1], NaN], yvalues=offset_values)
+        @test_throws ArgumentError contour(result, 1, 2; xvalues=[slope_values[1]], yvalues=offset_values)
+        @test_throws ArgumentError contour(result, 1, 2; xvalues=slope_values, yvalues=[offset_values[1], offset_values[1]])
     end
 
     @testset "Adaptive contour refines level-crossing cells" begin

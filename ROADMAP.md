@@ -178,6 +178,10 @@ Current evidence:
 - Profile scans can adaptively refine threshold-crossing intervals, and contour
   scans can adaptively refine cells around requested contour levels. Reference
   tests cover both adaptive paths against the quadratic covariance benchmark.
+- Profile and contour scan controls are validated before refits. Thresholds and
+  default scan widths must be finite and positive, default grids need enough
+  points, and explicit scan arrays must contain enough distinct finite values.
+  Unused default-grid controls do not block explicit user-provided grids.
 - `diagnostic_dashboard(...)` summarizes structured `diagnose(...)` findings
   into status, severity counts, and deduplicated next actions for lab workflows.
 
@@ -198,7 +202,16 @@ Open hardening work:
 - Add structured covariance/whitening operators for large correlated data.
   Target use cases include long time series, images, spectra, detector arrays,
   and other measurements where dense covariance storage or factorization is the
-  wrong asymptotic model.
+  wrong asymptotic model. Dense covariance is the exact small/medium-data path,
+  not the future architecture for every correlated measurement.
+- Add stronger uncertainty guidance when local parameter covariance is likely
+  misleading. Nonlinear models, weak data, active bounds, and asymmetric
+  likelihoods should push users toward profile/contour intervals rather than
+  letting local Hessian errors look definitive.
+- Keep auditing parameter-dependent dense `cov_x` paths for AD completeness.
+  The current finite-difference reference covers the known full-covariance
+  propagation bug, but future changes must recheck value, gradient, and Hessian
+  whenever validation or factorization code touches `ForwardDiff.value`.
 - Add in-place model and residual APIs for huge datasets.
 - Add explicit optimizer fallback and parameter-scaling diagnostics.
 - Expand torture tests until they cover constraints, priors, likelihoods,

@@ -28,8 +28,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   non-positive or non-finite `sigma_y`, invalid indexed `cov_y`, and empty
   multi-fit inputs before objective evaluation.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 34 profile/contour reference checks, including validation of
-  finite positive ordered contour thresholds.
+  passes with 47 profile/contour reference checks, including validation of
+  finite positive ordered contour thresholds, finite positive profile
+  thresholds, default scan controls, and explicit finite distinct scan grids.
 - `julia --project=. -e 'using Test; include("test/statistics/likelihood_reference.jl")'`
   passes with 49 likelihood reference checks after the Poisson-and-histogram
   workflow rewrite.
@@ -41,11 +42,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 369 core checks in about 5m39s on the local machine after the
+  passes with 382 core checks in about 9m55s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
   developer gate and must be split further before release CI is finalized.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes with
-  422 checks in about 7m36s for the test phase after package test
+  435 checks in about 13m12s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 53
@@ -253,7 +254,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   while the factorization itself preserves AD values. A focused finite-
   difference regression test covers Gaussian-NLL value, gradient, and Hessian
   for dense `cov_x` propagation. This is not a substitute for future structured
-  covariance operators or large-scale performance work.
+  covariance operators, broader `cov_x` AD audits, or large-scale performance
+  work.
+- Full parameter-dependent dense `cov_x` remains an audit-sensitive path.
+  Simple diagonal `sigma_x` propagation has clearer AD semantics; dense
+  effective covariance can lose derivative information if future validation,
+  conversion, or factorization code strips `ForwardDiff` duals too early.
+  Release and refactor gates should keep finite-difference value/gradient/
+  Hessian references for these paths.
 - Invalid covariance matrices must not be silently repaired. If a future
   regularization/jitter policy is added, it must be explicit in the API and
   visible in diagnostics.
@@ -263,7 +271,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Parameter covariance remains a local approximation. Nonlinear models, weak
   data, active bounds, and asymmetric likelihoods require profiles/contours for
   credible intervals; future diagnostics should more aggressively recommend or
-  trigger profile checks when local covariance is suspect.
+  trigger profile checks when local covariance is suspect, so users do not
+  mistake a local Hessian ellipse for a global uncertainty statement.
 - Profile and contour scans now expose failed refits through diagnostics and
   support adaptive refinement around profile thresholds and contour levels.
   Strongly curved/non-elliptic contours still need deeper diagnostic polish

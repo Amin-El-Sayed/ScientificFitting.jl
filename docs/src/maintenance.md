@@ -46,10 +46,19 @@ belongs in a cache.
 - Dense covariance matrices scale as `O(n^2)` memory and `O(n^3)`
   factorization. Large correlated datasets need structured covariance
   operators, not denser micro-optimizations.
+- Dense covariance should remain the explicit exact path for small and medium
+  correlated datasets. Long time series, images, spectra, and detector arrays
+  need future banded, sparse, low-rank, Toeplitz, or custom whitening
+  representations so memory and factorization cost scale with the measurement
+  structure rather than with a dense matrix.
 - Parameter-dependent x uncertainties require recomputing effective covariance
   terms. This is statistical work, not accidental overhead. For large datasets,
   prefer the public `x_derivative=(x, p) -> dy_dx` hook over the default
   pointwise AD derivative.
+- Full parameter-dependent dense `cov_x` is an audit-sensitive path. Validation
+  may inspect `ForwardDiff.value` for finite values and symmetry, but the
+  factorization used by the objective must preserve dual numbers so gradients
+  and Hessians include covariance-derivative terms.
 - Generic `Optimization.jl` objectives are flexible but slower than the
   specialized `LsqFit` path.
 - Plotting startup is dominated by Makie/CairoMakie compilation on first use,
@@ -166,6 +175,10 @@ belongs in a cache.
   dataset collections before constructing the objective.
 - Keep diagnostics visible when covariance, Hessian, ndf, p-values, or bounds
   make local errors unreliable.
+- Treat parameter covariance as a local Hessian approximation, not as a global
+  truth. It is useful near a well-constrained, interior, nearly quadratic
+  minimum; nonlinear models, weak data, active bounds, and asymmetric
+  likelihoods need profile or contour checks before intervals are trusted.
 - Fixed parameters are not allowed to bypass bounds. Profile and contour refits
   must apply the same invariant: scan points outside declared bounds are failed
   refits, not valid uncertainty samples.
@@ -180,6 +193,10 @@ belongs in a cache.
 - Contour levels are finite, positive delta-cost thresholds. JuFitter sorts and
   deduplicates them before scanning so adaptive refinement and filled-region
   plotting use one unambiguous ordering.
+- Profile and contour scan inputs are uncertainty-analysis inputs, so validate
+  them before refits. Default grids require enough points and finite positive
+  `nsigma`; explicit scan arrays must contain enough distinct finite values.
+  Explicit grids should not fail because of unused default-grid controls.
 - `diagnostic_dashboard(...)` is a summary layer over `diagnose(...)`. It must
   not introduce independent statistical rules; it only converts structured
   findings into status, counts, and prioritized next actions for lab use.
