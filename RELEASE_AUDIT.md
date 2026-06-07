@@ -40,13 +40,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   with full `cov_x` propagation, where the effective dense covariance depends on
   the fitted model parameter.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
-  passes with 41 diagnostic reference checks in about 37s.
+  passes with 45 diagnostic reference checks in about 38s, including the
+  local-covariance warning that recommends profile/contour intervals when
+  active bounds or strong parameter correlations make symmetric errors suspect.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 382 core checks in about 9m55s on the local machine after the
+  passes with 386 core checks in about 9m56s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
   developer gate and must be split further before release CI is finalized.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes with
-  435 checks in about 13m12s for the test phase after package test
+  439 checks in about 13m15s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 53
@@ -270,9 +272,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   profile intervals are required.
 - Parameter covariance remains a local approximation. Nonlinear models, weak
   data, active bounds, and asymmetric likelihoods require profiles/contours for
-  credible intervals; future diagnostics should more aggressively recommend or
-  trigger profile checks when local covariance is suspect, so users do not
-  mistake a local Hessian ellipse for a global uncertainty statement.
+  credible intervals. Diagnostics now add an explicit profile/contour
+  recommendation for active bounds, ill-conditioned local covariance/Hessian
+  estimates, and strong parameter correlations, but future work should detect
+  nonlinearity and asymmetric likelihoods more directly.
 - Profile and contour scans now expose failed refits through diagnostics and
   support adaptive refinement around profile thresholds and contour levels.
   Strongly curved/non-elliptic contours still need deeper diagnostic polish

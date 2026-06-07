@@ -226,6 +226,29 @@ function _parameter_correlation_findings(result)
     ]
 end
 
+function _local_covariance_risk_findings(findings::Vector{DiagnosticFinding})
+    triggers = String[]
+    any(f -> f.code == :active_bounds, findings) &&
+        push!(triggers, "active parameter bounds")
+    any(f -> f.code == :ill_conditioned_covariance, findings) &&
+        push!(triggers, "ill-conditioned parameter covariance")
+    any(f -> f.code == :ill_conditioned_hessian, findings) &&
+        push!(triggers, "ill-conditioned cost Hessian")
+    any(f -> f.code == :strong_parameter_correlation, findings) &&
+        push!(triggers, "strong parameter correlation")
+
+    isempty(triggers) && return DiagnosticFinding[]
+    return DiagnosticFinding[
+        _finding(
+            :warning,
+            :local_covariance_requires_profile_check,
+            "Local parameter errors need a profile check",
+            "Triggered by: $(join(triggers, ", ")).",
+            "Use profile or contour intervals before treating symmetric covariance errors as final uncertainties.",
+        ),
+    ]
+end
+
 function _xy_diagnostic_findings(result::FitResult)
     pulls = _data_pull_values(result)
     findings = DiagnosticFinding[]
@@ -408,6 +431,7 @@ function diagnose(result::FitResult)
     findings = DiagnosticFinding[]
     append!(findings, result.diagnostics.findings)
     append!(findings, _parameter_correlation_findings(result))
+    append!(findings, _local_covariance_risk_findings(findings))
     append!(findings, _xy_diagnostic_findings(result))
     findings = _sort_findings(_deduplicate_findings(findings))
     return DiagnosticReport(findings, _diagnostic_summary(findings))
@@ -419,6 +443,7 @@ function diagnose(result)
     if hasproperty(result, :param_correlation)
         append!(findings, _parameter_correlation_findings(result))
     end
+    append!(findings, _local_covariance_risk_findings(findings))
     findings = _sort_findings(_deduplicate_findings(findings))
     return DiagnosticReport(findings, _diagnostic_summary(findings))
 end

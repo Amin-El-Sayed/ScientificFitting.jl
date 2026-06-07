@@ -179,6 +179,11 @@ belongs in a cache.
   truth. It is useful near a well-constrained, interior, nearly quadratic
   minimum; nonlinear models, weak data, active bounds, and asymmetric
   likelihoods need profile or contour checks before intervals are trusted.
+- `diagnose(result)` should push users toward profiles/contours when known
+  local-covariance risk factors are present. Current triggers are active
+  bounds, ill-conditioned covariance or Hessian estimates, and strong parameter
+  correlations; future triggers should cover non-parabolic profiles and
+  asymmetric likelihoods more directly.
 - Fixed parameters are not allowed to bypass bounds. Profile and contour refits
   must apply the same invariant: scan points outside declared bounds are failed
   refits, not valid uncertainty samples.

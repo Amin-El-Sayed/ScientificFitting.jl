@@ -70,7 +70,9 @@ using Test
             sigma_y=fill(0.1, length(x)),
             bounds=([-Inf, -Inf], [1.0, Inf]),
         )
-        @test any(f -> f.code == :active_bounds, diagnose(bounded).findings)
+        bounded_report = diagnose(bounded)
+        @test any(f -> f.code == :active_bounds, bounded_report.findings)
+        @test any(f -> f.code == :local_covariance_requires_profile_check, bounded_report.findings)
     end
 
     @testset "Diagnostic dashboard prioritizes lab next actions" begin
@@ -119,8 +121,12 @@ using Test
         report = diagnose(result)
 
         @test any(f -> f.code == :strong_parameter_correlation, report.findings)
+        @test any(f -> f.code == :local_covariance_requires_profile_check, report.findings)
         finding = only(filter(f -> f.code == :strong_parameter_correlation, report.findings))
         @test finding.severity in (:warning, :critical)
         @test contains(finding.recommendation, "Re-center")
+        local_covariance_finding = only(filter(f -> f.code == :local_covariance_requires_profile_check, report.findings))
+        @test contains(local_covariance_finding.evidence, "strong parameter correlation")
+        @test contains(local_covariance_finding.recommendation, "profile or contour")
     end
 end

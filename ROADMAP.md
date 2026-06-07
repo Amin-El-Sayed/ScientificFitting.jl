@@ -175,6 +175,9 @@ Current evidence:
   Nonlinear models, weak data, active bounds, and asymmetric likelihoods can
   make `Cov(p̂)` optimistic or misleading; profile and contour workflows are
   the current mitigation and must remain visible in reports and documentation.
+- Diagnostics now add an explicit profile/contour recommendation when active
+  bounds, ill-conditioned covariance/Hessian estimates, or strong parameter
+  correlations make symmetric local covariance errors suspect.
 - Profile scans can adaptively refine threshold-crossing intervals, and contour
   scans can adaptively refine cells around requested contour levels. Reference
   tests cover both adaptive paths against the quadratic covariance benchmark.
@@ -204,10 +207,10 @@ Open hardening work:
   and other measurements where dense covariance storage or factorization is the
   wrong asymptotic model. Dense covariance is the exact small/medium-data path,
   not the future architecture for every correlated measurement.
-- Add stronger uncertainty guidance when local parameter covariance is likely
-  misleading. Nonlinear models, weak data, active bounds, and asymmetric
-  likelihoods should push users toward profile/contour intervals rather than
-  letting local Hessian errors look definitive.
+- Extend uncertainty guidance beyond the current local-risk triggers.
+  Nonlinear models, weak data, and asymmetric likelihoods should eventually be
+  detected more directly instead of relying only on bounds, conditioning, and
+  correlation diagnostics.
 - Keep auditing parameter-dependent dense `cov_x` paths for AD completeness.
   The current finite-difference reference covers the known full-covariance
   propagation bug, but future changes must recheck value, gradient, and Hessian
