@@ -1,30 +1,43 @@
 # JuFitter
 
-JuFitter is a Julia fitting utility focused on fast scientific workflows:
+Scientific fitting for Julia: data, uncertainties, statistically explicit
+results, diagnostics, and Makie plots from one coherent workflow.
 
-- weighted nonlinear least-squares fitting
-- optional full covariance for `x` and `y`
-- constraint-aware fitting (hybrid backend)
-- optional CairoMakie plots with one-call `fitplot(...)` workflows
+JuFitter is built for laboratory, engineering, and scientific analysis where the
+fit result is only useful if the uncertainty model, diagnostics, and plot are
+understandable. The package is currently pre-release; the repository is being
+hardened before broad public promotion or Julia package registration.
 
-## Install (in this repo)
+## Why JuFitter
 
-```julia
-using Pkg
-Pkg.activate(".")
-Pkg.instantiate()
-```
+- Weighted nonlinear least squares with diagonal, full-covariance, x/y, and
+  component-based uncertainty models.
+- Poisson, histogram, unbinned, extended-unbinned, indexed, custom-objective,
+  and multi-dataset likelihood workflows.
+- Bounds, fixed parameters, Gaussian priors, correlated parameter constraints,
+  profile intervals, and two-parameter contours.
+- Structured fit reports and diagnostic dashboards that tell you what to
+  inspect next.
+- Optional CairoMakie plotting with robust default layouts, right-side reports,
+  residual/pull diagnostics, profile/contour plots, and post-fit annotation
+  helpers.
+- A documentation-first workflow: every serious feature should have a tested
+  explanation, not only an exported function.
 
-## Quick start
+## Quick Start
+
+The fitting and reporting core does not load Makie. Load CairoMakie only when
+you want plots.
 
 ```julia
 using JuFitter
 using CairoMakie
 
-x = collect(range(0.0, 10.0; length=200))
+x = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
+y = [0.92, 1.80, 2.77, 3.60, 4.55, 5.49, 6.40, 7.37, 8.19, 9.18]
+sigma_y = fill(0.04, length(x))
+
 model(x, p) = @. p[1] * x + p[2]
-sigma_y = fill(0.2, length(x))
-y = model(x, [2.0, 1.0]) .+ sigma_y .* sin.(1.8 .* x)
 
 fit = fitplot(
     model,
@@ -32,308 +45,143 @@ fit = fitplot(
     y;
     p0=[1.0, 0.0],
     sigma_y=sigma_y,
-    xlabel="x",
-    ylabel="y",
     parameter_names=["m", "b"],
-    filename="fit.pdf",
+    xlabel="position x",
+    xunit="mm",
+    ylabel="voltage U",
+    yunit="V",
+    filename="calibration_fit.pdf",
 )
 
 result = fit.result
-
-@show result.params
-@show result.param_stderr
-@show result.stats.cost result.stats.cost_min result.stats.nll_min
-@show result.stats.chi2 result.stats.chi2_ndf result.stats.ndf
-```
-
-## API
-
-- `FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x, error_components, bounds, constraints, parameter_priors, parameter_constraints, fixed_parameters, jacobian)`
-- `fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500, tol=1e-10, ci_level=0.6827, scale_covariance=:auto, initial_guesses=nothing, multistart=1)`
-- `fit_model(model, x, y; kwargs...)`
-- `fit_poisson_model(model, x, counts; p0, kwargs...)`
-- `fit_histogram_model(expected_counts, edges, counts; p0, kwargs...)`
-- `fit_histogram_density(pdf, edges, counts; p0, total_count=sum(counts), kwargs...)`
-- `fit_unbinned_model(pdf, data; p0, kwargs...)`
-- `fit_extended_unbinned_model(rate, data, domain; p0, kwargs...)`
-- `fit_indexed_model(model, indices, y; p0, sigma_y=nothing, cov_y=nothing, kwargs...)`
-- `fit_custom(objective; p0, nobs, gof=nothing, kwargs...)`
-- `fit_multi_model(models, xs, ys; p0, sigma_y=nothing, kwargs...)`
-- `fitplot(x, y; sigma_y=nothing, kwargs...)`
-- `fitplot(model, x, y; p0, sigma_y=nothing, kwargs...)`
-- `plot_fit(result; xgrid=nothing, filename=nothing, format=:pdf, theme=:workbench, ...)`
-- `plot_residuals(result; kind=:pull, filename=nothing, format=:pdf, ...)`
-- `plot_diagnostics(result; filename=nothing, format=:pdf, ...)`
-- `fit_report(result; parameter_names=nothing)`
-- `report_text(result; parameter_names=nothing)`
-
-Key `plot_fit` customization kwargs:
-
-- labels/text:
-  - `title`, `xlabel`, `ylabel`, `xunit`, `yunit`
-  - `model_label` for the model formula shown above the fit summary
-  - `latex_labels=true` to render string labels/titles as LaTeX
-  - `parameter_names` (names in the side summary panel; can be `LaTeXString`, e.g. `L"\\lambda"`)
-- plot size/layout:
-  - `figure_size=(width, height)` in pixels (e.g. `(1800, 900)`)
-  - `auto_limits=true` pads limits around data, error bars, fit curve, and confidence band
-  - `limit_padding=0.08` controls automatic axis padding
-  - `stats_panel_width` controls the right summary panel; values `<= 1` are relative, values `> 1` are pixels
-  - `panel_gap` controls the gap between plot and summary panel
-  - `plot_aspect` controls the axis width/height ratio (e.g. `1.0` for square plot area)
-- summary display:
-  - `show_stats`, `stats_sigdigits`, `stats_fontsize`, `latex_stats`
-  - `stats_title` for an optional small summary title
-  - `stats_position=:right` shows a compact side summary without covering the data
-  - `stats_position=:inside` draws an in-axis box for compact slide-style plots
-  - shows the model formula, fitted parameters ± uncertainties, `\chi^2`, `\chi^2/\mathrm{ndf}`, `P(\chi^2)`, and `\mathrm{ndf}`
-  - `stats_box_color`, `stats_box_alpha`, `stats_box_strokecolor`, and `stats_box_strokewidth` control only the inside box
-- styling:
-  - `data_color`, `data_marker`, `data_markersize`
-  - `fit_color`, `fit_linewidth`
-  - `band=:confidence` or `band=:none`
-  - `nsigma`, `band_color`, `band_alpha`
-  - `xerr_color`, `yerr_color`, `error_whiskerwidth`
-  - `show_legend`, `legend_position`
-- theme/font control:
-  - `theme` (`:workbench`, `:showcase`, `:publication`, or custom base)
-  - `theme=:workbench` for robust notebook and laboratory plots
-  - `theme=:showcase` for documentation and presentations
-  - `theme=:publication` for compact black-and-white paper figures
-  - `appearance=:light | :dark` independently controls the background scheme
-  - `theme_override=Theme(...)` for global style overrides, including fonts/font sizes
-- direct Makie keyword forwarding:
-  - `axis_kwargs`, `legend_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`
-  - `xerrorbars_kwargs`, `yerrorbars_kwargs`
-  - `stats_box_kwargs`, `stats_label_kwargs`, `stats_title_kwargs`
-  - each accepts a `NamedTuple` or `Dict`, e.g. `axis_kwargs=(xscale=log10,)`
-
-## Fit reports
-
-Use `fit_report` when code should extract values programmatically:
-
-```julia
-report = fit_report(result; parameter_names=["m", "b"])
-report.parameters[1].value
-report.parameters[1].uncertainty
-report.statistics.cost
-report.statistics.cost_min
-report.statistics.nll_min
-report.statistics.chi2_ndf
-report.diagnostics.warnings
-```
-
-Use `report_text` for a readable text summary:
-
-```julia
 println(report_text(result; parameter_names=["m", "b"]))
+println(diagnostic_dashboard_text(result))
 ```
 
-For nonlinear problems you can request profile-based asymmetric uncertainties:
+For fitting without plotting:
 
 ```julia
-report = fit_report(result; parameter_names=["m", "b"], errors=:profile)
-interval = profile_interval(result, 1)
+using JuFitter
+
+result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
+report = fit_report(result; parameter_names=["m", "b"])
 ```
 
-## Cost functions
+## Installation
 
-JuFitter separates the statistical cost function from the numerical solver.
-Use `cost=:chi2` for classical weighted least squares and `cost=:gaussian_nll`
-for the full Gaussian negative log-likelihood. With `cost=:auto`, JuFitter uses
-the full Gaussian NLL when the effective covariance is parameter-dependent, for
-example when `sigma_x` or `cov_x` is provided.
-
-See `docs/src/backend_design.md` and `docs/src/statistical_foundations.md` for
-the mathematical details.
-
-## Error components
-
-Use `error_components` to define named, individually switchable uncertainty
-sources. These are combined with `sigma_y`, `sigma_x`, `cov_y`, and `cov_x`.
+During active development, use a checked-out repository:
 
 ```julia
-result = fit_model(
-    model,
-    x,
-    y;
-    p0=[1.0, 0.0],
-    error_components=[
-        (name=:stat, target=:y, mode=:absolute, values=fill(0.1, length(y))),
-        (name=:scale, target=:y, mode=:relative, values=0.02),
-        (name=:model_scale, target=:y, mode=:model_relative, values=0.02),
-        (name=:disabled_systematic, target=:y, mode=:absolute, values=1.0, active=false),
-    ],
-)
+using Pkg
+Pkg.activate("/path/to/JuFitter")
+Pkg.instantiate()
 ```
 
-Supported targets are `:y` and `:x`. Supported modes are `:absolute`,
-`:relative`, `:model_relative` for y only, and `:covariance`.
+From the repository root:
 
-## Likelihood fits
+```bash
+julia --project=.
+```
 
-Poisson, histogram, unbinned, extended-unbinned, indexed, custom objective, and simultaneous multi-dataset fits use the same
-parameter-control layer as XY fits: bounds, constraints, priors, correlated
-parameter constraints, fixed parameters, multistart, reports, and profiles.
+After registration, the intended user-facing path is:
 
 ```julia
-count_model(x, p) = @. exp(p[1] + p[2] * x)
-poisson_result = fit_poisson_model(count_model, x, counts; p0=[0.0, 0.1])
-
-expected_counts(edges, p) = [p[1] * (edges[i + 1] - edges[i]) for i in 1:(length(edges) - 1)]
-hist_result = fit_histogram_model(expected_counts, edges, counts; p0=[1.0])
-
-normal_pdf(x, p) = exp(-0.5 * ((x - p[1]) / p[2])^2) / (p[2] * sqrt(2pi))
-unbinned_result = fit_unbinned_model(normal_pdf, data; p0=[0.0, 1.0])
-
-rate(x, p) = exp(p[1])
-extended_result = fit_extended_unbinned_model(rate, data, (0.0, 1.0); p0=[0.0])
-
-custom_result = fit_custom(p -> sum(abs2, p .- [1.0, 2.0]); p0=[0.0, 0.0], nobs=4)
+using Pkg
+Pkg.add("JuFitter")
 ```
 
-## Fixed parameters, profiles, contours
-
-Fixed parameters are removed from the optimized parameter vector:
+For plotting, add and load CairoMakie in the same environment:
 
 ```julia
-result = fit_model(
-    model,
-    x,
-    y;
-    p0=[1.0, 0.2],
-    sigma_y=sigma_y,
-    fixed_parameters=(index=2, value=0.2, sigma_minus=0.005, sigma_plus=0.008),
-)
+using Pkg
+Pkg.add(["JuFitter", "CairoMakie"])
+
+using JuFitter
+using CairoMakie
 ```
 
-The value is fixed during optimization. The optional uncertainty is reported
-and included as a local fixed-parameter uncertainty in the covariance matrix.
+## Documentation
 
-Correlated Gaussian parameter constraints are separate from fixed parameters:
+The documentation is the main entry point:
 
-```julia
-result = fit_model(
-    model,
-    x,
-    y;
-    p0=[1.0, 0.0],
-    sigma_y=sigma_y,
-    parameter_constraints=(
-        indices=[1, 2],
-        mean=[1.0, 0.0],
-        covariance=[0.01 0.002; 0.002 0.04],
-    ),
-)
+- `docs/src/quickstart.md` for the first complete fit.
+- `docs/src/gallery.md` for complete scientific examples.
+- `docs/src/fitting_for_practitioners.md` for practical fit judgement.
+- `docs/src/statistical_foundations.md` for the statistical assumptions and
+  formulas.
+- `docs/src/api.md` for the generated API reference.
+- `docs/src/maintenance.md` for extension points, bottlenecks, and release
+  rules.
+
+Build the local documentation from the repository root with:
+
+```bash
+julia --project=docs --startup-file=no docs/make.jl
 ```
 
-Profile and contour scans re-minimize the cost function with selected
-parameters fixed:
+Then serve `docs/build` with any static file server.
 
-```julia
-prof = profile(result, 1; npoints=61, nsigma=3)
-int = profile_interval(result, 1; npoints=121, nsigma=5)
-cont = contour(result, 1, 2; npoints=31, nsigma=3)
+## Current Scope
 
-plot_profile(prof; filename="profile.pdf")
-plot_contour(cont; filename="contour.pdf")
+JuFitter is intended to cover the common scientific fitting workflows before
+v1:
+
+- Gaussian XY fits with diagonal or dense covariance.
+- Effective x-uncertainty propagation, including a vectorized derivative hook
+  for large datasets.
+- Likelihood fits for counts, histograms, unbinned samples, and custom
+  objectives.
+- Profile and contour diagnostics for cases where local covariance is not
+  enough.
+- Makie plots that can be used as-is or extended through returned Makie figures
+  and JuFitter annotation helpers.
+
+Known limitations are explicit:
+
+- Dense covariance is exact but expensive: `O(n^2)` memory and `O(n^3)`
+  factorization. Large correlated time series, spectra, images, and detector
+  arrays need future structured covariance or whitening operators.
+- Parameter covariance is a local Hessian approximation. Nonlinear models,
+  weak data, active bounds, and asymmetric likelihoods should be checked with
+  profiles or contours.
+- CairoMakie has a noticeable first-use compilation cost. Fitting and reporting
+  remain usable without loading Makie.
+- Python interoperability is planned through JuliaCall/PythonCall and has an
+  opt-in gate, but it is not a release claim yet.
+
+## Development Gates
+
+Fast checks:
+
+```bash
+julia --project=. --startup-file=no test/docs_public_release_gate.jl
+julia --project=. --startup-file=no test/docs_gallery_gate.jl
+julia --project=. --startup-file=no test/docs_link_gate.jl
 ```
 
-## Robust starts
+Core and package checks:
 
-For hard nonlinear problems, provide multiple initial guesses or ask JuFitter
-to generate a small deterministic candidate set:
-
-```julia
-result = fit_model(
-    model,
-    x,
-    y;
-    p0=[0.1, 5.0],
-    bounds=([0.0, 0.0], [10.0, 10.0]),
-    initial_guesses=[[0.1, 5.0], [2.0, 0.5]],
-    multistart=2,
-)
+```bash
+julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'
+julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'
 ```
 
-Covariance scaling is controlled explicitly:
+Plot checks:
 
-```julia
-scale_covariance=:auto    # default
-scale_covariance=:never
-scale_covariance=:always
+```bash
+julia --project=docs --startup-file=no test/plots/fitplot.jl
 ```
 
-## Diagnostics
-
-Every result contains `result.diagnostics`:
-
-```julia
-result.diagnostics.warnings
-result.diagnostics.covariance_condition
-result.diagnostics.hessian_condition
-result.diagnostics.active_bounds
-```
-
-Warnings are intentionally conservative. Active bounds, non-positive degrees of
-freedom, non-convergence, and ill-conditioned covariance/Hessian estimates are
-reported because local uncertainties and p-values can become unreliable in
-those cases.
-
-For XY fits, diagnostic plots are available:
-
-```julia
-plot_residuals(result; kind=:pull, filename="pulls.pdf")
-plot_residuals(result; kind=:residual, filename="residuals.pdf")
-plot_residuals(result; kind=:ratio, filename="ratio.pdf")
-plot_diagnostics(result; filename="fit_diagnostics.pdf")
-```
-
-## Examples
-
-Run examples from the repository root with:
-
-```julia
-julia --project=docs examples/gallery/01_quickstart_linear.jl
-```
-
-Generated plots are written to `examples/output/`, which is intentionally
-ignored by git.
-
-Available examples are documented in `examples/README.md` and are organized as
-a numbered gallery:
-
-- `examples/gallery/01_quickstart_linear.jl`
-- `examples/gallery/02_xy_uncertainties_photoelectric.jl`
-- `examples/gallery/03_plot_customization.jl`
-- `examples/gallery/04_covariance_and_effective_variance.jl`
-- `examples/gallery/05_constraints_priors_profiles.jl`
-- `examples/gallery/06_likelihood_workflows.jl`
-
-## Constraint format
-
-`constraints` can be a named tuple:
-
-```julia
-constraints = (
-    ineq = p -> [p[1] - 3.0],  # <= 0
-    eq = p -> [p[2] - 1.0],    # == 0
-)
-```
-
-## Notes on scale
-
-Dense covariance matrices are supported but memory-heavy for very large datasets.
-They need `O(N^2)` memory and `O(N^3)` factorization time. For large `N`, prefer
-diagonal uncertainties today; truly large correlated problems need future
-structured covariance operators rather than materialized dense matrices.
-
-Performance benchmarks live in `benchmarks/runbenchmarks.jl` and can be run
-with:
+Benchmarks:
 
 ```bash
 julia --project=benchmarks benchmarks/runbenchmarks.jl --seconds=1
 ```
 
-Use `--save=benchmarks/output/local-baseline.toml` to record a local baseline
-and `--compare=...` to compare a later run. Benchmark output is ignored by git.
+Benchmark output and generated plots are ignored by git.
+
+## Release Policy
+
+Do not push, publish, register, deploy documentation, or make the repository
+public without explicit manual approval from the maintainer. Local `codex/*`
+branch commits are review checkpoints, not release actions.

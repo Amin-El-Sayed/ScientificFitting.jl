@@ -66,6 +66,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language.
+- `README.md` has been rewritten from an API dump into a public landing page:
+  concise project purpose, quickstart, installation status, documentation entry
+  points, current scope, known limitations, development gates, and release
+  policy.
+- The README quickstart was executed in a temporary directory with
+  `julia --project=docs --startup-file=no`; it produced the PDF output file,
+  converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
   The gate validates 307 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
@@ -218,8 +225,6 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   entry points now have visible baseline docs. Many public functions still do
   not yet have the level of parameter-by-parameter documentation expected from a
   serious Julia package.
-- The README is still a repo-oriented technical summary, not a polished landing
-  page for users coming from JuliaHub, GitHub, Reddit, or a paper.
 - Source and rendered documentation links are covered locally by
   `test/docs_link_gate.jl` and `test/docs_html_link_gate.jl`, and both are wired
   into `.github/workflows/ci.yml`. Remote CI execution still needs to be
