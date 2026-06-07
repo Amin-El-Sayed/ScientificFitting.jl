@@ -580,14 +580,52 @@ function _gaussian_chi2_from_residual(residual::AbstractVector, sigma_y, cov_y)
     elseif sigma_y !== nothing
         sigma = _float_vector(sigma_y)
         length(sigma) == length(residual) || throw(ArgumentError("sigma_y length must match observations"))
+        _assert_positive_sigma("sigma_y", sigma)
         return sum(abs2, residual ./ sigma)
     elseif cov_y !== nothing
         cov = _float_matrix(cov_y)
         size(cov) == (length(residual), length(residual)) || throw(ArgumentError("cov_y must be n x n"))
+        _assert_covariance_matrix("cov_y", cov)
         z = _stable_cholesky(cov).L \ residual
         return sum(abs2, z)
     end
     return sum(abs2, residual)
+end
+
+function _normalize_indexed_uncertainty(y_vec::Vector{Float64}, sigma_y, cov_y)
+    if sigma_y !== nothing && cov_y !== nothing
+        throw(ArgumentError("use either sigma_y or cov_y, not both"))
+    elseif sigma_y !== nothing
+        sigma = _float_vector(sigma_y)
+        length(sigma) == length(y_vec) || throw(ArgumentError("sigma_y length must match observations"))
+        _assert_positive_sigma("sigma_y", sigma)
+        return sigma, nothing
+    elseif cov_y !== nothing
+        cov = _float_matrix(cov_y)
+        size(cov) == (length(y_vec), length(y_vec)) || throw(ArgumentError("cov_y must be n x n"))
+        _assert_covariance_matrix("cov_y", cov)
+        return nothing, cov
+    end
+    return nothing, nothing
+end
+
+function _normalize_multi_sigma_sets(sigma_y, y_sets::AbstractVector)
+    ndatasets = length(y_sets)
+    sigma_y === nothing && return [nothing for _ in 1:ndatasets]
+
+    length(sigma_y) == ndatasets || throw(ArgumentError("sigma_y length must match models"))
+    sigma_sets = Vector{Union{Nothing, Vector{Float64}}}(undef, ndatasets)
+    for i in 1:ndatasets
+        if sigma_y[i] === nothing
+            sigma_sets[i] = nothing
+        else
+            sigma = _float_vector(sigma_y[i])
+            length(sigma) == length(y_sets[i]) || throw(ArgumentError("sigma_y[$i] length mismatch"))
+            _assert_positive_sigma("sigma_y[$i]", sigma)
+            sigma_sets[i] = sigma
+        end
+    end
+    return sigma_sets
 end
 
 """
@@ -595,7 +633,8 @@ end
 
 Fit observations addressed by arbitrary indices. `model(indices, p)` must return
 one model value per index. This is useful when the independent variable is not a
-numeric 1D x-axis.
+numeric 1D x-axis. Optional `sigma_y` entries must be finite and positive;
+optional `cov_y` must be a finite symmetric positive-definite covariance matrix.
 """
 function fit_indexed_model(
     model,
@@ -617,13 +656,15 @@ function fit_indexed_model(
     multistart::Int=1,
 )
     y_vec = _float_vector(y)
+    _assert_finite_observations("y", y_vec)
     length(indices) == length(y_vec) || throw(ArgumentError("indices and y must have equal length"))
+    sigma_vec, cov_mat = _normalize_indexed_uncertainty(y_vec, sigma_y, cov_y)
 
     objective = function (p)
         yhat = model(indices, p)
         length(yhat) == length(y_vec) || throw(ArgumentError("model output length must match y"))
         residual = y_vec .- yhat
-        return _gaussian_chi2_from_residual(residual, sigma_y, cov_y)
+        return _gaussian_chi2_from_residual(residual, sigma_vec, cov_mat)
     end
 
     problem = LikelihoodFitProblem(
@@ -648,6 +689,8 @@ end
 Fit multiple datasets simultaneously with one shared global parameter vector.
 By default each `models[i](xs[i], p)` receives the full parameter vector `p`.
 With `parameter_map`, model `i` receives `p[parameter_map[i]]` instead.
+Per-dataset `sigma_y` entries are treated as physical standard deviations and
+must be finite and positive.
 """
 function fit_multi_model(
     models::AbstractVector,
@@ -669,10 +712,9 @@ function fit_multi_model(
     multistart::Int=1,
 )
     ndatasets = length(models)
+    ndatasets > 0 || throw(ArgumentError("at least one dataset is required"))
     length(xs) == ndatasets || throw(ArgumentError("xs length must match models"))
     length(ys) == ndatasets || throw(ArgumentError("ys length must match models"))
-    sigma_sets = sigma_y === nothing ? [nothing for _ in 1:ndatasets] : sigma_y
-    length(sigma_sets) == ndatasets || throw(ArgumentError("sigma_y length must match models"))
     maps = parameter_map === nothing ? [nothing for _ in 1:ndatasets] : parameter_map
     length(maps) == ndatasets || throw(ArgumentError("parameter_map length must match models"))
     for i in 1:ndatasets
@@ -683,8 +725,11 @@ function fit_multi_model(
     x_sets = [_float_vector(x) for x in xs]
     y_sets = [_float_vector(y) for y in ys]
     for i in 1:ndatasets
+        _assert_finite_observations("x dataset $i", x_sets[i])
+        _assert_finite_observations("y dataset $i", y_sets[i])
         length(x_sets[i]) == length(y_sets[i]) || throw(ArgumentError("dataset $i has mismatched x/y lengths"))
     end
+    sigma_sets = _normalize_multi_sigma_sets(sigma_y, y_sets)
 
     objective = function (p)
         total = zero(eltype(p))
@@ -696,9 +741,7 @@ function fit_multi_model(
             if sigma_sets[i] === nothing
                 total += sum(abs2, residual)
             else
-                sigma = sigma_sets[i]
-                length(sigma) == length(residual) || throw(ArgumentError("sigma_y[$i] length mismatch"))
-                total += sum(abs2, residual ./ sigma)
+                total += sum(abs2, residual ./ sigma_sets[i])
             end
         end
         return total

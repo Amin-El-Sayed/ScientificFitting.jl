@@ -160,6 +160,10 @@ belongs in a cache.
   observations, extended-likelihood domains, quadrature tolerances, and model
   expected-count lengths must fail with `ArgumentError` before an optimizer
   sees them.
+- Treat indexed and multi-dataset Gaussian uncertainties like ordinary
+  measurement uncertainties. Validate finite observations, finite positive
+  `sigma_y`, finite symmetric positive-definite indexed `cov_y`, and non-empty
+  dataset collections before constructing the objective.
 - Keep diagnostics visible when covariance, Hessian, ndf, p-values, or bounds
   make local errors unreliable.
 - Fixed parameters are not allowed to bypass bounds. Profile and contour refits

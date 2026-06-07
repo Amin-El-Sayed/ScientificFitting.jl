@@ -14,7 +14,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
-  passes with 53 torture checks in about 49s on the local machine after adding
+  passes with 64 torture checks in about 65s on the local machine after adding
   validation that fixed/profiled parameter values cannot bypass declared bounds
   and that `p0` and user-provided `initial_guesses` are finite and inside
   declared bounds instead of being silently clipped before optimization. The
@@ -23,7 +23,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   reject non-finite or nonsymmetric inputs before solver dispatch. It also
   checks that likelihood observations, histogram edges, domains, quadrature
   tolerances, and expected-count output lengths fail before optimizer internals
-  can turn invalid scientific input into vague convergence failures.
+  can turn invalid scientific input into vague convergence failures. Indexed
+  and multi-dataset Gaussian wrappers now reject non-finite observations,
+  non-positive or non-finite `sigma_y`, invalid indexed `cov_y`, and empty
+  multi-fit inputs before objective evaluation.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
   passes with 34 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds.
@@ -38,11 +41,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 358 core checks in about 5m28s on the local machine after the
+  passes with 369 core checks in about 5m39s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
   developer gate and must be split further before release CI is finalized.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes with
-  411 checks in about 6m36s for the test phase after package test
+  422 checks in about 7m36s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 53

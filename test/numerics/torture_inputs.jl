@@ -213,6 +213,38 @@ using Test
         @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, 0.4], (0.0, 1.0); p0=[0.0], rtol=0.0)
     end
 
+    @testset "Indexed and multi-fit uncertainties are physical inputs" begin
+        indices = [:a, :b, :a]
+        indexed_model(indices, p) = [p[idx == :a ? 1 : 2] for idx in indices]
+        indexed_y = [1.0, 2.0, 1.1]
+
+        @test fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], sigma_y=fill(0.1, 3)).converged
+        @test_throws ArgumentError fit_indexed_model(indexed_model, indices, [1.0, NaN, 1.1]; p0=[0.0, 0.0], sigma_y=fill(0.1, 3))
+        @test_throws ArgumentError fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], sigma_y=[0.1, -0.1, 0.1])
+        @test_throws ArgumentError fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], sigma_y=[0.1, NaN, 0.1])
+        @test_throws ArgumentError fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], cov_y=[1.0 0.0 0.0; 0.5 1.0 0.0; 0.0 0.0 1.0])
+
+        local_linear(x, p) = @. p[1] * x + p[2]
+        x1 = collect(0.0:1.0:3.0)
+        x2 = collect(0.0:1.0:2.0)
+        y1 = local_linear(x1, [2.0, 1.0])
+        y2 = local_linear(x2, [2.0, -1.0])
+
+        @test fit_multi_model(
+            [local_linear, local_linear],
+            [x1, x2],
+            [y1, y2];
+            p0=[1.0, 0.0, 0.0],
+            parameter_map=[[1, 2], [1, 3]],
+            sigma_y=[fill(0.1, length(y1)), fill(0.2, length(y2))],
+        ).converged
+        @test_throws ArgumentError fit_multi_model(Function[], Any[], Any[]; p0=[1.0])
+        @test_throws ArgumentError fit_multi_model([local_linear], [[0.0, NaN]], [[1.0, 2.0]]; p0=[1.0, 0.0])
+        @test_throws ArgumentError fit_multi_model([local_linear], [x1], [[1.0, NaN, 3.0, 4.0]]; p0=[1.0, 0.0])
+        @test_throws ArgumentError fit_multi_model([local_linear], [x1], [y1]; p0=[1.0, 0.0], sigma_y=[[0.1, 0.1, -0.1, 0.1]])
+        @test_throws ArgumentError fit_multi_model([local_linear], [x1], [y1]; p0=[1.0, 0.0], sigma_y=[[0.1, 0.1, NaN, 0.1]])
+    end
+
     @testset "Non-finite model output is a model error, not optimizer noise" begin
         bad_model(x, p) = [xi == 0.0 ? NaN : p[1] / xi + p[2] for xi in x]
         @test_throws ArgumentError fit_model(bad_model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.1, length(x)))

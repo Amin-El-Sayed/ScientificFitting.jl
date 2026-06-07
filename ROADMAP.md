@@ -153,6 +153,10 @@ Current evidence:
   and histogram counts must be finite non-negative integer-valued observations;
   unbinned data, histogram edges, domains, quadrature tolerances, and expected
   count vector lengths are checked before optimizer internals run.
+- Indexed and multi-dataset Gaussian likelihood wrappers now validate finite
+  observations and physical uncertainty inputs before optimization. `sigma_y`
+  must be finite and positive, indexed `cov_y` must be finite symmetric
+  positive definite, and empty multi-fit inputs fail clearly.
 - `LsqFit` backend Jacobians are reused when constructing `FitResult`, avoiding
   an avoidable AD pass for common least-squares workflows.
 - The generic `Optimization.jl` path receives cached objective data, so static
