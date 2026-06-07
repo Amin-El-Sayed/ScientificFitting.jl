@@ -24,6 +24,8 @@ jobs:
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Core tests without plot rendering
         run: julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'
+      - name: Release checklist gate
+        run: julia --project=. --startup-file=no test/release_checklist_gate.jl
       - name: Performance budget gate
         run: julia --project=. --startup-file=no test/performance_budget_gate.jl
         env:

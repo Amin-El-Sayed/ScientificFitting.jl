@@ -37,6 +37,9 @@ The test suite is split by purpose, not by implementation file.
 - `performance_budget_gate.jl`: steady-state performance gate for representative
   hot paths. It warms compilation first and uses deliberately broad budgets to
   catch large regressions rather than benchmark-machine noise.
+- `release_checklist_gate.jl`: release-process gate that verifies
+  `RELEASE_CHECKLIST.md` still names the required tests, docs gates, benchmark
+  commands, Python interop gate, and publication approval policy.
 
 New tests should be narrow and deterministic. Expensive Monte Carlo or benchmark
 checks belong in `benchmarks/` or a dedicated validation job, not in the default
@@ -93,3 +96,9 @@ julia --project=. --startup-file=no test/performance_budget_gate.jl
 On intentionally slow CI runners, set `JUFITTER_PERFORMANCE_BUDGET_SCALE` to a
 larger value. Do not use this gate for marketing numbers; use
 `benchmarks/runbenchmarks.jl` for measured benchmark reports.
+
+Run the release checklist gate with:
+
+```bash
+julia --project=. --startup-file=no test/release_checklist_gate.jl
+```

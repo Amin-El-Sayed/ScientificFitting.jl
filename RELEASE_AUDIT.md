@@ -115,6 +115,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   least-squares, no-op bounds preserving the fast path, and 300-point dense
   covariance. This is wired into the core CI lane with a runner scale factor.
   It is a regression guard, not a publishable benchmark claim.
+- `RELEASE_CHECKLIST.md` now defines the local pre-release gate: clean
+  repository state, core/package/statistical/torture tests, documentation gates,
+  docs build and rendered-link validation, output snapshots, plot regressions,
+  performance guard, benchmark evidence, optional Python interop, CI status,
+  Git identity, and manual publication approval. `test/release_checklist_gate.jl`
+  verifies that the checklist keeps these required commands and safeguards.
 - `benchmarks/runbenchmarks.jl` can now write TOML baselines with `--save` and
   compare later runs with `--compare`. Local benchmark manifests and outputs
   are ignored because they are machine-specific.
@@ -365,8 +371,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   yet passed in a clean `juliacall` environment.
 - Select release-reference hardware or CI runners and save benchmark baselines
   for hot paths with `benchmarks/runbenchmarks.jl --save=...`.
-- Add a pre-release checklist that runs tests, docs, link checks, examples, and
-  benchmark smoke tests from a clean checkout.
+- Run `RELEASE_CHECKLIST.md` from a clean checkout before any public release,
+  registration, documentation deployment, or announcement.
 
 ## Minimum Public v0 Criteria
 
