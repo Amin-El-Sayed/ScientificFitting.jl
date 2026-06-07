@@ -51,7 +51,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   439 checks in about 13m15s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 55
+- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 64
   focused plot-regression checks in about 54s.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
@@ -173,7 +173,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   CairoMakie extension boundary. This prevents `@autodocs` from exposing bare
   placeholder functions for `plot_fit`, `fitplot`, annotation helpers, style
   helpers, and profile/contour plotting entry points.
-- Focused plot regression tests pass with 55 checks after the plot-style
+- Focused plot regression tests pass with 64 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
@@ -184,9 +184,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   without destabilizing the figure, and that `plot_profile_matrix` exports a
   multi-parameter overview while rejecting invalid parameter selections. The
   same gate now covers post-fit annotation helpers for curves, points,
-  vertical/horizontal reference lines, and vertical/horizontal bands. Residual,
-  pull, and ratio diagnostic plots now reject non-finite displayed values, and
-  ratio diagnostics fail clearly when a model prediction is zero.
+  vertical/horizontal reference lines, and vertical/horizontal bands, including
+  non-finite annotation inputs and too-short curves. Residual, pull, and ratio
+  diagnostic plots now reject non-finite displayed values, and ratio
+  diagnostics fail clearly when a model prediction is zero.
 - The damped-oscillator compound figure now uses the public shared theme,
   palette, and information-panel APIs instead of a private one-off layout.
 - Documentation plots expand rightward from the article column rather than

@@ -1298,6 +1298,13 @@ function fit_axis(figure::Figure; index::Integer=1)
     return axes[Int(index)]
 end
 
+function _finite_annotation_vector(name::AbstractString, values; min_length::Int)
+    vector = values isa Number ? [Float64(values)] : collect(Float64, values)
+    length(vector) >= min_length || throw(ArgumentError("$name must contain at least $min_length value(s)"))
+    all(isfinite, vector) || throw(ArgumentError("$name must contain only finite values"))
+    return vector
+end
+
 """
     add_curve!(axis, f; xgrid=nothing, xspan=nothing, n=400, label=nothing, kwargs...)
     add_curve!(axis, x, y; label=nothing, kwargs...)
@@ -1320,21 +1327,25 @@ function add_curve!(
 )
     n >= 2 || throw(ArgumentError("n must be >= 2"))
     xs = if xgrid !== nothing
-        collect(Float64, xgrid)
+        _finite_annotation_vector("xgrid", xgrid; min_length=2)
     elseif xspan !== nothing
         length(xspan) == 2 || throw(ArgumentError("xspan must contain exactly two values"))
-        collect(range(Float64(xspan[1]), Float64(xspan[2]); length=Int(n)))
+        span = _finite_annotation_vector("xspan", xspan; min_length=2)
+        collect(range(span[1], span[2]; length=Int(n)))
     else
         limits, _ = _axis_limits(axis)
         collect(range(limits[1], limits[2]; length=Int(n)))
     end
-    ys = [f(x) for x in xs]
+    ys = collect(Float64, [f(x) for x in xs])
+    all(isfinite, ys) || throw(ArgumentError("curve values must contain only finite values"))
     return lines!(axis, xs, ys; label=label, kwargs...)
 end
 
 function add_curve!(axis::Axis, x::AbstractVector, y::AbstractVector; label=nothing, kwargs...)
-    length(x) == length(y) || throw(ArgumentError("x and y must have equal length"))
-    return lines!(axis, x, y; label=label, kwargs...)
+    xs = _finite_annotation_vector("x", x; min_length=2)
+    ys = _finite_annotation_vector("y", y; min_length=2)
+    length(xs) == length(ys) || throw(ArgumentError("x and y must have equal length"))
+    return lines!(axis, xs, ys; label=label, kwargs...)
 end
 
 """
@@ -1345,8 +1356,8 @@ quantities, thresholds, extrapolated intersections, or highlighted data points;
 it does not rerun or modify the fit.
 """
 function add_points!(axis::Axis, x, y; label=nothing, kwargs...)
-    xs = x isa Number ? [Float64(x)] : collect(Float64, x)
-    ys = y isa Number ? [Float64(y)] : collect(Float64, y)
+    xs = _finite_annotation_vector("x", x; min_length=1)
+    ys = _finite_annotation_vector("y", y; min_length=1)
     length(xs) == length(ys) || throw(ArgumentError("x and y must have equal length"))
     return scatter!(axis, xs, ys; label=label, kwargs...)
 end
@@ -1359,12 +1370,12 @@ Add vertical or horizontal reference lines to an existing axis. These wrap
 Makie's `vlines!` and `hlines!` with JuFitter-style argument validation.
 """
 function add_vline!(axis::Axis, x; label=nothing, kwargs...)
-    xs = x isa Number ? [Float64(x)] : collect(Float64, x)
+    xs = _finite_annotation_vector("x", x; min_length=1)
     return vlines!(axis, xs; label=label, kwargs...)
 end
 
 function add_hline!(axis::Axis, y; label=nothing, kwargs...)
-    ys = y isa Number ? [Float64(y)] : collect(Float64, y)
+    ys = _finite_annotation_vector("y", y; min_length=1)
     return hlines!(axis, ys; label=label, kwargs...)
 end
 
@@ -1377,12 +1388,14 @@ The band spans the currently visible orthogonal axis range, so it remains a
 simple annotation layer rather than a new data model.
 """
 function add_vband!(axis::Axis, xmin::Real, xmax::Real; label=nothing, kwargs...)
+    isfinite(xmin) && isfinite(xmax) || throw(ArgumentError("xmin and xmax must be finite"))
     xmin <= xmax || throw(ArgumentError("xmin must be <= xmax"))
     _, (ymin, ymax) = _axis_limits(axis)
     return band!(axis, [Float64(xmin), Float64(xmax)], [ymin, ymin], [ymax, ymax]; label=label, kwargs...)
 end
 
 function add_hband!(axis::Axis, ymin::Real, ymax::Real; label=nothing, kwargs...)
+    isfinite(ymin) && isfinite(ymax) || throw(ArgumentError("ymin and ymax must be finite"))
     ymin <= ymax || throw(ArgumentError("ymin must be <= ymax"))
     (xmin, xmax), _ = _axis_limits(axis)
     return band!(axis, [xmin, xmax], [Float64(ymin), Float64(ymin)], [Float64(ymax), Float64(ymax)]; label=label, kwargs...)

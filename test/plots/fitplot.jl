@@ -72,9 +72,18 @@ using Test
     @test isfile(extension_out)
     @test_throws ArgumentError fit_axis(right_panel.figure; index=0)
     @test_throws ArgumentError add_curve!(ax, [1.0, 2.0], [1.0])
+    @test_throws ArgumentError add_curve!(ax, [1.0], [2.0])
+    @test_throws ArgumentError add_curve!(ax, [1.0, NaN], [2.0, 3.0])
+    @test_throws ArgumentError add_curve!(ax, x -> x == 0 ? Inf : x; xspan=(0.0, 1.0))
     @test_throws ArgumentError add_curve!(ax, x -> x; n=1)
+    @test_throws ArgumentError add_curve!(ax, x -> x; xspan=(0.0, Inf))
+    @test_throws ArgumentError add_points!(ax, [1.0, Inf], [2.0, 3.0])
+    @test_throws ArgumentError add_vline!(ax, NaN)
+    @test_throws ArgumentError add_hline!(ax, Inf)
     @test_throws ArgumentError add_vband!(ax, 2.0, 1.0)
+    @test_throws ArgumentError add_vband!(ax, NaN, 1.0)
     @test_throws ArgumentError add_hband!(ax, 2.0, 1.0)
+    @test_throws ArgumentError add_hband!(ax, 0.0, Inf)
 
     model(x, p) = @. p[1] * exp(-p[2] * x) + p[3]
     y2 = model(x, [2.0, 0.7, 0.1]) .+ sigma_y .* cos.(1.4 .* x)

@@ -108,6 +108,9 @@ belongs in a cache.
   `add_vline!`, `add_hline!`, `add_vband!`, `add_hband!`) are thin Makie
   wrappers. They should stay small, return Makie plot objects, validate obvious
   shape/range errors, and never trigger a refit or mutate `FitResult`.
+- Annotation helpers must reject non-finite coordinates before Makie sees them.
+  Curves need at least two finite points; points, reference lines, and bands may
+  be small but must still have finite numeric coordinates.
 - Default fit plots use larger axis, tick, legend, and report typography than
   the compact publication theme. Documentation assets use an additional
   web-specific scale because raster plots are reduced inside the Documenter
