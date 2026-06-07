@@ -188,6 +188,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   The `How JuFitter Works` page now shows a flat left-to-right pipeline with
   explicit validation, cost-construction, solver-dispatch, post-fit-analysis,
   and output stages rather than a loose component inventory.
+- Technical maintenance pages remain in the rendered documentation, but they
+  are nested under `Reference > Technical Notes` rather than appearing as a
+  top-level user path. The public documentation hygiene gate now prevents a
+  top-level `Engineering Notes` navigation block from returning.
 - Browser QA against a temporary local Documenter server verifies that the
   Poisson/histogram page loads, exposes 12 grouped plot assets, and switches
   the visible dark-mode image sources between `:publication` and `:workbench`
@@ -355,8 +359,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The math section now starts with a beginner path, model-choice table, and
   minimal mental model before the formal likelihood/covariance reference. It
   still needs human subject-matter review before broad promotion.
-- Technical maintenance notes should remain accessible, but should not dominate
-  the user-facing navigation.
+- Technical maintenance notes remain accessible under `Reference > Technical
+  Notes`; they no longer dominate the top-level user navigation.
 - Private/local dataset language is now covered by the public documentation
   hygiene gate; keep extending that gate when new release-language risks are
   identified.

@@ -49,12 +49,12 @@ makedocs(;
         ],
         "Reference" => [
             "API Reference" => "api.md",
-            "Overview" => "overview.md",
-        ],
-        "Engineering Notes" => [
-            "Backend Design" => "backend_design.md",
-            "Performance" => "performance.md",
-            "Maintenance Notes" => "maintenance.md",
+            "Reference Map" => "overview.md",
+            "Technical Notes" => [
+                "Backend Design" => "backend_design.md",
+                "Performance" => "performance.md",
+                "Maintenance Notes" => "maintenance.md",
+            ],
         ],
     ],
     checkdocs=:none,
