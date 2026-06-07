@@ -98,6 +98,22 @@ julia --project=. --startup-file=no benchmarks/runbenchmarks.jl --compare=benchm
 Do not advertise speed claims until the reference hardware or CI runner is
 named and the benchmark output is reviewed.
 
+Required scientific limitation checks:
+
+- Dense covariance matrices are the exact small/medium-data path, not a large
+  data strategy. Before claiming support for long time series, images, spectra,
+  or detector arrays, either provide structured covariance or custom whitening
+  evidence, or state the current `O(n^2)` memory and `O(n^3)` factorization
+  limitation clearly.
+- Parameter covariance is a local approximation. For nonlinear models, weak
+  data, active bounds, or asymmetric likelihoods, verify that documentation and
+  diagnostics point users to profile/contour intervals instead of implying that
+  symmetric covariance errors are final.
+- Parameter-dependent dense `cov_x` propagation is an audit-sensitive AD path.
+  Keep finite-difference value, gradient, and Hessian references in the release
+  gate whenever validation, conversion, or factorization code touches dense
+  effective covariance logic.
+
 ## 5. Python Interoperability
 
 Python use is intended through JuliaCall/PythonCall, but it is not a default

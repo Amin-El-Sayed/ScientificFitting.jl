@@ -121,6 +121,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   performance guard, benchmark evidence, optional Python interop, CI status,
   Git identity, and manual publication approval. `test/release_checklist_gate.jl`
   verifies that the checklist keeps these required commands and safeguards.
+- The pre-release checklist now requires explicit review of three scientific
+  limitation classes before public claims: dense covariance scaling versus
+  structured covariance/custom whitening, local parameter-covariance validity
+  versus profile/contour intervals, and finite-difference AD references for
+  parameter-dependent dense `cov_x` propagation.
 - `benchmarks/runbenchmarks.jl` can now write TOML baselines with `--save` and
   compare later runs with `--compare`. Local benchmark manifests and outputs
   are ignored because they are machine-specific.
