@@ -249,6 +249,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   likelihoods, profiles, contours, multi-dataset fits, bad scaling, local
   minima, invalid uncertainty models, and large datasets before release claims
   can use words like robust.
+- The following items are not automatic v0 blockers if their limitations are
+  documented honestly, but they are release-audit candidates for every serious
+  public claim about scale, nonlinear uncertainty, or x-covariance derivatives:
+  dense covariance asymptotics, local parameter-covariance validity, and
+  parameter-dependent dense `cov_x` automatic differentiation.
 - x-uncertainty propagation now has a public vectorized
   `x_derivative=(x, p) -> dy_dx` hook, which avoids the default point-by-point
   AD derivative when the model derivative is known. The default path remains
@@ -259,7 +264,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   covariance operators or custom whitening operators.
 - The first release may keep dense covariance as the explicit exact small/medium
   path, but future work must add structured covariance or whitening operators
-  for long time series, images, spectra, and detector arrays.
+  for long time series, images, spectra, and detector arrays. That future path
+  must define matrix-free whitening, log-determinant handling where needed, and
+  diagnostics that tell users when dense covariance is the wrong model.
 - Objective functions still allocate substantially through `ForwardDiff`
   Jacobians/Hessians and array-returning model calls. Very large datasets need
   an in-place residual/model API.
@@ -288,7 +295,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   credible intervals. Diagnostics now add an explicit profile/contour
   recommendation for active bounds, ill-conditioned local covariance/Hessian
   estimates, and strong parameter correlations, but future work should detect
-  nonlinearity and asymmetric likelihoods more directly.
+  nonlinearity and asymmetric likelihoods more directly and expose asymmetric
+  interval summaries where the profile likelihood supports them.
 - Profile and contour scans now expose failed refits through diagnostics and
   support adaptive refinement around profile thresholds and contour levels.
   Strongly curved/non-elliptic contours still need deeper diagnostic polish

@@ -220,6 +220,28 @@ Open hardening work:
 - Expand torture tests until they cover constraints, priors, likelihoods,
   profiles, contours, and multi-dataset workflows under hostile conditions.
 
+Deferred scientific architecture candidates:
+
+- Structured covariance and whitening operators. Dense covariance matrices are
+  the exact small/medium-data path, but they scale as `O(n^2)` in memory and
+  `O(n^3)` for factorization. Large time series, images, spectra, and detector
+  arrays need matrix-free or structured operators with explicit whitening,
+  log-determinant, and diagnostic semantics before JuFitter should claim
+  large-scale correlated-data leadership.
+- Beyond local parameter covariance. `Cov(p̂)` is a local quadratic
+  approximation. It can be too optimistic for nonlinear models, weak data,
+  active bounds, and asymmetric likelihoods. Profiles and contours are the
+  current scientifically correct mitigation; future work should add stronger
+  automatic triggers, asymmetric interval summaries, and documentation nudges so
+  users do not rely on symmetric covariance errors when the likelihood shape
+  does not justify them.
+- Parameter-dependent dense `cov_x` AD audit. The known Cholesky/dual-stripping
+  issue is covered by finite-difference value/gradient/Hessian tests, but this
+  path remains audit-sensitive. Any future refactor that touches validation,
+  conversion, effective covariance construction, or factorization must preserve
+  derivative information through the covariance term and keep independent
+  finite-difference references.
+
 ## Phase 3.5: Diagnostic Plots and Contours
 
 Status: blocked on the Phase 3 hardening gate.
