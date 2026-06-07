@@ -105,6 +105,15 @@ function _model_scalar(problem::FitProblem, x::Real, p::AbstractVector)
 end
 
 function _model_dydx(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
+    if problem.x_derivative !== nothing
+        values = problem.x_derivative(x, p)
+        length(values) == length(x) || throw(ArgumentError("x_derivative output length must match x length"))
+        collected = collect(values)
+        finite_values = _finite_value.(collected)
+        all(isfinite, finite_values) || throw(ArgumentError("x_derivative output must contain only finite values"))
+        return collected
+    end
+
     return [ForwardDiff.derivative(t -> _model_scalar(problem, t, p), xi) for xi in x]
 end
 

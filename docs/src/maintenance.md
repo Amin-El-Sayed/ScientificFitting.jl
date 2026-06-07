@@ -47,7 +47,9 @@ belongs in a cache.
   factorization. Large correlated datasets need structured covariance
   operators, not denser micro-optimizations.
 - Parameter-dependent x uncertainties require recomputing effective covariance
-  terms. This is statistical work, not accidental overhead.
+  terms. This is statistical work, not accidental overhead. For large datasets,
+  prefer the public `x_derivative=(x, p) -> dy_dx` hook over the default
+  pointwise AD derivative.
 - Generic `Optimization.jl` objectives are flexible but slower than the
   specialized `LsqFit` path.
 - Plotting startup is dominated by Makie/CairoMakie compilation on first use,

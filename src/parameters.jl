@@ -105,6 +105,7 @@ function _with_p0(problem::FitProblem, p0::AbstractVector)
         parameter_constraints=problem.parameter_constraints,
         fixed_parameters=problem.fixed_parameters,
         jacobian=problem.jacobian,
+        x_derivative=problem.x_derivative,
     )
 end
 

@@ -74,6 +74,75 @@ using Test
         @test result.stats.cost_min != result.stats.chi2
     end
 
+    @testset "Vectorized x derivative avoids pointwise AD for x uncertainty" begin
+        x = collect(range(0.0, 5.0; length=80))
+        p_true = [1.4, -0.3]
+        sigma_y = fill(0.08, length(x))
+        sigma_x = fill(0.12, length(x))
+
+        scalar_model_calls = Ref(0)
+        function guarded_model(x, p)
+            if length(x) == 1
+                scalar_model_calls[] += 1
+                error("pointwise x derivative path was used")
+            end
+            return @. p[1] * x + p[2]
+        end
+
+        derivative_calls = Ref(0)
+        function x_derivative(x, p)
+            derivative_calls[] += 1
+            return fill(p[1], length(x))
+        end
+
+        y = guarded_model(x, p_true) .+ sigma_y .* sin.(1.9 .* x)
+        result = fit_model(
+            guarded_model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma_y,
+            sigma_x=sigma_x,
+            x_derivative=x_derivative,
+        )
+
+        @test result.backend == :optimization
+        @test result.converged
+        @test derivative_calls[] > 0
+        @test scalar_model_calls[] == 0
+        @test isfinite(result.stats.nll_min)
+    end
+
+    @testset "Invalid x derivative fails clearly" begin
+        x = collect(range(0.0, 2.0; length=20))
+        model(x, p) = @. p[1] * x + p[2]
+        y = model(x, [1.0, 0.2])
+        sigma_y = fill(0.1, length(x))
+        sigma_x = fill(0.1, length(x))
+
+        short_derivative(x, p) = fill(p[1], length(x) - 1)
+        bad_derivative(x, p) = fill(NaN, length(x))
+
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma_y,
+            sigma_x=sigma_x,
+            x_derivative=short_derivative,
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma_y,
+            sigma_x=sigma_x,
+            x_derivative=bad_derivative,
+        )
+    end
+
     @testset "Gaussian NLL for static diagonal covariance" begin
         x = collect(range(0.0, 2.0; length=60))
         model(x, p) = @. p[1] * x + p[2]

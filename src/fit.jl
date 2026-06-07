@@ -249,6 +249,10 @@ Useful parameter-control kwargs:
 - `parameter_constraints=(indices=[i, j], mean=[mu_i, mu_j], covariance=cov)`
 - `fixed_parameters=(index=i, value=value, sigma=sigma)`
 - `fixed_parameters=(index=i, value=value, sigma_minus=sminus, sigma_plus=splus)`
+
+For fits with x uncertainty, `x_derivative=(x, p) -> dy_dx` supplies a
+vectorized model derivative with respect to x. This avoids the default
+point-by-point AD path and is the preferred route for large datasets.
 """
 function fit_model(
     model,
@@ -266,6 +270,7 @@ function fit_model(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     jacobian=nothing,
+    x_derivative=nothing,
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
@@ -291,6 +296,7 @@ function fit_model(
         parameter_constraints=parameter_constraints,
         fixed_parameters=fixed_parameters,
         jacobian=jacobian,
+        x_derivative=x_derivative,
     )
 
     return fit(

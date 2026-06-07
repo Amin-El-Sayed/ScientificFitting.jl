@@ -57,6 +57,7 @@ function _refit_with_fixed(result::FitResult, fixed::Vector{FixedParameter})
         parameter_constraints=problem.parameter_constraints,
         fixed_parameters=_merge_fixed_parameters(problem.fixed_parameters, fixed),
         jacobian=problem.jacobian,
+        x_derivative=problem.x_derivative,
     )
 
     return fit(

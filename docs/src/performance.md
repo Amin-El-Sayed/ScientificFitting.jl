@@ -104,6 +104,29 @@ uncertainties and model-relative y uncertainties can change the effective
 covariance at every parameter point, so the cost function must recompute the
 relevant covariance terms.
 
+For x uncertainties, the default path differentiates the model with respect to
+each x value by automatic differentiation. That keeps the simple API correct,
+but it is not the preferred route for large datasets. If the derivative is
+known, pass a vectorized function:
+
+```julia
+x_derivative(x, p) = @. p[1] * exp(p[2] * x) * p[2]
+
+result = fit_model(
+    model,
+    x,
+    y;
+    p0=[1.0, -0.2],
+    sigma_y=sigma_y,
+    sigma_x=sigma_x,
+    x_derivative=x_derivative,
+)
+```
+
+JuFitter validates that `x_derivative(x, p)` has the same length as `x` and
+contains finite values. The derivative may depend on `p`; AD information is
+preserved when the Gaussian NLL needs gradients or Hessians.
+
 ## Known Limits
 
 Dense covariance matrices are correct and tested, but they are not the right

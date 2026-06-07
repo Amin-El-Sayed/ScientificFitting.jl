@@ -146,6 +146,9 @@ Current evidence:
   difference reference test for Gaussian-NLL value, gradient, and Hessian. The
   Cholesky path now keeps AD information in the actual factorization and strips
   duals only for finite-value and symmetry validation.
+- X-uncertainty propagation now accepts a vectorized `x_derivative=(x, p) ->
+  dy_dx` hook, so large datasets can avoid the default pointwise AD derivative
+  when the model derivative is known.
 - Dense covariance remains intentionally documented as an expensive `O(n^2)`
   memory and `O(n^3)` factorization path; huge correlated datasets need future
   structured covariance operators rather than dense matrices.
@@ -179,7 +182,6 @@ Open hardening work:
   wrong asymptotic model.
 - Add in-place model and residual APIs for huge datasets.
 - Add explicit optimizer fallback and parameter-scaling diagnostics.
-- Add performance-budget CI for representative hot paths.
 - Expand torture tests until they cover constraints, priors, likelihoods,
   profiles, contours, and multi-dataset workflows under hostile conditions.
 

@@ -81,6 +81,7 @@ struct FitProblem{TF}
     parameter_constraints::Vector{ParameterConstraint}
     fixed_parameters::Vector{FixedParameter}
     jacobian::Any
+    x_derivative::Any
 end
 
 struct FitStatistics
@@ -385,7 +386,7 @@ function _normalize_fixed_parameters(fixed_parameters, nparams::Int)
 end
 
 """
-    FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x, error_components, bounds, constraints, parameter_priors, parameter_constraints, fixed_parameters, jacobian)
+    FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x, error_components, bounds, constraints, parameter_priors, parameter_constraints, fixed_parameters, jacobian, x_derivative)
 
 Build a fit problem for 1D `x` and scalar `y` observations.
 
@@ -412,6 +413,10 @@ single NamedTuple or vector of NamedTuples:
 - `(index=i, value=value)`
 - `(index=i, value=value, sigma=sigma)`
 - `(index=i, value=value, sigma_minus=sminus, sigma_plus=splus)`
+
+`x_derivative(x, p)` optionally supplies the vector derivative `dy/dx` used for
+effective x-uncertainty propagation. If omitted, JuFitter differentiates the
+model with respect to each x value by automatic differentiation.
 """
 function FitProblem(
     model,
@@ -429,6 +434,7 @@ function FitProblem(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     jacobian=nothing,
+    x_derivative=nothing,
 )
     x_vec = _float_vector(x)
     y_vec = _float_vector(y)
@@ -491,5 +497,6 @@ function FitProblem(
         par_constraints,
         fixed,
         jacobian,
+        x_derivative,
     )
 end

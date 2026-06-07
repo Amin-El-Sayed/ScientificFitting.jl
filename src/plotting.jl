@@ -842,6 +842,7 @@ const _FITPLOT_FIT_KWARGS = Set([
     :parameter_constraints,
     :fixed_parameters,
     :jacobian,
+    :x_derivative,
     :backend,
     :cost,
     :maxiters,
@@ -905,9 +906,9 @@ end
     fitplot(x, y; p0=nothing, report=:plot, kwargs...)
 
 Fit and plot in one call. The `model, x, y` method forwards fitting keywords
-such as `sigma_y`, `sigma_x`, `bounds`, `parameter_priors`, and `backend` to
-`fit_model`; plotting keywords such as `xlabel`, `ylabel`, `theme`, `nsigma`,
-`report`, and `filename` are forwarded to `plot_fit`.
+such as `sigma_y`, `sigma_x`, `x_derivative`, `bounds`, `parameter_priors`, and
+`backend` to `fit_model`; plotting keywords such as `xlabel`, `ylabel`,
+`theme`, `nsigma`, `report`, and `filename` are forwarded to `plot_fit`.
 
 The `x, y` method uses a linear model by default. All methods return a named
 tuple `(result, figure)` so the numerical result is not lost.

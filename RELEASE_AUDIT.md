@@ -29,11 +29,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 309 core checks in about 15m21s on the local machine after the
+  passes with 319 core checks in about 4m15s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
   developer gate and must be split further before release CI is finalized.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes with
-  362 checks in about 9m23s for the test phase after package test
+  372 checks in about 5m54s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 53
@@ -76,7 +76,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `test/performance_budget_gate.jl` now covers representative steady-state hot
   paths with deliberately broad budgets: 10k-point analytic linear
   least-squares, no-op bounds preserving the fast path, and 300-point dense
-  covariance. This is a regression guard, not a publishable benchmark claim.
+  covariance. This is wired into the core CI lane with a runner scale factor.
+  It is a regression guard, not a publishable benchmark claim.
 - `benchmarks/runbenchmarks.jl` can now write TOML baselines with `--save` and
   compare later runs with `--compare`. Local benchmark manifests and outputs
   are ignored because they are machine-specific.
@@ -220,9 +221,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   likelihoods, profiles, contours, multi-dataset fits, bad scaling, local
   minima, invalid uncertainty models, and large datasets before release claims
   can use words like robust.
-- x-uncertainty propagation currently differentiates the model point-by-point
-  by calling the model on one-element arrays. This is clear but not acceptable
-  as the final high-performance path for large datasets.
+- x-uncertainty propagation now has a public vectorized
+  `x_derivative=(x, p) -> dy_dx` hook, which avoids the default point-by-point
+  AD derivative when the model derivative is known. The default path remains
+  pointwise for API simplicity, and very large workflows still need future
+  in-place model/residual APIs.
 - Dense covariance support is mathematically useful, but still `O(n^2)` memory
   and `O(n^3)` factorization. Large correlated datasets need structured
   covariance operators or custom whitening operators.
@@ -262,9 +265,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   3.12.13 without `juliacall`. Release claims still require running the gate in
   a clean Python environment, checking array conversion semantics, and
   documenting limitations.
-- Benchmarks exist, but there is no enforced performance budget in CI.
-- A local performance-budget gate exists, but it has not yet been observed on
-  GitHub Actions and does not replace saved `BenchmarkTools` baselines.
+- The local performance-budget gate is wired into CI, but it has not yet been
+  observed on GitHub Actions and does not replace saved `BenchmarkTools`
+  baselines.
 - The benchmark runner can save and compare baselines, but no release reference
   hardware or CI baseline has been selected yet.
 - `diagnostic_dashboard(...)` now summarizes structured findings into status,
