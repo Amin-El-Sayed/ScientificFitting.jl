@@ -13,8 +13,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 ## Current Verification
 
 - `git diff --check` passes for the current release-hardening branch.
-- `julia --project=. -e 'include("test/torture_runtests.jl")'` passes with 14
-  torture checks in about 2m44s on the local machine.
+- `julia --project=. -e 'include("test/torture_runtests.jl")'` passes with 21
+  torture checks in about 19s on the local machine. The torture suite now
+  checks that fixed and profiled parameter values cannot bypass declared
+  bounds.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
   passes with 34 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds.

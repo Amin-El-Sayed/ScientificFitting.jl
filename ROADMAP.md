@@ -138,6 +138,9 @@ Current evidence:
   cases.
 - The fast `LsqFit` path is preserved for unbounded static least-squares fits,
   including user-supplied no-op bounds such as `[-Inf, Inf]`.
+- Fixed parameters and profiled parameters now respect declared bounds. Values
+  outside bounds fail early in ordinary fits and surface as failed profile
+  refits when `on_failure=:inf` is used.
 - `LsqFit` backend Jacobians are reused when constructing `FitResult`, avoiding
   an avoidable AD pass for common least-squares workflows.
 - The generic `Optimization.jl` path receives cached objective data, so static

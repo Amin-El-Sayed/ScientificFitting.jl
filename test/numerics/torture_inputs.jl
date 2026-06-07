@@ -24,6 +24,35 @@ using Test
         @test_throws ArgumentError fit_model(model, x, y; p0=[1.0, 0.0], cov_y=singular)
     end
 
+    @testset "Fixed and profiled parameters cannot bypass bounds" begin
+        bounded = fit_model(
+            model,
+            x,
+            y;
+            p0=[1.5, 1.0],
+            sigma_y=fill(0.1, length(x)),
+            bounds=([0.0, -Inf], [2.0, Inf]),
+        )
+
+        @test bounded.converged
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.5, 1.0],
+            sigma_y=fill(0.1, length(x)),
+            bounds=([0.0, -Inf], [2.0, Inf]),
+            fixed_parameters=(index=1, value=3.0),
+        )
+
+        prof = profile(bounded, 1; values=[1.0, 2.0, 3.0], on_failure=:inf)
+        @test isfinite(prof.cost_values[1])
+        @test isfinite(prof.cost_values[2])
+        @test isinf(prof.cost_values[3])
+        @test any(f -> f.code == :profile_refit_failed, diagnose(prof).findings)
+        @test_throws ArgumentError profile(bounded, 1; values=[1.0, 2.0, 3.0], on_failure=:throw)
+    end
+
     @testset "Non-finite model output is a model error, not optimizer noise" begin
         bad_model(x, p) = [xi == 0.0 ? NaN : p[1] / xi + p[2] for xi in x]
         @test_throws ArgumentError fit_model(bad_model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.1, length(x)))

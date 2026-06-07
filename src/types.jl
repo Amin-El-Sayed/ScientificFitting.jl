@@ -385,6 +385,20 @@ function _normalize_fixed_parameters(fixed_parameters, nparams::Int)
     return fixed
 end
 
+function _assert_fixed_parameters_within_bounds(fixed::Vector{FixedParameter}, bounds)
+    bounds === nothing && return nothing
+    lower, upper = bounds
+    for fp in fixed
+        value = fp.value
+        lo = lower[fp.index]
+        hi = upper[fp.index]
+        if value < lo || value > hi
+            throw(ArgumentError("fixed parameter $(fp.index) value must satisfy its bounds"))
+        end
+    end
+    return nothing
+end
+
 """
     FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x, error_components, bounds, constraints, parameter_priors, parameter_constraints, fixed_parameters, jacobian, x_derivative)
 
@@ -480,6 +494,7 @@ function FitProblem(
     priors = _normalize_parameter_priors(parameter_priors, length(p0_vec))
     par_constraints = _normalize_parameter_constraints(parameter_constraints, length(p0_vec))
     fixed = _normalize_fixed_parameters(fixed_parameters, length(p0_vec))
+    _assert_fixed_parameters_within_bounds(fixed, bnd)
 
     return FitProblem(
         model,

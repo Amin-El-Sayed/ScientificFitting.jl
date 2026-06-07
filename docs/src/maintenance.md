@@ -146,6 +146,9 @@ belongs in a cache.
   optimizer internals can turn them into vague convergence failures.
 - Keep diagnostics visible when covariance, Hessian, ndf, p-values, or bounds
   make local errors unreliable.
+- Fixed parameters are not allowed to bypass bounds. Profile and contour refits
+  must apply the same invariant: scan points outside declared bounds are failed
+  refits, not valid uncertainty samples.
 - Profile and contour scans default to marking failed refits as non-finite grid
   points instead of aborting the whole scan. `diagnose(profile_result)` and
   `diagnose(contour_result)` must surface those failures before users interpret

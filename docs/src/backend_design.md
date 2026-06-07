@@ -103,7 +103,10 @@ between:
 - reported parameter estimates and uncertainties.
 
 This keeps fixed parameters, priors, bounds, covariance dimensions, and degrees
-of freedom consistent.
+of freedom consistent. A fixed parameter is still part of the scientific model,
+so it must satisfy any declared bound for that parameter. Profile and contour
+refits use the same rule; a scan point outside a bound is a failed refit, not a
+valid uncertainty point.
 
 ## Diagnostics
 
