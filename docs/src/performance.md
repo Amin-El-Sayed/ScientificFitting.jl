@@ -9,8 +9,12 @@ least-squares fits on the fast backend, and make expensive choices explicit.
 The benchmark entry point is:
 
 ```bash
-julia --project=. benchmarks/runbenchmarks.jl
+julia --project=benchmarks benchmarks/runbenchmarks.jl --seconds=1
 ```
+
+The benchmark script develops the repository package into the benchmark
+environment on first run. The generated `benchmarks/Manifest.toml` is local
+machine state and is intentionally ignored by git.
 
 For quick local checks, load the suite and run selected cases:
 
@@ -21,6 +25,29 @@ include("benchmarks/runbenchmarks.jl")
 run(SUITE["fit"]["linear_100"]; seconds=0.2)
 run(SUITE["fit"]["full_covariance_500_bounded"]; seconds=0.2)
 run(SUITE["likelihood"]["poisson_5000"]; seconds=0.2)
+```
+
+To write a machine-readable baseline:
+
+```bash
+julia --project=benchmarks benchmarks/runbenchmarks.jl \
+  --seconds=1 \
+  --save=benchmarks/output/local-baseline.toml
+```
+
+To compare against a saved baseline:
+
+```bash
+julia --project=benchmarks benchmarks/runbenchmarks.jl \
+  --seconds=1 \
+  --compare=benchmarks/output/local-baseline.toml \
+  --tolerance=0.25
+```
+
+Plot export benchmarks are opt-in because they require CairoMakie:
+
+```bash
+julia --project=benchmarks benchmarks/runbenchmarks.jl --plot --seconds=1
 ```
 
 The current suite covers:
@@ -34,7 +61,9 @@ The current suite covers:
 - profile scans.
 
 Benchmarks are not release claims until they are compared against saved
-baselines in CI.
+baselines on stated hardware or CI runners. Local baselines belong under
+`benchmarks/output/` until a specific machine or CI environment is chosen as
+the release reference.
 
 ## Performance Budget Gate
 
@@ -86,6 +115,11 @@ is a structured covariance API: banded matrices, Toeplitz kernels,
 low-rank-plus-diagonal structure, sparse precision matrices, or custom
 whitening operators. Dense-matrix micro-optimization cannot fix the asymptotic
 scaling.
+
+This is especially relevant for long time series, images, spectra, and detector
+arrays. In those cases the covariance structure is usually the scientific model;
+materializing a dense matrix is often both slower and less expressive than a
+dedicated whitening operator.
 
 Makie/CairoMakie dominates first-use plotting latency. Plotting is therefore
 loaded through an optional package extension: users who only fit and print

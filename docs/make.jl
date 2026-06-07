@@ -1,3 +1,13 @@
+using Pkg
+
+const DOCS_ROOT = @__DIR__
+const PROJECT_ROOT = dirname(DOCS_ROOT)
+
+if get(ENV, "JUFITTER_DOCS_SKIP_DEVELOP", "0") != "1"
+    Pkg.develop(PackageSpec(path=PROJECT_ROOT))
+    Pkg.instantiate()
+end
+
 using Documenter
 using JuFitter
 using CairoMakie

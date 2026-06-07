@@ -75,6 +75,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   paths with deliberately broad budgets: 10k-point analytic linear
   least-squares, no-op bounds preserving the fast path, and 300-point dense
   covariance. This is a regression guard, not a publishable benchmark claim.
+- `benchmarks/runbenchmarks.jl` can now write TOML baselines with `--save` and
+  compare later runs with `--compare`. Local benchmark manifests and outputs
+  are ignored because they are machine-specific.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page
@@ -221,15 +224,29 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Dense covariance support is mathematically useful, but still `O(n^2)` memory
   and `O(n^3)` factorization. Large correlated datasets need structured
   covariance operators or custom whitening operators.
+- The first release may keep dense covariance as the explicit exact small/medium
+  path, but future work must add structured covariance or whitening operators
+  for long time series, images, spectra, and detector arrays.
 - Objective functions still allocate substantially through `ForwardDiff`
   Jacobians/Hessians and array-returning model calls. Very large datasets need
   an in-place residual/model API.
+- Audit candidate: parameter-dependent dense covariance derivatives. Some
+  Cholesky preparation paths use `ForwardDiff.value`/`Float64` for robust value
+  factorization. That is correct for static covariance and likely fine for
+  diagonal effective-variance `sigma_x` workflows, but it may drop derivative
+  information through a full parameter-dependent dense covariance. Before
+  claiming full Gaussian-NLL correctness for that case, add gradient/Hessian
+  reference tests against finite differences or analytic derivatives.
 - Invalid covariance matrices must not be silently repaired. If a future
   regularization/jitter policy is added, it must be explicit in the API and
   visible in diagnostics.
 - Bounds and constraints currently rely on local Hessian/covariance
   approximations. Reports must be explicit about when errors are local and when
   profile intervals are required.
+- Parameter covariance remains a local approximation. Nonlinear models, weak
+  data, active bounds, and asymmetric likelihoods require profiles/contours for
+  credible intervals; future diagnostics should more aggressively recommend or
+  trigger profile checks when local covariance is suspect.
 - Profile and contour scans now expose failed refits through diagnostics and
   support adaptive refinement around profile thresholds and contour levels.
   Strongly curved/non-elliptic contours still need deeper diagnostic polish
@@ -246,6 +263,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Benchmarks exist, but there is no enforced performance budget in CI.
 - A local performance-budget gate exists, but it has not yet been observed on
   GitHub Actions and does not replace saved `BenchmarkTools` baselines.
+- The benchmark runner can save and compare baselines, but no release reference
+  hardware or CI baseline has been selected yet.
 - `diagnostic_dashboard(...)` now summarizes structured findings into status,
   severity counts, and deduplicated next actions. Profile contours now default
   to directly labeled 1-sigma/2-sigma regions with local-covariance comparison;
@@ -276,7 +295,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Run the Python interoperability release gate in CI or explicitly document why
   Python support is deferred from v0. The local opt-in gate exists, but has not
   yet passed in a clean `juliacall` environment.
-- Add benchmarks with saved baseline results for hot paths.
+- Select release-reference hardware or CI runners and save benchmark baselines
+  for hot paths with `benchmarks/runbenchmarks.jl --save=...`.
 - Add a pre-release checklist that runs tests, docs, link checks, examples, and
   benchmark smoke tests from a clean checkout.
 

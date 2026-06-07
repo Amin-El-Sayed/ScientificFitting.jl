@@ -8,7 +8,9 @@
 /output/
 /examples/output/
 /docs/build/
+/docs/Manifest.toml
 /benchmarks/output/
+/benchmarks/Manifest.toml
 
 # Generated plot exports in repository root
 /*.pdf

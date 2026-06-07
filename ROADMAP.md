@@ -145,6 +145,10 @@ Current evidence:
 - Dense covariance remains intentionally documented as an expensive `O(n^2)`
   memory and `O(n^3)` factorization path; huge correlated datasets need future
   structured covariance operators rather than dense matrices.
+- Parameter covariance is intentionally treated as a local approximation.
+  Nonlinear models, weak data, active bounds, and asymmetric likelihoods can
+  make `Cov(p̂)` optimistic or misleading; profile and contour workflows are
+  the current mitigation and must remain visible in reports and documentation.
 - Profile scans can adaptively refine threshold-crossing intervals, and contour
   scans can adaptively refine cells around requested contour levels. Reference
   tests cover both adaptive paths against the quadratic covariance benchmark.
@@ -166,6 +170,15 @@ Open hardening work:
 - Turn the diagnostic dashboard into a visual Makie report that combines fit
   quality, pulls, profiles, contours, and next actions.
 - Add structured covariance/whitening operators for large correlated data.
+  Target use cases include long time series, images, spectra, detector arrays,
+  and other measurements where dense covariance storage or factorization is the
+  wrong asymptotic model.
+- Audit parameter-dependent dense covariance derivatives. The current
+  value-stable Cholesky path intentionally converts some covariance matrices
+  through `ForwardDiff.value`/`Float64`; this may drop derivative information
+  through `V(p)` for full `cov_x`-style effective dense covariance. Diagonal
+  effective-variance cases need separate reference coverage from full dense
+  parameter-dependent covariance cases.
 - Add in-place model and residual APIs for huge datasets.
 - Add explicit optimizer fallback and parameter-scaling diagnostics.
 - Add performance-budget CI for representative hot paths.

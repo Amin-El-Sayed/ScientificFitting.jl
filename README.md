@@ -332,5 +332,8 @@ Performance benchmarks live in `benchmarks/runbenchmarks.jl` and can be run
 with:
 
 ```bash
-julia --project=. benchmarks/runbenchmarks.jl
+julia --project=benchmarks benchmarks/runbenchmarks.jl --seconds=1
 ```
+
+Use `--save=benchmarks/output/local-baseline.toml` to record a local baseline
+and `--compare=...` to compare a later run. Benchmark output is ignored by git.

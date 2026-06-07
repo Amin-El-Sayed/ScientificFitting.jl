@@ -195,6 +195,13 @@ H=\nabla^2 \mathrm{NLL}(\hat\theta)
 
 in the convention ``\mathrm{NLL}=-2\log L``.
 
+This approximation is useful but not a promise that the likelihood is
+parabolic. Nonlinear models, weak data, active bounds, and asymmetric
+likelihoods can make the local covariance too optimistic or even misleading.
+That is why JuFitter also exposes profile intervals and pairwise contours: they
+inspect the cost surface away from the minimum instead of trusting only the
+local Hessian.
+
 ## Goodness Of Fit
 
 For Gaussian residuals with known uncertainties, the expected scale is

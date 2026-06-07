@@ -68,7 +68,7 @@ end
             @test occursin("1σ", text) || occursin("1-sigma", text) || occursin("one-sigma", text)
             @test !occursin("P1", text)
             @test !occursin("Praktikum", text)
-            @test !occursin("AI slop", text)
+            @test !occursin("placeholder prose", lowercase(text))
             @test !occursin("being rewritten", text)
             @test !occursin("not all of them are finished", text)
 
