@@ -144,6 +144,11 @@ belongs in a cache.
   explicit documented user policy with a visible diagnostic.
 - Reject non-finite data, parameters, uncertainties, and model output before
   optimizer internals can turn them into vague convergence failures.
+- Reject user-provided start values that are outside declared bounds. `p0` and
+  explicit `initial_guesses` are part of the scientific input, so JuFitter must
+  not silently clip them to the nearest allowed value. Generated multistart
+  candidates may be constructed inside bounds, but user input should either be
+  accepted as written or fail clearly.
 - Keep diagnostics visible when covariance, Hessian, ndf, p-values, or bounds
   make local errors unreliable.
 - Fixed parameters are not allowed to bypass bounds. Profile and contour refits

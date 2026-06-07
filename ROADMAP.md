@@ -141,6 +141,10 @@ Current evidence:
 - Fixed parameters and profiled parameters now respect declared bounds. Values
   outside bounds fail early in ordinary fits and surface as failed profile
   refits when `on_failure=:inf` is used.
+- User-provided start values are validated instead of silently repaired. `p0`
+  and `initial_guesses` must be finite and inside declared bounds before the
+  optimizer starts; internally generated multistart candidates remain bounded
+  by construction.
 - `LsqFit` backend Jacobians are reused when constructing `FitResult`, avoiding
   an avoidable AD pass for common least-squares workflows.
 - The generic `Optimization.jl` path receives cached objective data, so static

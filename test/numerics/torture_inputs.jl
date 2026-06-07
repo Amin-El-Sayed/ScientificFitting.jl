@@ -53,6 +53,57 @@ using Test
         @test_throws ArgumentError profile(bounded, 1; values=[1.0, 2.0, 3.0], on_failure=:throw)
     end
 
+    @testset "User start values are validated, not silently repaired" begin
+        bounds = ([0.0, -Inf], [2.0, Inf])
+
+        @test fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            bounds=bounds,
+            initial_guesses=[[1.5, 0.0]],
+            multistart=2,
+        ).converged
+
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[3.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            bounds=bounds,
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            bounds=bounds,
+            initial_guesses=[[NaN, 0.0]],
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            bounds=bounds,
+            initial_guesses=[[3.0, 0.0]],
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            bounds=bounds,
+            initial_guesses=[[1.0]],
+        )
+    end
+
     @testset "Non-finite model output is a model error, not optimizer noise" begin
         bad_model(x, p) = [xi == 0.0 ? NaN : p[1] / xi + p[2] for xi in x]
         @test_throws ArgumentError fit_model(bad_model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.1, length(x)))

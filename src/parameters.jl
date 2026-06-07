@@ -109,20 +109,29 @@ function _with_p0(problem::FitProblem, p0::AbstractVector)
     )
 end
 
-function _clip_to_bounds(p::Vector{Float64}, bounds)
-    bounds === nothing && return p
+function _assert_candidate_within_bounds(name::AbstractString, candidate::AbstractVector, bounds)
+    bounds === nothing && return nothing
+
     lower, upper = bounds
-    return clamp.(p, lower, upper)
+    @inbounds for i in eachindex(candidate)
+        if candidate[i] < lower[i] || candidate[i] > upper[i]
+            throw(ArgumentError("$name must satisfy bounds; parameter $i is outside its declared interval"))
+        end
+    end
+    return nothing
 end
 
 function _initial_candidates(problem, initial_guesses, multistart::Int)
     candidates = Vector{Vector{Float64}}()
+    candidate_names = String[]
     push!(candidates, copy(problem.p0))
+    push!(candidate_names, "p0")
 
     if initial_guesses !== nothing
         raw = initial_guesses isa AbstractVector && !isempty(initial_guesses) && first(initial_guesses) isa Number ? [initial_guesses] : initial_guesses
-        for guess in raw
+        for (i, guess) in enumerate(raw)
             push!(candidates, _float_vector(guess))
+            push!(candidate_names, "initial guess $i")
         end
     end
 
@@ -134,6 +143,7 @@ function _initial_candidates(problem, initial_guesses, multistart::Int)
             center = copy(problem.p0)
             center[finite] .= (lower[finite] .+ upper[finite]) ./ 2
             push!(candidates, center)
+            push!(candidate_names, "generated multistart candidate")
             for idx in free_idx
                 finite[idx] || continue
                 low = copy(center)
@@ -142,6 +152,8 @@ function _initial_candidates(problem, initial_guesses, multistart::Int)
                 high[idx] = lower[idx] + 0.75 * (upper[idx] - lower[idx])
                 push!(candidates, low)
                 push!(candidates, high)
+                push!(candidate_names, "generated multistart candidate")
+                push!(candidate_names, "generated multistart candidate")
                 length(candidates) >= multistart && break
             end
         else
@@ -149,27 +161,29 @@ function _initial_candidates(problem, initial_guesses, multistart::Int)
                 candidate = copy(problem.p0)
                 candidate[free_idx] .= scale .* candidate[free_idx]
                 push!(candidates, candidate)
+                push!(candidate_names, "generated multistart candidate")
                 length(candidates) >= multistart && break
             end
         end
     end
 
     fixed = _fixed_lookup(problem)
-    for candidate in candidates
+    for (candidate, name) in zip(candidates, candidate_names)
         length(candidate) == length(problem.p0) || throw(ArgumentError("each initial guess must match parameter count"))
         for (idx, fp) in fixed
             candidate[idx] = fp.value
         end
+        _assert_finite_vector(name, candidate)
+        _assert_candidate_within_bounds(name, candidate, problem.bounds)
     end
 
     unique_candidates = Vector{Vector{Float64}}()
     seen = Set{Tuple{Vararg{Float64}}}()
     for candidate in candidates
-        clipped = _clip_to_bounds(candidate, problem.bounds)
-        key = Tuple(clipped)
+        key = Tuple(candidate)
         if !(key in seen)
             push!(seen, key)
-            push!(unique_candidates, clipped)
+            push!(unique_candidates, candidate)
         end
         length(unique_candidates) >= multistart && break
     end

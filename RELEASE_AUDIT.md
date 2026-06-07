@@ -13,10 +13,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 ## Current Verification
 
 - `git diff --check` passes for the current release-hardening branch.
-- `julia --project=. -e 'include("test/torture_runtests.jl")'` passes with 21
-  torture checks in about 19s on the local machine. The torture suite now
-  checks that fixed and profiled parameter values cannot bypass declared
-  bounds.
+- `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
+  passes with 26 torture checks in about 18s on the local machine after adding
+  validation that fixed/profiled parameter values cannot bypass declared bounds
+  and that `p0` and user-provided `initial_guesses` are finite and inside
+  declared bounds instead of being silently clipped before optimization.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
   passes with 34 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds.
@@ -31,11 +32,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 319 core checks in about 4m15s on the local machine after the
+  passes with 331 core checks in about 4m23s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
   developer gate and must be split further before release CI is finalized.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes with
-  372 checks in about 5m54s for the test phase after package test
+  384 checks in about 6m10s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 53
@@ -49,9 +50,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:workbench`/`:showcase`/`:publication` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates local Markdown links, HTML links, and image sources under
-  `docs/src`, including `.html` links that should resolve to source `.md`
-  pages before Documenter renders them.
+  The gate validates 307 local Markdown links, HTML links, and image sources
+  under `docs/src`, including `.html` links that should resolve to source
+  `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
   after `docs/make.jl`. The gate checks `href` and `src` targets in the rendered
   HTML under `docs/build`, so navigation and asset references are validated in
