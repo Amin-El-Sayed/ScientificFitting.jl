@@ -36,6 +36,24 @@ The current suite covers:
 Benchmarks are not release claims until they are compared against saved
 baselines in CI.
 
+## Performance Budget Gate
+
+The repository also has a small steady-state gate:
+
+```bash
+julia --project=. --startup-file=no test/performance_budget_gate.jl
+```
+
+It is not a benchmark report. The gate warms compilation first and then checks
+only broad budgets for representative hot paths: a 10k-point linear
+least-squares fit, the same fit with no-op bounds, and a 300-point dense
+covariance fit. Its job is to catch accidental slowdowns such as losing the
+`LsqFit` fast path or recomputing static covariance work inside the objective.
+
+For slow shared runners, the budgets can be scaled with
+`JUFITTER_PERFORMANCE_BUDGET_SCALE`. Any release claim still needs a proper
+`BenchmarkTools` run from `benchmarks/runbenchmarks.jl` and a recorded baseline.
+
 ## Fast Paths
 
 Unbounded static chi-square fits use `LsqFit`. This includes fits without

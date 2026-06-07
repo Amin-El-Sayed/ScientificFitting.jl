@@ -71,6 +71,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   and a manually summarized multi-dataset output block. The test uses
   `JUFITTER_DOC_SNAPSHOT_ONLY=1`, so it verifies computations and terminal
   output without re-rendering Makie assets.
+- `test/performance_budget_gate.jl` now covers representative steady-state hot
+  paths with deliberately broad budgets: 10k-point analytic linear
+  least-squares, no-op bounds preserving the fast path, and 300-point dense
+  covariance. This is a regression guard, not a publishable benchmark claim.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page
@@ -240,6 +244,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   a clean Python environment, checking array conversion semantics, and
   documenting limitations.
 - Benchmarks exist, but there is no enforced performance budget in CI.
+- A local performance-budget gate exists, but it has not yet been observed on
+  GitHub Actions and does not replace saved `BenchmarkTools` baselines.
 - `diagnostic_dashboard(...)` now summarizes structured findings into status,
   severity counts, and deduplicated next actions. Profile contours now default
   to directly labeled 1-sigma/2-sigma regions with local-covariance comparison;

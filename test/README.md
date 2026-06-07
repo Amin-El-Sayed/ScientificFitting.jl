@@ -25,6 +25,9 @@ The test suite is split by purpose, not by implementation file.
   JuliaCall. The default run passes with an informational note; setting
   `JUFITTER_RUN_PYTHON_INTEROP=1` requires `python3` and `juliacall` and runs
   `examples/python/fit_from_python.py`.
+- `performance_budget_gate.jl`: steady-state performance gate for representative
+  hot paths. It warms compilation first and uses deliberately broad budgets to
+  catch large regressions rather than benchmark-machine noise.
 
 New tests should be narrow and deterministic. Expensive Monte Carlo or benchmark
 checks belong in `benchmarks/` or a dedicated validation job, not in the default
@@ -68,3 +71,13 @@ JUFITTER_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_in
 If `juliacall` is not installed, leave the environment variable unset; the gate
 then records that the external prerequisite is intentionally absent without
 making default Julia tests depend on Python packaging state.
+
+Run the performance budget gate with:
+
+```bash
+julia --project=. --startup-file=no test/performance_budget_gate.jl
+```
+
+On intentionally slow CI runners, set `JUFITTER_PERFORMANCE_BUDGET_SCALE` to a
+larger value. Do not use this gate for marketing numbers; use
+`benchmarks/runbenchmarks.jl` for measured benchmark reports.
