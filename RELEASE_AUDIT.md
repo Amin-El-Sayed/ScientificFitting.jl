@@ -332,8 +332,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   opt-in gate exist (`examples/python/fit_from_python.py`,
   `test/python_interop_gate.jl`), but this machine currently has Python
   3.12.13 without `juliacall`. Release claims still require running the gate in
-  a clean Python environment, checking array conversion semantics, and
-  documenting limitations.
+  a clean Python environment and checking array conversion semantics. The
+  install page documents the current policy: Python use is experimental or
+  deferred unless `JUFITTER_RUN_PYTHON_INTEROP=1` passes with `juliacall`.
 - The local performance-budget gate is wired into CI, but it has not yet been
   observed on GitHub Actions and does not replace saved `BenchmarkTools`
   baselines.
@@ -371,7 +372,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Add a docs-deploy job for GitHub Pages or the chosen static host.
 - Confirm the new core/package/docs CI lanes on GitHub Actions after pushing.
 - Run the Python interoperability release gate in CI or explicitly document why
-  Python support is deferred from v0. The local opt-in gate exists, but has not
+  Python support is deferred from v0. The local opt-in gate exists, and the
+  install page documents the deferred/experimental status, but the gate has not
   yet passed in a clean `juliacall` environment.
 - Select release-reference hardware or CI runners and save benchmark baselines
   for hot paths with `benchmarks/runbenchmarks.jl --save=...`.

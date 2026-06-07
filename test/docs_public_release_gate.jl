@@ -57,6 +57,10 @@ function documenter_make_text()
     return read(DOCS_MAKE, String)
 end
 
+function install_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "install.md"))
+end
+
 @testset "Public documentation release hygiene" begin
     @testset "Documenter navigation coverage" begin
         @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
@@ -81,5 +85,13 @@ end
                 end
             end
         end
+    end
+
+    @testset "Python interoperability documentation" begin
+        text = install_page_text()
+        @test occursin("juliacall", text)
+        @test occursin("examples/python/fit_from_python.py", text)
+        @test occursin("JUFITTER_RUN_PYTHON_INTEROP=1", text)
+        @test occursin("experimental or deferred", text)
     end
 end
