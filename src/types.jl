@@ -234,8 +234,11 @@ function _normalize_parameter_priors(parameter_priors, nparams::Int)
         end
 
         1 <= prior.index <= nparams || throw(ArgumentError("parameter prior index $(prior.index) is out of range 1:$nparams"))
-        prior.sigma_minus > 0 || throw(ArgumentError("parameter prior sigma_minus must be > 0"))
-        prior.sigma_plus > 0 || throw(ArgumentError("parameter prior sigma_plus must be > 0"))
+        isfinite(prior.mean) || throw(ArgumentError("parameter prior mean must be finite"))
+        isfinite(prior.sigma_minus) && prior.sigma_minus > 0 ||
+            throw(ArgumentError("parameter prior sigma_minus must be finite and > 0"))
+        isfinite(prior.sigma_plus) && prior.sigma_plus > 0 ||
+            throw(ArgumentError("parameter prior sigma_plus must be finite and > 0"))
         push!(priors, prior)
     end
 
@@ -270,11 +273,8 @@ function _normalize_parameter_constraints(parameter_constraints, nparams::Int)
         size(constraint.covariance) == (k, k) || throw(ArgumentError("parameter constraint covariance must be k x k"))
         all(1 .<= constraint.indices .<= nparams) || throw(ArgumentError("parameter constraint index out of range 1:$nparams"))
         length(unique(constraint.indices)) == k || throw(ArgumentError("parameter constraint indices must be unique"))
-        try
-            cholesky(Symmetric(constraint.covariance))
-        catch
-            throw(ArgumentError("parameter constraint covariance must be symmetric positive definite"))
-        end
+        _assert_finite_vector("parameter constraint mean", constraint.mean)
+        _assert_covariance_matrix("parameter constraint covariance", constraint.covariance)
         push!(constraints, constraint)
     end
 
@@ -375,8 +375,11 @@ function _normalize_fixed_parameters(fixed_parameters, nparams::Int)
         end
 
         1 <= fp.index <= nparams || throw(ArgumentError("fixed parameter index $(fp.index) is out of range 1:$nparams"))
-        fp.sigma_minus >= 0 || throw(ArgumentError("fixed parameter sigma_minus must be >= 0"))
-        fp.sigma_plus >= 0 || throw(ArgumentError("fixed parameter sigma_plus must be >= 0"))
+        isfinite(fp.value) || throw(ArgumentError("fixed parameter value must be finite"))
+        isfinite(fp.sigma_minus) && fp.sigma_minus >= 0 ||
+            throw(ArgumentError("fixed parameter sigma_minus must be finite and >= 0"))
+        isfinite(fp.sigma_plus) && fp.sigma_plus >= 0 ||
+            throw(ArgumentError("fixed parameter sigma_plus must be finite and >= 0"))
         fp.index in seen && throw(ArgumentError("fixed parameter index $(fp.index) appears more than once"))
         push!(seen, fp.index)
         push!(fixed, fp)

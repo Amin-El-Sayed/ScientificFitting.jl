@@ -104,6 +104,86 @@ using Test
         )
     end
 
+    @testset "Parameter priors and constraints reject invalid metadata" begin
+        valid_constraint = (
+            indices=[1, 2],
+            mean=[2.0, 1.0],
+            covariance=[0.25 0.02; 0.02 0.09],
+        )
+        @test fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            parameter_priors=(index=1, mean=2.0, sigma=0.5),
+            parameter_constraints=valid_constraint,
+        ).converged
+
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            parameter_priors=(index=1, mean=NaN, sigma=0.5),
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            parameter_priors=(index=1, mean=2.0, sigma=Inf),
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            parameter_constraints=(indices=[1, 2], mean=[2.0, Inf], covariance=[0.25 0.02; 0.02 0.09]),
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            parameter_constraints=(indices=[1, 2], mean=[2.0, 1.0], covariance=[1.0 0.0; 0.4 1.0]),
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            parameter_constraints=(indices=[1, 2], mean=[2.0, 1.0], covariance=[1.0 NaN; NaN 1.0]),
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            fixed_parameters=(index=1, value=Inf),
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=fill(0.1, length(x)),
+            fixed_parameters=(index=1, value=1.0, sigma=Inf),
+        )
+        @test_throws ArgumentError fit_custom(
+            p -> sum(abs2, p);
+            p0=[1.0],
+            nobs=3,
+            parameter_priors=(index=1, mean=0.0, sigma=Inf),
+        )
+    end
+
     @testset "Non-finite model output is a model error, not optimizer noise" begin
         bad_model(x, p) = [xi == 0.0 ? NaN : p[1] / xi + p[2] for xi in x]
         @test_throws ArgumentError fit_model(bad_model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.1, length(x)))

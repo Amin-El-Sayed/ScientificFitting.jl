@@ -145,6 +145,10 @@ Current evidence:
   and `initial_guesses` must be finite and inside declared bounds before the
   optimizer starts; internally generated multistart candidates remain bounded
   by construction.
+- Parameter-space metadata is validated before solver dispatch. Gaussian
+  parameter priors, correlated parameter constraints, and fixed-parameter
+  values/uncertainties must be finite, and correlated constraint covariance
+  matrices must be symmetric positive definite.
 - `LsqFit` backend Jacobians are reused when constructing `FitResult`, avoiding
   an avoidable AD pass for common least-squares workflows.
 - The generic `Optimization.jl` path receives cached objective data, so static

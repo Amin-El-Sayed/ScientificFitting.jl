@@ -14,10 +14,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
-  passes with 26 torture checks in about 18s on the local machine after adding
+  passes with 35 torture checks in about 22s on the local machine after adding
   validation that fixed/profiled parameter values cannot bypass declared bounds
   and that `p0` and user-provided `initial_guesses` are finite and inside
-  declared bounds instead of being silently clipped before optimization.
+  declared bounds instead of being silently clipped before optimization. The
+  same suite now checks that parameter priors, correlated parameter
+  constraints, fixed-parameter metadata, and likelihood-fit parameter metadata
+  reject non-finite or nonsymmetric inputs before solver dispatch.
 - `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
   passes with 34 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds.
@@ -32,11 +35,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 41 diagnostic reference checks in about 37s.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 331 core checks in about 4m23s on the local machine after the
+  passes with 340 core checks in about 4m30s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
   developer gate and must be split further before release CI is finalized.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes with
-  384 checks in about 6m10s for the test phase after package test
+  393 checks in about 6m24s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 53

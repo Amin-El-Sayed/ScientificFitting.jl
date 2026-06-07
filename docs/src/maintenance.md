@@ -149,6 +149,11 @@ belongs in a cache.
   not silently clip them to the nearest allowed value. Generated multistart
   candidates may be constructed inside bounds, but user input should either be
   accepted as written or fail clearly.
+- Reject invalid parameter-space metadata during problem normalization. Prior
+  means and sigmas, fixed-parameter values and optional uncertainties, and
+  correlated-constraint means/covariances must be finite. Correlated
+  parameter-constraint covariance matrices must also be symmetric positive
+  definite; do not rely on `Symmetric(cov)` to hide an asymmetric input matrix.
 - Keep diagnostics visible when covariance, Hessian, ndf, p-values, or bounds
   make local errors unreliable.
 - Fixed parameters are not allowed to bypass bounds. Profile and contour refits
