@@ -2,6 +2,7 @@ using Test
 
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCS_SRC = joinpath(ROOT, "docs", "src")
+const DOCS_MAKE = joinpath(ROOT, "docs", "make.jl")
 
 const PUBLIC_DOC_PAGES = [
     "index.md",
@@ -42,7 +43,20 @@ function public_file_text(path)
     return read(path, String)
 end
 
+function documenter_navigation_pages()
+    text = read(DOCS_MAKE, String)
+    pages = String[]
+    for match in eachmatch(r"\"([^\"]+\.md)\"", text)
+        push!(pages, match.captures[1])
+    end
+    return sort(unique(pages))
+end
+
 @testset "Public documentation release hygiene" begin
+    @testset "Documenter navigation coverage" begin
+        @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
+    end
+
     @testset "Configured public files exist" begin
         for path in PUBLIC_TEXT_FILES
             @test isfile(path)
