@@ -154,6 +154,12 @@ belongs in a cache.
   correlated-constraint means/covariances must be finite. Correlated
   parameter-constraint covariance matrices must also be symmetric positive
   definite; do not rely on `Symmetric(cov)` to hide an asymmetric input matrix.
+- Reject invalid likelihood observations before objective evaluation. Count
+  data are observations, not generic weights: Poisson and histogram wrappers
+  require finite non-negative integer-valued counts. Histogram edges, unbinned
+  observations, extended-likelihood domains, quadrature tolerances, and model
+  expected-count lengths must fail with `ArgumentError` before an optimizer
+  sees them.
 - Keep diagnostics visible when covariance, Hessian, ndf, p-values, or bounds
   make local errors unreliable.
 - Fixed parameters are not allowed to bypass bounds. Profile and contour refits

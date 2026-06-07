@@ -149,6 +149,10 @@ Current evidence:
   parameter priors, correlated parameter constraints, and fixed-parameter
   values/uncertainties must be finite, and correlated constraint covariance
   matrices must be symmetric positive definite.
+- Likelihood observations are validated before objective evaluation. Poisson
+  and histogram counts must be finite non-negative integer-valued observations;
+  unbinned data, histogram edges, domains, quadrature tolerances, and expected
+  count vector lengths are checked before optimizer internals run.
 - `LsqFit` backend Jacobians are reused when constructing `FitResult`, avoiding
   an avoidable AD pass for common least-squares workflows.
 - The generic `Optimization.jl` path receives cached objective data, so static

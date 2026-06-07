@@ -267,8 +267,21 @@ function fit_custom(
     return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
 end
 
-function _positive_expectation(mu)
+function _assert_finite_observations(name::AbstractString, values::AbstractVector)
+    _assert_finite_vector(name, values)
+    return values
+end
+
+function _assert_count_observations(name::AbstractString, values::AbstractVector)
+    _assert_finite_vector(name, values)
+    all(>=(0.0), values) || throw(ArgumentError("$name must be non-negative"))
+    all(isinteger, values) || throw(ArgumentError("$name must contain integer-valued counts"))
+    return values
+end
+
+function _positive_expectation(mu, n::Int)
     values = collect(mu)
+    length(values) == n || throw(ArgumentError("model expectation length must match observations"))
     all(isfinite, values) || throw(ArgumentError("model expectation contains non-finite values"))
     all(values .> 0) || throw(ArgumentError("model expectation must be strictly positive"))
     return values
@@ -300,7 +313,8 @@ end
     fit_poisson_model(model, x, counts; p0, kwargs...)
 
 Fit count data with a Poisson likelihood. `model(x, p)` must return the
-strictly positive expected counts for each observation.
+strictly positive expected counts for each observation. `counts` must contain
+finite non-negative integer-valued observations.
 """
 function fit_poisson_model(
     model,
@@ -322,10 +336,11 @@ function fit_poisson_model(
     x_vec = _float_vector(x)
     counts_vec = _float_vector(counts)
     length(x_vec) == length(counts_vec) || throw(ArgumentError("x and counts must have equal length"))
-    any(counts_vec .< 0) && throw(ArgumentError("counts must be non-negative"))
+    _assert_finite_observations("x", x_vec)
+    _assert_count_observations("counts", counts_vec)
 
-    objective = p -> _poisson_nll_terms(counts_vec, _positive_expectation(model(x_vec, p)))
-    gof = p -> _poisson_deviance(counts_vec, _positive_expectation(model(x_vec, p)))
+    objective = p -> _poisson_nll_terms(counts_vec, _positive_expectation(model(x_vec, p), length(counts_vec)))
+    gof = p -> _poisson_deviance(counts_vec, _positive_expectation(model(x_vec, p), length(counts_vec)))
     problem = LikelihoodFitProblem(
         objective,
         gof,
@@ -346,7 +361,8 @@ end
     fit_histogram_model(expected_counts, edges, counts; p0, kwargs...)
 
 Fit binned counts. `expected_counts(edges, p)` must return one positive expected
-count per bin.
+count per bin. Histogram edges must be finite and strictly increasing; `counts`
+must contain finite non-negative integer-valued observations.
 """
 function fit_histogram_model(
     expected_counts,
@@ -368,11 +384,12 @@ function fit_histogram_model(
     edges_vec = _float_vector(edges)
     counts_vec = _float_vector(counts)
     length(edges_vec) == length(counts_vec) + 1 || throw(ArgumentError("edges length must be count length + 1"))
+    _assert_finite_observations("histogram edges", edges_vec)
+    _assert_count_observations("counts", counts_vec)
     any(diff(edges_vec) .<= 0) && throw(ArgumentError("histogram edges must be strictly increasing"))
-    any(counts_vec .< 0) && throw(ArgumentError("counts must be non-negative"))
 
-    objective = p -> _poisson_nll_terms(counts_vec, _positive_expectation(expected_counts(edges_vec, p)))
-    gof = p -> _poisson_deviance(counts_vec, _positive_expectation(expected_counts(edges_vec, p)))
+    objective = p -> _poisson_nll_terms(counts_vec, _positive_expectation(expected_counts(edges_vec, p), length(counts_vec)))
+    gof = p -> _poisson_deviance(counts_vec, _positive_expectation(expected_counts(edges_vec, p), length(counts_vec)))
     problem = LikelihoodFitProblem(
         objective,
         gof,
@@ -393,7 +410,8 @@ end
     fit_histogram_density(pdf, edges, counts; p0, total_count=sum(counts), kwargs...)
 
 Fit binned counts from a probability density. Expected bin counts are computed
-with adaptive Gauss-Kronrod quadrature.
+with adaptive Gauss-Kronrod quadrature. `total_count` and `rtol` must be finite
+and positive.
 """
 function fit_histogram_density(
     pdf,
@@ -414,11 +432,15 @@ function fit_histogram_density(
     initial_guesses=nothing,
     multistart::Int=1,
 )
+    total = Float64(total_count)
+    isfinite(total) && total > 0 || throw(ArgumentError("total_count must be finite and > 0"))
+    isfinite(rtol) && rtol > 0 || throw(ArgumentError("rtol must be finite and > 0"))
+
     expected_counts = function (edge_values, p)
         mu = Vector{eltype(p)}(undef, length(edge_values) - 1)
         @inbounds for i in eachindex(mu)
             integral, _ = quadgk(x -> pdf(x, p), edge_values[i], edge_values[i + 1]; rtol=rtol)
-            mu[i] = total_count * integral
+            mu[i] = total * integral
         end
         return mu
     end
@@ -445,7 +467,7 @@ end
     fit_unbinned_model(pdf, data; p0, kwargs...)
 
 Fit independent unbinned observations with a normalized positive density
-`pdf(x, p)`.
+`pdf(x, p)`. Observations must be finite.
 """
 function fit_unbinned_model(
     pdf,
@@ -464,6 +486,7 @@ function fit_unbinned_model(
     multistart::Int=1,
 )
     data_vec = _float_vector(data)
+    _assert_finite_observations("unbinned data", data_vec)
     objective = function (p)
         total = zero(eltype(p))
         @inbounds for x in data_vec
@@ -494,7 +517,8 @@ end
 
 Fit an inhomogeneous Poisson point process. `rate(x, p)` is the event intensity,
 not a normalized density. `domain=(a, b)` defines the integration range for the
-expected total event count.
+expected total event count. The domain endpoints must be finite, and all
+observations must lie inside the domain.
 """
 function fit_extended_unbinned_model(
     rate,
@@ -516,7 +540,11 @@ function fit_extended_unbinned_model(
 )
     data_vec = _float_vector(data)
     a, b = Float64(domain[1]), Float64(domain[2])
+    isfinite(a) && isfinite(b) || throw(ArgumentError("domain endpoints must be finite"))
     a < b || throw(ArgumentError("domain must satisfy domain[1] < domain[2]"))
+    isfinite(rtol) && rtol > 0 || throw(ArgumentError("rtol must be finite and > 0"))
+    _assert_finite_observations("unbinned data", data_vec)
+    all(x -> a <= x <= b, data_vec) || throw(ArgumentError("extended unbinned data must lie inside the domain"))
 
     objective = function (p)
         expected, _ = quadgk(x -> rate(x, p), a, b; rtol=rtol)

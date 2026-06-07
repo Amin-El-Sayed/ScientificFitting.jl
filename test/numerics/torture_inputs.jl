@@ -184,6 +184,35 @@ using Test
         )
     end
 
+    @testset "Likelihood observations fail before optimizer internals" begin
+        count_x = collect(1.0:4.0)
+        counts = [5.0, 4.0, 3.0, 2.0]
+        count_model(x, p) = fill(exp(p[1]), length(x))
+        expected_counts(edges, p) = fill(exp(p[1]), length(edges) - 1)
+        pdf(x, p) = exp(-0.5 * (x - p[1])^2) / sqrt(2pi)
+        rate(x, p) = exp(p[1])
+
+        @test fit_poisson_model(count_model, count_x, counts; p0=[log(3.5)]).converged
+        @test fit_histogram_model(expected_counts, 0.0:1.0:4.0, counts; p0=[log(3.5)]).converged
+        @test fit_unbinned_model(pdf, [-0.2, 0.0, 0.4]; p0=[0.1]).converged
+        @test fit_extended_unbinned_model(rate, [0.2, 0.4, 0.8], (0.0, 1.0); p0=[0.0]).converged
+
+        @test_throws ArgumentError fit_poisson_model(count_model, [1.0, NaN], [1.0, 2.0]; p0=[0.0])
+        @test_throws ArgumentError fit_poisson_model(count_model, count_x, [5.0, NaN, 3.0, 2.0]; p0=[0.0])
+        @test_throws ArgumentError fit_poisson_model(count_model, count_x, [5.0, 4.5, 3.0, 2.0]; p0=[0.0])
+        @test_throws ArgumentError fit_poisson_model((x, p) -> fill(exp(p[1]), length(x) - 1), count_x, counts; p0=[0.0])
+        @test_throws ArgumentError fit_histogram_model(expected_counts, [0.0, 1.0, NaN, 4.0, 5.0], counts; p0=[0.0])
+        @test_throws ArgumentError fit_histogram_model(expected_counts, [0.0, 1.0, 1.0, 3.0, 4.0], counts; p0=[0.0])
+        @test_throws ArgumentError fit_histogram_model(expected_counts, 0.0:1.0:4.0, [5.0, 4.0, 3.5, 2.0]; p0=[0.0])
+        @test_throws ArgumentError fit_histogram_density(pdf, 0.0:1.0:4.0, counts; p0=[0.0], total_count=Inf)
+        @test_throws ArgumentError fit_histogram_density(pdf, 0.0:1.0:4.0, counts; p0=[0.0], rtol=NaN)
+        @test_throws ArgumentError fit_unbinned_model(pdf, [-0.2, NaN, 0.4]; p0=[0.0])
+        @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, NaN], (0.0, 1.0); p0=[0.0])
+        @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, 1.4], (0.0, 1.0); p0=[0.0])
+        @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, 0.4], (0.0, Inf); p0=[0.0])
+        @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, 0.4], (0.0, 1.0); p0=[0.0], rtol=0.0)
+    end
+
     @testset "Non-finite model output is a model error, not optimizer noise" begin
         bad_model(x, p) = [xi == 0.0 ? NaN : p[1] / xi + p[2] for xi in x]
         @test_throws ArgumentError fit_model(bad_model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.1, length(x)))
