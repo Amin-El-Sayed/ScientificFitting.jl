@@ -62,10 +62,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:workbench`/`:showcase`/`:publication` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 155 checks. The gate first verifies that every page in the public
+  with 177 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
-  course-internal dataset language.
+  course-internal dataset language. It also rejects known stale public API
+  identifiers such as `profile_curve` and `contour_grid`.
 - `julia --project=. --startup-file=no test/docs_api_reference_gate.jl` passes
   locally. The gate verifies that every exported public binding except the
   module name has a REPL/Documenter-visible docstring, preventing `@autodocs`
@@ -224,8 +225,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Public documentation outside the gated gallery still needs a page-by-page
   editorial pass before broad promotion. The legacy German mathematical audit
   was removed from the public
-  documentation source, and the main technical concept pages are now in
-  polished English.
+  documentation source, the main technical concept pages are now in polished
+  English, and the public reference overview has been rewritten as a workflow
+  map with current API names.
 - The API reference is generated from docstrings, and every exported public
   binding now has baseline REPL/Documenter documentation. The public API page
   is curated by workflow area instead of relying on an unstructured

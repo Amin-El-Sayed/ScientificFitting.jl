@@ -36,6 +36,7 @@ const FORBIDDEN_PUBLIC_PATTERNS = Pair{String, Regex}[
     "private local path" => r"(?i)(/Users/|Documents/Projekte|private P1|P1-Praktikum|Praktikum)",
     "private author handle in public prose" => r"(?i)\bAmin_El_Sayed\b",
     "course-internal wording" => r"(?i)\b(course[- ]internal|lab-course-internal|private dataset)\b",
+    "stale public API identifier" => r"\b(profile_curve|contour_grid)\b",
 ]
 
 function public_file_text(path)

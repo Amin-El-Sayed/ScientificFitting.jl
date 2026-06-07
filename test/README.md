@@ -11,7 +11,8 @@ The test suite is split by purpose, not by implementation file.
   referenced plot assets.
 - `docs_public_release_gate.jl`: fast hygiene gate for public Documenter pages
   and README. It rejects AI/placeholder markers, private paths, and
-  course-internal wording before broad promotion.
+  course-internal wording before broad promotion. It also blocks known stale
+  public API identifiers that previously appeared in prose.
 - `docs_api_reference_gate.jl`: fast API-reference gate that requires every
   exported public binding to have a REPL/Documenter-visible docstring.
 - `docs_link_gate.jl`: fast local-link gate for Markdown links, HTML links, and

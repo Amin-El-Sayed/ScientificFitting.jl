@@ -1,54 +1,115 @@
-# API Overview
+# Reference Map
 
-JuFitter's public API is organized around one workflow: define a scientific
-problem, fit it, inspect diagnostics, then decide how much output you want.
-Most users should start with `fitplot` or `fit_model`; lower-level objects are
-available when a notebook grows into a reusable analysis script.
+This page is the short map of JuFitter's public surface. Use it when you know
+what kind of task you have and need the right entry point. For signatures and
+field names, use the [API Reference](api.md).
 
-## Fitting Entry Points
+## Start With The Workflow
 
-- `fitplot(x, y; ...)` fits common array data and returns a Makie figure.
-- `fit_model(model, x, y; p0, ...)` returns a `FitResult` without forcing a
-  plot-first workflow.
-- `FitProblem(...)` stores data, model, uncertainties, constraints, and backend
-  choices explicitly for advanced workflows.
-- Likelihood helpers cover Poisson counts, histograms, unbinned samples,
-  indexed likelihoods, custom objectives, and multi-dataset costs.
+Most analyses follow one of these paths:
 
-## Result Objects
+| task | entry point | result |
+| --- | --- | --- |
+| quick x-y fit with plot | `fitplot(...)` | fit result plus Makie figure |
+| fit first, plot later | `fit_model(...)` | `FitResult` |
+| explicit reusable problem | `FitProblem(...)` then `fit(...)` | `FitResult` |
+| counts or distributions | likelihood helpers | `LikelihoodFitResult` |
+| custom objective | `fit_custom(...)` | `LikelihoodFitResult` |
 
-`FitResult` is the object to keep. It stores the best-fit parameters,
-covariance estimate, residuals, degrees of freedom, goodness-of-fit statistics,
-optimizer diagnostics, and enough metadata for later reports and plots.
+The object to keep is the result object. It stores the parameters, local
+covariance, residual information where available, goodness-of-fit statistics,
+diagnostics, and enough metadata to regenerate reports or plots without
+rewriting the fit.
 
-Use `report_text(result)` for console output, `fit_report(result)` for a
-structured report object, and `diagnostic_dashboard_text(result)` when a fit
-needs a quick "what should I inspect next?" summary.
+## Describe The Uncertainty Model
 
-## Plotting Entry Points
+Choose the simplest uncertainty representation that is scientifically honest:
 
-`plot_fit(result; ...)` turns an existing result into a Makie figure. It does
-not refit. This is deliberate: a user can add markers, thresholds, reference
-bands, or additional curves without changing the numerical result.
+- `sigma_y` for independent vertical standard uncertainties,
+- `sigma_x` for relevant x uncertainty propagated through the model slope,
+- `cov_y` or `cov_x` when measured points are correlated,
+- `ErrorComponent` when named uncertainty contributions should remain visible,
+- `ParameterPrior`, `ParameterConstraint`, and `FixedParameter` for external
+  information about parameters.
 
-Useful plot controls include:
+Dense covariance is exact but expensive. It is appropriate for small and
+medium correlated datasets, not for every long time series, image, spectrum, or
+detector array. Large structured correlations are tracked as future whitening
+operator work in the release audit.
 
-- `report=:none`, `:console`, `:plot`, or `:both`,
-- `show_legend`, `show_stats`, and `stats_position`,
-- `style=:workbench`, `:showcase`, or `:publication`,
-- `appearance=:light` or `:dark`,
-- `sigma_band` and band labels for uncertainty semantics.
+## Read The Result Before Plotting
 
-Post-fit helpers such as `fit_axis`, `add_curve!`, `add_points!`, `add_vline!`,
-`add_hline!`, `add_vband!`, and `add_hband!` are thin Makie wrappers for common
-scientific annotations.
+For terminal or notebook output, use:
 
-## Diagnostics and Uncertainty Checks
+```julia
+println(report_text(result))
+println(diagnostic_dashboard_text(result))
+```
 
-Profiles and contours are not decorative plots. They test whether a local
-parabolic covariance approximation is credible. Use `profile_interval`,
-`profile_curve`, `contour_grid`, and `plot_profile_matrix` when parameters are
-bounded, strongly correlated, weakly constrained, or visibly nonlinear.
+The main fields are:
 
-For the conceptual pipeline, see [How JuFitter Works](@ref). For the statistical
-assumptions behind the methods, see [Statistical Foundations](@ref).
+- `result.params`: best-fit parameter values,
+- `result.param_covariance`: local parameter covariance matrix,
+- `result.param_stderr`: local symmetric parameter errors,
+- `result.stats`: chi-square, likelihood, p-value, AIC, and BIC summary,
+- `result.diagnostics`: numerical and statistical warnings.
+
+Local covariance is a quadratic approximation around the minimum. It is fast
+and useful, but it can be misleading for nonlinear models, weak data, active
+bounds, strong correlations, or asymmetric likelihoods.
+
+## Diagnose Before Trusting
+
+Use `diagnose(result)` or `diagnostic_dashboard(result)` when a fit looks wrong
+or when it matters scientifically. The diagnostics check convergence, degrees
+of freedom, p-values, covariance/Hessian conditioning, active bounds, strong
+correlations, large pulls, and residual structure.
+
+If local covariance looks suspicious, compute profile or contour diagnostics:
+
+```julia
+prof = profile(result, 1; adaptive=true)
+interval = profile_interval(result, 1; adaptive=true)
+
+cont = contour(result, 1, 2; adaptive=true)
+```
+
+Then inspect them visually:
+
+```julia
+plot_profile(prof; local_sigma=result.param_stderr[1])
+plot_contour(
+    cont;
+    local_covariance=result.param_covariance,
+    local_center=result.params[[1, 2]],
+)
+plot_profile_matrix(result; parameters=[1, 2, 3])
+```
+
+Profiles and contours answer a different question than the main fit plot: they
+show whether the uncertainty geometry near the minimum is close enough to a
+local Gaussian approximation.
+
+## Plot Without Re-Fitting
+
+`plot_fit(result; ...)` creates a Makie figure from an existing result. It does
+not change the numerical fit. This is the intended pattern for publication
+figures: fit once, then add annotations on top.
+
+```julia
+fig = plot_fit(result; report=:plot, show_legend=true)
+ax = fit_axis(fig)
+add_vline!(ax, threshold; label="threshold")
+add_curve!(ax, reference_model; xspan=(0, 10), label="reference")
+```
+
+Use `plot_theme` and `plot_palette` when building custom Makie layouts that
+should follow JuFitter's `:workbench`, `:showcase`, or `:publication` styles.
+
+## When To Leave This Page
+
+- First fit: [Quickstart](quickstart.md).
+- Full examples: [Gallery](gallery.md).
+- Statistical meaning: [Statistical Foundations](statistical_foundations.md).
+- Exact signatures: [API Reference](api.md).
+- Implementation structure: [Backend Design](backend_design.md).
