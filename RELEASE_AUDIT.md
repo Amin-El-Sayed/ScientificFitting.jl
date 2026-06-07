@@ -93,6 +93,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   within each plot group, and rejects unreferenced gallery PNG leftovers. This
   is a visual-asset sanity gate; it does not replace future pixel-level
   regression testing.
+- `julia --project=. --startup-file=no test/docs_visual_snapshot_gate.jl`
+  passes locally. The gate checks SHA-256 snapshots for every committed
+  documentation gallery PNG, so plot asset changes cannot enter unnoticed; a
+  manifest update must be intentional after visual review.
 - `.github/workflows/ci.yml` now separates the release checks into core tests on
   Linux and macOS, a full package test on Linux, and a documentation lane that
   runs source docs gates, plot regressions, `docs/make.jl`, rendered-link
@@ -237,7 +241,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `test/docs_link_gate.jl` and `test/docs_html_link_gate.jl`, and both are wired
   into `.github/workflows/ci.yml`. Remote CI execution still needs to be
   observed after pushing the branch.
-- There is no visual regression or snapshot test for documentation plots.
+- Documentation gallery PNGs now have byte-level snapshot coverage. This catches
+  unintentional asset drift, but human visual review is still required for
+  intentional plot style or renderer changes.
 - There is no documentation deployment workflow yet.
 - Browser screenshots can still time out on very large documentation pages.
   Use DOM/computed-style checks plus targeted static image inspection until a
@@ -332,9 +338,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 ## Documentation Blockers
 
 - The gallery now has structural, public-hygiene, output-snapshot, link,
-  rendered-link, and visual-asset sanity gates. It still lacks pixel-level
-  visual regression, so human visual review is required whenever plot assets,
-  themes, or page CSS change.
+  rendered-link, visual-asset sanity, and byte-level visual-snapshot gates.
+  Human visual review is still required whenever plot assets, themes, or page
+  CSS change.
 - The executable output-snapshot gate is intentionally strict, but still slow
   enough to belong in a documentation/release CI lane rather than the default
   edit-test loop. It now avoids Makie asset rendering via

@@ -61,6 +61,7 @@ jobs:
           julia --project=. --startup-file=no test/docs_api_reference_gate.jl
           julia --project=. --startup-file=no test/docs_link_gate.jl
           julia --project=. --startup-file=no test/docs_visual_asset_gate.jl
+          julia --project=. --startup-file=no test/docs_visual_snapshot_gate.jl
       - name: Plot regression tests
         run: julia --project=docs --startup-file=no test/plots/fitplot.jl
       - name: Build docs

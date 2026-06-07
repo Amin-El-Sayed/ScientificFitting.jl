@@ -22,6 +22,9 @@ The test suite is split by purpose, not by implementation file.
 - `docs_visual_asset_gate.jl`: visual-asset sanity gate for documentation PNGs:
   valid PNG headers, minimum dimensions, consistent style-pair dimensions, and
   no unreferenced gallery PNG leftovers.
+- `docs_visual_snapshot_gate.jl`: byte-level snapshot gate for documentation
+  gallery PNGs. It fails when a committed plot asset changes without an
+  intentional manifest update and visual review.
 - `docs_output_snapshots.jl`: heavy release gate that executes the documented
   gallery/quickstart examples with snapshot markers and verifies that every
   documented `Real output` block is an ordered subset of real script output.
@@ -65,6 +68,7 @@ include("test/docs_public_release_gate.jl")
 include("test/docs_api_reference_gate.jl")
 include("test/docs_link_gate.jl")
 include("test/docs_visual_asset_gate.jl")
+include("test/docs_visual_snapshot_gate.jl")
 # Run after `julia --project=docs docs/make.jl`.
 include("test/docs_html_link_gate.jl")
 include("test/docs_output_snapshots.jl")
