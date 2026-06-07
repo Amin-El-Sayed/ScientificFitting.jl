@@ -57,6 +57,7 @@ jobs:
       - name: Source documentation gates
         run: |
           julia --project=. --startup-file=no test/docs_gallery_gate.jl
+          julia --project=. --startup-file=no test/docs_public_release_gate.jl
           julia --project=. --startup-file=no test/docs_link_gate.jl
           julia --project=. --startup-file=no test/docs_visual_asset_gate.jl
       - name: Plot regression tests

@@ -9,6 +9,9 @@ The test suite is split by purpose, not by implementation file.
 - `plots/`: plot generation, layout robustness, export formats, and visual-regression checks.
 - `docs_gallery_gate.jl`: fast structural gate for public gallery pages and
   referenced plot assets.
+- `docs_public_release_gate.jl`: fast hygiene gate for public Documenter pages
+  and README. It rejects AI/placeholder markers, private paths, and
+  course-internal wording before broad promotion.
 - `docs_link_gate.jl`: fast local-link gate for Markdown links, HTML links, and
   image sources under `docs/src`.
 - `docs_html_link_gate.jl`: rendered-site link gate for `docs/build` after
@@ -55,6 +58,7 @@ Run the documentation release gates with:
 
 ```julia
 include("test/docs_gallery_gate.jl")
+include("test/docs_public_release_gate.jl")
 include("test/docs_link_gate.jl")
 include("test/docs_visual_asset_gate.jl")
 # Run after `julia --project=docs docs/make.jl`.

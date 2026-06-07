@@ -61,6 +61,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   code, real diagnostic output, interpretation, failure modes, explicit
   one-sigma semantics, valid image assets, and complete
   `:workbench`/`:showcase`/`:publication` light/dark plot-style coverage.
+- `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
+  with 154 checks. The gate scans the public Documenter navigation plus README
+  for AI/placeholder wording, private local paths, author-handle leakage, and
+  course-internal dataset language.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
   The gate validates 307 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
@@ -305,10 +309,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Documentation Blockers
 
-- The gallery now has structural, output-snapshot, link, rendered-link, and
-  visual-asset sanity gates. It still lacks pixel-level visual regression, so
-  human visual review is required whenever plot assets, themes, or page CSS
-  change.
+- The gallery now has structural, public-hygiene, output-snapshot, link,
+  rendered-link, and visual-asset sanity gates. It still lacks pixel-level
+  visual regression, so human visual review is required whenever plot assets,
+  themes, or page CSS change.
 - The executable output-snapshot gate is intentionally strict, but still slow
   enough to belong in a documentation/release CI lane rather than the default
   edit-test loop. It now avoids Makie asset rendering via
@@ -317,7 +321,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The math section needs a clean beginner path before the full formal reference.
 - Technical maintenance notes should remain accessible, but should not dominate
   the user-facing navigation.
-- All private/local dataset language must stay out of public documentation.
+- Private/local dataset language is now covered by the public documentation
+  hygiene gate; keep extending that gate when new release-language risks are
+  identified.
 - Dark-mode plots must be checked visually whenever a gallery asset changes.
 
 ## CI And Packaging Blockers
