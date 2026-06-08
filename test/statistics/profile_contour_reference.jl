@@ -254,5 +254,14 @@ using Test
         failed_report = diagnose(failed; local_covariance=Matrix{Float64}(I, 2, 2), local_center=[0.0, 0.0])
 
         @test any(f -> f.code == :contour_refit_failed, failed_report.findings)
+
+        singular_report = diagnose(warped; local_covariance=[1.0 1.0; 1.0 1.0], local_center=[0.0, 0.0])
+        @test any(f -> f.code == :contour_local_covariance_unavailable, singular_report.findings)
+
+        nonfinite_report = diagnose(warped; local_covariance=[1.0 NaN; NaN 1.0], local_center=[0.0, 0.0])
+        @test any(f -> f.code == :contour_local_covariance_unavailable, nonfinite_report.findings)
+
+        nonsymmetric_report = diagnose(warped; local_covariance=[1.0 0.2; 0.3 1.0], local_center=[0.0, 0.0])
+        @test any(f -> f.code == :contour_local_covariance_unavailable, nonsymmetric_report.findings)
     end
 end

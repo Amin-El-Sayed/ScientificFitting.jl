@@ -185,6 +185,11 @@ Current evidence:
   default scan widths must be finite and positive, default grids need enough
   points, and explicit scan arrays must contain enough distinct finite values.
   Unused default-grid controls do not block explicit user-provided grids.
+- Contour diagnostics now treat invalid local covariance overlays as reportable
+  findings. If the local covariance is non-finite, not symmetric within numeric
+  tolerance, or not positive definite, `diagnose(contour; local_covariance=...)`
+  reports `:contour_local_covariance_unavailable` instead of crashing or
+  silently dropping the local ellipse comparison.
 - `diagnostic_dashboard(...)` summarizes structured `diagnose(...)` findings
   into status, severity counts, and deduplicated next actions for lab workflows.
 - `profile_matrix(...)` is now a Makie-free diagnostic object for multi-

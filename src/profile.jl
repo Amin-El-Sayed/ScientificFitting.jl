@@ -537,14 +537,12 @@ function profile_matrix(
         )
         contours[key] = cont
         local_cov = result.param_covariance[[xindex, yindex], [xindex, yindex]]
-        contour_diagnostics[key] = all(isfinite, local_cov) ?
-            diagnose(
-                cont;
-                local_covariance=local_cov,
-                local_center=result.params[[xindex, yindex]],
-                tolerance=contour_tolerance,
-            ) :
-            diagnose(cont)
+        contour_diagnostics[key] = diagnose(
+            cont;
+            local_covariance=local_cov,
+            local_center=result.params[[xindex, yindex]],
+            tolerance=contour_tolerance,
+        )
     end
 
     return ProfileMatrixResult(
@@ -789,13 +787,48 @@ function _contour_local_covariance(contour_result::ContourResult, local_covarian
     return cov[[i, j], [i, j]]
 end
 
+function _contour_local_covariance_precision(cov::AbstractMatrix)
+    all(isfinite, cov) || return nothing, _finding(
+        :warning,
+        :contour_local_covariance_unavailable,
+        "Local covariance ellipse is unavailable",
+        "The supplied local covariance contains non-finite entries.",
+        "Read the profile contour directly; do not interpret symmetric local covariance errors for this parameter pair.",
+    )
+
+    if !isapprox(cov, cov'; rtol=1e-10, atol=1e-12)
+        return nothing, _finding(
+            :warning,
+            :contour_local_covariance_unavailable,
+            "Local covariance ellipse is unavailable",
+            "The supplied local covariance is not symmetric.",
+            "Check the covariance construction. Use the profiled contour until the local covariance estimate is valid.",
+        )
+    end
+    cov = (cov + cov') ./ 2
+
+    try
+        factor = cholesky(Symmetric(cov); check=true)
+        return factor \ Matrix{Float64}(I, 2, 2), nothing
+    catch
+        return nothing, _finding(
+            :warning,
+            :contour_local_covariance_unavailable,
+            "Local covariance ellipse is unavailable",
+            "The supplied local covariance is not positive definite.",
+            "Inspect parameter degeneracy, active bounds, or scaling. Use profile contours instead of symmetric local covariance errors.",
+        )
+    end
+end
+
 function _contour_ellipticity_findings(contour_result::ContourResult, local_covariance, local_center; tolerance::Real)
     cov = _contour_local_covariance(contour_result, local_covariance)
     cov === nothing && return DiagnosticFinding[]
     tolerance >= 0 || throw(ArgumentError("tolerance must be non-negative"))
 
     center = _contour_center(contour_result, local_center)
-    precision = Symmetric(cov) \ Matrix{Float64}(I, 2, 2)
+    precision, covariance_finding = _contour_local_covariance_precision(cov)
+    covariance_finding === nothing || return DiagnosticFinding[covariance_finding]
     local_delta = Matrix{Float64}(undef, length(contour_result.x_values), length(contour_result.y_values))
     for ix in eachindex(contour_result.x_values), iy in eachindex(contour_result.y_values)
         delta = [contour_result.x_values[ix] - center[1], contour_result.y_values[iy] - center[2]]

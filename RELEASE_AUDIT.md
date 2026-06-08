@@ -28,12 +28,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   non-positive or non-finite `sigma_y`, invalid indexed `cov_y`, and empty
   multi-fit inputs before objective evaluation.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 66 profile/contour reference checks, including validation of
+  passes with 69 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds, finite positive profile
   thresholds, default scan controls, explicit finite distinct scan grids, and
   the Makie-free `profile_matrix` diagnostic object that combines profile,
   contour, per-panel diagnostic reports, and per-panel `:ok`/`:review`/`:stop`
-  status before plotting.
+  status before plotting. The gate now also verifies that non-finite,
+  non-symmetric, or non-positive-definite local covariance overlays in contour
+  diagnostics produce an explicit `:contour_local_covariance_unavailable`
+  warning instead of crashing or silently omitting the local-covariance
+  comparison.
 - `julia --project=. -e 'using Test; include("test/statistics/likelihood_reference.jl")'`
   passes with 49 likelihood reference checks after the Poisson-and-histogram
   workflow rewrite.
@@ -385,7 +389,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Profile and contour scans now expose failed refits through diagnostics and
   support adaptive refinement around profile thresholds and contour levels.
   Strongly curved/non-elliptic contours still need deeper diagnostic polish
-  before release-grade claims.
+  before release-grade claims. Invalid local covariance overlays are now
+  surfaced explicitly as diagnostic findings, so a profile contour can remain
+  usable even when the symmetric local ellipse is not.
 - Multi-dataset fitting currently supports useful parameter mapping, but not the
   full uncertainty model expected from kafe2-level workflows.
 - Python interoperability has a local clean-environment validation through
