@@ -98,18 +98,44 @@ function _parse_args(args)
         elseif arg == "--list"
             options["list"] = true
         elseif startswith(arg, "--seconds=")
-            options["seconds"] = parse(Float64, last(split(arg, "="; limit=2)))
+            options["seconds"] = _parse_positive_float_option(arg, "--seconds")
         elseif startswith(arg, "--save=")
-            options["save"] = last(split(arg, "="; limit=2))
+            options["save"] = _parse_nonempty_path_option(arg, "--save")
         elseif startswith(arg, "--compare=")
-            options["compare"] = last(split(arg, "="; limit=2))
+            options["compare"] = _parse_nonempty_path_option(arg, "--compare")
         elseif startswith(arg, "--tolerance=")
-            options["tolerance"] = parse(Float64, last(split(arg, "="; limit=2)))
+            options["tolerance"] = _parse_nonnegative_float_option(arg, "--tolerance")
         else
             throw(ArgumentError("unknown benchmark option: $arg"))
         end
     end
     return options
+end
+
+function _option_value(arg::AbstractString, name::AbstractString)
+    value = last(split(arg, "="; limit=2))
+    isempty(value) && throw(ArgumentError("$name requires a non-empty value"))
+    return value
+end
+
+function _parse_positive_float_option(arg::AbstractString, name::AbstractString)
+    value = parse(Float64, _option_value(arg, name))
+    isfinite(value) && value > 0 ||
+        throw(ArgumentError("$name must be a finite positive number"))
+    return value
+end
+
+function _parse_nonnegative_float_option(arg::AbstractString, name::AbstractString)
+    value = parse(Float64, _option_value(arg, name))
+    isfinite(value) && value >= 0 ||
+        throw(ArgumentError("$name must be a finite non-negative number"))
+    return value
+end
+
+function _parse_nonempty_path_option(arg::AbstractString, name::AbstractString)
+    value = strip(_option_value(arg, name))
+    isempty(value) && throw(ArgumentError("$name requires a non-empty path"))
+    return value
 end
 
 function _flatten_benchmarks(group::BenchmarkGroup; prefix::String="")

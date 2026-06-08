@@ -136,6 +136,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   OS, CPU, Julia-thread, BLAS-thread, git-commit, timing, memory, and allocation
   metadata. Baseline comparison fails if benchmark cases are missing from either
   side, so benchmark-set drift cannot pass as a valid performance comparison.
+  Runner arguments are validated before dispatch: seconds must be finite and
+  positive, tolerance finite and non-negative, and baseline paths non-empty.
   Local benchmark manifests and outputs are ignored because they are
   machine-specific.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints

@@ -74,6 +74,9 @@ end
     @test occursin("--plot", runner)
     @test occursin("missing from the current run", runner)
     @test occursin("missing from the baseline", runner)
+    @test occursin("finite positive number", runner)
+    @test occursin("finite non-negative number", runner)
+    @test occursin("requires a non-empty path", runner)
 
     @test occursin("Benchmark contract gate", workflow)
     @test occursin("test/benchmark_contract_gate.jl", workflow)
