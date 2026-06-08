@@ -1445,7 +1445,7 @@ end
 
 function _panel_status_label(status::Symbol)
     status == :stop && return "fix"
-    status == :review && return "review"
+    status == :review && return "inspect"
     status == :ok && return "ok"
     return string(status)
 end
@@ -1462,11 +1462,11 @@ function _draw_panel_status!(axis::Axis, status::Symbol, appearance::Symbol; mod
     mode == :issues && status == :ok && return nothing
     text!(
         axis,
-        0.965,
+        0.035,
         0.94;
         text=_panel_status_label(status),
         space=:relative,
-        align=(:right, :top),
+        align=(:left, :top),
         color=_panel_status_color(status, appearance),
         fontsize=11,
         font=:bold,

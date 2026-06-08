@@ -58,14 +58,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   focused plot-regression checks in about 33s.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
-- `julia --project=. test/docs_gallery_gate.jl` passes with 225 checks. The
-  gate enforces the current release standard for every public gallery page:
+- `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
+  232 checks. The gate enforces the current release standard for every public
+  gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
   one-sigma semantics, valid image assets, and complete
   `:workbench`/`:showcase`/`:publication` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 451 checks. The gate first verifies that every page in the public
+  with 463 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -84,23 +85,24 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 307 local Markdown links, HTML links, and image sources
+  The gate validates 335 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl`. The gate checks `href` and `src` targets in the rendered
-  HTML under `docs/build`, so navigation and asset references are validated in
-  the actual static site layout rather than only in source Markdown.
+  after `docs/make.jl` with 2166 checks. The gate checks `href` and `src`
+  targets in the rendered HTML under `docs/build`, so navigation and asset
+  references are validated in the actual static site layout rather than only in
+  source Markdown.
 - `julia --project=. --startup-file=no test/docs_visual_asset_gate.jl` passes
-  locally. The gate validates documentation PNG headers, minimum dimensions,
-  non-empty alt text, complete style/appearance coverage, consistent dimensions
-  within each plot group, and rejects unreferenced gallery PNG leftovers. This
-  is a visual-asset sanity gate; it does not replace future pixel-level
-  regression testing.
+  locally with 1151 checks. The gate validates documentation PNG headers,
+  minimum dimensions, non-empty alt text, complete style/appearance coverage,
+  consistent dimensions within each plot group, and rejects unreferenced
+  gallery PNG leftovers. This is a visual-asset sanity gate; it does not
+  replace future pixel-level regression testing.
 - `julia --project=. --startup-file=no test/docs_visual_snapshot_gate.jl`
-  passes locally. The gate checks SHA-256 snapshots for every committed
-  documentation gallery PNG, so plot asset changes cannot enter unnoticed; a
-  manifest update must be intentional after visual review.
+  passes locally with 83 checks. The gate checks SHA-256 snapshots for every
+  committed documentation gallery PNG, so plot asset changes cannot enter
+  unnoticed; a manifest update must be intentional after visual review.
 - `.github/workflows/ci.yml` now separates the release checks into core tests on
   Linux and macOS, a full package test on Linux, and a documentation lane that
   runs source docs gates, plot regressions, `docs/make.jl`, rendered-link

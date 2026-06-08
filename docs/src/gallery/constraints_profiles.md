@@ -163,6 +163,15 @@ amplitude_timescale = contour(
     npoints=121,
     nsigma=4,
 )
+profile_overview = profile_matrix(
+    result;
+    parameters=[1, 2, 3],
+    parameter_names=["A", "tau", "c"],
+    npoints_profile=41,
+    npoints_contour=21,
+    nsigma=3,
+    adaptive=true,
+)
 
 plot_profile(
     amplitude_profile;
@@ -178,6 +187,15 @@ plot_contour(
     xlabel="amplitude A",
     ylabel="time constant tau",
     title="Profile contours versus local covariance",
+)
+plot_profile_matrix(
+    result;
+    parameters=[1, 2, 3],
+    parameter_names=["A", "tau", "c"],
+    npoints_profile=41,
+    npoints_contour=21,
+    nsigma=3,
+    adaptive=true,
 )
 
 println("amplitude center = ", result.params[1])
@@ -306,6 +324,39 @@ The profile region bends along combinations with similar early-time slope.
 The local ellipse cannot follow that curvature. Reporting only the covariance
 matrix would hide which high-``A``, high-``\tau`` combinations remain
 compatible with the measurement.
+
+## Matrix: Where Should You Look First?
+
+For three or more fitted parameters, separate profile and contour plots become
+hard to triage. `profile_matrix` computes the same checks as data first:
+diagonal panels are one-parameter profiles, lower-triangle panels are
+two-parameter contours, and upper-triangle panels show the local correlation
+coefficient. The plot is only a rendering layer over that diagnostic object.
+
+```@raw html
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="workbench" src="../assets/gallery/saturation_profile_matrix_workbench_light.png" alt="Saturation profile matrix in workbench style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="workbench" src="../assets/gallery/saturation_profile_matrix_workbench_dark.png" alt="Saturation profile matrix in workbench dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="showcase" src="../assets/gallery/saturation_profile_matrix_showcase_light.png" alt="Saturation profile matrix in showcase style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="showcase" src="../assets/gallery/saturation_profile_matrix_showcase_dark.png" alt="Saturation profile matrix in showcase dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="publication" src="../assets/gallery/saturation_profile_matrix_publication_light.png" alt="Saturation profile matrix in publication style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="publication" src="../assets/gallery/saturation_profile_matrix_publication_dark.png" alt="Saturation profile matrix in publication dark style">
+```
+
+The useful reading order is mechanical:
+
+1. Start in the upper triangle. Correlations near ``\pm1`` identify parameter
+   pairs whose local covariance errors are fragile.
+2. Move to the matching contour panel below the diagonal. If the profiled
+   contour bends away from the dashed local ellipse, the likelihood geometry is
+   not locally Gaussian over the region you intend to report.
+3. Check the diagonal profile for the parameter you want to quote. If the
+   profile is skewed, use the profile interval instead of ``\hat p\pm\sigma``.
+
+In this example the amplitude-time-constant block is the dominant warning. The
+baseline parameter is still constrained by the independent calibration, so it
+does not produce the same long degeneracy direction. That distinction is the
+reason to look at the matrix rather than only at the largest correlation
+number.
 
 ## Decision In The Laboratory
 

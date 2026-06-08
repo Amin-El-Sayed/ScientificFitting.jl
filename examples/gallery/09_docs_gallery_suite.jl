@@ -988,6 +988,8 @@ end
 if RENDER_DOC_ASSETS
     prof = JuFitter.profile(saturation_result, 1; npoints=61, nsigma=4)
     cont = JuFitter.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
+    profile_overview_parameters = [1, 2, 3]
+    profile_overview_names = ["A", "tau", "c"]
 
     plot_profile(
         prof;
@@ -1062,6 +1064,24 @@ if RENDER_DOC_ASSETS
             local_center=saturation_result.params[[1, 2]],
             figure_size=(980, 720),
             filename=gallery_path("amplitude_timescale_contour_$(style)_$(appearance).png"),
+            format=:png,
+        )
+    end
+    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+        plot_profile_matrix(
+            saturation_result;
+            parameters=profile_overview_parameters,
+            parameter_names=profile_overview_names,
+            npoints_profile=41,
+            npoints_contour=21,
+            nsigma=3,
+            adaptive=true,
+            max_refinements=1,
+            panel_status_mode=:issues,
+            theme=style,
+            appearance=appearance,
+            figure_size=(1020, 980),
+            filename=gallery_path("saturation_profile_matrix_$(style)_$(appearance).png"),
             format=:png,
         )
     end
