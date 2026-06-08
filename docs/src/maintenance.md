@@ -100,10 +100,11 @@ belongs in a cache.
   In particular, `data / fit` ratios are undefined where the model prediction
   is zero; fail clearly instead of exporting a plot with hidden `Inf` or `NaN`
   values.
-- `plot_profile_matrix` is a composition layer over existing profile and
-  contour refits. It must not introduce independent confidence-threshold
-  semantics; threshold interpretation belongs to `profile`, `contour`, and the
-  associated diagnostics.
+- `profile_matrix` is the Makie-free source of truth for multi-parameter
+  profile/contour overviews. It computes the diagonal profiles, lower-triangle
+  pairwise contours, and per-panel diagnostics. `plot_profile_matrix` must stay
+  a rendering layer over that object and must not introduce independent
+  confidence-threshold semantics.
 - Post-fit annotation helpers (`fit_axis`, `add_curve!`, `add_points!`,
   `add_vline!`, `add_hline!`, `add_vband!`, `add_hband!`) are thin Makie
   wrappers. They should stay small, return Makie plot objects, validate obvious

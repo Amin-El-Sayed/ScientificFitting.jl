@@ -46,6 +46,7 @@ export ParameterEstimate
 export ProfileResult
 export ContourResult
 export ProfileInterval
+export ProfileMatrixResult
 export fit
 export fit_model
 export fit_custom
@@ -60,6 +61,7 @@ export fit_report
 export profile
 export profile_interval
 export contour
+export profile_matrix
 export fitplot
 export plot_fit
 export fit_axis

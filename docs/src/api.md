@@ -94,9 +94,11 @@ the two-dimensional contour repeats that idea over a parameter pair.
 JuFitter.ProfileResult
 JuFitter.ProfileInterval
 JuFitter.ContourResult
+JuFitter.ProfileMatrixResult
 JuFitter.profile
 JuFitter.profile_interval
 JuFitter.contour
+JuFitter.profile_matrix
 ```
 
 ## Plotting

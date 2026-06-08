@@ -128,6 +128,70 @@ using Test
         )
     end
 
+    @testset "Profile matrix is a Makie-free diagnostic object" begin
+        matrix = profile_matrix(
+            result;
+            parameters=[1, 2],
+            parameter_names=["slope", "offset"],
+            npoints_profile=5,
+            npoints_contour=3,
+            nsigma=1,
+            contour_levels=[2.30],
+        )
+
+        @test matrix isa ProfileMatrixResult
+        @test matrix.parameters == [1, 2]
+        @test matrix.parameter_names == ["slope", "offset"]
+        @test Set(keys(matrix.profiles)) == Set([1, 2])
+        @test Set(keys(matrix.contours)) == Set([(1, 2)])
+        @test Set(keys(matrix.profile_diagnostics)) == Set([1, 2])
+        @test Set(keys(matrix.contour_diagnostics)) == Set([(1, 2)])
+        @test isempty(matrix.report.findings)
+        @test diagnose(matrix).summary == matrix.report.summary
+
+        @test isapprox(
+            matrix.profiles[1].delta_cost,
+            @. abs2((matrix.profiles[1].values - result.params[1]) / slope_sigma);
+            atol=2e-8,
+            rtol=2e-8,
+        )
+
+        warped_values = collect(range(-2.0, 2.0; length=9))
+        warped_delta = Matrix{Float64}(undef, length(warped_values), length(warped_values))
+        for ix in eachindex(warped_values), iy in eachindex(warped_values)
+            xvalue = warped_values[ix]
+            yvalue = warped_values[iy]
+            warped_delta[ix, iy] = (xvalue < 0 ? xvalue^2 : 0.25 * xvalue^2) + yvalue^2
+        end
+        warped_contour = ContourResult((1, 2), warped_values, warped_values, warped_delta, warped_delta, [2.30])
+        warped_profile = ProfileResult(1, warped_values, warped_values .^ 2, warped_values .^ 2, 1.0, 0.0)
+        warped_profile_2 = ProfileResult(2, warped_values, warped_values .^ 2, warped_values .^ 2, 1.0, 0.0)
+        contour_report = diagnose(
+            warped_contour;
+            local_covariance=Matrix{Float64}(I, 2, 2),
+            local_center=[0.0, 0.0],
+            tolerance=0.5,
+        )
+        synthetic_matrix = ProfileMatrixResult(
+            [1, 2],
+            ["p1", "p2"],
+            Dict(1 => warped_profile, 2 => warped_profile_2),
+            Dict((1, 2) => warped_contour),
+            Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
+            Dict((1, 2) => contour_report),
+            JuFitter._combine_profile_matrix_findings(
+                Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
+                Dict((1, 2) => contour_report),
+            ),
+        )
+        @test any(f -> f.code == :contour_not_elliptic, diagnose(synthetic_matrix).findings)
+
+        @test_throws ArgumentError profile_matrix(result; parameters=Int[])
+        @test_throws ArgumentError profile_matrix(result; parameters=[1, 1])
+        @test_throws ArgumentError profile_matrix(result; parameters=[1, 3])
+        @test_throws ArgumentError profile_matrix(result; parameters=[1, 2], parameter_names=["only one"])
+    end
+
     @testset "Profile diagnosis catches non-parabolic and unbracketed scans" begin
         values = collect(range(-2.0, 2.0; length=9))
         skewed_delta = [v < 0 ? v^2 : 0.35 * v^2 for v in values]

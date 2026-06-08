@@ -49,6 +49,24 @@ struct ProfileInterval
     profile_result::ProfileResult
 end
 
+"""
+    ProfileMatrixResult
+
+Makie-free diagnostic overview for several fitted parameters. It stores the
+one-parameter profiles, lower-triangle pairwise contours, per-panel diagnostic
+reports, and a combined diagnostic report. Plotting is intentionally separate:
+`plot_profile_matrix(...)` is a rendering layer over this object.
+"""
+struct ProfileMatrixResult
+    parameters::Vector{Int}
+    parameter_names::Vector{String}
+    profiles::Dict{Int, ProfileResult}
+    contours::Dict{Tuple{Int, Int}, ContourResult}
+    profile_diagnostics::Dict{Int, DiagnosticReport}
+    contour_diagnostics::Dict{Tuple{Int, Int}, DiagnosticReport}
+    report::DiagnosticReport
+end
+
 function _merge_fixed_parameters(existing::Vector{FixedParameter}, added::Vector{FixedParameter})
     merged = Dict(fp.index => fp for fp in existing)
     for fp in added
@@ -401,6 +419,132 @@ function _profile_parabolicity_findings(profile_result::ProfileResult, local_sig
     end
     return DiagnosticFinding[]
 end
+
+function _profile_matrix_parameter_names(result, parameters::Vector{Int}, parameter_names)
+    if parameter_names !== nothing
+        names = collect(String, parameter_names)
+        length(names) == length(parameters) || throw(ArgumentError("parameter_names length must match parameters"))
+        return names
+    end
+    if hasproperty(result.problem, :parameter_names) && result.problem.parameter_names !== nothing
+        return result.problem.parameter_names[parameters]
+    end
+    return ["p$(index)" for index in parameters]
+end
+
+function _profile_matrix_parameters(result, parameters)
+    selected = parameters === nothing ? collect(eachindex(result.params)) : collect(Int, parameters)
+    isempty(selected) && throw(ArgumentError("parameters must contain at least one parameter index"))
+    all(index -> 1 <= index <= length(result.params), selected) ||
+        throw(ArgumentError("parameters contains an out-of-range parameter index"))
+    length(unique(selected)) == length(selected) ||
+        throw(ArgumentError("parameters must be unique"))
+    return selected
+end
+
+function _combine_profile_matrix_findings(profile_diagnostics, contour_diagnostics)
+    findings = DiagnosticFinding[]
+    for report in values(profile_diagnostics)
+        append!(findings, report.findings)
+    end
+    for report in values(contour_diagnostics)
+        append!(findings, report.findings)
+    end
+    findings = _sort_findings(_deduplicate_findings(findings))
+    return DiagnosticReport(findings, _diagnostic_summary(findings))
+end
+
+"""
+    profile_matrix(result; parameters=nothing, parameter_names=nothing, ...)
+
+Compute a multi-parameter profile/contour diagnostic matrix without loading
+Makie. Diagonal entries are one-parameter profile scans; lower-triangle entries
+are two-parameter profile contours. Each panel is diagnosed against the local
+covariance approximation when local errors or covariance entries are finite.
+
+Use this when a fit has several correlated or nonlinear parameters and you
+need a quick, machine-readable answer to: "Are local symmetric covariance
+errors enough, or do I need profile/contour intervals?"
+"""
+function profile_matrix(
+    result;
+    parameters=nothing,
+    parameter_names=nothing,
+    npoints_profile::Int=61,
+    npoints_contour::Int=25,
+    nsigma::Real=3,
+    profile_threshold::Real=1.0,
+    contour_levels::AbstractVector=[2.30, 6.18],
+    adaptive::Bool=false,
+    max_refinements::Int=2,
+    max_points::Int=1200,
+    profile_tolerance::Real=0.25,
+    contour_tolerance::Real=0.5,
+)
+    selected = _profile_matrix_parameters(result, parameters)
+    names = _profile_matrix_parameter_names(result, selected, parameter_names)
+    profiles = Dict{Int, ProfileResult}()
+    contours = Dict{Tuple{Int, Int}, ContourResult}()
+    profile_diagnostics = Dict{Int, DiagnosticReport}()
+    contour_diagnostics = Dict{Tuple{Int, Int}, DiagnosticReport}()
+
+    for index in selected
+        prof = profile(
+            result,
+            index;
+            npoints=npoints_profile,
+            nsigma=nsigma,
+            threshold=profile_threshold,
+            adaptive=adaptive,
+            max_refinements=max_refinements,
+            max_points=max_points,
+        )
+        profiles[index] = prof
+        sigma = result.param_stderr[index]
+        profile_diagnostics[index] = isfinite(sigma) && sigma > 0 ?
+            diagnose(prof; local_sigma=sigma, tolerance=profile_tolerance) :
+            diagnose(prof)
+    end
+
+    for row in 2:length(selected), col in 1:(row - 1)
+        xindex = selected[col]
+        yindex = selected[row]
+        key = (xindex, yindex)
+        cont = contour(
+            result,
+            xindex,
+            yindex;
+            npoints=npoints_contour,
+            nsigma=nsigma,
+            levels=contour_levels,
+            adaptive=adaptive,
+            max_refinements=max_refinements,
+            max_points=max_points,
+        )
+        contours[key] = cont
+        local_cov = result.param_covariance[[xindex, yindex], [xindex, yindex]]
+        contour_diagnostics[key] = all(isfinite, local_cov) ?
+            diagnose(
+                cont;
+                local_covariance=local_cov,
+                local_center=result.params[[xindex, yindex]],
+                tolerance=contour_tolerance,
+            ) :
+            diagnose(cont)
+    end
+
+    return ProfileMatrixResult(
+        selected,
+        names,
+        profiles,
+        contours,
+        profile_diagnostics,
+        contour_diagnostics,
+        _combine_profile_matrix_findings(profile_diagnostics, contour_diagnostics),
+    )
+end
+
+diagnose(matrix_result::ProfileMatrixResult) = matrix_result.report
 
 """
     diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance=0.25)

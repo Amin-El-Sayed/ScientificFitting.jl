@@ -27,10 +27,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   and multi-dataset Gaussian wrappers now reject non-finite observations,
   non-positive or non-finite `sigma_y`, invalid indexed `cov_y`, and empty
   multi-fit inputs before objective evaluation.
-- `julia --project=. -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 47 profile/contour reference checks, including validation of
+- `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
+  passes with 62 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds, finite positive profile
-  thresholds, default scan controls, and explicit finite distinct scan grids.
+  thresholds, default scan controls, explicit finite distinct scan grids, and
+  the Makie-free `profile_matrix` diagnostic object that combines profile,
+  contour, and per-panel diagnostic reports before plotting.
 - `julia --project=. -e 'using Test; include("test/statistics/likelihood_reference.jl")'`
   passes with 49 likelihood reference checks after the Poisson-and-histogram
   workflow rewrite.

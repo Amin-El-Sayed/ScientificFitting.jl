@@ -1727,14 +1727,6 @@ function plot_contour(
     return fig
 end
 
-function _parameter_names(result, parameters, parameter_names)
-    parameter_names !== nothing && return collect(String, parameter_names)
-    if hasproperty(result.problem, :parameter_names) && result.problem.parameter_names !== nothing
-        return result.problem.parameter_names[parameters]
-    end
-    return ["p$(index)" for index in parameters]
-end
-
 function _local_contour_delta(covariance::AbstractMatrix, center, xs, ys)
     cov = Matrix{Float64}(covariance)
     size(cov) == (2, 2) || throw(ArgumentError("local contour covariance must be 2x2"))
@@ -1781,14 +1773,21 @@ function plot_profile_matrix(
     delta_max::Union{Nothing, Real}=nothing,
     figure_size=nothing,
 )
-    selected = parameters === nothing ? collect(eachindex(result.params)) : collect(Int, parameters)
-    isempty(selected) && throw(ArgumentError("parameters must contain at least one parameter index"))
-    all(index -> 1 <= index <= length(result.params), selected) ||
-        throw(ArgumentError("parameters contains an out-of-range parameter index"))
-    length(unique(selected)) == length(selected) ||
-        throw(ArgumentError("parameters must be unique"))
-    names = _parameter_names(result, selected, parameter_names)
-    length(names) == length(selected) || throw(ArgumentError("parameter_names length must match parameters"))
+    matrix = profile_matrix(
+        result;
+        parameters=parameters,
+        parameter_names=parameter_names,
+        npoints_profile=npoints_profile,
+        npoints_contour=npoints_contour,
+        nsigma=nsigma,
+        profile_threshold=profile_threshold,
+        contour_levels=contour_levels,
+        adaptive=adaptive,
+        max_refinements=max_refinements,
+        max_points=max_points,
+    )
+    selected = matrix.parameters
+    names = matrix.parameter_names
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     style = _style_preset(resolved_style, resolved_appearance)
@@ -1818,16 +1817,7 @@ function plot_profile_matrix(
 
         if row == col
             index = selected[row]
-            prof = profile(
-                result,
-                index;
-                npoints=npoints_profile,
-                nsigma=nsigma,
-                threshold=profile_threshold,
-                adaptive=adaptive,
-                max_refinements=max_refinements,
-                max_points=max_points,
-            )
+            prof = matrix.profiles[index]
             lines!(ax, prof.values, prof.delta_cost; color=profile_color, linewidth=2.2)
             sigma = result.param_stderr[index]
             if isfinite(sigma) && sigma > 0
@@ -1842,17 +1832,7 @@ function plot_profile_matrix(
         elseif row > col
             xindex = selected[col]
             yindex = selected[row]
-            cont = contour(
-                result,
-                xindex,
-                yindex;
-                npoints=npoints_contour,
-                nsigma=nsigma,
-                levels=contour_levels,
-                adaptive=adaptive,
-                max_refinements=max_refinements,
-                max_points=max_points,
-            )
+            cont = matrix.contours[(xindex, yindex)]
             for (level_index, level) in enumerate(cont.levels)
                 contour!(
                     ax,
