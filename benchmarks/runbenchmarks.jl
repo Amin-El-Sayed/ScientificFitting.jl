@@ -9,6 +9,7 @@ if Base.active_project() == joinpath(BENCHMARK_ROOT, "Project.toml")
 end
 
 using BenchmarkTools
+using Dates
 using JuFitter
 using LinearAlgebra
 using TOML
@@ -133,6 +134,20 @@ function _git_commit()
     end
 end
 
+function _project_version()
+    project = TOML.parsefile(joinpath(PROJECT_ROOT, "Project.toml"))
+    return string(get(project, "version", "unknown"))
+end
+
+function _cpu_name()
+    try
+        info = Sys.cpu_info()
+        return isempty(info) ? "unknown" : string(first(info).model)
+    catch
+        return "unknown"
+    end
+end
+
 function _summarize_trial(trial)
     estimate = median(trial)
     return Dict{String, Any}(
@@ -144,12 +159,20 @@ end
 
 function _summarize_results(results::BenchmarkGroup; seconds::Float64)
     summary = Dict{String, Any}()
+    benchmark_names = first.(_flatten_benchmarks(results))
     summary["metadata"] = Dict{String, Any}(
+        "created_utc" => string(now(UTC)),
+        "jufitter_version" => _project_version(),
         "julia_version" => string(VERSION),
+        "os" => string(Sys.KERNEL),
+        "cpu_name" => _cpu_name(),
+        "cpu_threads" => Sys.CPU_THREADS,
         "threads" => Threads.nthreads(),
+        "blas_threads" => BLAS.get_num_threads(),
         "machine" => Sys.MACHINE,
         "git_commit" => _git_commit(),
         "seconds_per_benchmark" => seconds,
+        "benchmark_case_count" => length(benchmark_names),
         "unit_time" => "seconds",
         "unit_memory" => "bytes",
     )
@@ -177,6 +200,15 @@ function _compare_summary(summary, baseline_path::AbstractString; tolerance::Flo
     reference = baseline["benchmarks"]
 
     failures = String[]
+    missing_current = sort!(collect(setdiff(keys(reference), keys(current))))
+    missing_reference = sort!(collect(setdiff(keys(current), keys(reference))))
+    for name in missing_current
+        push!(failures, "$name is present in the baseline but missing from the current run")
+    end
+    for name in missing_reference
+        push!(failures, "$name is new in the current run but missing from the baseline")
+    end
+
     for name in sort!(collect(intersect(keys(current), keys(reference))))
         old = reference[name]["median_seconds"]
         new = current[name]["median_seconds"]

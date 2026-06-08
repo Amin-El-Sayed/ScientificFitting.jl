@@ -23,10 +23,17 @@ const REQUIRED_BENCHMARK_CASES = [
 
 const REQUIRED_SUMMARY_FIELDS = [
     "julia_version",
+    "os",
+    "cpu_name",
+    "cpu_threads",
     "threads",
+    "blas_threads",
     "machine",
     "git_commit",
+    "created_utc",
+    "jufitter_version",
     "seconds_per_benchmark",
+    "benchmark_case_count",
     "unit_time",
     "unit_memory",
     "median_seconds",
@@ -65,6 +72,8 @@ end
     @test occursin("--tolerance=", runner)
     @test occursin("--list", runner)
     @test occursin("--plot", runner)
+    @test occursin("missing from the current run", runner)
+    @test occursin("missing from the baseline", runner)
 
     @test occursin("Benchmark contract gate", workflow)
     @test occursin("test/benchmark_contract_gate.jl", workflow)

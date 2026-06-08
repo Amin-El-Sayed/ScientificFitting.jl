@@ -132,8 +132,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   versus profile/contour intervals, and finite-difference AD references for
   parameter-dependent dense `cov_x` propagation.
 - `benchmarks/runbenchmarks.jl` can now write TOML baselines with `--save` and
-  compare later runs with `--compare`. Local benchmark manifests and outputs
-  are ignored because they are machine-specific.
+  compare later runs with `--compare`. Saved summaries include Julia, JuFitter,
+  OS, CPU, Julia-thread, BLAS-thread, git-commit, timing, memory, and allocation
+  metadata. Baseline comparison fails if benchmark cases are missing from either
+  side, so benchmark-set drift cannot pass as a valid performance comparison.
+  Local benchmark manifests and outputs are ignored because they are
+  machine-specific.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page

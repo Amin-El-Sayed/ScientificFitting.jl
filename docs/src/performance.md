@@ -35,6 +35,10 @@ julia --project=benchmarks benchmarks/runbenchmarks.jl \
   --save=benchmarks/output/local-baseline.toml
 ```
 
+The saved TOML includes Julia, JuFitter, OS, CPU, Julia-thread, BLAS-thread,
+git-commit, benchmark-count, timing, memory, and allocation metadata. Keep the
+file with the reviewed release evidence, not as a generic repository artifact.
+
 To compare against a saved baseline:
 
 ```bash
@@ -43,6 +47,10 @@ julia --project=benchmarks benchmarks/runbenchmarks.jl \
   --compare=benchmarks/output/local-baseline.toml \
   --tolerance=0.25
 ```
+
+The comparison fails if a benchmark case is missing from either side. This is
+intentional: adding, removing, or renaming a benchmark changes the evidence set
+and requires a new reviewed baseline.
 
 Plot export benchmarks are opt-in because they require CairoMakie:
 
