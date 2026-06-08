@@ -59,6 +59,18 @@ using Test
         @test contains(pull_finding.evidence, "x =")
         @test contains(diagnose_text(bad_report), "action:")
 
+        block_x = collect(1.0:30.0)
+        block_y = vcat(fill(1.0, 10), fill(-1.0, 10), fill(1.0, 10))
+        constant_model(x, p) = fill(p[1], length(x))
+        block_result = fit_model(constant_model, block_x, block_y; p0=[0.0], sigma_y=fill(0.2, length(block_x)))
+        block_report = diagnose(block_result)
+
+        run_finding = only(filter(f -> f.code == :long_same_sign_pull_run, block_report.findings))
+        @test run_finding.severity == :warning
+        @test contains(run_finding.evidence, "point 1 to 10")
+        @test contains(run_finding.evidence, "x = 1.0 to 10.0")
+        @test contains(run_finding.recommendation, "acquisition interval")
+
         too_good = fit_model(linear_model, x, linear_model(x, [1.2, -0.3]); p0=[1.0, 0.0], sigma_y=fill(10.0, length(x)))
         @test any(f -> f.code == :very_small_reduced_chi2, diagnose(too_good).findings)
 

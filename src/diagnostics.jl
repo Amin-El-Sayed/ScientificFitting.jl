@@ -183,6 +183,37 @@ function _run_count(values::AbstractVector)
     return runs
 end
 
+function _longest_same_sign_run(values::AbstractVector)
+    best_start = 0
+    best_stop = 0
+    best_sign = 0
+    current_start = 0
+    current_sign = 0
+
+    for (i, value) in enumerate(values)
+        value_sign = isfinite(value) ? sign(value) : 0
+        if value_sign == 0
+            current_start = 0
+            current_sign = 0
+            continue
+        end
+
+        if value_sign != current_sign
+            current_start = i
+            current_sign = value_sign
+        end
+
+        if best_start == 0 || (i - current_start) > (best_stop - best_start)
+            best_start = current_start
+            best_stop = i
+            best_sign = current_sign
+        end
+    end
+
+    best_start == 0 && return (start=0, stop=0, sign=0, length=0)
+    return (start=best_start, stop=best_stop, sign=best_sign, length=best_stop - best_start + 1)
+end
+
 function _lag1_autocorrelation(values::AbstractVector)
     length(values) < 3 && return NaN
     centered = values .- mean(values)
@@ -367,6 +398,24 @@ function _xy_diagnostic_findings(result::FitResult)
                 "Residual signs look structured",
                 "Observed $runs sign runs; roughly $(_fmt_scientific(expected_runs)) would be typical for structureless residuals.",
                 "Look for missing curvature, drift, hysteresis, time dependence, or an incorrect independent variable transformation.",
+            ),
+        )
+    end
+
+    longest_run = _longest_same_sign_run(pulls)
+    min_run_length = max(5, ceil(Int, 0.25 * length(pulls)))
+    if length(pulls) >= 12 && longest_run.length >= min_run_length
+        run_start_x = result.problem.x[longest_run.start]
+        run_stop_x = result.problem.x[longest_run.stop]
+        direction = longest_run.sign > 0 ? "positive" : "negative"
+        push!(
+            findings,
+            _finding(
+                :warning,
+                :long_same_sign_pull_run,
+                "Long same-sign pull run",
+                "Longest run: $(longest_run.length) $direction pulls from point $(longest_run.start) to $(longest_run.stop) (x = $(_fmt_scientific(run_start_x)) to $(_fmt_scientific(run_stop_x))).",
+                "Inspect this acquisition interval for drift, missing model structure, a calibration offset, or correlated uncertainty.",
             ),
         )
     end

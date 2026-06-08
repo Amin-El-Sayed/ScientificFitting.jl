@@ -192,6 +192,10 @@ Current evidence:
   silently dropping the local ellipse comparison.
 - `diagnostic_dashboard(...)` summarizes structured `diagnose(...)` findings
   into status, severity counts, and deduplicated next actions for lab workflows.
+- Residual/pull diagnostics now report long same-sign pull runs with concrete
+  point and x intervals, so structured residual warnings identify where in the
+  acquisition a user should inspect drift, missing model structure, offsets, or
+  correlated uncertainty.
 - `profile_matrix(...)` is now a Makie-free diagnostic object for multi-
   parameter profile/contour overviews. It computes diagonal profile scans,
   lower-triangle pairwise contours, per-panel diagnostics, and per-panel

@@ -163,6 +163,7 @@ The current checks cover:
 - suspiciously small or large ``P(\chi^2)``,
 - large pulls and extreme pulls,
 - structured residual signs,
+- long same-sign pull intervals with point and x ranges,
 - lag-1 autocorrelation in pulls.
 
 The intent is not to replace scientific judgment. The intent is to make the

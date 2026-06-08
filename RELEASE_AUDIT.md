@@ -48,10 +48,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   finite-difference reference for value, gradient, and Hessian of a Gaussian NLL
   with full `cov_x` propagation, where the effective dense covariance depends on
   the fitted model parameter.
-- `julia --project=. -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
-  passes with 45 diagnostic reference checks in about 38s, including the
+- `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
+  passes with 49 diagnostic reference checks in about 39s, including the
   local-covariance warning that recommends profile/contour intervals when
   active bounds or strong parameter correlations make symmetric errors suspect.
+  The same gate now checks that a long same-sign pull run is reported with its
+  concrete point and x interval, so structured residual warnings point to a
+  data region a lab user can inspect.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
   passes with 386 core checks in about 9m56s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
@@ -412,8 +415,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `diagnostic_dashboard(...)` now summarizes structured findings into status,
   severity counts, and deduplicated next actions. Profile contours now default
   to directly labeled 1-sigma/2-sigma regions with local-covariance comparison;
-  residual/pull views and the combined diagnostic dashboard are still not yet
-  at the level needed to compete with kafe2/Minuit-style workflows.
+  residual/pull diagnostics now identify long same-sign pull intervals, but the
+  combined visual diagnostic dashboard is still not yet at the level needed to
+  compete with kafe2/Minuit-style workflows.
 
 ## Documentation Blockers
 
