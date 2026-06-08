@@ -115,6 +115,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   least-squares, no-op bounds preserving the fast path, and 300-point dense
   covariance. This is wired into the core CI lane with a runner scale factor.
   It is a regression guard, not a publishable benchmark claim.
+- `test/benchmark_contract_gate.jl` checks the benchmark release contract
+  without measuring timings: the benchmark runner keeps the required hot-path
+  cases, records the required summary fields, and README, performance docs,
+  pre-release checklist, and CI all point to the same `--project=benchmarks`
+  workflow.
 - `RELEASE_CHECKLIST.md` now defines the local pre-release gate: clean
   repository state, core/package/statistical/torture tests, documentation gates,
   docs build and rendered-link validation, output snapshots, plot regressions,

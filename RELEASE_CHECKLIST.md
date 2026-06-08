@@ -81,6 +81,12 @@ Required manual checks:
 
 ## 4. Performance And Benchmark Evidence
 
+Run the benchmark contract gate:
+
+```bash
+julia --project=. --startup-file=no test/benchmark_contract_gate.jl
+```
+
 Run the performance regression guard:
 
 ```bash
@@ -91,8 +97,8 @@ For public performance claims, use saved benchmark evidence instead of the
 budget gate:
 
 ```bash
-julia --project=. --startup-file=no benchmarks/runbenchmarks.jl --save=benchmarks/output/local-baseline.toml
-julia --project=. --startup-file=no benchmarks/runbenchmarks.jl --compare=benchmarks/output/local-baseline.toml
+julia --project=benchmarks benchmarks/runbenchmarks.jl --save=benchmarks/output/local-baseline.toml
+julia --project=benchmarks benchmarks/runbenchmarks.jl --compare=benchmarks/output/local-baseline.toml
 ```
 
 Do not advertise speed claims until the reference hardware or CI runner is
