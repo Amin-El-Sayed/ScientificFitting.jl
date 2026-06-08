@@ -189,9 +189,10 @@ Current evidence:
   into status, severity counts, and deduplicated next actions for lab workflows.
 - `profile_matrix(...)` is now a Makie-free diagnostic object for multi-
   parameter profile/contour overviews. It computes diagonal profile scans,
-  lower-triangle pairwise contours, and per-panel diagnostics before any plot
-  is rendered, so the kafe2-style overview has a testable scientific core
-  instead of being only a visual composition.
+  lower-triangle pairwise contours, per-panel diagnostics, and per-panel
+  `:ok`/`:review`/`:stop` status before any plot is rendered, so the
+  kafe2-style overview has a testable scientific core instead of being only a
+  visual composition.
 
 Open hardening work:
 
@@ -202,9 +203,9 @@ Open hardening work:
   beyond simple level-bracketing cells.
 - Improve the kafe2-inspired but JuFitter-native profile/contour matrix beyond
   the current tested core object: stronger non-elliptic visual examples,
-  clearer plot labels, explicit panel-level severity markers, and documentation
-  that explains what a scientist should conclude rather than merely copying
-  kafe2's visual grammar.
+  clearer plot labels, stronger panel-level severity styling, and
+  documentation that explains what a scientist should conclude rather than
+  merely copying kafe2's visual grammar.
 - Turn the diagnostic dashboard into a visual Makie report that combines fit
   quality, pulls, profiles, contours, and next actions.
 - Add structured covariance/whitening operators for large correlated data.

@@ -28,11 +28,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   non-positive or non-finite `sigma_y`, invalid indexed `cov_y`, and empty
   multi-fit inputs before objective evaluation.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 62 profile/contour reference checks, including validation of
+  passes with 66 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds, finite positive profile
   thresholds, default scan controls, explicit finite distinct scan grids, and
   the Makie-free `profile_matrix` diagnostic object that combines profile,
-  contour, and per-panel diagnostic reports before plotting.
+  contour, per-panel diagnostic reports, and per-panel `:ok`/`:review`/`:stop`
+  status before plotting.
 - `julia --project=. -e 'using Test; include("test/statistics/likelihood_reference.jl")'`
   passes with 49 likelihood reference checks after the Poisson-and-histogram
   workflow rewrite.
@@ -53,8 +54,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   439 checks in about 13m15s for the test phase after package test
   precompilation. This verifies that test extras load the CairoMakie extension
   correctly.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 64
-  focused plot-regression checks in about 54s.
+- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 65
+  focused plot-regression checks in about 33s.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. test/docs_gallery_gate.jl` passes with 225 checks. The

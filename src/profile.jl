@@ -56,6 +56,8 @@ Makie-free diagnostic overview for several fitted parameters. It stores the
 one-parameter profiles, lower-triangle pairwise contours, per-panel diagnostic
 reports, and a combined diagnostic report. Plotting is intentionally separate:
 `plot_profile_matrix(...)` is a rendering layer over this object.
+`panel_status` maps diagonal `(i, i)` and lower-triangle `(i, j)` panels to
+`:ok`, `:review`, or `:stop`.
 """
 struct ProfileMatrixResult
     parameters::Vector{Int}
@@ -64,6 +66,7 @@ struct ProfileMatrixResult
     contours::Dict{Tuple{Int, Int}, ContourResult}
     profile_diagnostics::Dict{Int, DiagnosticReport}
     contour_diagnostics::Dict{Tuple{Int, Int}, DiagnosticReport}
+    panel_status::Dict{Tuple{Int, Int}, Symbol}
     report::DiagnosticReport
 end
 
@@ -454,6 +457,17 @@ function _combine_profile_matrix_findings(profile_diagnostics, contour_diagnosti
     return DiagnosticReport(findings, _diagnostic_summary(findings))
 end
 
+function _profile_matrix_panel_status(profile_diagnostics, contour_diagnostics)
+    status = Dict{Tuple{Int, Int}, Symbol}()
+    for (index, report) in profile_diagnostics
+        status[(index, index)] = _diagnostic_status(report.findings)
+    end
+    for (indices, report) in contour_diagnostics
+        status[indices] = _diagnostic_status(report.findings)
+    end
+    return status
+end
+
 """
     profile_matrix(result; parameters=nothing, parameter_names=nothing, ...)
 
@@ -540,6 +554,7 @@ function profile_matrix(
         contours,
         profile_diagnostics,
         contour_diagnostics,
+        _profile_matrix_panel_status(profile_diagnostics, contour_diagnostics),
         _combine_profile_matrix_findings(profile_diagnostics, contour_diagnostics),
     )
 end

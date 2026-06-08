@@ -203,12 +203,14 @@ using Test
         filename=matrix_out,
         format=:png,
         theme=:workbench,
+        panel_status_mode=:all,
     )
     @test matrix_fig !== nothing
     @test isfile(matrix_out)
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=Int[])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 1])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 3])
+    @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 2], panel_status_mode=:bad)
 
     residual_out = joinpath(mktempdir(), "residual_showcase_dark.png")
     diagnostics_out = joinpath(mktempdir(), "diagnostics_workbench_dark.png")

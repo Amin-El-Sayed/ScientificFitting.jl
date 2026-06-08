@@ -102,9 +102,9 @@ belongs in a cache.
   values.
 - `profile_matrix` is the Makie-free source of truth for multi-parameter
   profile/contour overviews. It computes the diagonal profiles, lower-triangle
-  pairwise contours, and per-panel diagnostics. `plot_profile_matrix` must stay
-  a rendering layer over that object and must not introduce independent
-  confidence-threshold semantics.
+  pairwise contours, per-panel diagnostics, and per-panel status labels.
+  `plot_profile_matrix` must stay a rendering layer over that object and must
+  not introduce independent confidence-threshold semantics.
 - Post-fit annotation helpers (`fit_axis`, `add_curve!`, `add_points!`,
   `add_vline!`, `add_hline!`, `add_vband!`, `add_hband!`) are thin Makie
   wrappers. They should stay small, return Makie plot objects, validate obvious

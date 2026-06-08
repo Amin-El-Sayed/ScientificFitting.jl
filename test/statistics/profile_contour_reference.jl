@@ -146,6 +146,9 @@ using Test
         @test Set(keys(matrix.contours)) == Set([(1, 2)])
         @test Set(keys(matrix.profile_diagnostics)) == Set([1, 2])
         @test Set(keys(matrix.contour_diagnostics)) == Set([(1, 2)])
+        @test matrix.panel_status[(1, 1)] == :ok
+        @test matrix.panel_status[(2, 2)] == :ok
+        @test matrix.panel_status[(1, 2)] == :ok
         @test isempty(matrix.report.findings)
         @test diagnose(matrix).summary == matrix.report.summary
 
@@ -179,11 +182,16 @@ using Test
             Dict((1, 2) => warped_contour),
             Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
             Dict((1, 2) => contour_report),
+            JuFitter._profile_matrix_panel_status(
+                Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
+                Dict((1, 2) => contour_report),
+            ),
             JuFitter._combine_profile_matrix_findings(
                 Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
                 Dict((1, 2) => contour_report),
             ),
         )
+        @test synthetic_matrix.panel_status[(1, 2)] == :review
         @test any(f -> f.code == :contour_not_elliptic, diagnose(synthetic_matrix).findings)
 
         @test_throws ArgumentError profile_matrix(result; parameters=Int[])

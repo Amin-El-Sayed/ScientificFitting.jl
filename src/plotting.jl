@@ -1436,6 +1436,44 @@ function _diagnostic_colors(style::Symbol, appearance::Symbol)
     )
 end
 
+function _panel_status_color(status::Symbol, appearance::Symbol)
+    dark = appearance == :dark
+    status == :stop && return dark ? "#ff8a80" : "#a33a2b"
+    status == :review && return dark ? "#ffd166" : "#9b6a10"
+    return dark ? _JF_DARK_MUTED : _JF_MUTED
+end
+
+function _panel_status_label(status::Symbol)
+    status == :stop && return "fix"
+    status == :review && return "review"
+    status == :ok && return "ok"
+    return string(status)
+end
+
+function _validate_panel_status_mode(mode::Symbol)
+    mode in (:issues, :all, :none) ||
+        throw(ArgumentError("panel_status_mode must be :issues, :all, or :none"))
+    return nothing
+end
+
+function _draw_panel_status!(axis::Axis, status::Symbol, appearance::Symbol; mode::Symbol=:issues)
+    _validate_panel_status_mode(mode)
+    mode == :none && return nothing
+    mode == :issues && status == :ok && return nothing
+    text!(
+        axis,
+        0.965,
+        0.94;
+        text=_panel_status_label(status),
+        space=:relative,
+        align=(:right, :top),
+        color=_panel_status_color(status, appearance),
+        fontsize=11,
+        font=:bold,
+    )
+    return nothing
+end
+
 """
     plot_profile(profile_result; filename=nothing, format=:pdf, theme=:publication, ...)
 
@@ -1752,6 +1790,10 @@ coefficient. The plot is intended as a fast diagnostic: if profile curves are
 not parabolic, or profile contours do not resemble the local ellipse, symmetric
 local covariance errors should not be treated as the final uncertainty
 statement.
+
+`panel_status_mode=:issues` marks only panels with warnings or critical
+findings. Use `:all` to label every panel or `:none` for a purely graphical
+matrix.
 """
 function plot_profile_matrix(
     result;
@@ -1770,9 +1812,11 @@ function plot_profile_matrix(
     adaptive::Bool=false,
     max_refinements::Int=2,
     max_points::Int=1200,
+    panel_status_mode::Symbol=:issues,
     delta_max::Union{Nothing, Real}=nothing,
     figure_size=nothing,
 )
+    _validate_panel_status_mode(panel_status_mode)
     matrix = profile_matrix(
         result;
         parameters=parameters,
@@ -1829,6 +1873,7 @@ function plot_profile_matrix(
                 max(4.0 * Float64(profile_threshold), maximum(Float64.(contour_levels); init=0.0)) :
                 Float64(delta_max)
             isfinite(ylimit) && ylimit > 0 && ylims!(ax, 0, ylimit)
+            _draw_panel_status!(ax, matrix.panel_status[(index, index)], resolved_appearance; mode=panel_status_mode)
         elseif row > col
             xindex = selected[col]
             yindex = selected[row]
@@ -1861,6 +1906,7 @@ function plot_profile_matrix(
                 end
             end
             scatter!(ax, [result.params[xindex]], [result.params[yindex]]; marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color)
+            _draw_panel_status!(ax, matrix.panel_status[(xindex, yindex)], resolved_appearance; mode=panel_status_mode)
         else
             hidedecorations!(ax)
             hidespines!(ax)
