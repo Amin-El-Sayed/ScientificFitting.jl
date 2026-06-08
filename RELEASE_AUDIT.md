@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-06-07
+Status: 2026-06-08
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -140,6 +140,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   positive, tolerance finite and non-negative, and baseline paths non-empty.
   Local benchmark manifests and outputs are ignored because they are
   machine-specific.
+- A real benchmark-runner smoke test passed locally with
+  `julia --project=benchmarks --startup-file=no benchmarks/runbenchmarks.jl
+  --seconds=0.01 --save=/tmp/jufitter-benchmark-smoke.toml
+  --compare=/tmp/jufitter-benchmark-smoke.toml --tolerance=0.25`. This verified
+  the full save/compare path for the current eight benchmark cases and metadata
+  serialization. It is deliberately not release benchmark evidence because
+  `--seconds=0.01` is too short for stable performance claims and no reference
+  runner has been selected.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page
