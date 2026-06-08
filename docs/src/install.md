@@ -78,9 +78,10 @@ pip install juliacall
 python3 examples/python/fit_from_python.py
 ```
 
-That script activates this repository, calls `fit_model`, and prints
-`report_text`. It does not load CairoMakie, so it checks the numerical and text
-reporting path without paying plotting compilation cost.
+That script activates this repository, calls `fit_model`, prints `report_text`
+and `diagnostic_dashboard_text`, and verifies that neither Makie nor CairoMakie
+was loaded. It checks the numerical and text-reporting path without paying
+plotting compilation cost.
 
 Release policy: Python support is not a public v0 claim until the opt-in gate
 has passed in a clean Python environment:

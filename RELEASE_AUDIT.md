@@ -377,13 +377,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Multi-dataset fitting currently supports useful parameter mapping, but not the
   full uncertainty model expected from kafe2-level workflows.
 - Python interoperability is not yet release-validated. The intended path is
-  JuliaCall/PythonCall calling JuFitter from Python. A Makie-free example and an
+  JuliaCall/PythonCall calling JuFitter from Python. The Makie-free example and
   opt-in gate exist (`examples/python/fit_from_python.py`,
-  `test/python_interop_gate.jl`), but this machine currently has Python
-  3.12.13 without `juliacall`. Release claims still require running the gate in
-  a clean Python environment and checking array conversion semantics. The
-  install page documents the current policy: Python use is experimental or
-  deferred unless `JUFITTER_RUN_PYTHON_INTEROP=1` passes with `juliacall`.
+  `test/python_interop_gate.jl`) and now check that Python can access fitted
+  parameters, `report_text`, `diagnostic_dashboard_text`, and the
+  fitting/reporting path without loading Makie or CairoMakie. This machine
+  currently has Python without `juliacall`, so release claims still require
+  running the gate in a clean Python environment and checking array conversion
+  semantics. The install page documents the current policy: Python use is
+  experimental or deferred unless `JUFITTER_RUN_PYTHON_INTEROP=1` passes with
+  `juliacall`.
 - The local performance-budget gate is wired into CI, but it has not yet been
   observed on GitHub Actions and does not replace saved `BenchmarkTools`
   baselines.

@@ -87,6 +87,10 @@ If `juliacall` is not installed, leave the environment variable unset; the gate
 then records that the external prerequisite is intentionally absent without
 making default Julia tests depend on Python packaging state.
 
+The opt-in gate executes `examples/python/fit_from_python.py` and checks that
+Python can access fit parameters, `report_text`, `diagnostic_dashboard_text`,
+and the Makie-free fitting/reporting contract.
+
 Run the performance budget gate with:
 
 ```bash

@@ -34,7 +34,8 @@ a numbered workflow with clear scope.
 
 - `python/fit_from_python.py`: minimal JuliaCall example for Python users. It
   activates this Julia project, fits plain Python arrays, reads parameter
-  estimates, and prints `report_text(...)` without loading CairoMakie.
+  estimates, prints `report_text(...)` and `diagnostic_dashboard_text(...)`,
+  and verifies that fitting/reporting did not load CairoMakie or Makie.
 
 This path is intentionally Julia-backed. JuFitter is not reimplemented in
 Python; Python calls the Julia fitting/reporting engine through
