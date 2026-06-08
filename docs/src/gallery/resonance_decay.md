@@ -46,9 +46,8 @@ therefore enter the fit. The scale choice is not hidden in the plotting code:
 it is part of the statistical model and should be changed if repeated
 measurements or instrument specifications justify a different value.
 
-This is not a synthetic perfect-data exercise. The record has dense sampling,
-periodic parameters, a slowly changing envelope, and residual structure that a
-plot of the fitted curve can hide.
+The record has dense sampling, periodic parameters, a slowly changing envelope,
+and residual structure that a plot of the fitted curve can hide.
 
 ## Model: Start With The Physical Baseline
 

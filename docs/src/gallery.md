@@ -223,7 +223,7 @@ model or cost description, executable code, real output, diagnostics,
 interpretation, failure modes, complete light/dark plot assets, and all three
 public plot-style variants. Visual taste still requires human review, but the
 site should no longer regress into missing pages, absent output blocks, broken
-assets, or draft-only tutorial fragments. The output-snapshot gate is slower:
+assets, or incomplete tutorial fragments. The output-snapshot gate is slower:
 it executes the documented example scripts and verifies that notebook-style
 `Real output` blocks are copied from real script output rather than edited by
 hand.

@@ -32,7 +32,8 @@ const PUBLIC_TEXT_FILES = vcat(joinpath.(DOCS_SRC, PUBLIC_DOC_PAGES), [joinpath(
 
 const FORBIDDEN_PUBLIC_PATTERNS = Pair{String, Regex}[
     "AI/LLM disclosure text" => r"(?i)\b(as an ai|chatgpt|large language model|ai[- ]?generated|ai slop)\b",
-    "placeholder marker" => r"(?i)\b(todo|fixme|lorem ipsum|placeholder prose|being rewritten|not all of them are finished)\b",
+    "placeholder marker" => r"(?i)\b(todo|fixme|lorem ipsum|placeholder prose|being rewritten|not all of them are finished|work in progress|coming soon|to be written|to be added)\b",
+    "draft/tutorial residue" => r"(?i)\b(draft-only|toy example|left as an exercise|why this example matters|synthetic perfect-data)\b",
     "private local path" => r"(?i)(/Users/|Documents/Projekte|private P1|P1-Praktikum|Praktikum)",
     "private author handle in public prose" => r"(?i)\bAmin_El_Sayed\b",
     "course-internal wording" => r"(?i)\b(course[- ]internal|lab-course-internal|private dataset)\b",
@@ -61,6 +62,19 @@ function install_page_text()
     return public_file_text(joinpath(DOCS_SRC, "install.md"))
 end
 
+function markdown_image_alt_texts(text::AbstractString)
+    return [match.captures[1] for match in eachmatch(r"!\[([^\]]*)\]\([^)]+\)", text)]
+end
+
+function html_image_tags(text::AbstractString)
+    return [match.captures[1] for match in eachmatch(r"<img\b([^>]*)>", text)]
+end
+
+function html_image_alt_text(tag::AbstractString)
+    match_result = match(r"\balt=\"([^\"]*)\"", tag)
+    return isnothing(match_result) ? nothing : match_result.captures[1]
+end
+
 @testset "Public documentation release hygiene" begin
     @testset "Documenter navigation coverage" begin
         @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
@@ -82,6 +96,16 @@ end
             for (label, pattern) in FORBIDDEN_PUBLIC_PATTERNS
                 @testset "$label" begin
                     @test !occursin(pattern, text)
+                end
+            end
+            @testset "image alt text" begin
+                for alt in markdown_image_alt_texts(text)
+                    @test !isempty(strip(alt))
+                end
+                for tag in html_image_tags(text)
+                    alt = html_image_alt_text(tag)
+                    @test !isnothing(alt)
+                    @test !isempty(strip(alt))
                 end
             end
         end
