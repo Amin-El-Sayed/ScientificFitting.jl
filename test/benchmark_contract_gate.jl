@@ -89,4 +89,6 @@ end
 
     @test occursin("Benchmark contract gate", workflow)
     @test occursin("test/benchmark_contract_gate.jl", workflow)
+    @test occursin("Startup probe gate", workflow)
+    @test occursin("test/startup_probe_gate.jl", workflow)
 end

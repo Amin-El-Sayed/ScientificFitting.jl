@@ -28,6 +28,8 @@ jobs:
         run: julia --project=. --startup-file=no test/release_checklist_gate.jl
       - name: Benchmark contract gate
         run: julia --project=. --startup-file=no test/benchmark_contract_gate.jl
+      - name: Startup probe gate
+        run: julia --project=. --startup-file=no test/startup_probe_gate.jl
       - name: Performance budget gate
         run: julia --project=. --startup-file=no test/performance_budget_gate.jl
         env:

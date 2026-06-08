@@ -158,6 +158,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   --save=/tmp/jufitter-startup-probe.toml` passed locally. The fresh-process
   output included `loaded_plot_modules=` and `core_without_makie=true`, then the
   temporary TOML artifact was removed.
+- `test/startup_probe_gate.jl` now executes the startup probe with a temporary
+  TOML output file, verifies the fresh-process `core_without_makie=true`
+  output, checks the saved metadata, and removes the temporary artifact. The
+  gate is wired into CI and the pre-release checklist.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page

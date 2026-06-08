@@ -86,6 +86,7 @@ without loading Makie:
 
 ```bash
 julia --project=. --startup-file=no benchmarks/startup_probe.jl --save=/tmp/jufitter-startup-probe.toml
+julia --project=. --startup-file=no test/startup_probe_gate.jl
 ```
 
 Run the benchmark contract gate:
