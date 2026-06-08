@@ -130,6 +130,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   cases including profile-matrix diagnostics, records the required summary
   fields, and README, performance docs, pre-release checklist, and CI all point
   to the same `--project=benchmarks` workflow.
+- `JUFITTER_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no
+  test/python_interop_gate.jl` passes locally with 13 checks in an isolated
+  `/tmp` Python virtual environment after installing `juliacall`. The example
+  keeps JuliaCall's managed Julia project active, develops this checkout into
+  that environment, verifies Python access to fit parameters, `report_text`,
+  and `diagnostic_dashboard_text`, and checks that fitting/reporting does not
+  load Makie or CairoMakie. This also fixed the earlier SciMLBase/PythonCall
+  extension warning caused by activating the JuFitter project after JuliaCall
+  had started.
 - `RELEASE_CHECKLIST.md` now defines the local pre-release gate: clean
   repository state, core/package/statistical/torture tests, documentation gates,
   docs build and rendered-link validation, output snapshots, plot regressions,
@@ -376,17 +385,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   before release-grade claims.
 - Multi-dataset fitting currently supports useful parameter mapping, but not the
   full uncertainty model expected from kafe2-level workflows.
-- Python interoperability is not yet release-validated. The intended path is
-  JuliaCall/PythonCall calling JuFitter from Python. The Makie-free example and
-  opt-in gate exist (`examples/python/fit_from_python.py`,
-  `test/python_interop_gate.jl`) and now check that Python can access fitted
-  parameters, `report_text`, `diagnostic_dashboard_text`, and the
-  fitting/reporting path without loading Makie or CairoMakie. This machine
-  currently has Python without `juliacall`, so release claims still require
-  running the gate in a clean Python environment and checking array conversion
-  semantics. The install page documents the current policy: Python use is
-  experimental or deferred unless `JUFITTER_RUN_PYTHON_INTEROP=1` passes with
-  `juliacall`.
+- Python interoperability has a local clean-environment validation through
+  JuliaCall/PythonCall, but it still needs CI confirmation before public release
+  claims. The Makie-free example and opt-in gate
+  (`examples/python/fit_from_python.py`, `test/python_interop_gate.jl`) check
+  that Python can access fitted parameters, `report_text`,
+  `diagnostic_dashboard_text`, and the fitting/reporting path without loading
+  Makie or CairoMakie. Broader NumPy conversion and ownership semantics remain
+  future documentation/test work beyond the minimal plain-array path.
 - The local performance-budget gate is wired into CI, but it has not yet been
   observed on GitHub Actions and does not replace saved `BenchmarkTools`
   baselines.
@@ -423,10 +429,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 - Add a docs-deploy job for GitHub Pages or the chosen static host.
 - Confirm the new core/package/docs CI lanes on GitHub Actions after pushing.
-- Run the Python interoperability release gate in CI or explicitly document why
-  Python support is deferred from v0. The local opt-in gate exists, and the
-  install page documents the deferred/experimental status, but the gate has not
-  yet passed in a clean `juliacall` environment.
+- Run the Python interoperability release gate in CI. The local opt-in gate now
+  passes in an isolated `juliacall` environment, but public release claims need
+  the same path observed on the target CI or release machine.
 - Select release-reference hardware or CI runners and save benchmark baselines
   for hot paths with `benchmarks/runbenchmarks.jl --save=...`.
 - Run `RELEASE_CHECKLIST.md` from a clean checkout before any public release,

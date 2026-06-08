@@ -78,10 +78,13 @@ pip install juliacall
 python3 examples/python/fit_from_python.py
 ```
 
-That script activates this repository, calls `fit_model`, prints `report_text`
-and `diagnostic_dashboard_text`, and verifies that neither Makie nor CairoMakie
-was loaded. It checks the numerical and text-reporting path without paying
-plotting compilation cost.
+That script develops the local checkout into JuliaCall's managed Julia
+environment, calls `fit_model`, prints `report_text` and
+`diagnostic_dashboard_text`, and verifies that neither Makie nor CairoMakie was
+loaded. Keeping JuliaCall's managed environment active is intentional: it
+contains `PythonCall.jl`, while JuFitter itself should not depend on PythonCall
+for ordinary Julia users. The example therefore checks the numerical and
+text-reporting path without paying plotting compilation cost.
 
 Release policy: Python support is not a public v0 claim until the opt-in gate
 has passed in a clean Python environment:

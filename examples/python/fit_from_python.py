@@ -8,7 +8,10 @@ without Julia-side plotting.
 Prerequisites:
     pip install juliacall
 
-Run from the repository root:
+Run from the repository root. The script develops this checkout into
+JuliaCall's managed Julia environment; it does not modify JuFitter's
+`Project.toml`.
+
     python3 examples/python/fit_from_python.py
 """
 
@@ -20,7 +23,11 @@ from juliacall import Main as jl
 ROOT = Path(__file__).resolve().parents[2]
 
 jl.seval("using Pkg")
-jl.Pkg.activate(str(ROOT))
+# Keep JuliaCall's managed project active because it contains PythonCall.jl.
+# Developing JuFitter into that project avoids SciML extension errors without
+# making PythonCall a hard dependency of the JuFitter core package.
+jl.Pkg.develop(path=str(ROOT))
+jl.Pkg.instantiate()
 jl.seval("using JuFitter")
 jl.seval("linear_model(x, p) = @. p[1] * x + p[2]")
 jl.seval(

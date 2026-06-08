@@ -40,13 +40,15 @@ end
     else
         @test command_available(py)
         @test juliacall_available(py)
-        output = read(Cmd([py, PYTHON_INTEROP_SCRIPT]), String)
+        output = read(pipeline(Cmd([py, PYTHON_INTEROP_SCRIPT]); stderr=stdout), String)
         @test occursin("JuFitter from Python", output)
         @test occursin("Fit report", output)
         @test occursin("Fit diagnostic dashboard", output)
         @test occursin("slope", output)
         @test occursin("offset", output)
         @test occursin("plot modules loaded = []", output)
+        @test !occursin("ERROR:", output)
+        @test !occursin("Error during loading of extension", output)
         @test !occursin("plot modules loaded = ['Makie']", output)
         @test !occursin("plot modules loaded = ['CairoMakie']", output)
     end

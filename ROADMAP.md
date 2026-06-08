@@ -340,7 +340,8 @@ Acceptance criteria:
 
 ## Phase 4.5: Python Interoperability
 
-Status: planned, not release-claimed.
+Status: locally validated through JuliaCall for the minimal fitting/reporting
+path; CI confirmation and broader array-conversion documentation remain open.
 
 Goal: Python users can call the mature JuFitter fitting/reporting engine without
 the project becoming a second Python implementation.
@@ -348,15 +349,18 @@ the project becoming a second Python implementation.
 Key deliverables:
 
 - Validate the current package through JuliaCall/PythonCall from a clean Python
-  environment.
+  environment. The local opt-in gate now passes in an isolated `/tmp`
+  `juliacall` virtual environment for plain Python arrays.
 - Provide a minimal Python example that fits arrays, reads parameter estimates,
   and prints `report_text(...)` without loading Makie.
 - Document array conversion and ownership rules for NumPy inputs and Julia
-  outputs.
+  outputs. Plain Python lists are covered by the current gate; NumPy ownership
+  and zero-copy expectations still need explicit tests and documentation.
 - Keep plotting optional: Python interoperability must work for fitting and
   reports even when CairoMakie is not installed.
 - Add a CI or release-gate job that runs the Python interoperability example
-  when PythonCall/JuliaCall support is enabled.
+  when PythonCall/JuliaCall support is enabled. The local gate exists; remote CI
+  execution is still pending.
 
 Acceptance criteria:
 
