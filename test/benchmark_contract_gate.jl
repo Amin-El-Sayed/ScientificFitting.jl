@@ -2,6 +2,7 @@ using Test
 
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const BENCHMARK_RUNNER = joinpath(ROOT, "benchmarks", "runbenchmarks.jl")
+const STARTUP_PROBE = joinpath(ROOT, "benchmarks", "startup_probe.jl")
 const README = joinpath(ROOT, "README.md")
 const PERFORMANCE_DOC = joinpath(ROOT, "docs", "src", "performance.md")
 const RELEASE_CHECKLIST = joinpath(ROOT, "RELEASE_CHECKLIST.md")
@@ -48,6 +49,7 @@ end
 
 @testset "Benchmark contract gate" begin
     runner = file_text(BENCHMARK_RUNNER)
+    startup_probe = file_text(STARTUP_PROBE)
     readme = file_text(README)
     performance = file_text(PERFORMANCE_DOC)
     checklist = file_text(RELEASE_CHECKLIST)
@@ -56,6 +58,8 @@ end
     @test occursin(CANONICAL_BENCHMARK_COMMAND, readme)
     @test occursin(CANONICAL_BENCHMARK_COMMAND, performance)
     @test occursin(CANONICAL_BENCHMARK_COMMAND, checklist)
+    @test occursin("benchmarks/startup_probe.jl", performance)
+    @test occursin("benchmarks/startup_probe.jl", checklist)
     @test !occursin("julia --project=. --startup-file=no benchmarks/runbenchmarks.jl", checklist)
 
     for case in REQUIRED_BENCHMARK_CASES
@@ -77,6 +81,11 @@ end
     @test occursin("finite positive number", runner)
     @test occursin("finite non-negative number", runner)
     @test occursin("requires a non-empty path", runner)
+
+    @test occursin("loaded_plot_modules", startup_probe)
+    @test occursin(":Makie", startup_probe)
+    @test occursin(":CairoMakie", startup_probe)
+    @test occursin("core_without_makie", startup_probe)
 
     @test occursin("Benchmark contract gate", workflow)
     @test occursin("test/benchmark_contract_gate.jl", workflow)

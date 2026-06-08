@@ -148,6 +148,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   serialization. It is deliberately not release benchmark evidence because
   `--seconds=0.01` is too short for stable performance claims and no reference
   runner has been selected.
+- `benchmarks/startup_probe.jl` now provides a dedicated startup smoke path for
+  the core package. It starts a fresh Julia process, loads `JuFitter`, verifies
+  that neither `Makie` nor `CairoMakie` was loaded, and can write a TOML summary
+  of elapsed wall time and metadata. This supports the release claim that
+  fitting/reporting stays Makie-free without turning startup timing into an
+  unreviewed benchmark claim.
+- `julia --project=. --startup-file=no benchmarks/startup_probe.jl
+  --save=/tmp/jufitter-startup-probe.toml` passed locally. The fresh-process
+  output included `loaded_plot_modules=` and `core_without_makie=true`, then the
+  temporary TOML artifact was removed.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page

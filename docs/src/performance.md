@@ -4,7 +4,22 @@ JuFitter optimizes the mathematically important paths first: avoid explicit
 matrix inverses, reuse static covariance factorizations, keep simple
 least-squares fits on the fast backend, and make expensive choices explicit.
 
-## Running Benchmarks
+## Startup Probe
+
+To check the first requirement for responsive command-line use, run:
+
+```bash
+julia --project=. --startup-file=no benchmarks/startup_probe.jl \
+  --save=/tmp/jufitter-startup-probe.toml
+```
+
+The probe starts a fresh Julia process, loads `JuFitter`, verifies that neither
+`Makie` nor `CairoMakie` was loaded, records elapsed wall time, and can write a
+small TOML summary. This is a startup smoke test, not a stable latency claim.
+Use it to catch regressions such as accidentally moving plotting dependencies
+back into the fitting/reporting core.
+
+## Running BenchmarkTools Benchmarks
 
 The benchmark entry point is:
 

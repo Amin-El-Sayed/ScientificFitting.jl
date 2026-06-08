@@ -20,6 +20,7 @@ const REQUIRED_RELEASE_CHECKLIST_STRINGS = [
     "test/docs_html_link_gate.jl",
     "test/docs_output_snapshots.jl",
     "test/plots/fitplot.jl",
+    "benchmarks/startup_probe.jl",
     "test/benchmark_contract_gate.jl",
     "test/performance_budget_gate.jl",
     "julia --project=benchmarks benchmarks/runbenchmarks.jl --save",

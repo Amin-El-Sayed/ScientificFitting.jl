@@ -81,6 +81,13 @@ Required manual checks:
 
 ## 4. Performance And Benchmark Evidence
 
+Run the startup probe to verify that the fitting/reporting core still starts
+without loading Makie:
+
+```bash
+julia --project=. --startup-file=no benchmarks/startup_probe.jl --save=/tmp/jufitter-startup-probe.toml
+```
+
 Run the benchmark contract gate:
 
 ```bash
