@@ -67,6 +67,13 @@ The comparison fails if a benchmark case is missing from either side. This is
 intentional: adding, removing, or renaming a benchmark changes the evidence set
 and requires a new reviewed baseline.
 
+The comparison also checks release-relevant metadata: Julia version, operating
+system, CPU name, machine target, Julia thread count, BLAS thread count, and
+reported units must match. This prevents accidentally treating a run on another
+machine or thread configuration as release evidence. For exploratory local
+comparisons only, add `--allow-metadata-mismatch`; do not use that flag for
+public performance claims.
+
 Plot export benchmarks are opt-in because they require CairoMakie:
 
 ```bash

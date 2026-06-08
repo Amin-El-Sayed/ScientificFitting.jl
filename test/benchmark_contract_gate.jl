@@ -61,6 +61,7 @@ end
     @test occursin(CANONICAL_BENCHMARK_COMMAND, checklist)
     @test occursin("benchmarks/startup_probe.jl", performance)
     @test occursin("benchmarks/startup_probe.jl", checklist)
+    @test occursin("Do not use `--allow-metadata-mismatch` for release evidence", checklist)
     @test !occursin("julia --project=. --startup-file=no benchmarks/runbenchmarks.jl", checklist)
 
     for case in REQUIRED_BENCHMARK_CASES
@@ -77,6 +78,9 @@ end
     @test occursin("--tolerance=", runner)
     @test occursin("--list", runner)
     @test occursin("--plot", runner)
+    @test occursin("--allow-metadata-mismatch", runner)
+    @test occursin("STRICT_METADATA_FIELDS", runner)
+    @test occursin("Use --allow-metadata-mismatch only for exploratory comparisons", runner)
     @test occursin("missing from the current run", runner)
     @test occursin("missing from the baseline", runner)
     @test occursin("finite positive number", runner)

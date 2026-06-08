@@ -127,12 +127,15 @@ function _parse_args(args)
         "tolerance" => 0.25,
         "plot" => false,
         "list" => false,
+        "allow_metadata_mismatch" => false,
     )
     for arg in args
         if arg == "--plot"
             options["plot"] = true
         elseif arg == "--list"
             options["list"] = true
+        elseif arg == "--allow-metadata-mismatch"
+            options["allow_metadata_mismatch"] = true
         elseif startswith(arg, "--seconds=")
             options["seconds"] = _parse_positive_float_option(arg, "--seconds")
         elseif startswith(arg, "--save=")
@@ -256,12 +259,49 @@ function _write_summary(path::AbstractString, summary)
     return path
 end
 
-function _compare_summary(summary, baseline_path::AbstractString; tolerance::Float64)
+const STRICT_METADATA_FIELDS = [
+    "julia_version",
+    "os",
+    "cpu_name",
+    "machine",
+    "threads",
+    "blas_threads",
+    "unit_time",
+    "unit_memory",
+]
+
+function _metadata_failures(current_metadata, baseline_metadata)
+    failures = String[]
+    for field in STRICT_METADATA_FIELDS
+        current = get(current_metadata, field, nothing)
+        reference = get(baseline_metadata, field, nothing)
+        current == reference && continue
+        push!(failures, "metadata $field differs: baseline=$reference current=$current")
+    end
+    return failures
+end
+
+function _compare_summary(
+    summary,
+    baseline_path::AbstractString;
+    tolerance::Float64,
+    allow_metadata_mismatch::Bool=false,
+)
     baseline = TOML.parsefile(baseline_path)
     current = summary["benchmarks"]
     reference = baseline["benchmarks"]
 
     failures = String[]
+    if !allow_metadata_mismatch
+        append!(
+            failures,
+            _metadata_failures(
+                summary["metadata"],
+                get(baseline, "metadata", Dict{String, Any}()),
+            ),
+        )
+    end
+
     missing_current = sort!(collect(setdiff(keys(reference), keys(current))))
     missing_reference = sort!(collect(setdiff(keys(current), keys(reference))))
     for name in missing_current
@@ -282,6 +322,9 @@ function _compare_summary(summary, baseline_path::AbstractString; tolerance::Flo
     if !isempty(failures)
         println("Benchmark regressions relative to ", baseline_path, ":")
         foreach(msg -> println("  - ", msg), failures)
+        if any(startswith(failure, "metadata ") for failure in failures)
+            println("Use --allow-metadata-mismatch only for exploratory comparisons, not release evidence.")
+        end
         return false
     end
 
@@ -316,7 +359,12 @@ function main(args=ARGS)
         println("Saved benchmark summary to ", path)
     end
     if options["compare"] !== nothing
-        ok = _compare_summary(summary, options["compare"]; tolerance=options["tolerance"])
+        ok = _compare_summary(
+            summary,
+            options["compare"];
+            tolerance=options["tolerance"],
+            allow_metadata_mismatch=options["allow_metadata_mismatch"],
+        )
         ok || exit(1)
     end
     return summary

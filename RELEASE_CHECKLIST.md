@@ -112,6 +112,10 @@ julia --project=benchmarks benchmarks/runbenchmarks.jl --compare=benchmarks/outp
 Do not advertise speed claims until the reference hardware or CI runner is
 named and the benchmark output is reviewed.
 
+Do not use `--allow-metadata-mismatch` for release evidence. That flag is only
+for exploratory comparisons when you knowingly compare different machines,
+Julia versions, or thread configurations.
+
 Required scientific limitation checks:
 
 - Dense covariance matrices are the exact small/medium-data path, not a large
