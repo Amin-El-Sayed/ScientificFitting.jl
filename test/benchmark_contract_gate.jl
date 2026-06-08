@@ -20,6 +20,7 @@ const REQUIRED_BENCHMARK_CASES = [
     "fit/full_covariance_500_bounded",
     "likelihood/poisson_5000",
     "profile/linear_profile",
+    "diagnostics/saturation_profile_matrix",
 ]
 
 const REQUIRED_SUMMARY_FIELDS = [

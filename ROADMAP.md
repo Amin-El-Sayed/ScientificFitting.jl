@@ -129,8 +129,8 @@ Acceptance criteria:
 Current evidence:
 
 - `benchmarks/runbenchmarks.jl` covers least-squares, no-op bounds, dense
-  covariance, bounded dense covariance, Poisson likelihood, plotting, and
-  profile scans.
+  covariance, bounded dense covariance, Poisson likelihood, plotting, profile
+  scans, and profile-matrix diagnostics with pairwise contour refits.
 - Static diagonal and dense Gaussian covariance terms are factorized once per
   fit evaluation cache instead of being rebuilt on every objective call.
 - Production covariance calculations avoid explicit matrix inverse calls; they

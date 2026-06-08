@@ -18,6 +18,7 @@ const SUITE = BenchmarkGroup()
 SUITE["fit"] = BenchmarkGroup()
 SUITE["likelihood"] = BenchmarkGroup()
 SUITE["profile"] = BenchmarkGroup()
+SUITE["diagnostics"] = BenchmarkGroup()
 
 function linear_problem(n::Int)
     x = collect(range(0.0, 10.0; length=n))
@@ -52,11 +53,26 @@ function poisson_problem(n::Int)
     return model, x, counts
 end
 
+function saturation_problem()
+    x = collect(range(0.15, 2.2; length=18))
+    model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
+    sigma_x = @. 0.010 + 0.004 * x
+    sigma_y = @. 0.045 + 0.008 * x
+    pattern = [
+        0.50, -0.90, 0.30, 1.10, -0.70, 0.80, -1.00, 0.40, 0.90,
+        -0.60, 0.70, -0.80, 1.00, -0.40, 0.55, -0.75, 0.65, -0.35,
+    ]
+    y = model(x, [4.8, 3.4, 0.12]) .+ sigma_y .* pattern
+    return model, x, y, sigma_x, sigma_y
+end
+
 model100, jac100, x100, y100, sy100 = linear_problem(100)
 model10k, jac10k, x10k, y10k, sy10k = linear_problem(10_000)
 nlmodel, nlx, nly, nlsy = nonlinear_problem(1_000)
 fcmodel, fcx, fcy, fccov = full_covariance_problem(500)
 pmodel, px, pcounts = poisson_problem(5_000)
+saturation_model_bench, saturation_x, saturation_y, saturation_sigma_x, saturation_sigma_y =
+    saturation_problem()
 
 SUITE["fit"]["linear_100"] = @benchmarkable fit_model($model100, $x100, $y100; p0=[1.0, 0.0], sigma_y=$sy100, jacobian=$jac100)
 SUITE["fit"]["linear_10000"] = @benchmarkable fit_model($model10k, $x10k, $y10k; p0=[1.0, 0.0], sigma_y=$sy10k, jacobian=$jac10k)
@@ -68,6 +84,26 @@ SUITE["likelihood"]["poisson_5000"] = @benchmarkable fit_poisson_model($pmodel, 
 
 baseline = fit_model(model100, x100, y100; p0=[1.0, 0.0], sigma_y=sy100, jacobian=jac100)
 SUITE["profile"]["linear_profile"] = @benchmarkable profile($baseline, 1; npoints=21, nsigma=2)
+
+saturation_baseline = fit_model(
+    saturation_model_bench,
+    saturation_x,
+    saturation_y;
+    p0=[3.0, 2.0, 0.0],
+    sigma_y=saturation_sigma_y,
+    sigma_x=saturation_sigma_x,
+    bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
+    parameter_priors=(index=3, mean=0.10, sigma=0.08),
+    initial_guesses=[[3.0, 2.0, 0.0], [8.0, 7.0, 0.1], [2.0, 1.0, 0.2]],
+)
+SUITE["diagnostics"]["saturation_profile_matrix"] = @benchmarkable profile_matrix(
+    $saturation_baseline;
+    parameters=[1, 2, 3],
+    npoints_profile=21,
+    npoints_contour=11,
+    nsigma=3,
+    adaptive=false,
+)
 
 function _try_enable_plot_benchmarks!(suite)
     try

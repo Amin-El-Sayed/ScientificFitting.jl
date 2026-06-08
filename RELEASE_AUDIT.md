@@ -127,9 +127,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   regression guard rather than publishable benchmark evidence.
 - `test/benchmark_contract_gate.jl` checks the benchmark release contract
   without measuring timings: the benchmark runner keeps the required hot-path
-  cases, records the required summary fields, and README, performance docs,
-  pre-release checklist, and CI all point to the same `--project=benchmarks`
-  workflow.
+  cases including profile-matrix diagnostics, records the required summary
+  fields, and README, performance docs, pre-release checklist, and CI all point
+  to the same `--project=benchmarks` workflow.
 - `RELEASE_CHECKLIST.md` now defines the local pre-release gate: clean
   repository state, core/package/statistical/torture tests, documentation gates,
   docs build and rendered-link validation, output snapshots, plot regressions,
@@ -154,10 +154,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=benchmarks --startup-file=no benchmarks/runbenchmarks.jl
   --seconds=0.01 --save=/tmp/jufitter-benchmark-smoke.toml
   --compare=/tmp/jufitter-benchmark-smoke.toml --tolerance=0.25`. This verified
-  the full save/compare path for the current eight benchmark cases and metadata
-  serialization. It is deliberately not release benchmark evidence because
-  `--seconds=0.01` is too short for stable performance claims and no reference
-  runner has been selected.
+  the full save/compare path for the current nine benchmark cases, including
+  `diagnostics/saturation_profile_matrix`, and metadata serialization. It is
+  deliberately not release benchmark evidence because `--seconds=0.01` is too
+  short for stable performance claims and no reference runner has been
+  selected.
 - `benchmarks/startup_probe.jl` now provides a dedicated startup smoke path for
   the core package. It starts a fresh Julia process, loads `JuFitter`, verifies
   that neither `Makie` nor `CairoMakie` was loaded, and can write a TOML summary

@@ -81,7 +81,8 @@ The current suite covers:
 - bounded dense-covariance fits through `Optimization.jl`,
 - Poisson likelihood fits,
 - plot export,
-- profile scans.
+- profile scans,
+- profile-matrix diagnostics with profile and pairwise contour refits.
 
 Benchmarks are not release claims until they are compared against saved
 baselines on stated hardware or CI runners. Local baselines belong under
