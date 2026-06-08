@@ -198,6 +198,10 @@ Current evidence:
   `:ok`/`:review`/`:stop` status before any plot is rendered, so the
   kafe2-style overview has a testable scientific core instead of being only a
   visual composition.
+- `profile_matrix_triage(...)` turns the same matrix object into a sorted list
+  of panels that need attention, including parameter names, status, severity
+  counts, finding codes, and a first next action. This keeps lab-notebook
+  output, plots, and future CI checks on the same diagnostic contract.
 
 Open hardening work:
 

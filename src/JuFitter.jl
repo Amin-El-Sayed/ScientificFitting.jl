@@ -47,6 +47,7 @@ export ProfileResult
 export ContourResult
 export ProfileInterval
 export ProfileMatrixResult
+export ProfileMatrixPanelTriage
 export fit
 export fit_model
 export fit_custom
@@ -62,6 +63,7 @@ export profile
 export profile_interval
 export contour
 export profile_matrix
+export profile_matrix_triage
 export fitplot
 export plot_fit
 export fit_axis

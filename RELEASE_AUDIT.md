@@ -28,7 +28,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   non-positive or non-finite `sigma_y`, invalid indexed `cov_y`, and empty
   multi-fit inputs before objective evaluation.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 69 profile/contour reference checks, including validation of
+  passes with 81 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds, finite positive profile
   thresholds, default scan controls, explicit finite distinct scan grids, and
   the Makie-free `profile_matrix` diagnostic object that combines profile,
@@ -37,7 +37,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   non-symmetric, or non-positive-definite local covariance overlays in contour
   diagnostics produce an explicit `:contour_local_covariance_unavailable`
   warning instead of crashing or silently omitting the local-covariance
-  comparison.
+  comparison. The same gate covers `profile_matrix_triage(...)`, which turns
+  a profile-matrix diagnostic object into a severity-ordered list of panels to
+  inspect.
 - `julia --project=. -e 'using Test; include("test/statistics/likelihood_reference.jl")'`
   passes with 49 likelihood reference checks after the Poisson-and-histogram
   workflow rewrite.

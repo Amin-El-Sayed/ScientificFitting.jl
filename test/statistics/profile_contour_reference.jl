@@ -151,6 +151,21 @@ using Test
         @test matrix.panel_status[(1, 2)] == :ok
         @test isempty(matrix.report.findings)
         @test diagnose(matrix).summary == matrix.report.summary
+        @test isempty(profile_matrix_triage(matrix))
+        complete_triage = profile_matrix_triage(matrix; include_ok=true)
+        @test length(complete_triage) == 3
+        @test complete_triage[1] isa ProfileMatrixPanelTriage
+        @test all(row -> row.status == :ok, complete_triage)
+        reversed_matrix = profile_matrix(
+            result;
+            parameters=[2, 1],
+            parameter_names=["offset", "slope"],
+            npoints_profile=5,
+            npoints_contour=3,
+            nsigma=1,
+            contour_levels=[2.30],
+        )
+        @test [row.indices for row in profile_matrix_triage(reversed_matrix; include_ok=true)] == [(2, 2), (1, 1), (2, 1)]
 
         @test isapprox(
             matrix.profiles[1].delta_cost,
@@ -193,6 +208,14 @@ using Test
         )
         @test synthetic_matrix.panel_status[(1, 2)] == :review
         @test any(f -> f.code == :contour_not_elliptic, diagnose(synthetic_matrix).findings)
+        triage = profile_matrix_triage(synthetic_matrix)
+        @test length(triage) == 1
+        @test triage[1].indices == (1, 2)
+        @test triage[1].parameter_names == ("p1", "p2")
+        @test triage[1].status == :review
+        @test get(triage[1].severity_counts, :warning, 0) == 1
+        @test :contour_not_elliptic in triage[1].finding_codes
+        @test occursin("profile contours", triage[1].next_action)
 
         @test_throws ArgumentError profile_matrix(result; parameters=Int[])
         @test_throws ArgumentError profile_matrix(result; parameters=[1, 1])

@@ -95,10 +95,12 @@ JuFitter.ProfileResult
 JuFitter.ProfileInterval
 JuFitter.ContourResult
 JuFitter.ProfileMatrixResult
+JuFitter.ProfileMatrixPanelTriage
 JuFitter.profile
 JuFitter.profile_interval
 JuFitter.contour
 JuFitter.profile_matrix
+JuFitter.profile_matrix_triage
 ```
 
 ## Plotting

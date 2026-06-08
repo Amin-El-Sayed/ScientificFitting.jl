@@ -70,6 +70,24 @@ struct ProfileMatrixResult
     report::DiagnosticReport
 end
 
+"""
+    ProfileMatrixPanelTriage
+
+One row in the Makie-free triage summary returned by
+`profile_matrix_triage(...)`. `indices` identify the profile or contour panel,
+`parameter_names` are the reader-facing parameter labels, `status` is `:ok`,
+`:review`, or `:stop`, `finding_codes` are stable machine-readable diagnostic
+codes, and `next_action` is the first recommended action for that panel.
+"""
+struct ProfileMatrixPanelTriage
+    indices::Tuple{Int, Int}
+    parameter_names::Tuple{String, String}
+    status::Symbol
+    severity_counts::Dict{Symbol, Int}
+    finding_codes::Vector{Symbol}
+    next_action::String
+end
+
 function _merge_fixed_parameters(existing::Vector{FixedParameter}, added::Vector{FixedParameter})
     merged = Dict(fp.index => fp for fp in existing)
     for fp in added
@@ -558,6 +576,74 @@ function profile_matrix(
 end
 
 diagnose(matrix_result::ProfileMatrixResult) = matrix_result.report
+
+function _profile_matrix_panel_report(matrix_result::ProfileMatrixResult, indices::Tuple{Int, Int})
+    if indices[1] == indices[2]
+        return matrix_result.profile_diagnostics[indices[1]]
+    end
+    return matrix_result.contour_diagnostics[indices]
+end
+
+function _profile_matrix_parameter_name(matrix_result::ProfileMatrixResult, index::Int)
+    position = findfirst(==(index), matrix_result.parameters)
+    position === nothing && throw(ArgumentError("parameter index $index is not part of the profile matrix"))
+    return matrix_result.parameter_names[position]
+end
+
+function _profile_matrix_panel_order(matrix_result::ProfileMatrixResult)
+    panels = Tuple{Int, Int}[]
+    selected = matrix_result.parameters
+    for index in selected
+        push!(panels, (index, index))
+    end
+    for row in 2:length(selected), col in 1:(row - 1)
+        push!(panels, (selected[col], selected[row]))
+    end
+    return panels
+end
+
+_profile_matrix_status_rank(status::Symbol) =
+    status == :stop ? 1 : status == :review ? 2 : status == :ok ? 3 : 4
+
+"""
+    profile_matrix_triage(matrix_result; include_ok=false)
+
+Return a sorted, Makie-free list of profile-matrix panels that need attention.
+By default only `:review` and `:stop` panels are returned. Set
+`include_ok=true` to include successful panels as well, for example when a
+notebook wants to print a complete audit table.
+
+The returned `ProfileMatrixPanelTriage` rows are ordered by severity first and
+then by the natural matrix panel order. This is the programmatic counterpart of
+the status labels in `plot_profile_matrix(...)`.
+"""
+function profile_matrix_triage(matrix_result::ProfileMatrixResult; include_ok::Bool=false)
+    ordered_rows = Tuple{Int, ProfileMatrixPanelTriage}[]
+    for (order, indices) in enumerate(_profile_matrix_panel_order(matrix_result))
+        status = matrix_result.panel_status[indices]
+        include_ok || status != :ok || continue
+        report = _profile_matrix_panel_report(matrix_result, indices)
+        names = (
+            _profile_matrix_parameter_name(matrix_result, indices[1]),
+            _profile_matrix_parameter_name(matrix_result, indices[2]),
+        )
+        next_action = isempty(report.findings) ?
+            "No action required by the current profile/contour checks." :
+            first(report.findings).recommendation
+        row =
+            ProfileMatrixPanelTriage(
+                indices,
+                names,
+                status,
+                _severity_counts(report.findings),
+                [finding.code for finding in report.findings],
+                next_action,
+            )
+        push!(ordered_rows, (order, row))
+    end
+    sort!(ordered_rows; by=entry -> (_profile_matrix_status_rank(entry[2].status), entry[1]))
+    return [row for (_, row) in ordered_rows]
+end
 
 """
     diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance=0.25)
