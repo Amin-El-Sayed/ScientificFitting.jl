@@ -115,6 +115,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   least-squares, no-op bounds preserving the fast path, and 300-point dense
   covariance. This is wired into the core CI lane with a runner scale factor.
   It is a regression guard, not a publishable benchmark claim.
+- `julia --project=. --startup-file=no test/performance_budget_gate.jl` passes
+  locally with 7 checks in about 9.7s. This verifies the current steady-state
+  budget guard and the Makie-free core extension boundary, but it remains a
+  regression guard rather than publishable benchmark evidence.
 - `test/benchmark_contract_gate.jl` checks the benchmark release contract
   without measuring timings: the benchmark runner keeps the required hot-path
   cases, records the required summary fields, and README, performance docs,
