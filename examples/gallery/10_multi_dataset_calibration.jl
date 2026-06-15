@@ -94,16 +94,16 @@ function multi_theme(dark::Bool)
             xlabelcolor=foreground,
             ylabelcolor=foreground,
             titlecolor=foreground,
-            xticklabelcolor=muted,
-            yticklabelcolor=muted,
-            xtickcolor=muted,
-            ytickcolor=muted,
+            xticklabelcolor=foreground,
+            yticklabelcolor=foreground,
+            xtickcolor=foreground,
+            ytickcolor=foreground,
             xgridcolor=grid,
             ygridcolor=grid,
             topspinevisible=false,
             rightspinevisible=false,
-            leftspinecolor=muted,
-            bottomspinecolor=muted,
+            leftspinecolor=foreground,
+            bottomspinecolor=foreground,
         ),
         Legend=(framevisible=false, labelcolor=foreground, labelsize=19, patchsize=(30, 16)),
     )
@@ -147,9 +147,9 @@ function save_multi_dataset_calibration(
     colors = if style == :publication
         dark_mode ? ["#edf2f4", "#b8c1ca", "#8d96a3"] : ["#101216", "#606874", "#8a929c"]
     elseif style == :showcase
-        dark_mode ? [palette.fit_color, "#f0b35f", "#d686bd"] : [palette.fit_color, "#b05a36", "#9b4d86"]
+        dark_mode ? [palette.fit_color, "#b7c8dc", "#c4a7e7"] : [palette.fit_color, "#52606f", "#6d5fa8"]
     else
-        dark_mode ? [palette.fit_color, "#c8a04d", "#af7ac5"] : [palette.fit_color, "#8a6f22", "#6e5aae"]
+        dark_mode ? [palette.fit_color, "#b7c8dc", "#c4a7e7"] : [palette.fit_color, "#52606f", "#6d5fa8"]
     end
     bands = [(colors[i], style == :publication ? 0.10 : (dark_mode ? 0.14 : 0.24)) for i in eachindex(colors)]
     pull_1sigma = (palette.band_color, dark_mode ? 0.13 : 0.24)

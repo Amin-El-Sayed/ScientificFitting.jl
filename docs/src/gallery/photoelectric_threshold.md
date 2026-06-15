@@ -236,7 +236,7 @@ errorbars!(ax, frequency_THz, voltage_V, sigma_frequency_THz;
            color=palette.xerr_color,
            whiskerwidth=palette.error_whiskerwidth)
 scatter!(ax, frequency_THz[baseline_mask], voltage_V[baseline_mask];
-         color="#b85c38", marker=:diamond, label="baseline")
+         color="#52606f", marker=:diamond, label="baseline")
 scatter!(ax, frequency_THz[emission_mask], voltage_V[emission_mask];
          color=palette.data_color, label="emission")
 
@@ -245,8 +245,8 @@ xgrid = collect(range(minimum(frequency_THz) - 15,
 J = hcat(xgrid, ones(length(xgrid)))
 
 for (result, color, label) in (
-    (baseline, "#b85c38", "baseline fit"),
-    (emission, "#007f9e", "emission fit"),
+    (baseline, "#52606f", "baseline fit"),
+    (emission, palette.fit_color, "emission fit"),
 )
     ygrid = line_model(xgrid, result.params)
     variance = vec(sum((J * result.param_covariance) .* J; dims=2))
@@ -260,13 +260,13 @@ end
 add_vband!(ax,
            threshold_THz - sigma_threshold_THz,
            threshold_THz + sigma_threshold_THz;
-           color=("#7a5c00", 0.14),
+           color=("#374151", 0.14),
            label="threshold 1σ")
 add_vline!(ax, threshold_THz;
-           color="#7a5c00", linestyle=:dash, linewidth=2)
+           color="#374151", linestyle=:dash, linewidth=2)
 intersection_voltage = line_model([threshold_THz], emission.params)[1]
 add_points!(ax, [threshold_THz], [intersection_voltage];
-            marker=:star5, markersize=18, color="#7a5c00",
+            marker=:star5, markersize=18, color="#374151",
             label="line intersection")
 
 plot_info_panel!(

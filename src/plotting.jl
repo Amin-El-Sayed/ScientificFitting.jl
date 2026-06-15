@@ -3,22 +3,19 @@ const _JF_PAPER_SOFT = "#fbfcfd"
 const _JF_INK = "#17191f"
 const _JF_MUTED = "#5f6873"
 const _JF_GRID = "#e8edf2"
-const _JF_BLUE = "#0077a8"
-const _JF_BLUE_SOFT = "#8ecae6"
-const _JF_WORKBENCH_FIT = "#0069a8"
-const _JF_WORKBENCH_BAND = "#b9dff2"
-const _JF_SHOWCASE_FIT = "#0b7f78"
-const _JF_SHOWCASE_DATA = "#2a2f36"
-const _JF_SHOWCASE_ACCENT = "#b05a36"
-const _JF_SHOWCASE_BAND = "#94d2c8"
+const _JF_WORKBENCH_FIT = "#155f8d"
+const _JF_WORKBENCH_BAND = "#c4ddeb"
+const _JF_SHOWCASE_FIT = "#245f9f"
+const _JF_SHOWCASE_DATA = "#20242b"
+const _JF_SHOWCASE_BAND = "#b9d5f2"
 const _JF_PAPER_FIT = "#000000"
 const _JF_PAPER_BAND = "#000000"
 const _JF_DARK_PAPER = "#111318"
 const _JF_DARK_INK = "#edf2f4"
 const _JF_DARK_MUTED = "#b8c1ca"
 const _JF_DARK_GRID = "#2a313a"
-const _JF_DARK_FIT = "#66d9ef"
-const _JF_DARK_BAND = "#66d9ef"
+const _JF_DARK_FIT = "#8fc7ff"
+const _JF_DARK_BAND = "#8fc7ff"
 
 const _JF_STYLE_ALIASES = Dict(
     :clean => :workbench,
@@ -53,21 +50,21 @@ end
 function _style_preset(style::Symbol, appearance::Symbol)
     if appearance == :dark && style == :showcase
         return (
-            data_color=("#f0a07f", 0.82),
+            data_color=(_JF_DARK_INK, 0.88),
             data_marker=:circle,
-            data_markersize=6.8,
+            data_markersize=6.4,
             data_strokecolor=_JF_DARK_PAPER,
-            data_strokewidth=0.45,
-            fit_color="#49c5bc",
-            fit_linewidth=2.8,
-            band_color="#49c5bc",
-            band_alpha=0.18,
-            xerr_color=(_JF_DARK_MUTED, 0.40),
-            yerr_color=(_JF_DARK_MUTED, 0.40),
-            error_whiskerwidth=4.5,
+            data_strokewidth=0.35,
+            fit_color=_JF_DARK_FIT,
+            fit_linewidth=2.9,
+            band_color=_JF_DARK_BAND,
+            band_alpha=0.20,
+            xerr_color=(_JF_DARK_MUTED, 0.46),
+            yerr_color=(_JF_DARK_MUTED, 0.46),
+            error_whiskerwidth=3.8,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_fontsize=16,
+            stats_fontsize=15,
         )
     elseif appearance == :dark && style == :publication
         return (
@@ -85,43 +82,43 @@ function _style_preset(style::Symbol, appearance::Symbol)
             error_whiskerwidth=4.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_fontsize=13,
+            stats_fontsize=14,
         )
     elseif appearance == :dark
         return (
-            data_color=(_JF_DARK_INK, 0.74),
+            data_color=(_JF_DARK_INK, 0.82),
             data_marker=:circle,
-            data_markersize=5.8,
+            data_markersize=5.6,
             data_strokecolor=_JF_DARK_PAPER,
-            data_strokewidth=0.25,
-            fit_color="#5ab9e6",
-            fit_linewidth=2.4,
-            band_color="#5ab9e6",
-            band_alpha=0.16,
-            xerr_color=(_JF_DARK_MUTED, 0.36),
-            yerr_color=(_JF_DARK_MUTED, 0.36),
-            error_whiskerwidth=3.5,
+            data_strokewidth=0.2,
+            fit_color="#7db7e8",
+            fit_linewidth=2.3,
+            band_color="#7db7e8",
+            band_alpha=0.15,
+            xerr_color=(_JF_DARK_MUTED, 0.42),
+            yerr_color=(_JF_DARK_MUTED, 0.42),
+            error_whiskerwidth=3.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_fontsize=16,
+            stats_fontsize=15,
         )
     elseif style == :showcase
         return (
-            data_color=(_JF_SHOWCASE_ACCENT, 0.78),
+            data_color=(_JF_SHOWCASE_DATA, 0.88),
             data_marker=:circle,
-            data_markersize=6.8,
+            data_markersize=6.4,
             data_strokecolor=_JF_PAPER,
-            data_strokewidth=0.45,
+            data_strokewidth=0.35,
             fit_color=_JF_SHOWCASE_FIT,
-            fit_linewidth=2.8,
+            fit_linewidth=2.9,
             band_color=_JF_SHOWCASE_BAND,
-            band_alpha=0.20,
-            xerr_color=(_JF_MUTED, 0.38),
-            yerr_color=(_JF_MUTED, 0.38),
-            error_whiskerwidth=4.5,
+            band_alpha=0.22,
+            xerr_color=(_JF_MUTED, 0.44),
+            yerr_color=(_JF_MUTED, 0.44),
+            error_whiskerwidth=3.8,
             stats_color=_JF_INK,
             stats_muted_color=_JF_MUTED,
-            stats_fontsize=16,
+            stats_fontsize=15,
         )
     elseif style == :publication
         return (
@@ -139,26 +136,26 @@ function _style_preset(style::Symbol, appearance::Symbol)
             error_whiskerwidth=4.0,
             stats_color=:black,
             stats_muted_color=:black,
-            stats_fontsize=13,
+            stats_fontsize=14,
         )
     end
 
     return (
-        data_color=(_JF_INK, 0.66),
+        data_color=(_JF_INK, 0.76),
         data_marker=:circle,
-        data_markersize=5.8,
+        data_markersize=5.6,
         data_strokecolor=_JF_PAPER,
-        data_strokewidth=0.35,
+        data_strokewidth=0.25,
         fit_color=_JF_WORKBENCH_FIT,
-        fit_linewidth=2.4,
+        fit_linewidth=2.3,
         band_color=_JF_WORKBENCH_BAND,
         band_alpha=0.16,
-        xerr_color=(_JF_INK, 0.34),
-        yerr_color=(_JF_INK, 0.34),
-        error_whiskerwidth=3.5,
+        xerr_color=(_JF_INK, 0.38),
+        yerr_color=(_JF_INK, 0.38),
+        error_whiskerwidth=3.0,
         stats_color=_JF_INK,
         stats_muted_color=_JF_MUTED,
-        stats_fontsize=16,
+        stats_fontsize=15,
     )
 end
 
@@ -166,7 +163,6 @@ function _workbench_theme(appearance::Symbol)
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : _JF_INK
-    muted = dark ? _JF_DARK_MUTED : _JF_MUTED
     grid = dark ? _JF_DARK_GRID : _JF_GRID
     return Theme(
         fontsize=16,
@@ -174,60 +170,64 @@ function _workbench_theme(appearance::Symbol)
         figure_padding=(12, 16, 12, 12),
         Figure=(backgroundcolor=paper,),
         Axis=(
-            xlabelsize=18,
-            ylabelsize=18,
-            titlesize=20,
-            titlegap=12,
-            xticklabelsize=14,
-            yticklabelsize=14,
+            xlabelsize=19,
+            ylabelsize=19,
+            titlesize=22,
+            titlegap=14,
+            xticklabelsize=15,
+            yticklabelsize=15,
             backgroundcolor=paper,
             xlabelcolor=ink,
             ylabelcolor=ink,
             titlecolor=ink,
-            xticklabelcolor=muted,
-            yticklabelcolor=muted,
-            xtickcolor=muted,
-            ytickcolor=muted,
+            xticklabelcolor=ink,
+            yticklabelcolor=ink,
+            xtickcolor=ink,
+            ytickcolor=ink,
             xgridvisible=true,
             ygridvisible=true,
             xminorgridvisible=false,
             yminorgridvisible=false,
             xgridcolor=(grid, dark ? 0.70 : 0.55),
             ygridcolor=(grid, dark ? 0.70 : 0.55),
-            xgridwidth=0.45,
-            ygridwidth=0.45,
+            xgridwidth=0.55,
+            ygridwidth=0.55,
             topspinevisible=false,
             rightspinevisible=false,
-            leftspinecolor=muted,
-            bottomspinecolor=muted,
+            leftspinecolor=ink,
+            bottomspinecolor=ink,
         ),
         Legend=(framevisible=false, labelsize=15, labelcolor=ink, patchsize=(23, 12), rowgap=3),
         Lines=(linewidth=2.2,),
-        Scatter=(markersize=5.8,),
+        Scatter=(markersize=5.6,),
     )
 end
 
 function _showcase_theme(appearance::Symbol)
     base = _workbench_theme(appearance)
     dark = appearance == :dark
-    paper = dark ? _JF_DARK_PAPER : _JF_PAPER_SOFT
+    paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : _JF_INK
-    grid = dark ? _JF_DARK_GRID : "#e5ecec"
+    grid = dark ? _JF_DARK_GRID : "#e4ebef"
     return merge(
         base,
         Theme(
             Figure=(backgroundcolor=paper,),
             Axis=(
                 backgroundcolor=paper,
-                titlesize=21,
-                titlegap=13,
-                xgridcolor=(grid, dark ? 0.74 : 0.62),
-                ygridcolor=(grid, dark ? 0.74 : 0.62),
-                xgridwidth=0.55,
-                ygridwidth=0.55,
+                xlabelsize=19,
+                ylabelsize=19,
+                titlesize=23,
+                titlegap=15,
+                xticklabelsize=15,
+                yticklabelsize=15,
+                xgridcolor=(grid, dark ? 0.76 : 0.58),
+                ygridcolor=(grid, dark ? 0.76 : 0.58),
+                xgridwidth=0.60,
+                ygridwidth=0.60,
                 titlecolor=ink,
             ),
-            Legend=(framevisible=false, labelsize=16, labelcolor=ink, patchsize=(24, 13), rowgap=4),
+            Legend=(framevisible=false, labelsize=15, labelcolor=ink, patchsize=(24, 13), rowgap=4),
         ),
     )
 end
@@ -238,17 +238,17 @@ function _publication_theme(appearance::Symbol)
     ink = dark ? _JF_DARK_INK : :black
     muted = dark ? _JF_DARK_MUTED : :black
     return Theme(
-        fontsize=13,
+        fontsize=14,
         font="CMU Serif",
-        figure_padding=(10, 12, 8, 10),
+        figure_padding=(10, 12, 9, 10),
         Figure=(backgroundcolor=paper,),
         Axis=(
-            xlabelsize=14,
-            ylabelsize=14,
-            titlesize=16,
-            titlegap=7,
-            xticklabelsize=11,
-            yticklabelsize=11,
+            xlabelsize=15,
+            ylabelsize=15,
+            titlesize=18,
+            titlegap=10,
+            xticklabelsize=12,
+            yticklabelsize=12,
             backgroundcolor=paper,
             xlabelcolor=ink,
             ylabelcolor=ink,
@@ -266,7 +266,7 @@ function _publication_theme(appearance::Symbol)
         ),
         Legend=(
             framevisible=false,
-            labelsize=13,
+            labelsize=14,
             labelcolor=ink,
             patchsize=(22, 12),
             rowgap=3,

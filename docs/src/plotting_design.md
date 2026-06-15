@@ -53,8 +53,9 @@ not minor visual variations:
 
 - `:workbench`: robust notebook and laboratory default. Neutral data, one blue
   fit accent, subtle grid, and readable plain-text reporting.
-- `:showcase`: documentation and presentation style. It uses a restrained
-  two-color palette while preserving the same scientific hierarchy.
+- `:showcase`: documentation and presentation style. It keeps neutral data,
+  uses one cool blue fit accent, and slightly stronger hierarchy for pages and talks
+  without changing the scientific layout.
 - `:publication`: compact black-and-white structure, Computer Modern
   typography, no grid, and geometry suitable for vector export.
 

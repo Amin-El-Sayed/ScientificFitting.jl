@@ -108,16 +108,16 @@ function gallery_theme(dark::Bool)
                 xlabelcolor="#edf2f4",
                 ylabelcolor="#edf2f4",
                 titlecolor="#edf2f4",
-                xticklabelcolor="#b8c1ca",
-                yticklabelcolor="#b8c1ca",
-                xtickcolor="#b8c1ca",
-                ytickcolor="#b8c1ca",
+                xticklabelcolor="#edf2f4",
+                yticklabelcolor="#edf2f4",
+                xtickcolor="#edf2f4",
+                ytickcolor="#edf2f4",
                 xgridcolor=("#2a313a", 0.85),
                 ygridcolor=("#2a313a", 0.85),
                 topspinevisible=false,
                 rightspinevisible=false,
-                leftspinecolor="#b8c1ca",
-                bottomspinecolor="#b8c1ca",
+                leftspinecolor="#edf2f4",
+                bottomspinecolor="#edf2f4",
             ),
             Legend=(framevisible=false, labelcolor="#edf2f4", labelsize=20, patchsize=(30, 16)),
         )
@@ -170,7 +170,7 @@ function save_poisson_counts(
     band_color = (palette.band_color, max(palette.band_alpha, 0.16))
     residual_positive = fit_color
     residual_negative = style == :publication ? (dark_mode ? "#d7d7d7" : "#5f6873") :
-                        (dark_mode ? "#f0b35f" : "#b45309")
+                        (dark_mode ? "#b7c8dc" : "#52606f")
     fig = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
     end
@@ -250,11 +250,11 @@ function save_histogram_fit(
     fit_color = palette.fit_color
     observed_color = style == :publication ? (foreground, dark_mode ? 0.20 : 0.14) :
                      (palette.fit_color, dark_mode ? 0.20 : 0.22)
-    background_base = style == :publication ? foreground : (dark_mode ? "#f0b35f" : "#b45309")
+    background_base = style == :publication ? foreground : (dark_mode ? "#b7c8dc" : "#52606f")
     background_color = (background_base, style == :publication ? 0.10 : 0.20)
     residual_positive = fit_color
     residual_negative = style == :publication ? (dark_mode ? "#d7d7d7" : "#5f6873") :
-                        (dark_mode ? "#f0b35f" : "#b45309")
+                        (dark_mode ? "#b7c8dc" : "#52606f")
     fig = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
     end
@@ -382,9 +382,9 @@ function save_photoelectric_work_function(
     muted = palette.stats_muted_color
     emission_color = palette.fit_color
     baseline_color = style == :publication ? (dark_mode ? "#d7d7d7" : "#555555") :
-        (dark_mode ? "#f0b35f" : "#ad5a3a")
-    threshold_color = style == :publication ? (dark_mode ? "#f2d16b" : "#5c4a00") :
-        (dark_mode ? "#f5d86e" : "#7a5c00")
+        (dark_mode ? "#b7c8dc" : "#52606f")
+    threshold_color = style == :publication ? (dark_mode ? "#edf2f4" : "#111111") :
+        (dark_mode ? "#cbd5e1" : "#374151")
     emission_band = (palette.band_color, max(palette.band_alpha, 0.16))
     baseline_band = (baseline_color, style == :publication ? 0.09 : 0.18)
     error_whiskerwidth = palette.error_whiskerwidth
@@ -600,7 +600,6 @@ if RENDER_DOC_ASSETS
             show_legend=true,
             stats_position=:right,
             stats_mode=:full,
-            stats_fontsize=20,
             figure_size=(1200, 760),
         )
     end

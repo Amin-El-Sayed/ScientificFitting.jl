@@ -157,7 +157,7 @@ ax = fit_axis(fig)
 
 add_vline!(ax, threshold; color=:gray40, linestyle=:dash, label="threshold")
 add_curve!(ax, reference_model; color=:black, linestyle=:dot)
-add_points!(ax, x_special, y_special; marker=:star5, color=:gold)
+add_points!(ax, x_special, y_special; marker=:star5, color=:gray25)
 ```
 
 Use this for thresholds, extrapolations, accepted regions, literature values,

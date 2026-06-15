@@ -77,9 +77,9 @@ belongs in a cache.
 - `:workbench` is the direct analysis/notebook contract: sans typography,
   restrained blue fit color, short error-bar whiskers, plain-text reporting
   unless the user explicitly passes LaTeX labels.
-- `:showcase` is allowed to use a stronger but still scientific color
-  hierarchy for documentation and talks. It must remain readable and must not
-  become a decorative product-design theme.
+- `:showcase` is the documentation/talk contract: neutral data, one cool blue fit
+  accent, readable axis typography, and no decorative warm accent colors. It
+  must remain a scientific plot style, not a product-design theme.
 - The right-side panel is a shared layout component, not a manually positioned
   axis. Legend entries, model text, parameters, and statistics are left-aligned
   and use one compact vertical rhythm. Custom Makie figures should use

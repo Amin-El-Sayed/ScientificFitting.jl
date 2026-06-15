@@ -127,7 +127,7 @@ function save_model_comparison(
     foreground = palette.stats_color
     muted = palette.stats_muted_color
     constant_color = style == :publication ? (dark_mode ? "#c8cdd4" : "#505761") :
-                     (style == :showcase ? (dark_mode ? "#f0b35f" : "#b05a36") : muted)
+                     (style == :showcase ? (dark_mode ? "#b7c8dc" : "#52606f") : muted)
     drift_color = palette.fit_color
     measurement_color = palette.data_color
     prediction_color = (palette.band_color, palette.band_alpha)

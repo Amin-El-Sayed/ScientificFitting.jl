@@ -62,7 +62,7 @@ using Test
     @test ax !== nothing
     @test add_curve!(ax, x -> 1.5 * x - 0.2; color=:black, linestyle=:dash, label="reference") !== nothing
     @test add_curve!(ax, [0.5, 2.5], [0.7, 3.4]; color=:gray40) !== nothing
-    @test add_points!(ax, 1.2, 1.6; marker=:star5, color=:gold) !== nothing
+    @test add_points!(ax, 1.2, 1.6; marker=:star5, color=:gray25) !== nothing
     @test add_vline!(ax, 1.0; color=:gray50, linestyle=:dot) !== nothing
     @test add_hline!(ax, 2.0; color=:gray50, linestyle=:dot) !== nothing
     @test add_vband!(ax, 1.4, 1.7; color=(:gray70, 0.18)) !== nothing
@@ -149,6 +149,9 @@ using Test
     @test isfile(showcase_out)
     @test isfile(publication_out)
     @test plot_theme(:showcase; appearance=:dark) !== nothing
+    @test plot_palette(:workbench).fit_color != plot_palette(:showcase).fit_color
+    @test plot_palette(:workbench).data_color != plot_palette(:showcase).data_color
+    @test !contains(string(plot_palette(:showcase).data_color), "b05a36")
     @test plot_palette(:publication).fit_color == "#000000"
     @test_throws ArgumentError plot_fit(quick.result; theme=:unknown)
     @test_throws ArgumentError plot_fit(quick.result; theme=:dark, appearance=:light)
