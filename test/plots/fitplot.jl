@@ -98,7 +98,7 @@ using Test
         filename=out,
         format=:png,
         report=:none,
-        theme=:clean,
+        theme=:lab,
         nsigma=2,
         band_label="2-sigma band",
         parameter_names=["A", "lambda", "C"],
@@ -108,28 +108,28 @@ using Test
     @test nonlinear.result.converged
     @test isfile(out)
 
-    workbench_out = joinpath(mktempdir(), "fitplot_workbench.png")
-    showcase_out = joinpath(mktempdir(), "fitplot_showcase_dark.png")
-    publication_out = joinpath(mktempdir(), "fitplot_publication.png")
+    lab_out = joinpath(mktempdir(), "fitplot_lab.png")
+    modern_out = joinpath(mktempdir(), "fitplot_modern_dark.png")
+    article_out = joinpath(mktempdir(), "fitplot_article.png")
 
     fitplot(
         x,
         y;
         sigma_y=sigma_y,
-        filename=workbench_out,
+        filename=lab_out,
         format=:png,
         report=:none,
-        theme=:workbench,
+        theme=:lab,
         parameter_names=["m", "b"],
     )
     fitplot(
         x,
         y;
         sigma_y=sigma_y,
-        filename=showcase_out,
+        filename=modern_out,
         format=:png,
         report=:none,
-        theme=:showcase,
+        theme=:modern,
         appearance=:dark,
         parameter_names=["m", "b"],
     )
@@ -137,22 +137,22 @@ using Test
         x,
         y;
         sigma_y=sigma_y,
-        filename=publication_out,
+        filename=article_out,
         format=:png,
         report=:none,
-        theme=:publication,
+        theme=:article,
         parameter_names=["m", "b"],
         model_label="y = m x + b",
     )
 
-    @test isfile(workbench_out)
-    @test isfile(showcase_out)
-    @test isfile(publication_out)
-    @test plot_theme(:showcase; appearance=:dark) !== nothing
-    @test plot_palette(:workbench).fit_color != plot_palette(:showcase).fit_color
-    @test plot_palette(:workbench).data_color != plot_palette(:showcase).data_color
-    @test !contains(string(plot_palette(:showcase).data_color), "b05a36")
-    @test plot_palette(:publication).fit_color == "#000000"
+    @test isfile(lab_out)
+    @test isfile(modern_out)
+    @test isfile(article_out)
+    @test plot_theme(:modern; appearance=:dark) !== nothing
+    @test plot_palette(:lab).fit_color != plot_palette(:modern).fit_color
+    @test plot_palette(:lab).data_color != plot_palette(:modern).data_color
+    @test !contains(string(plot_palette(:modern).data_color), "b05a36")
+    @test plot_palette(:article).fit_color == "#0072B2"
     @test_throws ArgumentError plot_fit(quick.result; theme=:unknown)
     @test_throws ArgumentError plot_fit(quick.result; theme=:dark, appearance=:light)
 
@@ -167,7 +167,7 @@ using Test
         contour_result;
         filename=contour_out,
         format=:png,
-        theme=:showcase,
+        theme=:modern,
         appearance=:dark,
         local_covariance=[1.0 -0.25; -0.25 1.0],
         local_center=[0.0, 0.0],
@@ -179,7 +179,7 @@ using Test
         profile_result;
         filename=profile_out,
         format=:png,
-        theme=:workbench,
+        theme=:lab,
         appearance=:dark,
         local_sigma=1.0,
         delta_max=4.0,
@@ -205,7 +205,7 @@ using Test
         parameter_names=["m", "b"],
         filename=matrix_out,
         format=:png,
-        theme=:workbench,
+        theme=:lab,
         panel_status_mode=:all,
     )
     @test matrix_fig !== nothing
@@ -215,20 +215,20 @@ using Test
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 3])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 2], panel_status_mode=:bad)
 
-    residual_out = joinpath(mktempdir(), "residual_showcase_dark.png")
-    diagnostics_out = joinpath(mktempdir(), "diagnostics_workbench_dark.png")
+    residual_out = joinpath(mktempdir(), "residual_modern_dark.png")
+    diagnostics_out = joinpath(mktempdir(), "diagnostics_lab_dark.png")
     @test plot_residuals(
         quick.result;
         filename=residual_out,
         format=:png,
-        theme=:showcase,
+        theme=:modern,
         appearance=:dark,
     ) !== nothing
     @test plot_diagnostics(
         quick.result;
         filename=diagnostics_out,
         format=:png,
-        theme=:workbench,
+        theme=:lab,
         appearance=:dark,
     ) !== nothing
     @test isfile(residual_out)

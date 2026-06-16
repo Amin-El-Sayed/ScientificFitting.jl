@@ -134,7 +134,7 @@ fmt(x, digits=4) = @sprintf("%.*g", digits, x)
 function save_multi_dataset_calibration(
     filename;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:showcase,
+    style::Symbol=:modern,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
     MULTI_RENDER_DOC_ASSETS || return nothing
@@ -143,15 +143,15 @@ function save_multi_dataset_calibration(
     palette = plot_palette(style; appearance=appearance)
     foreground = palette.stats_color
     muted = palette.stats_muted_color
-    background = dark_mode ? "#111318" : (style == :showcase ? "#fbfcfd" : "#ffffff")
-    colors = if style == :publication
+    background = dark_mode ? "#111318" : (style == :modern ? "#fbfcfd" : "#ffffff")
+    colors = if style == :article
         dark_mode ? ["#edf2f4", "#b8c1ca", "#8d96a3"] : ["#101216", "#606874", "#8a929c"]
-    elseif style == :showcase
+    elseif style == :modern
         dark_mode ? [palette.fit_color, "#b7c8dc", "#c4a7e7"] : [palette.fit_color, "#52606f", "#6d5fa8"]
     else
         dark_mode ? [palette.fit_color, "#b7c8dc", "#c4a7e7"] : [palette.fit_color, "#52606f", "#6d5fa8"]
     end
-    bands = [(colors[i], style == :publication ? 0.10 : (dark_mode ? 0.14 : 0.24)) for i in eachindex(colors)]
+    bands = [(colors[i], style == :article ? 0.10 : (dark_mode ? 0.14 : 0.24)) for i in eachindex(colors)]
     pull_1sigma = (palette.band_color, dark_mode ? 0.13 : 0.24)
     pull_2sigma = (palette.band_color, dark_mode ? 0.06 : 0.12)
     markers = [:circle, :rect, :diamond]
@@ -330,7 +330,7 @@ if MULTI_RENDER_DOC_ASSETS
         )
     end
 
-    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+    for style in (:lab, :modern, :article), appearance in (:light, :dark)
         save_multi_dataset_calibration(
             joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
             style=style,

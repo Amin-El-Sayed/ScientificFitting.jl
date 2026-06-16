@@ -16,12 +16,12 @@ an adequate description of the recorded motion, or whether the data require a
 small additional frequency drift.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="workbench" src="../assets/gallery/damped_oscillator_decay_workbench_light.png" alt="Damped oscillator model comparison in workbench style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="workbench" src="../assets/gallery/damped_oscillator_decay_workbench_dark.png" alt="Damped oscillator model comparison in workbench dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="showcase" src="../assets/gallery/damped_oscillator_decay_showcase_light.png" alt="Damped oscillator model comparison in showcase style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="showcase" src="../assets/gallery/damped_oscillator_decay_showcase_dark.png" alt="Damped oscillator model comparison in showcase dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="publication" src="../assets/gallery/damped_oscillator_decay_publication_light.png" alt="Damped oscillator model comparison in publication style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="publication" src="../assets/gallery/damped_oscillator_decay_publication_dark.png" alt="Damped oscillator model comparison in publication dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="lab" src="../assets/gallery/damped_oscillator_decay_lab_light.png" alt="Damped oscillator model comparison in lab style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="lab" src="../assets/gallery/damped_oscillator_decay_lab_dark.png" alt="Damped oscillator model comparison in lab dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="modern" src="../assets/gallery/damped_oscillator_decay_modern_light.png" alt="Damped oscillator model comparison in modern style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="modern" src="../assets/gallery/damped_oscillator_decay_modern_dark.png" alt="Damped oscillator model comparison in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="article" src="../assets/gallery/damped_oscillator_decay_article_light.png" alt="Damped oscillator model comparison in article style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="article" src="../assets/gallery/damped_oscillator_decay_article_dark.png" alt="Damped oscillator model comparison in article dark style">
 ```
 
 The main panel alone barely distinguishes the two models. The pull panels do:

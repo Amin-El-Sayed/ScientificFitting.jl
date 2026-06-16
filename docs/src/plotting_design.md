@@ -36,13 +36,13 @@ data axis controls the row height.
 
 ## Plot Design Direction
 
-The default `:workbench` style is intentionally restrained and scientific:
+The default `:lab` style is intentionally direct and scientific:
 
 - white background for print, slides, and documentation
 - dark ink for axes, labels, and data
-- subtle gray grid lines that can be disabled via `axis_kwargs`
-- a single restrained fit color in the data area
-- soft confidence bands that stay behind the data
+- readable gray grid lines that can be disabled via `axis_kwargs`
+- one clear blue fit color in the data area
+- visible confidence bands that stay behind the data
 - no legend by default when the visual mapping is obvious
 - compact, left-aligned right-side legend and fit summary instead of a box
   covering the data
@@ -51,13 +51,14 @@ The default `:workbench` style is intentionally restrained and scientific:
 JuFitter has three style contracts. They correspond to real output contexts,
 not minor visual variations:
 
-- `:workbench`: robust notebook and laboratory default. Neutral data, one blue
-  fit accent, subtle grid, and readable plain-text reporting.
-- `:showcase`: documentation and presentation style. It keeps neutral data,
-  uses one cool blue fit accent, and slightly stronger hierarchy for pages and talks
-  without changing the scientific layout.
-- `:publication`: compact black-and-white structure, Computer Modern
-  typography, no grid, and geometry suitable for vector export.
+- `:lab`: robust notebook and laboratory default. Neutral data, one blue
+  fit accent, visible grid, and readable plain-text reporting.
+- `:modern`: Beautiful-Makie-inspired documentation and presentation style. It
+  keeps neutral data, uses a stronger blue fit accent, and gives bands,
+  errorbars, and labels more visual weight without changing the scientific
+  layout.
+- `:article`: compact journal-oriented export with color-safe blue accents,
+  Computer Modern typography, no grid, and geometry suitable for vector PDF/SVG.
 
 Light and dark rendering are selected independently through
 `appearance=:light | :dark`. LaTeX conversion is also independent:
@@ -78,9 +79,9 @@ the public `theme` keyword changes.
 
 ```@raw html
 <div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_workbench.png" alt="Workbench plot style"><div><h3>workbench</h3><p>Reliable default for notebooks, laboratory work, and ordinary reports.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_showcase.png" alt="Showcase plot style"><div><h3>showcase</h3><p>Restrained color and strong hierarchy for documentation and presentations.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_publication.png" alt="Publication plot style"><div><h3>publication</h3><p>Compact black-and-white geometry and Computer Modern typography for papers.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="Lab plot style"><div><h3>lab</h3><p>Reliable default for notebooks, laboratory work, and ordinary reports.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_modern.png" alt="Modern plot style"><div><h3>modern</h3><p>Beautiful-Makie-inspired hierarchy: strong line, visible band, readable labels.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="Article plot style"><div><h3>article</h3><p>Compact vector-export geometry, Computer Modern typography, color-safe accents.</p></div></div>
 </div>
 ```
 
@@ -92,7 +93,7 @@ gallery look.
 
 ## High-Level Controls
 
-- `theme=:workbench | :showcase | :publication | :custom`
+- `theme=:lab | :modern | :article | :custom`
 - `appearance=:auto | :light | :dark`
 - `latex_labels`, `latex_stats`
 - `xlabel`, `ylabel`, `xunit`, `yunit`, `title`, `model_label`

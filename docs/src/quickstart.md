@@ -134,12 +134,12 @@ Next actions:
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="workbench" src="assets/gallery/quickstart_linear_workbench_light.png" alt="Quickstart calibration fit in workbench style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="workbench" src="assets/gallery/quickstart_linear_workbench_dark.png" alt="Quickstart calibration fit in workbench dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="showcase" src="assets/gallery/quickstart_linear_showcase_light.png" alt="Quickstart calibration fit in showcase style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="showcase" src="assets/gallery/quickstart_linear_showcase_dark.png" alt="Quickstart calibration fit in showcase dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="publication" src="assets/gallery/quickstart_linear_publication_light.png" alt="Quickstart calibration fit in publication style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="publication" src="assets/gallery/quickstart_linear_publication_dark.png" alt="Quickstart calibration fit in publication dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="lab" src="assets/gallery/quickstart_linear_lab_light.png" alt="Quickstart calibration fit in lab style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="lab" src="assets/gallery/quickstart_linear_lab_dark.png" alt="Quickstart calibration fit in lab dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="modern" src="assets/gallery/quickstart_linear_modern_light.png" alt="Quickstart calibration fit in modern style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="modern" src="assets/gallery/quickstart_linear_modern_dark.png" alt="Quickstart calibration fit in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_light.png" alt="Quickstart calibration fit in article style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_dark.png" alt="Quickstart calibration fit in article dark style">
 ```
 
 `fitplot(x, y; sigma_y=...)` uses a straight-line model by default. If you want

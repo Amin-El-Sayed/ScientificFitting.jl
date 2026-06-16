@@ -93,8 +93,8 @@ local Gaussian approximation.
 ## Plot Without Re-Fitting
 
 `plot_fit(result; ...)` creates a Makie figure from an existing result. It does
-not change the numerical fit. This is the intended pattern for publication
-figures: fit once, then add annotations on top.
+not change the numerical fit. This is the intended pattern for article
+publication-quality figures: fit once, then add annotations on top.
 
 ```julia
 fig = plot_fit(result; report=:plot, show_legend=true)
@@ -104,7 +104,7 @@ add_curve!(ax, reference_model; xspan=(0, 10), label="reference")
 ```
 
 Use `plot_theme` and `plot_palette` when building custom Makie layouts that
-should follow JuFitter's `:workbench`, `:showcase`, or `:publication` styles.
+should follow JuFitter's `:lab`, `:modern`, or `:article` styles.
 
 ## When To Leave This Page
 

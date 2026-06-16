@@ -6,8 +6,8 @@
     "documenter-light": "light",
     "documenter-dark": "dark",
   };
-  const plotStyles = ["workbench", "showcase", "publication"];
-  const defaultPlotStyle = "showcase";
+  const plotStyles = ["lab", "modern", "article"];
+  const defaultPlotStyle = "modern";
 
   try {
     const selectedTheme = window.localStorage && window.localStorage.getItem(themeStorageKey);

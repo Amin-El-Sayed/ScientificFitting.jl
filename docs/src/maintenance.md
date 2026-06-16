@@ -71,13 +71,13 @@ belongs in a cache.
 
 - When `show_legend=true` and `stats_position=:right`, `plot_fit` places the
   legend above the right-side report instead of consuming data-axis space.
-- Plot styles are limited to three explicit output contracts: `:workbench`,
-  `:showcase`, and `:publication`. Light/dark appearance and LaTeX conversion
+- Plot styles are limited to three explicit output contracts: `:lab`,
+  `:modern`, and `:article`. Light/dark appearance and LaTeX conversion
   are independent options rather than additional style names.
-- `:workbench` is the direct analysis/notebook contract: sans typography,
+- `:lab` is the direct analysis/notebook contract: sans typography,
   restrained blue fit color, short error-bar whiskers, plain-text reporting
   unless the user explicitly passes LaTeX labels.
-- `:showcase` is the documentation/talk contract: neutral data, one cool blue fit
+- `:modern` is the documentation/talk contract: neutral data, one cool blue fit
   accent, readable axis typography, and no decorative warm accent colors. It
   must remain a scientific plot style, not a product-design theme.
 - The right-side panel is a shared layout component, not a manually positioned
@@ -113,7 +113,7 @@ belongs in a cache.
   Curves need at least two finite points; points, reference lines, and bands may
   be small but must still have finite numeric coordinates.
 - Default fit plots use larger axis, tick, legend, and report typography than
-  the compact publication theme. Documentation assets use an additional
+  the compact article theme. Documentation assets use an additional
   web-specific scale because raster plots are reduced inside the Documenter
   content column.
 - Documentation light/dark assets must share the
@@ -121,7 +121,7 @@ belongs in a cache.
   visible variant for the active Documenter theme.
 - Documentation plot-style switching is asset-based. A plot may declare
   `data-jufitter-plot-group` and `data-jufitter-plot-style`; the site selector
-  then chooses the selected Makie-rendered style and falls back to `:showcase`
+  then chooses the selected Makie-rendered style and falls back to `:modern`
   when a page has not yet rendered all variants. Do not recolor or invert plots
   in CSS.
 - Custom documentation plots must derive theme, palette, marker sizes,
@@ -132,7 +132,7 @@ belongs in a cache.
 - Compound gallery figures with residual or pull panels are part of the same
   plotting contract. Poisson, histogram, damped-oscillator, constraints/profile,
   contour, and multi-dataset assets must be regenerated as
-  `:workbench`, `:showcase`, and `:publication` variants for both light and
+  `:lab`, `:modern`, and `:article` variants for both light and
   dark appearances whenever their generator changes.
 - Wide documentation plots expand from the article's left edge toward the
   available right side. They must not be viewport-centered because that can

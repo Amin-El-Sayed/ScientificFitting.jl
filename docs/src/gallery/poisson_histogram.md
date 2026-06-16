@@ -24,12 +24,12 @@ T_{1/2} = \frac{\log 2}{\lambda}.
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="workbench" src="../assets/gallery/poisson_counts_workbench_light.png" alt="Radioactive decay count fit in workbench style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="workbench" src="../assets/gallery/poisson_counts_workbench_dark.png" alt="Radioactive decay count fit in workbench dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="showcase" src="../assets/gallery/poisson_counts_showcase_light.png" alt="Radioactive decay count fit in showcase style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="showcase" src="../assets/gallery/poisson_counts_showcase_dark.png" alt="Radioactive decay count fit in showcase dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="publication" src="../assets/gallery/poisson_counts_publication_light.png" alt="Radioactive decay count fit in publication style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="publication" src="../assets/gallery/poisson_counts_publication_dark.png" alt="Radioactive decay count fit in publication dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="lab" src="../assets/gallery/poisson_counts_lab_light.png" alt="Radioactive decay count fit in lab style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="lab" src="../assets/gallery/poisson_counts_lab_dark.png" alt="Radioactive decay count fit in lab dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="modern" src="../assets/gallery/poisson_counts_modern_light.png" alt="Radioactive decay count fit in modern style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="modern" src="../assets/gallery/poisson_counts_modern_dark.png" alt="Radioactive decay count fit in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="article" src="../assets/gallery/poisson_counts_article_light.png" alt="Radioactive decay count fit in article style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="article" src="../assets/gallery/poisson_counts_article_dark.png" alt="Radioactive decay count fit in article dark style">
 ```
 
 The observed points deliberately have no ``\sqrt n`` error bars. Such bars are
@@ -205,12 +205,12 @@ bin. The fitted quantities are peak yield ``N``, centroid ``m``, Gaussian width
 ``s``, and background density ``\rho_B``.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="workbench" src="../assets/gallery/histogram_likelihood_workbench_light.png" alt="Histogram likelihood fit in workbench style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="workbench" src="../assets/gallery/histogram_likelihood_workbench_dark.png" alt="Histogram likelihood fit in workbench dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="showcase" src="../assets/gallery/histogram_likelihood_showcase_light.png" alt="Histogram likelihood fit in showcase style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="showcase" src="../assets/gallery/histogram_likelihood_showcase_dark.png" alt="Histogram likelihood fit in showcase dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="publication" src="../assets/gallery/histogram_likelihood_publication_light.png" alt="Histogram likelihood fit in publication style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="publication" src="../assets/gallery/histogram_likelihood_publication_dark.png" alt="Histogram likelihood fit in publication dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="lab" src="../assets/gallery/histogram_likelihood_lab_light.png" alt="Histogram likelihood fit in lab style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="lab" src="../assets/gallery/histogram_likelihood_lab_dark.png" alt="Histogram likelihood fit in lab dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="modern" src="../assets/gallery/histogram_likelihood_modern_light.png" alt="Histogram likelihood fit in modern style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="modern" src="../assets/gallery/histogram_likelihood_modern_dark.png" alt="Histogram likelihood fit in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="article" src="../assets/gallery/histogram_likelihood_article_light.png" alt="Histogram likelihood fit in article style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="article" src="../assets/gallery/histogram_likelihood_article_dark.png" alt="Histogram likelihood fit in article dark style">
 ```
 
 The model must return the expected count in each bin, not the density evaluated

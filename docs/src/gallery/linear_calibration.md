@@ -5,12 +5,12 @@ point-by-point uncertainties, a weighted fit, and a plot that states exactly
 what its uncertainty band means.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="workbench" src="../assets/gallery/linear_calibration_workbench_light.png" alt="Linear calibration fit in workbench style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="workbench" src="../assets/gallery/linear_calibration_workbench_dark.png" alt="Linear calibration fit in workbench dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="showcase" src="../assets/gallery/linear_calibration_showcase_light.png" alt="Linear calibration fit in showcase style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="showcase" src="../assets/gallery/linear_calibration_showcase_dark.png" alt="Linear calibration fit in showcase dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="publication" src="../assets/gallery/linear_calibration_publication_light.png" alt="Linear calibration fit in publication style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="publication" src="../assets/gallery/linear_calibration_publication_dark.png" alt="Linear calibration fit in publication dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="lab" src="../assets/gallery/linear_calibration_lab_light.png" alt="Linear calibration fit in lab style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="lab" src="../assets/gallery/linear_calibration_lab_dark.png" alt="Linear calibration fit in lab dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="modern" src="../assets/gallery/linear_calibration_modern_light.png" alt="Linear calibration fit in modern style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="modern" src="../assets/gallery/linear_calibration_modern_dark.png" alt="Linear calibration fit in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="article" src="../assets/gallery/linear_calibration_article_light.png" alt="Linear calibration fit in article style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="article" src="../assets/gallery/linear_calibration_article_dark.png" alt="Linear calibration fit in article dark style">
 ```
 
 ## Question

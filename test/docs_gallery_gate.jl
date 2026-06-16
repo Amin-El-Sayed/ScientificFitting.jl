@@ -47,7 +47,7 @@ end
 @testset "Documentation gallery release gate" begin
     required_style_pairs = Set(
         (style, appearance)
-        for style in ("workbench", "showcase", "publication")
+        for style in ("lab", "modern", "article")
         for appearance in ("light", "dark")
     )
 

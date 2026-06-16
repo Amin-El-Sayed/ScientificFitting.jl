@@ -68,7 +68,7 @@ sigma_work_function_eV = sqrt(work_variance)
 
 # JuFitter returns Makie objects, so derived quantities and annotations remain
 # ordinary Makie operations rather than a special plotting mini-language.
-style = :showcase
+style = :modern
 appearance = :light
 palette = plot_palette(style; appearance=appearance)
 

@@ -117,7 +117,7 @@ end
 function save_model_comparison(
     filename;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:showcase,
+    style::Symbol=:modern,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
     RENDER_DOC_ASSETS || return nothing
@@ -126,14 +126,14 @@ function save_model_comparison(
     palette = plot_palette(style; appearance=appearance)
     foreground = palette.stats_color
     muted = palette.stats_muted_color
-    constant_color = style == :publication ? (dark_mode ? "#c8cdd4" : "#505761") :
-                     (style == :showcase ? (dark_mode ? "#b7c8dc" : "#52606f") : muted)
+    constant_color = style == :article ? (dark_mode ? "#c8cdd4" : "#505761") :
+                     (style == :modern ? (dark_mode ? "#b7c8dc" : "#52606f") : muted)
     drift_color = palette.fit_color
     measurement_color = palette.data_color
     prediction_color = (palette.band_color, palette.band_alpha)
     pull_1sigma = (palette.band_color, dark_mode ? 0.15 : 0.24)
     pull_2sigma = (palette.band_color, dark_mode ? 0.07 : 0.11)
-    background = dark_mode ? "#111318" : (style == :showcase ? "#fbfcfd" : "#ffffff")
+    background = dark_mode ? "#111318" : (style == :modern ? "#fbfcfd" : "#ffffff")
 
     figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(1540, 960), backgroundcolor=background)
@@ -276,7 +276,7 @@ if RENDER_DOC_ASSETS
         save_model_comparison(joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(suffix).png"); dark=dark)
     end
 
-    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+    for style in (:lab, :modern, :article), appearance in (:light, :dark)
         save_model_comparison(
             joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style_asset_suffix(nothing, style, appearance)).png");
             style=style,

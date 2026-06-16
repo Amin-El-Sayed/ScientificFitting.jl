@@ -2,26 +2,29 @@ const _JF_PAPER = "#ffffff"
 const _JF_PAPER_SOFT = "#fbfcfd"
 const _JF_INK = "#17191f"
 const _JF_MUTED = "#5f6873"
-const _JF_GRID = "#e8edf2"
-const _JF_WORKBENCH_FIT = "#155f8d"
-const _JF_WORKBENCH_BAND = "#c4ddeb"
-const _JF_SHOWCASE_FIT = "#245f9f"
-const _JF_SHOWCASE_DATA = "#20242b"
-const _JF_SHOWCASE_BAND = "#b9d5f2"
-const _JF_PAPER_FIT = "#000000"
-const _JF_PAPER_BAND = "#000000"
+const _JF_GRID = "#c8cdd3"
+const _JF_LAB_FIT = "#0072B2"
+const _JF_LAB_BAND = "#56B4E9"
+const _JF_MODERN_FIT = "#1E88E5"
+const _JF_MODERN_DATA = "#111318"
+const _JF_MODERN_BAND = "#1E88E5"
+const _JF_ARTICLE_FIT = "#0072B2"
+const _JF_ARTICLE_BAND = "#0072B2"
 const _JF_DARK_PAPER = "#111318"
 const _JF_DARK_INK = "#edf2f4"
 const _JF_DARK_MUTED = "#b8c1ca"
-const _JF_DARK_GRID = "#2a313a"
+const _JF_DARK_GRID = "#59616c"
 const _JF_DARK_FIT = "#8fc7ff"
 const _JF_DARK_BAND = "#8fc7ff"
 
 const _JF_STYLE_ALIASES = Dict(
-    :clean => :workbench,
-    :minimal => :workbench,
-    :paper => :publication,
-    :latex => :publication,
+    :workbench => :lab,
+    :clean => :lab,
+    :minimal => :lab,
+    :showcase => :modern,
+    :publication => :article,
+    :paper => :article,
+    :latex => :article,
 )
 
 function _resolve_plot_style(theme::Symbol, appearance::Symbol)
@@ -31,13 +34,13 @@ function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     if theme == :dark
         appearance == :light &&
             throw(ArgumentError("theme=:dark conflicts with appearance=:light"))
-        return :workbench, :dark
+        return :lab, :dark
     end
 
     style = get(_JF_STYLE_ALIASES, theme, theme)
-    style in (:workbench, :showcase, :publication, :custom) ||
+    style in (:lab, :modern, :article, :custom) ||
         throw(ArgumentError(
-            "theme must be :workbench, :showcase, :publication, :custom, or a supported legacy alias",
+            "theme must be :lab, :modern, :article, :custom, or a supported legacy alias",
         ))
     return style, appearance == :auto ? :light : appearance
 end
@@ -48,118 +51,118 @@ function _fitplot_background(appearance::Symbol)
 end
 
 function _style_preset(style::Symbol, appearance::Symbol)
-    if appearance == :dark && style == :showcase
+    if appearance == :dark && style == :modern
         return (
             data_color=(_JF_DARK_INK, 0.88),
             data_marker=:circle,
-            data_markersize=6.4,
+            data_markersize=8.0,
             data_strokecolor=_JF_DARK_PAPER,
-            data_strokewidth=0.35,
+            data_strokewidth=0.0,
             fit_color=_JF_DARK_FIT,
-            fit_linewidth=2.9,
+            fit_linewidth=4.0,
             band_color=_JF_DARK_BAND,
-            band_alpha=0.20,
-            xerr_color=(_JF_DARK_MUTED, 0.46),
-            yerr_color=(_JF_DARK_MUTED, 0.46),
-            error_whiskerwidth=3.8,
+            band_alpha=0.30,
+            xerr_color=(_JF_DARK_INK, 0.70),
+            yerr_color=(_JF_DARK_INK, 0.70),
+            error_whiskerwidth=7.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_fontsize=15,
+            stats_fontsize=17,
         )
-    elseif appearance == :dark && style == :publication
+    elseif appearance == :dark && style == :article
         return (
             data_color=_JF_DARK_INK,
             data_marker=:circle,
-            data_markersize=5.6,
+            data_markersize=6.4,
             data_strokecolor=_JF_DARK_PAPER,
             data_strokewidth=0.0,
-            fit_color=_JF_DARK_INK,
-            fit_linewidth=1.8,
-            band_color=_JF_DARK_INK,
-            band_alpha=0.10,
-            xerr_color=(_JF_DARK_INK, 0.70),
-            yerr_color=(_JF_DARK_INK, 0.70),
-            error_whiskerwidth=4.0,
+            fit_color=_JF_DARK_FIT,
+            fit_linewidth=2.4,
+            band_color=_JF_DARK_FIT,
+            band_alpha=0.18,
+            xerr_color=(_JF_DARK_INK, 0.75),
+            yerr_color=(_JF_DARK_INK, 0.75),
+            error_whiskerwidth=5.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_fontsize=14,
+            stats_fontsize=15,
         )
     elseif appearance == :dark
         return (
-            data_color=(_JF_DARK_INK, 0.82),
+            data_color=_JF_DARK_INK,
             data_marker=:circle,
-            data_markersize=5.6,
+            data_markersize=6.8,
             data_strokecolor=_JF_DARK_PAPER,
-            data_strokewidth=0.2,
+            data_strokewidth=0.0,
             fit_color="#7db7e8",
-            fit_linewidth=2.3,
+            fit_linewidth=3.0,
             band_color="#7db7e8",
-            band_alpha=0.15,
-            xerr_color=(_JF_DARK_MUTED, 0.42),
-            yerr_color=(_JF_DARK_MUTED, 0.42),
-            error_whiskerwidth=3.0,
+            band_alpha=0.24,
+            xerr_color=(_JF_DARK_INK, 0.70),
+            yerr_color=(_JF_DARK_INK, 0.70),
+            error_whiskerwidth=6.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_fontsize=15,
+            stats_fontsize=16,
         )
-    elseif style == :showcase
+    elseif style == :modern
         return (
-            data_color=(_JF_SHOWCASE_DATA, 0.88),
+            data_color=_JF_MODERN_DATA,
             data_marker=:circle,
-            data_markersize=6.4,
+            data_markersize=8.0,
             data_strokecolor=_JF_PAPER,
-            data_strokewidth=0.35,
-            fit_color=_JF_SHOWCASE_FIT,
-            fit_linewidth=2.9,
-            band_color=_JF_SHOWCASE_BAND,
-            band_alpha=0.22,
-            xerr_color=(_JF_MUTED, 0.44),
-            yerr_color=(_JF_MUTED, 0.44),
-            error_whiskerwidth=3.8,
+            data_strokewidth=0.0,
+            fit_color=_JF_MODERN_FIT,
+            fit_linewidth=4.0,
+            band_color=_JF_MODERN_BAND,
+            band_alpha=0.28,
+            xerr_color=(_JF_INK, 0.65),
+            yerr_color=(_JF_INK, 0.65),
+            error_whiskerwidth=7.0,
             stats_color=_JF_INK,
             stats_muted_color=_JF_MUTED,
-            stats_fontsize=15,
+            stats_fontsize=17,
         )
-    elseif style == :publication
+    elseif style == :article
         return (
             data_color=:black,
             data_marker=:circle,
-            data_markersize=5.6,
+            data_markersize=6.2,
             data_strokecolor=:white,
             data_strokewidth=0.0,
-            fit_color=_JF_PAPER_FIT,
-            fit_linewidth=1.8,
-            band_color=_JF_PAPER_BAND,
-            band_alpha=0.09,
-            xerr_color=(:black, 0.70),
-            yerr_color=(:black, 0.70),
-            error_whiskerwidth=4.0,
+            fit_color=_JF_ARTICLE_FIT,
+            fit_linewidth=2.4,
+            band_color=_JF_ARTICLE_BAND,
+            band_alpha=0.17,
+            xerr_color=(:black, 0.78),
+            yerr_color=(:black, 0.78),
+            error_whiskerwidth=5.0,
             stats_color=:black,
             stats_muted_color=:black,
-            stats_fontsize=14,
+            stats_fontsize=15,
         )
     end
 
     return (
-        data_color=(_JF_INK, 0.76),
+        data_color=_JF_INK,
         data_marker=:circle,
-        data_markersize=5.6,
+        data_markersize=6.8,
         data_strokecolor=_JF_PAPER,
-        data_strokewidth=0.25,
-        fit_color=_JF_WORKBENCH_FIT,
-        fit_linewidth=2.3,
-        band_color=_JF_WORKBENCH_BAND,
-        band_alpha=0.16,
-        xerr_color=(_JF_INK, 0.38),
-        yerr_color=(_JF_INK, 0.38),
-        error_whiskerwidth=3.0,
+        data_strokewidth=0.0,
+        fit_color=_JF_LAB_FIT,
+        fit_linewidth=3.0,
+        band_color=_JF_LAB_BAND,
+        band_alpha=0.24,
+        xerr_color=(_JF_INK, 0.68),
+        yerr_color=(_JF_INK, 0.68),
+        error_whiskerwidth=6.0,
         stats_color=_JF_INK,
         stats_muted_color=_JF_MUTED,
-        stats_fontsize=15,
+        stats_fontsize=16,
     )
 end
 
-function _workbench_theme(appearance::Symbol)
+function _lab_theme(appearance::Symbol)
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : _JF_INK
@@ -167,15 +170,15 @@ function _workbench_theme(appearance::Symbol)
     return Theme(
         fontsize=16,
         font="TeX Gyre Heros",
-        figure_padding=(12, 16, 12, 12),
+        figure_padding=(14, 18, 14, 14),
         Figure=(backgroundcolor=paper,),
         Axis=(
-            xlabelsize=19,
-            ylabelsize=19,
-            titlesize=22,
-            titlegap=14,
-            xticklabelsize=15,
-            yticklabelsize=15,
+            xlabelsize=20,
+            ylabelsize=20,
+            titlesize=23,
+            titlegap=16,
+            xticklabelsize=16,
+            yticklabelsize=16,
             backgroundcolor=paper,
             xlabelcolor=ink,
             ylabelcolor=ink,
@@ -188,110 +191,111 @@ function _workbench_theme(appearance::Symbol)
             ygridvisible=true,
             xminorgridvisible=false,
             yminorgridvisible=false,
-            xgridcolor=(grid, dark ? 0.70 : 0.55),
-            ygridcolor=(grid, dark ? 0.70 : 0.55),
-            xgridwidth=0.55,
-            ygridwidth=0.55,
+            xgridcolor=(grid, dark ? 0.82 : 0.82),
+            ygridcolor=(grid, dark ? 0.82 : 0.82),
+            xgridwidth=1.25,
+            ygridwidth=1.25,
             topspinevisible=false,
             rightspinevisible=false,
             leftspinecolor=ink,
             bottomspinecolor=ink,
+            spinewidth=1.35,
         ),
-        Legend=(framevisible=false, labelsize=15, labelcolor=ink, patchsize=(23, 12), rowgap=3),
-        Lines=(linewidth=2.2,),
-        Scatter=(markersize=5.6,),
+        Legend=(framevisible=false, labelsize=16, labelcolor=ink, patchsize=(28, 16), rowgap=5),
+        Lines=(linewidth=3.0,),
+        Scatter=(markersize=6.8,),
     )
 end
 
-function _showcase_theme(appearance::Symbol)
-    base = _workbench_theme(appearance)
+function _modern_theme(appearance::Symbol)
+    base = _lab_theme(appearance)
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : _JF_INK
-    grid = dark ? _JF_DARK_GRID : "#e4ebef"
+    grid = dark ? _JF_DARK_GRID : "#b8bec7"
     return merge(
         base,
         Theme(
             Figure=(backgroundcolor=paper,),
             Axis=(
                 backgroundcolor=paper,
-                xlabelsize=19,
-                ylabelsize=19,
-                titlesize=23,
-                titlegap=15,
-                xticklabelsize=15,
-                yticklabelsize=15,
-                xgridcolor=(grid, dark ? 0.76 : 0.58),
-                ygridcolor=(grid, dark ? 0.76 : 0.58),
-                xgridwidth=0.60,
-                ygridwidth=0.60,
+                xlabelsize=22,
+                ylabelsize=22,
+                titlesize=25,
+                titlegap=17,
+                xticklabelsize=17,
+                yticklabelsize=17,
+                xgridcolor=(grid, dark ? 0.86 : 0.82),
+                ygridcolor=(grid, dark ? 0.86 : 0.82),
+                xgridwidth=1.35,
+                ygridwidth=1.35,
                 titlecolor=ink,
             ),
-            Legend=(framevisible=false, labelsize=15, labelcolor=ink, patchsize=(24, 13), rowgap=4),
+            Legend=(framevisible=false, labelsize=17, labelcolor=ink, patchsize=(32, 18), rowgap=6),
         ),
     )
 end
 
-function _publication_theme(appearance::Symbol)
+function _article_theme(appearance::Symbol)
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : :black
-    muted = dark ? _JF_DARK_MUTED : :black
     return Theme(
-        fontsize=14,
+        fontsize=15,
         font="CMU Serif",
-        figure_padding=(10, 12, 9, 10),
+        figure_padding=(12, 14, 10, 12),
         Figure=(backgroundcolor=paper,),
         Axis=(
-            xlabelsize=15,
-            ylabelsize=15,
-            titlesize=18,
-            titlegap=10,
-            xticklabelsize=12,
-            yticklabelsize=12,
+            xlabelsize=17,
+            ylabelsize=17,
+            titlesize=19,
+            titlegap=11,
+            xticklabelsize=13,
+            yticklabelsize=13,
             backgroundcolor=paper,
             xlabelcolor=ink,
             ylabelcolor=ink,
             titlecolor=ink,
             xticklabelcolor=ink,
             yticklabelcolor=ink,
-            xtickcolor=muted,
-            ytickcolor=muted,
+            xtickcolor=ink,
+            ytickcolor=ink,
             xgridvisible=false,
             ygridvisible=false,
             topspinevisible=false,
             rightspinevisible=false,
             leftspinecolor=ink,
             bottomspinecolor=ink,
+            spinewidth=1.15,
         ),
         Legend=(
             framevisible=false,
-            labelsize=14,
+            labelsize=15,
             labelcolor=ink,
-            patchsize=(22, 12),
-            rowgap=3,
+            patchsize=(26, 14),
+            rowgap=4,
         ),
-        Lines=(linewidth=1.8,),
-        Scatter=(markersize=6,),
+        Lines=(linewidth=2.4,),
+        Scatter=(markersize=6.2,),
     )
 end
 
 function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Theme)
-    thm = style == :workbench ? _workbench_theme(appearance) :
-        style == :showcase ? _showcase_theme(appearance) :
-        style == :publication ? _publication_theme(appearance) :
+    thm = style == :lab ? _lab_theme(appearance) :
+        style == :modern ? _modern_theme(appearance) :
+        style == :article ? _article_theme(appearance) :
         Theme()
     return merge(thm, theme_override)
 end
 
 """
-    plot_theme(theme=:workbench; appearance=:auto, theme_override=Theme())
+    plot_theme(theme=:lab; appearance=:auto, theme_override=Theme())
 
 Return the Makie theme used by JuFitter plots. Use this when composing a custom
 Makie figure that should remain visually consistent with `plot_fit`.
 """
 function plot_theme(
-    theme::Symbol=:workbench;
+    theme::Symbol=:lab;
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
 )
@@ -300,12 +304,12 @@ function plot_theme(
 end
 
 """
-    plot_palette(theme=:workbench; appearance=:auto)
+    plot_palette(theme=:lab; appearance=:auto)
 
 Return the data, fit, uncertainty-band, error-bar, and report colors used by a
 JuFitter plot style.
 """
-function plot_palette(theme::Symbol=:workbench; appearance::Symbol=:auto)
+function plot_palette(theme::Symbol=:lab; appearance::Symbol=:auto)
     style, resolved_appearance = _resolve_plot_style(theme, appearance)
     return _style_preset(style, resolved_appearance)
 end
@@ -934,7 +938,7 @@ end
         xgrid=nothing,
         filename=nothing,
         format=:pdf,
-        theme=:workbench,
+        theme=:lab,
         appearance=:auto,
         theme_override=Theme(),
         title=nothing,
@@ -998,7 +1002,7 @@ end
 
 Create a scientific fit plot with data, error bars, best-fit curve, optional
 uncertainty band, and an optional right-side information panel. Use
-`theme=:workbench`, `:showcase`, or `:publication` for the intended output
+`theme=:lab`, `:modern`, or `:article` for the intended output
 context; `appearance=:light` or `:dark` controls the color scheme independently.
 `band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
@@ -1010,7 +1014,7 @@ function plot_fit(
     xgrid=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:workbench,
+    theme::Symbol=:lab,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title=nothing,
@@ -1414,13 +1418,13 @@ end
 
 function _diagnostic_colors(style::Symbol, appearance::Symbol)
     preset = _style_preset(style, appearance)
-    if style == :publication
+    if style == :article
         return (
             levels=(:black, :gray35, :gray60),
             regions=((:black, 0.18), (:black, 0.10), (:black, 0.06)),
             local_color=preset.stats_muted_color,
         )
-    elseif style == :showcase
+    elseif style == :modern
         levels=(preset.fit_color, preset.data_color, preset.stats_muted_color)
         return (
             levels=levels,
@@ -1475,7 +1479,7 @@ function _draw_panel_status!(axis::Axis, status::Symbol, appearance::Symbol; mod
 end
 
 """
-    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:publication, ...)
+    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:article, ...)
 
 Plot a one-dimensional profile-likelihood scan.
 
@@ -1490,7 +1494,7 @@ function plot_profile(
     profile_result::ProfileResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:publication,
+    theme::Symbol=:article,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Profile",
@@ -1579,7 +1583,7 @@ function plot_profile(
 end
 
 """
-    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:publication, ...)
+    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:article, ...)
 
 Plot a two-dimensional profile-likelihood contour grid.
 
@@ -1597,7 +1601,7 @@ function plot_contour(
     contour_result::ContourResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:publication,
+    theme::Symbol=:article,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Contour",
@@ -1801,7 +1805,7 @@ function plot_profile_matrix(
     parameter_names=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:publication,
+    theme::Symbol=:article,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     npoints_profile::Int=61,
@@ -1982,7 +1986,7 @@ function plot_residuals(
     kind::Symbol=:pull,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:publication,
+    theme::Symbol=:article,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 520),
@@ -2033,7 +2037,7 @@ function plot_diagnostics(
     result::FitResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:publication,
+    theme::Symbol=:article,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 900),

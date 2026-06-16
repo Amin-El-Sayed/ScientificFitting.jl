@@ -53,7 +53,7 @@ function lightdark_plot(result, name; kwargs...)
     plot_fit(
         result;
         kwargs...,
-        theme=:showcase,
+        theme=:modern,
         appearance=:light,
         filename=gallery_path("$(name)_light.png"),
         format=:png,
@@ -61,7 +61,7 @@ function lightdark_plot(result, name; kwargs...)
     plot_fit(
         result;
         kwargs...,
-        theme=:showcase,
+        theme=:modern,
         appearance=:dark,
         filename=gallery_path("$(name)_dark.png"),
         format=:png,
@@ -71,7 +71,7 @@ end
 function style_variant_plot(
     result,
     name;
-    styles=(:workbench, :showcase, :publication),
+    styles=(:lab, :modern, :article),
     plain=NamedTuple(),
     latex=plain,
     kwargs...,
@@ -79,7 +79,7 @@ function style_variant_plot(
     RENDER_DOC_ASSETS || return nothing
 
     for style in styles, appearance in (:light, :dark)
-        typography = style == :publication ? latex : plain
+        typography = style == :article ? latex : plain
         plot_fit(
             result;
             kwargs...,
@@ -90,56 +90,6 @@ function style_variant_plot(
             format=:png,
         )
     end
-end
-
-function gallery_theme(dark::Bool)
-    if dark
-        return Theme(
-            fontsize=20,
-            font="TeX Gyre Heros",
-            Figure=(backgroundcolor="#111318",),
-            Axis=(
-                backgroundcolor="#111318",
-                xlabelsize=27,
-                ylabelsize=27,
-                titlesize=26,
-                xticklabelsize=20,
-                yticklabelsize=20,
-                xlabelcolor="#edf2f4",
-                ylabelcolor="#edf2f4",
-                titlecolor="#edf2f4",
-                xticklabelcolor="#edf2f4",
-                yticklabelcolor="#edf2f4",
-                xtickcolor="#edf2f4",
-                ytickcolor="#edf2f4",
-                xgridcolor=("#2a313a", 0.85),
-                ygridcolor=("#2a313a", 0.85),
-                topspinevisible=false,
-                rightspinevisible=false,
-                leftspinecolor="#edf2f4",
-                bottomspinecolor="#edf2f4",
-            ),
-            Legend=(framevisible=false, labelcolor="#edf2f4", labelsize=20, patchsize=(30, 16)),
-        )
-    end
-    return Theme(
-        fontsize=20,
-        font="TeX Gyre Heros",
-        Figure=(backgroundcolor="#ffffff",),
-        Axis=(
-            backgroundcolor="#ffffff",
-            xlabelsize=27,
-            ylabelsize=27,
-            titlesize=26,
-            xticklabelsize=20,
-            yticklabelsize=20,
-            xgridcolor=("#eef2f7", 0.9),
-            ygridcolor=("#eef2f7", 0.9),
-            topspinevisible=false,
-            rightspinevisible=false,
-        ),
-        Legend=(framevisible=false, labelsize=20, patchsize=(30, 16)),
-    )
 end
 
 function poisson_deviance_residuals(counts, expected)
@@ -156,7 +106,7 @@ function save_poisson_counts(
     model,
     name;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:showcase,
+    style::Symbol=:modern,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
     RENDER_DOC_ASSETS || return nothing
@@ -169,7 +119,7 @@ function save_poisson_counts(
     fit_color = palette.fit_color
     band_color = (palette.band_color, max(palette.band_alpha, 0.16))
     residual_positive = fit_color
-    residual_negative = style == :publication ? (dark_mode ? "#d7d7d7" : "#5f6873") :
+    residual_negative = style == :article ? (dark_mode ? "#d7d7d7" : "#5f6873") :
                         (dark_mode ? "#b7c8dc" : "#52606f")
     fig = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
@@ -238,7 +188,7 @@ function save_histogram_fit(
     expected_counts,
     name;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:showcase,
+    style::Symbol=:modern,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
     RENDER_DOC_ASSETS || return nothing
@@ -248,12 +198,12 @@ function save_histogram_fit(
     foreground = palette.stats_color
     data_color = palette.data_color
     fit_color = palette.fit_color
-    observed_color = style == :publication ? (foreground, dark_mode ? 0.20 : 0.14) :
+    observed_color = style == :article ? (foreground, dark_mode ? 0.20 : 0.14) :
                      (palette.fit_color, dark_mode ? 0.20 : 0.22)
-    background_base = style == :publication ? foreground : (dark_mode ? "#b7c8dc" : "#52606f")
-    background_color = (background_base, style == :publication ? 0.10 : 0.20)
+    background_base = style == :article ? foreground : (dark_mode ? "#b7c8dc" : "#52606f")
+    background_color = (background_base, style == :article ? 0.10 : 0.20)
     residual_positive = fit_color
-    residual_negative = style == :publication ? (dark_mode ? "#d7d7d7" : "#5f6873") :
+    residual_negative = style == :article ? (dark_mode ? "#d7d7d7" : "#5f6873") :
                         (dark_mode ? "#b7c8dc" : "#52606f")
     fig = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
@@ -371,7 +321,7 @@ function save_photoelectric_work_function(
     emission_mask,
     name;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:showcase,
+    style::Symbol=:modern,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
     RENDER_DOC_ASSETS || return nothing
@@ -381,12 +331,12 @@ function save_photoelectric_work_function(
     color = palette.data_color
     muted = palette.stats_muted_color
     emission_color = palette.fit_color
-    baseline_color = style == :publication ? (dark_mode ? "#d7d7d7" : "#555555") :
+    baseline_color = style == :article ? (dark_mode ? "#d7d7d7" : "#555555") :
         (dark_mode ? "#b7c8dc" : "#52606f")
-    threshold_color = style == :publication ? (dark_mode ? "#edf2f4" : "#111111") :
+    threshold_color = style == :article ? (dark_mode ? "#edf2f4" : "#111111") :
         (dark_mode ? "#cbd5e1" : "#374151")
     emission_band = (palette.band_color, max(palette.band_alpha, 0.16))
-    baseline_band = (baseline_color, style == :publication ? 0.09 : 0.18)
+    baseline_band = (baseline_color, style == :article ? 0.09 : 0.18)
     error_whiskerwidth = palette.error_whiskerwidth
     fit_linewidth = palette.fit_linewidth
 
@@ -442,14 +392,14 @@ function save_photoelectric_work_function(
         [threshold_y];
         color=threshold_color,
         marker=:star5,
-        markersize=style == :publication ? 13 : 16,
+        markersize=style == :article ? 13 : 16,
         label="line intersection",
     )
     limits!(ax, xmin - 20, xmax + 20, minimum(voltage .- sigma_voltage) - 0.16, maximum(voltage .+ sigma_voltage) + 0.25)
 
     h_fit = emission_slope * 1.602176634e-19 / 1e12
     sigma_h = sqrt(max(emission_result.param_covariance[1, 1], 0.0)) * 1.602176634e-19 / 1e12
-    parameter_lines = if style == :publication
+    parameter_lines = if style == :article
         [
             LaTeXString("m_{\\mathrm{emit}} = $(fmt_tex(emission_slope, 5))\\;\\mathrm{V/THz}"),
             LaTeXString("h = $(fmt_tex(h_fit, 4)) \\pm $(fmt_tex(sigma_h, 2))\\;\\mathrm{J\\,s}"),
@@ -466,7 +416,7 @@ function save_photoelectric_work_function(
             "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_work_function_eV, 2)) eV",
         ]
     end
-    statistic_lines = if style == :publication
+    statistic_lines = if style == :article
         [
             LaTeXString("\\chi^2_{\\mathrm{emit}}/\\mathrm{ndf} = $(fmt_tex(emission_result.stats.chi2_ndf, 4))"),
             LaTeXString("\\chi^2_{\\mathrm{base}}/\\mathrm{ndf} = $(fmt_tex(baseline_result.stats.chi2_ndf, 4))"),
@@ -480,7 +430,7 @@ function save_photoelectric_work_function(
     plot_info_panel!(
         fig[1, 2];
         legend_source=ax,
-        model_label=style == :publication ? L"U_0(\nu)=m_r\nu+b_r" : "U0(ν) = mr ν + br",
+        model_label=style == :article ? L"U_0(\nu)=m_r\nu+b_r" : "U0(ν) = mr ν + br",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
         color=palette.stats_color,
@@ -562,8 +512,8 @@ style_variant_plot(
 
 # The same scientific content rendered through every public style preset.
 if RENDER_DOC_ASSETS
-    for style in (:workbench, :showcase, :publication)
-        typography = if style == :publication
+    for style in (:lab, :modern, :article)
+        typography = if style == :article
             (
                 title=L"\mathrm{Quickstart\ calibration}",
                 model_label=L"U(t)=m t+b",
@@ -596,7 +546,7 @@ if RENDER_DOC_ASSETS
             format=:png,
             band=:prediction,
             nsigma=1,
-            band_label=style == :publication ? L"1\sigma\ \mathrm{prediction\ band}" : "1σ prediction band",
+            band_label=style == :article ? L"1\sigma\ \mathrm{prediction\ band}" : "1σ prediction band",
             show_legend=true,
             stats_position=:right,
             stats_mode=:full,
@@ -730,7 +680,7 @@ emit_doc_output_snapshot("photoelectric_threshold") do
 end
 save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=false)
 save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=true)
-for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+for style in (:lab, :modern, :article), appearance in (:light, :dark)
     save_photoelectric_work_function(
         emission_result,
         baseline_result,
@@ -992,7 +942,7 @@ if RENDER_DOC_ASSETS
 
     plot_profile(
         prof;
-        theme=:workbench,
+        theme=:lab,
         appearance=:light,
         title="Profile cost versus local parabola",
         xlabel="amplitude A",
@@ -1003,7 +953,7 @@ if RENDER_DOC_ASSETS
     )
     plot_profile(
         prof;
-        theme=:workbench,
+        theme=:lab,
         appearance=:dark,
         title="Profile cost versus local parabola",
         xlabel="amplitude A",
@@ -1014,7 +964,7 @@ if RENDER_DOC_ASSETS
     )
     plot_contour(
         cont;
-        theme=:workbench,
+        theme=:lab,
         appearance=:light,
         title="Profile contours versus local covariance",
         xlabel="amplitude A",
@@ -1027,7 +977,7 @@ if RENDER_DOC_ASSETS
     )
     plot_contour(
         cont;
-        theme=:workbench,
+        theme=:lab,
         appearance=:dark,
         title="Profile contours versus local covariance",
         xlabel="amplitude A",
@@ -1038,14 +988,14 @@ if RENDER_DOC_ASSETS
         filename=gallery_path("amplitude_timescale_contour_dark.png"),
         format=:png,
     )
-    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+    for style in (:lab, :modern, :article), appearance in (:light, :dark)
         plot_profile(
             prof;
             theme=style,
             appearance=appearance,
-            title=style == :publication ? L"\mathrm{Profile\ cost\ versus\ local\ parabola}" :
+            title=style == :article ? L"\mathrm{Profile\ cost\ versus\ local\ parabola}" :
                   "Profile cost versus local parabola",
-            xlabel=style == :publication ? L"\mathrm{amplitude}\ A" : "amplitude A",
+            xlabel=style == :article ? L"\mathrm{amplitude}\ A" : "amplitude A",
             local_sigma=saturation_result.param_stderr[1],
             delta_max=8,
             filename=gallery_path("saturation_profile_$(style)_$(appearance).png"),
@@ -1055,10 +1005,10 @@ if RENDER_DOC_ASSETS
             cont;
             theme=style,
             appearance=appearance,
-            title=style == :publication ? L"\mathrm{Profile\ contours\ versus\ local\ covariance}" :
+            title=style == :article ? L"\mathrm{Profile\ contours\ versus\ local\ covariance}" :
                   "Profile contours versus local covariance",
-            xlabel=style == :publication ? L"\mathrm{amplitude}\ A" : "amplitude A",
-            ylabel=style == :publication ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
+            xlabel=style == :article ? L"\mathrm{amplitude}\ A" : "amplitude A",
+            ylabel=style == :article ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
             local_covariance=saturation_result.param_covariance,
             local_center=saturation_result.params[[1, 2]],
             figure_size=(980, 720),
@@ -1066,7 +1016,7 @@ if RENDER_DOC_ASSETS
             format=:png,
         )
     end
-    for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+    for style in (:lab, :modern, :article), appearance in (:light, :dark)
         plot_profile_matrix(
             saturation_result;
             parameters=profile_overview_parameters,
@@ -1112,7 +1062,7 @@ emit_doc_output_snapshot("poisson_decay") do
 end
 save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=false)
 save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=true)
-for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+for style in (:lab, :modern, :article), appearance in (:light, :dark)
     save_poisson_counts(
         poisson_result,
         x_counts,
@@ -1159,7 +1109,7 @@ emit_doc_output_snapshot("histogram_likelihood") do
 end
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=false)
 save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=true)
-for style in (:workbench, :showcase, :publication), appearance in (:light, :dark)
+for style in (:lab, :modern, :article), appearance in (:light, :dark)
     save_histogram_fit(
         hist_result,
         edges,

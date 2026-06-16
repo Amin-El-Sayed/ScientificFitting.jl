@@ -85,16 +85,17 @@ physical threshold to an existing fit axis.
 function add_hband! end
 
 """
-    plot_theme(style=:workbench; appearance=:auto)
+    plot_theme(style=:lab; appearance=:auto)
 
 Return the Makie `Theme` used by JuFitter for a named plot style. Supported
-styles are `:workbench`, `:showcase`, and `:publication`; `appearance` is
+styles are `:lab`, `:modern`, and `:article`; legacy aliases such as
+`:workbench`, `:showcase`, and `:publication` remain accepted. `appearance` is
 `:light`, `:dark`, or `:auto`.
 """
 function plot_theme end
 
 """
-    plot_palette(style=:workbench; appearance=:auto)
+    plot_palette(style=:lab; appearance=:auto)
 
 Return the color and marker defaults used by JuFitter's plot helpers. Use this
 when building compound Makie figures that should respond to the documentation

@@ -9,12 +9,12 @@ channels may use one common gain. The answer is no: channels A and B are
 compatible, while channel C requires a separate gain.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="workbench" src="../assets/gallery/multi_dataset_shared_slope_workbench_light.png" alt="Multi-dataset calibration transfer in workbench style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="workbench" src="../assets/gallery/multi_dataset_shared_slope_workbench_dark.png" alt="Multi-dataset calibration transfer in workbench dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="showcase" src="../assets/gallery/multi_dataset_shared_slope_showcase_light.png" alt="Multi-dataset calibration transfer in showcase style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="showcase" src="../assets/gallery/multi_dataset_shared_slope_showcase_dark.png" alt="Multi-dataset calibration transfer in showcase dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="publication" src="../assets/gallery/multi_dataset_shared_slope_publication_light.png" alt="Multi-dataset calibration transfer in publication style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="publication" src="../assets/gallery/multi_dataset_shared_slope_publication_dark.png" alt="Multi-dataset calibration transfer in publication dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="lab" src="../assets/gallery/multi_dataset_shared_slope_lab_light.png" alt="Multi-dataset calibration transfer in lab style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="lab" src="../assets/gallery/multi_dataset_shared_slope_lab_dark.png" alt="Multi-dataset calibration transfer in lab dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="modern" src="../assets/gallery/multi_dataset_shared_slope_modern_light.png" alt="Multi-dataset calibration transfer in modern style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="modern" src="../assets/gallery/multi_dataset_shared_slope_modern_dark.png" alt="Multi-dataset calibration transfer in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="article" src="../assets/gallery/multi_dataset_shared_slope_article_light.png" alt="Multi-dataset calibration transfer in article style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="article" src="../assets/gallery/multi_dataset_shared_slope_article_dark.png" alt="Multi-dataset calibration transfer in article dark style">
 ```
 
 The solid lines show the accepted partial-sharing model. The dashed lines show
