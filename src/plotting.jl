@@ -3,11 +3,11 @@ const _JF_PAPER_SOFT = "#fbfcfd"
 const _JF_INK = "#17191f"
 const _JF_MUTED = "#5f6873"
 const _JF_GRID = "#c8cdd3"
-const _JF_LAB_FIT = "#0072B2"
-const _JF_LAB_BAND = "#56B4E9"
-const _JF_MODERN_FIT = "#1E88E5"
+const _JF_LAB_FIT = "#005AB5"
+const _JF_LAB_BAND = "#86C5DA"
+const _JF_MODERN_FIT = "#0A9396"
 const _JF_MODERN_DATA = "#111318"
-const _JF_MODERN_BAND = "#1E88E5"
+const _JF_MODERN_BAND = "#94D2BD"
 const _JF_ARTICLE_FIT = "#0072B2"
 const _JF_ARTICLE_BAND = "#0072B2"
 const _JF_DARK_PAPER = "#111318"
@@ -58,9 +58,9 @@ function _style_preset(style::Symbol, appearance::Symbol)
             data_markersize=8.0,
             data_strokecolor=_JF_DARK_PAPER,
             data_strokewidth=0.0,
-            fit_color=_JF_DARK_FIT,
+            fit_color="#7BDFF2",
             fit_linewidth=4.0,
-            band_color=_JF_DARK_BAND,
+            band_color="#7BDFF2",
             band_alpha=0.30,
             xerr_color=(_JF_DARK_INK, 0.70),
             yerr_color=(_JF_DARK_INK, 0.70),
@@ -90,17 +90,17 @@ function _style_preset(style::Symbol, appearance::Symbol)
     elseif appearance == :dark
         return (
             data_color=_JF_DARK_INK,
-            data_marker=:circle,
-            data_markersize=6.8,
+            data_marker=:cross,
+            data_markersize=10.0,
             data_strokecolor=_JF_DARK_PAPER,
             data_strokewidth=0.0,
-            fit_color="#7db7e8",
-            fit_linewidth=3.0,
-            band_color="#7db7e8",
-            band_alpha=0.24,
+            fit_color="#8fc7ff",
+            fit_linewidth=2.8,
+            band_color="#8fc7ff",
+            band_alpha=0.20,
             xerr_color=(_JF_DARK_INK, 0.70),
             yerr_color=(_JF_DARK_INK, 0.70),
-            error_whiskerwidth=6.0,
+            error_whiskerwidth=8.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
             stats_fontsize=16,
@@ -145,17 +145,17 @@ function _style_preset(style::Symbol, appearance::Symbol)
 
     return (
         data_color=_JF_INK,
-        data_marker=:circle,
-        data_markersize=6.8,
+        data_marker=:cross,
+        data_markersize=10.0,
         data_strokecolor=_JF_PAPER,
         data_strokewidth=0.0,
         fit_color=_JF_LAB_FIT,
-        fit_linewidth=3.0,
+        fit_linewidth=2.8,
         band_color=_JF_LAB_BAND,
-        band_alpha=0.24,
+        band_alpha=0.20,
         xerr_color=(_JF_INK, 0.68),
         yerr_color=(_JF_INK, 0.68),
-        error_whiskerwidth=6.0,
+        error_whiskerwidth=8.0,
         stats_color=_JF_INK,
         stats_muted_color=_JF_MUTED,
         stats_fontsize=16,
@@ -202,8 +202,8 @@ function _lab_theme(appearance::Symbol)
             spinewidth=1.35,
         ),
         Legend=(framevisible=false, labelsize=16, labelcolor=ink, patchsize=(28, 16), rowgap=5),
-        Lines=(linewidth=3.0,),
-        Scatter=(markersize=6.8,),
+        Lines=(linewidth=2.8,),
+        Scatter=(markersize=10.0,),
     )
 end
 
@@ -212,7 +212,7 @@ function _modern_theme(appearance::Symbol)
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : _JF_INK
-    grid = dark ? _JF_DARK_GRID : "#b8bec7"
+    grid = dark ? "#66717d" : "#b8bec7"
     return merge(
         base,
         Theme(

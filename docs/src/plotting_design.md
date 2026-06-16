@@ -52,9 +52,10 @@ JuFitter has three style contracts. They correspond to real output contexts,
 not minor visual variations:
 
 - `:lab`: robust notebook and laboratory default. Neutral data, one blue
-  fit accent, visible grid, and readable plain-text reporting.
+  fit accent, cross-style data markers, visible grid, and readable plain-text
+  reporting. This is the closest style to the kafe2 everyday lab-plot layout.
 - `:modern`: Beautiful-Makie-inspired documentation and presentation style. It
-  keeps neutral data, uses a stronger blue fit accent, and gives bands,
+  uses round data markers, a stronger blue-green fit accent, and gives bands,
   errorbars, and labels more visual weight without changing the scientific
   layout.
 - `:article`: compact journal-oriented export with color-safe blue accents,
@@ -79,8 +80,8 @@ the public `theme` keyword changes.
 
 ```@raw html
 <div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="Lab plot style"><div><h3>lab</h3><p>Reliable default for notebooks, laboratory work, and ordinary reports.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_modern.png" alt="Modern plot style"><div><h3>modern</h3><p>Beautiful-Makie-inspired hierarchy: strong line, visible band, readable labels.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="Lab plot style"><div><h3>lab</h3><p>Kafe2-like working plot: cross markers, strong grid, high-contrast reporting.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_modern.png" alt="Modern plot style"><div><h3>modern</h3><p>Beautiful-Makie-inspired hierarchy: round markers, strong fit line, visible band.</p></div></div>
 <div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="Article plot style"><div><h3>article</h3><p>Compact vector-export geometry, Computer Modern typography, color-safe accents.</p></div></div>
 </div>
 ```
