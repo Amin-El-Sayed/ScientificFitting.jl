@@ -85,7 +85,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             error_whiskerwidth=5.0,
             stats_color=_JF_DARK_INK,
             stats_muted_color=_JF_DARK_MUTED,
-            stats_fontsize=15,
+            stats_fontsize=16,
         )
     elseif appearance == :dark
         return (
@@ -139,7 +139,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             error_whiskerwidth=5.0,
             stats_color=:black,
             stats_muted_color=:black,
-            stats_fontsize=15,
+            stats_fontsize=16,
         )
     end
 
@@ -241,17 +241,17 @@ function _article_theme(appearance::Symbol)
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : :black
     return Theme(
-        fontsize=15,
+        fontsize=16,
         font="CMU Serif",
         figure_padding=(12, 14, 10, 12),
         Figure=(backgroundcolor=paper,),
         Axis=(
-            xlabelsize=17,
-            ylabelsize=17,
-            titlesize=19,
-            titlegap=11,
-            xticklabelsize=13,
-            yticklabelsize=13,
+            xlabelsize=19,
+            ylabelsize=19,
+            titlesize=22,
+            titlegap=14,
+            xticklabelsize=15,
+            yticklabelsize=15,
             backgroundcolor=paper,
             xlabelcolor=ink,
             ylabelcolor=ink,
@@ -270,7 +270,7 @@ function _article_theme(appearance::Symbol)
         ),
         Legend=(
             framevisible=false,
-            labelsize=15,
+            labelsize=16,
             labelcolor=ink,
             patchsize=(26, 14),
             rowgap=4,
@@ -466,9 +466,18 @@ function _fit_plot_limits(x, y, xerr, yerr, xgrid, ygrid, band_sigma; padding::R
     return _padded_limits(x_values; padding=padding), _padded_limits(y_values; padding=padding)
 end
 
-function _default_grid(x::AbstractVector)
-    xlo = minimum(x)
-    xhi = maximum(x)
+function _fit_x_limits(x::AbstractVector, xerr; padding::Real)
+    x_values = Float64[]
+    append!(x_values, Float64.(x))
+    if xerr !== nothing
+        append!(x_values, Float64.(x .- xerr))
+        append!(x_values, Float64.(x .+ xerr))
+    end
+    return _padded_limits(x_values; padding=padding)
+end
+
+function _default_grid(x::AbstractVector; xlimits=nothing)
+    xlo, xhi = xlimits === nothing ? (minimum(x), maximum(x)) : xlimits
     if xlo == xhi
         xlo -= 0.5
         xhi += 0.5
@@ -1006,8 +1015,11 @@ uncertainty band, and an optional right-side information panel. Use
 context; `appearance=:light` or `:dark` controls the color scheme independently.
 `band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
-includes observation uncertainty in y and effective x uncertainty. Makie keyword
-containers can be passed as `NamedTuple`s or `Dict`s via the `*_kwargs` arguments.
+includes observation uncertainty in y and effective x uncertainty. With the
+default `fit_range=:axis`, the automatically generated model grid extends to
+the padded axis range; use `fit_range=:data` or pass `xgrid` to draw only over a
+specific domain. Makie keyword containers can be passed as `NamedTuple`s or
+`Dict`s via the `*_kwargs` arguments.
 """
 function plot_fit(
     result::FitResult;
@@ -1025,6 +1037,7 @@ function plot_fit(
     yunit=nothing,
     auto_limits::Bool=true,
     limit_padding::Real=0.08,
+    fit_range::Symbol=:axis,
     plot_aspect::Union{Nothing, Real}=nothing,
     figure_size::Union{Nothing, Tuple{<:Real, <:Real}}=nothing,
     stats_panel_width=:auto,
@@ -1077,6 +1090,7 @@ function plot_fit(
 )
     band in (:confidence, :prediction, :none) || throw(ArgumentError("band must be :confidence, :prediction, or :none"))
     stats_position in (:inside, :right) || throw(ArgumentError("stats_position must be :inside or :right"))
+    fit_range in (:axis, :data) || throw(ArgumentError("fit_range must be :axis or :data"))
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)
@@ -1121,7 +1135,8 @@ function plot_fit(
     xerr = _xerror_for_plot(result.problem, result.params)
     yerr = _yerror_for_plot(result.problem, result.params)
 
-    xg = xgrid === nothing ? _default_grid(x) : collect(Float64, xgrid)
+    grid_limits = xgrid === nothing && fit_range == :axis ? _fit_x_limits(x, xerr; padding=limit_padding) : nothing
+    xg = xgrid === nothing ? _default_grid(x; xlimits=grid_limits) : collect(Float64, xgrid)
     yg = _model_values(result.problem, result.params; x=xg)
     sg = Float64(nsigma) .* _fit_band_sigma(result, xg, band)
 
@@ -1611,6 +1626,7 @@ function plot_contour(
     show_heatmap::Bool=false,
     show_regions::Bool=true,
     show_legend::Bool=true,
+    show_profile_lines::Bool=false,
     level_colors=nothing,
     region_colors=nothing,
     line_color=nothing,
@@ -1655,6 +1671,7 @@ function plot_contour(
     colors = collect(level_colors)
     isempty(colors) && throw(ArgumentError("level_colors must contain at least one color"))
     regions = collect(region_colors)
+    draw_profile_lines = show_profile_lines || show_heatmap || !show_regions
     if show_regions && !show_heatmap
         isempty(regions) && throw(ArgumentError("region_colors must contain at least one color when show_regions=true"))
         contourf!(
@@ -1675,14 +1692,19 @@ function plot_contour(
     contour_labels = String[]
     for (index, level) in enumerate(plot_levels)
         color = line_color === nothing ? colors[mod1(index, length(colors))] : line_color
-        contour!(
-            ax,
-            contour_result.x_values,
-            contour_result.y_values,
-            contour_result.delta_cost;
-            _merged_kwargs((levels=[level], color=color, linewidth=3), contour_kwargs)...,
-        )
-        push!(contour_handles, LineElement(color=color, linewidth=3))
+        if draw_profile_lines
+            contour!(
+                ax,
+                contour_result.x_values,
+                contour_result.y_values,
+                contour_result.delta_cost;
+                _merged_kwargs((levels=[level], color=color, linewidth=3), contour_kwargs)...,
+            )
+            push!(contour_handles, LineElement(color=color, linewidth=3))
+        else
+            region_color = regions[mod1(index, length(regions))]
+            push!(contour_handles, PolyElement(color=region_color, strokecolor=:transparent))
+        end
         push!(contour_labels, contour_level_label(level))
     end
 
@@ -1853,6 +1875,8 @@ function plot_profile_matrix(
     local_color = diagnostic_colors.local_color
     level_colors = collect(diagnostic_colors.levels)
     isempty(level_colors) && (level_colors = [style.fit_color])
+    region_colors = collect(diagnostic_colors.regions)
+    isempty(region_colors) && (region_colors = [(style.fit_color, 0.20)])
     corr_color = style.stats_muted_color
 
     for row in 1:n, col in 1:n
@@ -1882,17 +1906,14 @@ function plot_profile_matrix(
             xindex = selected[col]
             yindex = selected[row]
             cont = matrix.contours[(xindex, yindex)]
-            for (level_index, level) in enumerate(cont.levels)
-                contour!(
-                    ax,
-                    cont.x_values,
-                    cont.y_values,
-                    cont.delta_cost;
-                    levels=[level],
-                    color=level_colors[mod1(level_index, length(level_colors))],
-                    linewidth=2.2,
-                )
-            end
+            contourf!(
+                ax,
+                cont.x_values,
+                cont.y_values,
+                cont.delta_cost;
+                levels=vcat(0.0, sort(unique(cont.levels))),
+                colormap=region_colors,
+            )
             local_cov = result.param_covariance[[xindex, yindex], [xindex, yindex]]
             if all(isfinite, local_cov)
                 local_delta = _local_contour_delta(local_cov, result.params[[xindex, yindex]], cont.x_values, cont.y_values)
@@ -1925,10 +1946,11 @@ function plot_profile_matrix(
 
     handles = Any[
         LineElement(color=profile_color, linewidth=2.2),
+        PolyElement(color=region_colors[1], strokecolor=:transparent),
         LineElement(color=local_color, linewidth=1.8, linestyle=:dash),
         MarkerElement(marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color),
     ]
-    labels = ["profile scan / contour", "local covariance approximation", "fit minimum"]
+    labels = ["profile scan", "profile contour region", "local covariance approximation", "fit minimum"]
     Legend(fig[n + 1, 1:n], handles, labels; framevisible=false, orientation=:horizontal, tellheight=true)
 
     if filename !== nothing

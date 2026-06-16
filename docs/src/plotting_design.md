@@ -102,9 +102,13 @@ gallery look.
 - `report=:plot | :console | :both | :none`
 - `band=:none | :confidence | :prediction`
 - `nsigma`
+- `fit_range=:axis | :data`; the default draws the model to the padded axis
+  range, while `:data` keeps the model strictly between the first and last
+  measured x value
 - `show_legend`, `stats_position=:right | :inside`, `show_residuals`, `show_pulls`
 - `plot_contour(...; show_regions=true, show_heatmap=false)` for threshold-first
-  contour diagnostics; heatmaps remain available for explicit surface analysis
+  contour diagnostics; profile regions are filled by default and the optional
+  local covariance approximation remains a line overlay
 - `plot_profile_matrix(...)` for a compact multi-parameter overview with
   diagonal profile scans, lower-triangle pairwise contours, local covariance
   overlays, and upper-triangle correlation coefficients

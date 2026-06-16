@@ -339,6 +339,7 @@ function save_photoelectric_work_function(
     baseline_band = (baseline_color, style == :article ? 0.09 : 0.18)
     error_whiskerwidth = palette.error_whiskerwidth
     fit_linewidth = palette.fit_linewidth
+    article = style == :article
 
     derived = line_intersection(emission_result, baseline_result)
     threshold = derived.threshold
@@ -349,18 +350,25 @@ function save_photoelectric_work_function(
     baseline_slope, baseline_intercept = baseline_result.params
 
     fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1460, 800), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
+        Figure(size=(1360, 800), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
     end
     ax = Axis(
         fig[1, 1];
         title="Photoelectric work-function extraction",
-        xlabel="frequency ν (THz)",
-        ylabel="stopping voltage U₀ (V)",
+        xlabel=article ? L"\nu\;(\mathrm{THz})" : "frequency ν (THz)",
+        ylabel=article ? L"U_0\;(\mathrm{V})" : "stopping voltage U₀ (V)",
     )
 
     errorbars!(ax, frequency, voltage, sigma_voltage; color=(muted, 0.44), whiskerwidth=error_whiskerwidth)
     errorbars!(ax, frequency, voltage, sigma_frequency; direction=:x, color=(muted, 0.30), whiskerwidth=error_whiskerwidth)
-    scatter!(ax, frequency[emission_mask], voltage[emission_mask]; color=color, markersize=palette.data_markersize, label="emission regime")
+    scatter!(
+        ax,
+        frequency[emission_mask],
+        voltage[emission_mask];
+        color=color,
+        markersize=palette.data_markersize,
+        label=article ? L"\mathrm{emission\ regime}" : "emission regime",
+    )
     scatter!(
         ax,
         frequency[.!emission_mask],
@@ -368,7 +376,7 @@ function save_photoelectric_work_function(
         color=baseline_color,
         marker=:diamond,
         markersize=palette.data_markersize,
-        label="baseline regime",
+        label=article ? L"\mathrm{baseline\ regime}" : "baseline regime",
     )
 
     xmin, xmax = extrema(frequency)
@@ -378,12 +386,32 @@ function save_photoelectric_work_function(
     J = hcat(xg, ones(length(xg)))
     emission_sigma = sqrt.(clamp.(vec(sum((J * emission_result.param_covariance) .* J; dims=2)), 0.0, Inf))
     baseline_sigma = sqrt.(clamp.(vec(sum((J * baseline_result.param_covariance) .* J; dims=2)), 0.0, Inf))
-    band!(ax, xg, emission_y .- emission_sigma, emission_y .+ emission_sigma; color=emission_band, label="emission 1σ fit band")
-    band!(ax, xg, baseline_y .- baseline_sigma, baseline_y .+ baseline_sigma; color=baseline_band, label="baseline 1σ fit band")
-    lines!(ax, xg, emission_y; color=emission_color, linewidth=fit_linewidth, label="emission fit")
-    lines!(ax, xg, baseline_y; color=baseline_color, linewidth=fit_linewidth, label="baseline fit")
+    band!(
+        ax,
+        xg,
+        emission_y .- emission_sigma,
+        emission_y .+ emission_sigma;
+        color=emission_band,
+        label=article ? L"\mathrm{emission\ }1\sigma\mathrm{\ fit\ band}" : "emission 1σ fit band",
+    )
+    band!(
+        ax,
+        xg,
+        baseline_y .- baseline_sigma,
+        baseline_y .+ baseline_sigma;
+        color=baseline_band,
+        label=article ? L"\mathrm{baseline\ }1\sigma\mathrm{\ fit\ band}" : "baseline 1σ fit band",
+    )
+    lines!(ax, xg, emission_y; color=emission_color, linewidth=fit_linewidth, label=article ? L"\mathrm{emission\ fit}" : "emission fit")
+    lines!(ax, xg, baseline_y; color=baseline_color, linewidth=fit_linewidth, label=article ? L"\mathrm{baseline\ fit}" : "baseline fit")
 
-    vspan!(ax, threshold - sigma_threshold, threshold + sigma_threshold; color=(threshold_color, 0.14), label="intersection 1σ interval")
+    vspan!(
+        ax,
+        threshold - sigma_threshold,
+        threshold + sigma_threshold;
+        color=(threshold_color, 0.14),
+        label=article ? L"\mathrm{intersection\ }1\sigma\mathrm{\ interval}" : "intersection 1σ interval",
+    )
     vlines!(ax, [threshold]; color=(threshold_color, 0.85), linestyle=:dash, linewidth=max(1.8, fit_linewidth - 0.2))
     threshold_y = emission_slope * threshold + emission_intercept
     scatter!(
@@ -393,13 +421,13 @@ function save_photoelectric_work_function(
         color=threshold_color,
         marker=:star5,
         markersize=style == :article ? 13 : 16,
-        label="line intersection",
+        label=article ? L"\mathrm{line\ intersection}" : "line intersection",
     )
     limits!(ax, xmin - 20, xmax + 20, minimum(voltage .- sigma_voltage) - 0.16, maximum(voltage .+ sigma_voltage) + 0.25)
 
     h_fit = emission_slope * 1.602176634e-19 / 1e12
     sigma_h = sqrt(max(emission_result.param_covariance[1, 1], 0.0)) * 1.602176634e-19 / 1e12
-    parameter_lines = if style == :article
+    parameter_lines = if article
         [
             LaTeXString("m_{\\mathrm{emit}} = $(fmt_tex(emission_slope, 5))\\;\\mathrm{V/THz}"),
             LaTeXString("h = $(fmt_tex(h_fit, 4)) \\pm $(fmt_tex(sigma_h, 2))\\;\\mathrm{J\\,s}"),
@@ -416,7 +444,7 @@ function save_photoelectric_work_function(
             "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_work_function_eV, 2)) eV",
         ]
     end
-    statistic_lines = if style == :article
+    statistic_lines = if article
         [
             LaTeXString("\\chi^2_{\\mathrm{emit}}/\\mathrm{ndf} = $(fmt_tex(emission_result.stats.chi2_ndf, 4))"),
             LaTeXString("\\chi^2_{\\mathrm{base}}/\\mathrm{ndf} = $(fmt_tex(baseline_result.stats.chi2_ndf, 4))"),
@@ -430,14 +458,15 @@ function save_photoelectric_work_function(
     plot_info_panel!(
         fig[1, 2];
         legend_source=ax,
-        model_label=style == :article ? L"U_0(\nu)=m_r\nu+b_r" : "U0(ν) = mr ν + br",
+        model_label=article ? L"U_0(\nu)=m_r\nu+b_r" : "U0(ν) = mr ν + br",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
         color=palette.stats_color,
-        fontsize=palette.stats_fontsize + 4,
+        fontsize=palette.stats_fontsize + 5,
         muted_color=muted,
     )
-    colsize!(fig.layout, 2, Fixed(480))
+    colsize!(fig.layout, 2, Fixed(390))
+    colgap!(fig.layout, 18)
     suffix = dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
     save(gallery_path("$(name)_$(suffix).png"), fig)
 end

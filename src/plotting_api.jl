@@ -6,6 +6,10 @@ Create a Makie fit figure from an existing `FitResult` or directly from data and
 a model. The default layout shows data, fitted model, uncertainty band, and an
 optional right-side report without requiring manual margin tuning.
 
+The default `fit_range=:axis` draws the fitted model over the padded axis range.
+Use `fit_range=:data` or pass `xgrid` when the curve should stop at a specific
+domain boundary.
+
 Plotting is provided by the optional CairoMakie extension. Load it with
 `using CairoMakie` before calling plot functions. Fitting and text reports work
 without CairoMakie.

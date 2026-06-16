@@ -89,6 +89,10 @@ belongs in a cache.
   unused grid tracks, but it must never resize the output around a short legend
   or report. This keeps data axes comparable across fits and prevents later
   Makie additions from changing the exported footprint.
+- `plot_fit` defaults to `fit_range=:axis`, so automatically generated model
+  curves and bands extend to the padded x-axis range rather than stopping at
+  the first and last measured data point. Use `fit_range=:data` or an explicit
+  `xgrid` when extrapolation would be scientifically misleading.
 - `plot_info_panel!` is top-aligned and does not report its compact content
   height to the parent layout. The data axis or compound diagnostic grid owns
   the row height; the report must never collapse or vertically center it.
@@ -139,9 +143,10 @@ belongs in a cache.
   place the image underneath Documenter's fixed navigation sidebar.
 - Gallery asset regeneration is a visual change and must be checked in both
   themes before commit.
-- Contour diagnostics default to labeled confidence regions and an optional
-  local-covariance overlay. Delta-cost heatmaps are opt-in because they are
-  useful for surface inspection but slower to interpret as uncertainty regions.
+- Contour diagnostics default to filled confidence regions and an optional
+  local-covariance line overlay. Delta-cost heatmaps are opt-in because they
+  are useful for surface inspection but slower to interpret as uncertainty
+  regions.
 - A gallery plot must state the uncertainty model, band type, and sigma level.
   Controlled demonstrations must be labeled as such; constructed data must
   never be presented as archival measurements.

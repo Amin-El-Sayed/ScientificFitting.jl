@@ -6,6 +6,7 @@ if RENDER_DOC_ASSETS
 end
 
 using JuFitter
+using LaTeXStrings
 using LinearAlgebra
 using Printf
 
@@ -94,6 +95,13 @@ function drift_prediction_sigma(result, t, sigma_y, sigma_t)
 end
 
 fmt(x, digits=4) = @sprintf("%.*g", digits, x)
+function fmt_tex(x, digits=4)
+    value = fmt(x, digits)
+    scientific = match(r"^(.+)[eE]([+-]?\d+)$", value)
+    scientific === nothing && return value
+    mantissa, exponent = scientific.captures
+    return mantissa * "\\times10^{" * string(parse(Int, exponent)) * "}"
+end
 
 function style_asset_suffix(dark, style::Symbol, appearance::Symbol)
     return dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
@@ -134,27 +142,32 @@ function save_model_comparison(
     pull_1sigma = (palette.band_color, dark_mode ? 0.15 : 0.24)
     pull_2sigma = (palette.band_color, dark_mode ? 0.07 : 0.11)
     background = dark_mode ? "#111318" : (style == :modern ? "#fbfcfd" : "#ffffff")
+    article = style == :article
+    fit_title = "Free decay: constant frequency versus frequency drift"
+    angle_label = article ? L"\varphi\;(\mathrm{rad})" : "angle φ (rad)"
+    pull_label = article ? L"r_i" : "pull rᵢ"
+    time_label = article ? L"t\;(\mathrm{s})" : "elapsed time t (s)"
 
     figure = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1540, 960), backgroundcolor=background)
+        Figure(size=(1440, 960), backgroundcolor=background)
     end
     fit_axis = Axis(
         figure[1, 1];
-        title="Free decay: constant frequency versus frequency drift",
-        ylabel="angle φ (rad)",
+        title=fit_title,
+        ylabel=angle_label,
     )
     constant_pull_axis = Axis(
         figure[2, 1];
         title="Pulls: constant-frequency model",
         titlealign=:left,
-        ylabel="pull rᵢ",
+        ylabel=pull_label,
     )
     drift_pull_axis = Axis(
         figure[3, 1];
         title="Pulls: frequency-drift model",
         titlealign=:left,
-        xlabel="elapsed time t (s)",
-        ylabel="pull rᵢ",
+        xlabel=time_label,
+        ylabel=pull_label,
     )
 
     time_grid = collect(range(minimum(time), maximum(time); length=1800))
@@ -230,14 +243,29 @@ function save_model_comparison(
     sigma_damping_time = drift_result.param_stderr[4] / drift_result.params[4]^2
     delta_aic = constant_result.stats.aic - drift_result.stats.aic
 
-    parameter_lines = [
+    parameter_lines = article ? Any[
+        LaTeXString("\\omega_{\\mathrm{ref}} = $(fmt_tex(drift_result.params[2], 6)) \\pm $(fmt_tex(drift_result.param_stderr[2], 2))\\;\\mathrm{rad\\,s^{-1}}"),
+        LaTeXString("\\beta = $(fmt_tex(1e3 * beta, 5)) \\pm $(fmt_tex(1e3 * sigma_beta, 2))\\;\\mathrm{mrad\\,s^{-2}}"),
+        LaTeXString("\\Delta\\omega_{60s} = $(fmt_tex(frequency_change, 4)) \\pm $(fmt_tex(sigma_frequency_change, 2))\\;\\mathrm{rad\\,s^{-1}}"),
+        LaTeXString("\\lambda = $(fmt_tex(drift_result.params[4], 5)) \\pm $(fmt_tex(drift_result.param_stderr[4], 2))\\;\\mathrm{s^{-1}}"),
+        LaTeXString("\\tau_d = $(fmt_tex(damping_time, 5)) \\pm $(fmt_tex(sigma_damping_time, 2))\\;\\mathrm{s}"),
+    ] : Any[
         "ωref = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹",
         "β = $(fmt(1e3 * beta, 5)) ± $(fmt(1e3 * sigma_beta, 2)) mrad s⁻²",
         "Δω over 60 s = $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹",
         "λ = $(fmt(drift_result.params[4], 5)) ± $(fmt(drift_result.param_stderr[4], 2)) s⁻¹",
         "τd = $(fmt(damping_time, 5)) ± $(fmt(sigma_damping_time, 2)) s",
     ]
-    statistic_lines = [
+    statistic_lines = article ? Any[
+        LaTeXString("\\chi^2_{\\mathrm{const}}/\\mathrm{ndf} = $(fmt_tex(constant_result.stats.chi2_ndf, 4))"),
+        LaTeXString("P_{\\mathrm{const}}(\\chi^2) = $(fmt_tex(constant_result.stats.pvalue, 3))"),
+        "constant diagnostic = $(diagnostic_dashboard(constant_result).status)",
+        LaTeXString("\\chi^2_{\\mathrm{drift}}/\\mathrm{ndf} = $(fmt_tex(drift_result.stats.chi2_ndf, 4))"),
+        LaTeXString("P_{\\mathrm{drift}}(\\chi^2) = $(fmt_tex(drift_result.stats.pvalue, 3))"),
+        "drift diagnostic = $(diagnostic_dashboard(drift_result).status)",
+        LaTeXString("\\Delta\\mathrm{AIC} = $(fmt_tex(delta_aic, 5))\\;\\mathrm{in\\ favor\\ of\\ drift}"),
+        LaTeXString("\\chi^2/\\mathrm{ndf} \\ll 1\\;\\mathrm{still\\ requires\\ review}"),
+    ] : Any[
         "constant model: χ²/ndf = $(fmt(constant_result.stats.chi2_ndf, 4))",
         "constant model: P(χ²) = $(fmt(constant_result.stats.pvalue, 3))",
         "constant diagnostic = $(diagnostic_dashboard(constant_result).status)",
@@ -251,19 +279,20 @@ function save_model_comparison(
         figure[1:3, 2];
         legend_source=fit_axis,
         title="Frequency-drift result",
-        model_label="A exp(-λt) cos(ωref t + βt²/2 + φ)",
+        model_label=article ? L"A e^{-\lambda t}\cos(\omega_{\mathrm{ref}}t+\beta t^2/2+\varphi)" :
+            "A exp(-λt) cos(ωref t + βt²/2 + φ)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
         color=foreground,
         muted_color=muted,
-        fontsize=palette.stats_fontsize,
+        fontsize=palette.stats_fontsize + 1,
     )
 
     rowsize!(figure.layout, 1, Relative(0.62))
     rowsize!(figure.layout, 2, Relative(0.19))
     rowsize!(figure.layout, 3, Relative(0.19))
-    colsize!(figure.layout, 2, Fixed(470))
-    colgap!(figure.layout, 24)
+    colsize!(figure.layout, 2, Fixed(400))
+    colgap!(figure.layout, 18)
     save(filename, figure)
 end
 
