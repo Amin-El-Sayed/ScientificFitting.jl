@@ -96,6 +96,14 @@ belongs in a cache.
 - `plot_info_panel!` is top-aligned and does not report its compact content
   height to the parent layout. The data axis or compound diagnostic grid owns
   the row height; the report must never collapse or vertically center it.
+- `plot_info_panel!` does report its natural width to Makie's layout. Right-side
+  panels should therefore use `Auto()` column sizing by default; `Fixed(...)`
+  widths are reserved for explicit export constraints and must not be used to
+  tune ordinary margins by eye.
+- Do not use `resize_to_layout!` as a default for fit figures with a flexible
+  data-axis column. In Makie this is useful when content determines the whole
+  figure footprint, but JuFitter's data axis intentionally absorbs spare width;
+  a global resize can collapse compact right-panel plots to the panel height.
 - Standard fit, profile, contour, residual, and diagnostic plots all resolve
   color and light/dark appearance through the same style contract. A
   documentation-wide style selector must only reference plots that have
@@ -138,15 +146,21 @@ belongs in a cache.
   contour, and multi-dataset assets must be regenerated as
   `:lab`, `:modern`, and `:article` variants for both light and
   dark appearances whenever their generator changes.
+- Keep the public plotting surface in `plotting_api.jl` small. The CairoMakie
+  implementation is currently centralized in `plotting.jl`; if it is split,
+  divide it mechanically by style/layout, fit rendering, and diagnostic
+  rendering. Do not add a second layout abstraction on top of Makie's grid
+  system merely to reduce file length.
 - Wide documentation plots expand from the article's left edge toward the
   available right side. They must not be viewport-centered because that can
   place the image underneath Documenter's fixed navigation sidebar.
 - Gallery asset regeneration is a visual change and must be checked in both
   themes before commit.
 - Contour diagnostics default to filled confidence regions and an optional
-  local-covariance line overlay. Delta-cost heatmaps are opt-in because they
-  are useful for surface inspection but slower to interpret as uncertainty
-  regions.
+  local-covariance line overlay. Legends must name the confidence threshold
+  and identify the covariance overlay as the local parabolic approximation.
+  Delta-cost heatmaps are opt-in because they are useful for surface inspection
+  but slower to interpret as uncertainty regions.
 - A gallery plot must state the uncertainty model, band type, and sigma level.
   Controlled demonstrations must be labeled as such; constructed data must
   never be presented as archival measurements.
@@ -245,6 +259,9 @@ that every result or failure is statistically interpretable.
 
 - Structured covariance API: banded, Toeplitz, low-rank-plus-diagonal, sparse
   precision, and custom whitening operators.
+- Static sparse `cov_y` currently stays sparse on the unbounded least-squares
+  path. AD-dependent sparse covariance objectives still need a matrix-free
+  whitening design instead of CHOLMOD factor solves through `ForwardDiff`.
 - In-place model evaluation for very large datasets.
 - Analytic Jacobian hooks for likelihood models, not only XY models.
 - Specialized optimizers for common likelihood families.

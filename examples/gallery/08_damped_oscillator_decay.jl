@@ -242,6 +242,9 @@ function save_model_comparison(
     damping_time = 1 / drift_result.params[4]
     sigma_damping_time = drift_result.param_stderr[4] / drift_result.params[4]^2
     delta_aic = constant_result.stats.aic - drift_result.stats.aic
+    status_text(status) = status == :stop ? "critical" : string(status)
+    constant_status = status_text(diagnostic_dashboard(constant_result).status)
+    drift_status = status_text(diagnostic_dashboard(drift_result).status)
 
     parameter_lines = article ? Any[
         LaTeXString("\\omega_{\\mathrm{ref}} = $(fmt_tex(drift_result.params[2], 6)) \\pm $(fmt_tex(drift_result.param_stderr[2], 2))\\;\\mathrm{rad\\,s^{-1}}"),
@@ -250,7 +253,7 @@ function save_model_comparison(
         LaTeXString("\\lambda = $(fmt_tex(drift_result.params[4], 5)) \\pm $(fmt_tex(drift_result.param_stderr[4], 2))\\;\\mathrm{s^{-1}}"),
         LaTeXString("\\tau_d = $(fmt_tex(damping_time, 5)) \\pm $(fmt_tex(sigma_damping_time, 2))\\;\\mathrm{s}"),
     ] : Any[
-        "ωref = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹",
+        "ωᵣ = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹",
         "β = $(fmt(1e3 * beta, 5)) ± $(fmt(1e3 * sigma_beta, 2)) mrad s⁻²",
         "Δω over 60 s = $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹",
         "λ = $(fmt(drift_result.params[4], 5)) ± $(fmt(drift_result.param_stderr[4], 2)) s⁻¹",
@@ -259,28 +262,26 @@ function save_model_comparison(
     statistic_lines = article ? Any[
         LaTeXString("\\chi^2_{\\mathrm{const}}/\\mathrm{ndf} = $(fmt_tex(constant_result.stats.chi2_ndf, 4))"),
         LaTeXString("P_{\\mathrm{const}}(\\chi^2) = $(fmt_tex(constant_result.stats.pvalue, 3))"),
-        "constant diagnostic = $(diagnostic_dashboard(constant_result).status)",
+        "constant diagnostic = $constant_status",
         LaTeXString("\\chi^2_{\\mathrm{drift}}/\\mathrm{ndf} = $(fmt_tex(drift_result.stats.chi2_ndf, 4))"),
         LaTeXString("P_{\\mathrm{drift}}(\\chi^2) = $(fmt_tex(drift_result.stats.pvalue, 3))"),
-        "drift diagnostic = $(diagnostic_dashboard(drift_result).status)",
+        "drift diagnostic = $drift_status",
         LaTeXString("\\Delta\\mathrm{AIC} = $(fmt_tex(delta_aic, 5))\\;\\mathrm{in\\ favor\\ of\\ drift}"),
-        LaTeXString("\\chi^2/\\mathrm{ndf} \\ll 1\\;\\mathrm{still\\ requires\\ review}"),
     ] : Any[
         "constant model: χ²/ndf = $(fmt(constant_result.stats.chi2_ndf, 4))",
         "constant model: P(χ²) = $(fmt(constant_result.stats.pvalue, 3))",
-        "constant diagnostic = $(diagnostic_dashboard(constant_result).status)",
+        "constant diagnostic = $constant_status",
         "drift model: χ²/ndf = $(fmt(drift_result.stats.chi2_ndf, 4))",
         "drift model: P(χ²) = $(fmt(drift_result.stats.pvalue, 3))",
-        "drift diagnostic = $(diagnostic_dashboard(drift_result).status)",
+        "drift diagnostic = $drift_status",
         "ΔAIC = $(fmt(delta_aic, 5)) in favor of drift",
-        "χ²/ndf ≪ 1 still requires review",
     ]
     plot_info_panel!(
         figure[1:3, 2];
         legend_source=fit_axis,
         title="Frequency-drift result",
         model_label=article ? L"A e^{-\lambda t}\cos(\omega_{\mathrm{ref}}t+\beta t^2/2+\varphi)" :
-            "A exp(-λt) cos(ωref t + βt²/2 + φ)",
+            "A exp(−λt) cos(ωᵣt + βt²/2 + φ)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
         color=foreground,
@@ -291,7 +292,6 @@ function save_model_comparison(
     rowsize!(figure.layout, 1, Relative(0.62))
     rowsize!(figure.layout, 2, Relative(0.19))
     rowsize!(figure.layout, 3, Relative(0.19))
-    colsize!(figure.layout, 2, Fixed(400))
     colgap!(figure.layout, 18)
     save(filename, figure)
 end

@@ -75,40 +75,6 @@ sigma_gain_gap = sqrt(dot(
     partial_shared_result.param_covariance * gain_gap_gradient,
 ))
 
-function multi_theme(dark::Bool)
-    foreground = dark ? "#edf2f4" : "#14151a"
-    muted = dark ? "#b8c1ca" : "#5b6270"
-    grid = dark ? ("#2a313a", 0.85) : ("#e9eef4", 0.95)
-    background = dark ? "#111318" : "#ffffff"
-    return Theme(
-        fontsize=20,
-        font="TeX Gyre Heros",
-        Figure=(backgroundcolor=background,),
-        Axis=(
-            backgroundcolor=background,
-            xlabelsize=27,
-            ylabelsize=27,
-            titlesize=26,
-            xticklabelsize=20,
-            yticklabelsize=20,
-            xlabelcolor=foreground,
-            ylabelcolor=foreground,
-            titlecolor=foreground,
-            xticklabelcolor=foreground,
-            yticklabelcolor=foreground,
-            xtickcolor=foreground,
-            ytickcolor=foreground,
-            xgridcolor=grid,
-            ygridcolor=grid,
-            topspinevisible=false,
-            rightspinevisible=false,
-            leftspinecolor=foreground,
-            bottomspinecolor=foreground,
-        ),
-        Legend=(framevisible=false, labelcolor=foreground, labelsize=19, patchsize=(30, 16)),
-    )
-end
-
 function confidence_band(result, parameter_indices, x)
     local_covariance = result.param_covariance[parameter_indices, parameter_indices]
     jacobian = hcat(x, ones(length(x)))
@@ -248,8 +214,6 @@ function save_multi_dataset_calibration(
     ylims!(shared_pull_axis, -3.4, 3.4)
     ylims!(partial_pull_axis, -3.4, 3.4)
 
-    side = GridLayout()
-    figure[1:3, 2] = side
     legend_elements = LegendElement[
         MarkerElement(color=colors[i], marker=markers[i], markersize=12)
         for i in eachindex(labels)
@@ -262,56 +226,40 @@ function save_multi_dataset_calibration(
             PolyElement(color=(palette.band_color, dark_mode ? 0.18 : 0.28)),
         ],
     )
-    Legend(
-        side[1, 1],
-        legend_elements,
-        [
+    plot_info_panel!(
+        figure[1:3, 2];
+        legend_plots=legend_elements,
+        legend_labels=[
             labels...,
             "partial-sharing model",
             "all-shared-gain hypothesis",
             "local 1σ fit band",
-        ];
-        framevisible=false,
-        tellheight=true,
-        nbanks=2,
-        labelsize=palette.stats_fontsize + 1,
-    )
-    report_axis = Axis(side[2, 1]; backgroundcolor=:transparent)
-    hidedecorations!(report_axis)
-    hidespines!(report_axis)
-    text!(
-        report_axis,
-        0,
-        1;
-        text="partial-sharing result\n" *
-             "  gain A/B = $(fmt(partial_shared_result.params[1], 6)) ± $(fmt(partial_shared_result.param_stderr[1], 2))\n" *
-             "  gain C = $(fmt(partial_shared_result.params[4], 6)) ± $(fmt(partial_shared_result.param_stderr[4], 2))\n" *
-             "  gain C − gain A/B\n" *
-             "    $(fmt(gain_gap, 5)) ± $(fmt(sigma_gain_gap, 2))\n" *
-             "    $(fmt(gain_gap / sigma_gain_gap, 3))σ from zero\n\n" *
-             "all-shared-gain hypothesis\n" *
-             "  χ²/ndf = $(fmt(all_shared_result.stats.chi2_ndf, 4))\n" *
-             "  P(χ²) = $(fmt(all_shared_result.stats.pvalue, 4))\n" *
-             "  AIC = $(fmt(all_shared_result.stats.aic, 5))\n\n" *
-             "partial-sharing model\n" *
-             "  χ²/ndf = $(fmt(partial_shared_result.stats.chi2_ndf, 4))\n" *
-             "  P(χ²) = $(fmt(partial_shared_result.stats.pvalue, 4))\n" *
-             "  AIC = $(fmt(partial_shared_result.stats.aic, 5))\n\n" *
-             "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))\n" *
-             "Do not transfer channel C's gain.",
-        space=:relative,
-        align=(:left, :top),
+        ],
+        legend_kwargs=(nbanks=2, labelsize=palette.stats_fontsize + 1),
+        title="Partial-sharing result",
+        parameter_lines=[
+            "gain A/B = $(fmt(partial_shared_result.params[1], 6)) ± $(fmt(partial_shared_result.param_stderr[1], 2))",
+            "gain C = $(fmt(partial_shared_result.params[4], 6)) ± $(fmt(partial_shared_result.param_stderr[4], 2))",
+            "gain C − gain A/B = $(fmt(gain_gap, 5)) ± $(fmt(sigma_gain_gap, 2))",
+            "difference = $(fmt(gain_gap / sigma_gain_gap, 3))σ from zero",
+        ],
+        statistic_lines=[
+            "all-shared: χ²/ndf = $(fmt(all_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(all_shared_result.stats.pvalue, 4))",
+            "all-shared: AIC = $(fmt(all_shared_result.stats.aic, 5))",
+            "partial-sharing: χ²/ndf = $(fmt(partial_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(partial_shared_result.stats.pvalue, 4))",
+            "partial-sharing: AIC = $(fmt(partial_shared_result.stats.aic, 5))",
+            "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))",
+            "Do not transfer channel C's gain.",
+        ],
         color=foreground,
+        muted_color=muted,
         fontsize=palette.stats_fontsize + 2,
-        lineheight=1.08,
     )
 
-    rowsize!(side, 1, Auto())
-    rowsize!(side, 2, Relative(1))
     rowsize!(figure.layout, 1, Relative(0.58))
     rowsize!(figure.layout, 2, Relative(0.21))
     rowsize!(figure.layout, 3, Relative(0.21))
-    colsize!(figure.layout, 2, Fixed(600))
+    colgap!(figure.layout, 24)
     save(filename, figure)
 end
 
@@ -322,10 +270,6 @@ if MULTI_RENDER_DOC_ASSETS
     for (dark, suffix) in ((false, "light"), (true, "dark"))
         save_multi_dataset_calibration(
             joinpath(MULTI_OUTPUT_DIR, "10_multi_dataset_calibration_$(suffix).png");
-            dark=dark,
-        )
-        save_multi_dataset_calibration(
-            joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(suffix).png");
             dark=dark,
         )
     end

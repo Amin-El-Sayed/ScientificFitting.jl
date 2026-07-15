@@ -389,10 +389,9 @@ function _fit_band_sigma(result::FitResult, xgrid::AbstractVector, band::Symbol)
     return zeros(Float64, length(xgrid))
 end
 
-function _panel_width_px(stats_panel_width, fig_width::Int, stats_lines)
+function _panel_width_px(stats_panel_width, fig_width::Int)
     if stats_panel_width === :auto
-        max_chars = maximum(length(string(line)) for line in stats_lines; init=24)
-        return clamp(130 + 8 * max_chars, 300, 520)
+        return nothing
     end
 
     stats_panel_width isa Real || throw(ArgumentError("stats_panel_width must be :auto or a positive number"))
@@ -401,6 +400,16 @@ function _panel_width_px(stats_panel_width, fig_width::Int, stats_lines)
         return clamp(Int(round(fig_width * stats_panel_width)), 300, 560)
     end
     return Int(round(stats_panel_width))
+end
+
+function _apply_right_panel_sizing!(fig, panel_width_px)
+    if panel_width_px === nothing
+        colsize!(fig.layout, 2, Auto())
+    else
+        colsize!(fig.layout, 2, Fixed(panel_width_px))
+    end
+    colsize!(fig.layout, 1, Auto(1))
+    return nothing
 end
 
 function _label_with_unit(label, unit)
@@ -735,16 +744,18 @@ function plot_info_panel!(
     color=_JF_INK,
     muted_color=_JF_MUTED,
     legend_kwargs=NamedTuple(),
+    tellwidth::Bool=true,
+    tellheight::Bool=false,
 )
     # The panel must not dictate the height of its parent row. Otherwise a
     # compact report vertically centers and shrinks the adjacent data axis.
-    panel_grid = GridLayout(cell; tellwidth=false, tellheight=false, valign=:top)
+    panel_grid = GridLayout(cell; tellwidth=tellwidth, tellheight=tellheight, valign=:top)
     row = 1
     generous_gaps = Int[]
 
     legend_defaults = (
         framevisible=false,
-        tellwidth=false,
+        tellwidth=true,
         tellheight=true,
         halign=:left,
         valign=:top,
@@ -772,7 +783,7 @@ function plot_info_panel!(
             panel_grid[row, 1],
             title;
             halign=:left,
-            tellwidth=false,
+            tellwidth=true,
             fontsize=fontsize + 1,
             color=color,
         )
@@ -784,7 +795,7 @@ function plot_info_panel!(
             panel_grid[row, 1],
             model_label;
             halign=:left,
-            tellwidth=false,
+            tellwidth=true,
             fontsize=fontsize + 1,
             color=color,
         )
@@ -797,7 +808,7 @@ function plot_info_panel!(
             panel_grid[row, 1],
             line;
             halign=:left,
-            tellwidth=false,
+            tellwidth=true,
             fontsize=fontsize,
             color=color,
         )
@@ -810,7 +821,7 @@ function plot_info_panel!(
             panel_grid[row, 1],
             line;
             halign=:left,
-            tellwidth=false,
+            tellwidth=true,
             fontsize=fontsize,
             color=muted_color,
         )
@@ -828,7 +839,7 @@ end
 function _draw_right_stats!(
     fig,
     stats_lines;
-    panel_width_px::Int,
+    panel_width_px::Union{Nothing, Int},
     parameter_count::Int,
     kwargs...,
 )
@@ -838,8 +849,7 @@ function _draw_right_stats!(
         statistic_lines=stats_lines[(parameter_count + 1):end],
         kwargs...,
     )
-    colsize!(fig.layout, 2, Fixed(panel_width_px))
-    colsize!(fig.layout, 1, Auto(1))
+    _apply_right_panel_sizing!(fig, panel_width_px)
     return nothing
 end
 
@@ -977,10 +987,6 @@ end
         stats_box_alpha=0.95,
         stats_box_strokecolor=_JF_GRID,
         stats_box_strokewidth=1.0,
-        stats_linegap=2,
-        stats_label_kwargs=NamedTuple(),
-        stats_title_kwargs=NamedTuple(),
-        stats_box_kwargs=NamedTuple(),
         show_legend=false,
         legend_position=:rt,
         axis_kwargs=NamedTuple(),
@@ -1057,10 +1063,6 @@ function plot_fit(
     stats_box_alpha::Real=0.95,
     stats_box_strokecolor=_JF_GRID,
     stats_box_strokewidth::Real=1.0,
-    stats_linegap::Real=2,
-    stats_label_kwargs=NamedTuple(),
-    stats_title_kwargs=NamedTuple(),
-    stats_box_kwargs=NamedTuple(),
     show_legend::Bool=false,
     legend_position=:rt,
     axis_kwargs=NamedTuple(),
@@ -1258,7 +1260,7 @@ function plot_fit(
             box_strokewidth=stats_box_strokewidth,
         )
     elseif show_stats && stats_position == :right
-        panel_width_px = _panel_width_px(stats_panel_width, fig_size[1], right_stats_lines)
+        panel_width_px = _panel_width_px(stats_panel_width, fig_size[1])
         _draw_right_stats!(
             fig,
             right_stats_lines;
@@ -1684,10 +1686,16 @@ function plot_contour(
         )
     end
 
-    contour_level_label(level) =
-        isapprox(level, 2.30; atol=0.015) ? "profile 1σ (2 parameters)" :
-        isapprox(level, 6.18; atol=0.015) ? "profile 2σ (2 parameters)" :
-        "profile Δcost = $(_fmt_value(level; sigdigits=3))"
+    contour_level_name(level) =
+        isapprox(level, 2.30; atol=0.015) ? "1σ" :
+        isapprox(level, 6.18; atol=0.015) ? "2σ" :
+        "Δcost"
+    contour_level_label(level) = begin
+        level_text = _fmt_value(level; sigdigits=3)
+        name = contour_level_name(level)
+        name == "Δcost" ? "profile contour Δcost = $level_text" :
+            "profile $name region (2 params, Δχ² = $level_text)"
+    end
     contour_handles = Any[]
     contour_labels = String[]
     for (index, level) in enumerate(plot_levels)
@@ -1743,7 +1751,7 @@ function plot_contour(
                 )...,
             )
             push!(local_handles, LineElement(color=local_line_color, linewidth=local_linewidth, linestyle=local_linestyle))
-            push!(local_labels, "local covariance")
+            push!(local_labels, "local covariance ellipse (parabolic approx.)")
         end
     end
     finite_surface = replace(vec(contour_result.delta_cost), NaN => Inf)
@@ -1944,14 +1952,31 @@ function plot_profile_matrix(
         col > 1 && row >= col && hideydecorations!(ax; grid=false, label=false)
     end
 
-    handles = Any[
-        LineElement(color=profile_color, linewidth=2.2),
-        PolyElement(color=region_colors[1], strokecolor=:transparent),
-        LineElement(color=local_color, linewidth=1.8, linestyle=:dash),
-        MarkerElement(marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color),
-    ]
-    labels = ["profile scan", "profile contour region", "local covariance approximation", "fit minimum"]
-    Legend(fig[n + 1, 1:n], handles, labels; framevisible=false, orientation=:horizontal, tellheight=true)
+    handles = Any[LineElement(color=profile_color, linewidth=2.2)]
+    labels = ["profile Δcost scan"]
+    for (index, level) in enumerate(sort(unique(Float64.(contour_levels))))
+        region_name =
+            isapprox(level, 2.30; atol=0.015) ? "1σ profile region" :
+            isapprox(level, 6.18; atol=0.015) ? "2σ profile region" :
+            "profile Δcost=$(_fmt_value(level; sigdigits=3)) region"
+        push!(handles, PolyElement(color=region_colors[mod1(index, length(region_colors))], strokecolor=:transparent))
+        push!(labels, region_name)
+    end
+    push!(handles, LineElement(color=local_color, linewidth=1.8, linestyle=:dash))
+    push!(labels, "local parabolic covariance")
+    push!(handles, MarkerElement(marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color))
+    push!(labels, "fit minimum")
+    Legend(
+        fig[n + 1, 1:n],
+        handles,
+        labels;
+        framevisible=false,
+        orientation=:horizontal,
+        tellheight=true,
+        nbanks=2,
+        colgap=18,
+        rowgap=4,
+    )
 
     if filename !== nothing
         outpath = String(filename)

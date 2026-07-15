@@ -47,27 +47,6 @@ function fmt_tex(x, digits::Integer=4)
     return mantissa * "\\times10^{" * string(parse(Int, exponent)) * "}"
 end
 
-function lightdark_plot(result, name; kwargs...)
-    RENDER_DOC_ASSETS || return nothing
-
-    plot_fit(
-        result;
-        kwargs...,
-        theme=:modern,
-        appearance=:light,
-        filename=gallery_path("$(name)_light.png"),
-        format=:png,
-    )
-    plot_fit(
-        result;
-        kwargs...,
-        theme=:modern,
-        appearance=:dark,
-        filename=gallery_path("$(name)_dark.png"),
-        format=:png,
-    )
-end
-
 function style_variant_plot(
     result,
     name;
@@ -143,41 +122,42 @@ function save_poisson_counts(
     hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
     linkxaxes!(ax, residual_ax)
 
-    side = GridLayout()
-    fig[1:2, 2] = side
-    Legend(side[1, 1], ax; framevisible=false, tellheight=true)
-    panel = Axis(side[2, 1]; backgroundcolor=:transparent)
-    hidedecorations!(panel)
-    hidespines!(panel)
     half_life = log(2) / result.params[2]
     sigma_half_life = log(2) * result.param_stderr[2] / result.params[2]^2
     deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
-    text!(
-        panel,
-        0,
-        1;
-        text="signal at t = 0\n" *
-             "  $(fmt_sig(result.params[1], 5)) ± $(fmt_sig(result.param_stderr[1], 2)) counts\n\n" *
-             "decay constant λ\n" *
-             "  $(fmt_sig(result.params[2], 5)) ± $(fmt_sig(result.param_stderr[2], 2)) min⁻¹\n\n" *
-             "background\n" *
-             "  $(fmt_sig(result.params[3], 4)) ± $(fmt_sig(result.param_stderr[3], 2)) counts\n\n" *
-             "half-life\n" *
-             "  $(fmt_sig(half_life, 4)) ± $(fmt_sig(sigma_half_life, 2)) min\n\n" *
-             "Poisson deviance / ndf\n" *
-             "  $(fmt_sig(result.stats.chi2, 4)) / $(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))\n" *
-             "P(D) = $(fmt_sig(deviance_pvalue, 4))",
-        space=:relative,
-        align=(:left, :top),
+    article = style == :article
+    parameter_lines = article ? Any[
+        LaTeXString("S_0 = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))\\;\\mathrm{counts}"),
+        LaTeXString("\\lambda = $(fmt_tex(result.params[2], 5)) \\pm $(fmt_tex(result.param_stderr[2], 2))\\;\\mathrm{min^{-1}}"),
+        LaTeXString("B = $(fmt_tex(result.params[3], 4)) \\pm $(fmt_tex(result.param_stderr[3], 2))\\;\\mathrm{counts}"),
+        LaTeXString("t_{1/2} = $(fmt_tex(half_life, 4)) \\pm $(fmt_tex(sigma_half_life, 2))\\;\\mathrm{min}"),
+    ] : Any[
+        "S₀ = $(fmt_sig(result.params[1], 5)) ± $(fmt_sig(result.param_stderr[1], 2)) counts",
+        "λ = $(fmt_sig(result.params[2], 5)) ± $(fmt_sig(result.param_stderr[2], 2)) min⁻¹",
+        "B = $(fmt_sig(result.params[3], 4)) ± $(fmt_sig(result.param_stderr[3], 2)) counts",
+        "t₁/₂ = $(fmt_sig(half_life, 4)) ± $(fmt_sig(sigma_half_life, 2)) min",
+    ]
+    statistic_lines = article ? Any[
+        LaTeXString("D/\\mathrm{ndf} = $(fmt_tex(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_tex(result.stats.chi2_ndf, 4))"),
+        LaTeXString("P(D) = $(fmt_tex(deviance_pvalue, 4))"),
+    ] : Any[
+        "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
+        "P(D) = $(fmt_sig(deviance_pvalue, 4))",
+    ]
+    plot_info_panel!(
+        fig[1:2, 2];
+        legend_source=ax,
+        title="Poisson likelihood fit",
+        model_label=article ? L"\mu(t)=S_0 e^{-\lambda t}+B" : "μ(t) = S₀ exp(−λt) + B",
+        parameter_lines=parameter_lines,
+        statistic_lines=statistic_lines,
         color=foreground,
-        fontsize=palette.stats_fontsize + 4,
-        lineheight=1.1,
+        muted_color=muted,
+        fontsize=palette.stats_fontsize + 2,
     )
-    rowsize!(side, 1, Auto())
-    rowsize!(side, 2, Relative(1))
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
-    colsize!(fig.layout, 2, Fixed(500))
+    colgap!(fig.layout, 24)
     save(gallery_path("$(name)_$(style_asset_suffix(dark, style, appearance)).png"), fig)
 end
 
@@ -196,6 +176,7 @@ function save_histogram_fit(
     dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
     foreground = palette.stats_color
+    muted = palette.stats_muted_color
     data_color = palette.data_color
     fit_color = palette.fit_color
     observed_color = style == :article ? (foreground, dark_mode ? 0.20 : 0.14) :
@@ -245,39 +226,40 @@ function save_histogram_fit(
     hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
     linkxaxes!(ax, residual_ax)
 
-    side = GridLayout()
-    fig[1:2, 2] = side
-    Legend(side[1, 1], ax; framevisible=false, tellheight=true)
-    panel = Axis(side[2, 1]; backgroundcolor=:transparent)
-    hidedecorations!(panel)
-    hidespines!(panel)
     deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
-    text!(
-        panel,
-        0,
-        1;
-        text="peak yield\n" *
-             "  $(fmt_sig(result.params[1], 5)) ± $(fmt_sig(result.param_stderr[1], 2)) events\n\n" *
-             "centroid\n" *
-             "  $(fmt_sig(result.params[2], 5)) ± $(fmt_sig(result.param_stderr[2], 2)) V\n\n" *
-             "Gaussian width\n" *
-             "  $(fmt_sig(result.params[3], 5)) ± $(fmt_sig(result.param_stderr[3], 2)) V\n\n" *
-             "background density\n" *
-             "  $(fmt_sig(result.params[4], 4)) ± $(fmt_sig(result.param_stderr[4], 2)) ev/V\n\n" *
-             "deviance / ndf\n" *
-             "  $(fmt_sig(result.stats.chi2, 4)) / $(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))\n" *
-             "P(D) = $(fmt_sig(deviance_pvalue, 4))",
-        space=:relative,
-        align=(:left, :top),
+    article = style == :article
+    parameter_lines = article ? Any[
+        LaTeXString("N_{\\mathrm{peak}} = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))"),
+        LaTeXString("\\mu = $(fmt_tex(result.params[2], 5)) \\pm $(fmt_tex(result.param_stderr[2], 2))\\;\\mathrm{V}"),
+        LaTeXString("\\sigma = $(fmt_tex(result.params[3], 5)) \\pm $(fmt_tex(result.param_stderr[3], 2))\\;\\mathrm{V}"),
+        LaTeXString("b = $(fmt_tex(result.params[4], 4)) \\pm $(fmt_tex(result.param_stderr[4], 2))\\;\\mathrm{events/V}"),
+    ] : Any[
+        "Nₚₑₐₖ = $(fmt_sig(result.params[1], 5)) ± $(fmt_sig(result.param_stderr[1], 2)) events",
+        "μ = $(fmt_sig(result.params[2], 5)) ± $(fmt_sig(result.param_stderr[2], 2)) V",
+        "σ = $(fmt_sig(result.params[3], 5)) ± $(fmt_sig(result.param_stderr[3], 2)) V",
+        "b = $(fmt_sig(result.params[4], 4)) ± $(fmt_sig(result.param_stderr[4], 2)) events/V",
+    ]
+    statistic_lines = article ? Any[
+        LaTeXString("D/\\mathrm{ndf} = $(fmt_tex(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_tex(result.stats.chi2_ndf, 4))"),
+        LaTeXString("P(D) = $(fmt_tex(deviance_pvalue, 4))"),
+    ] : Any[
+        "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
+        "P(D) = $(fmt_sig(deviance_pvalue, 4))",
+    ]
+    plot_info_panel!(
+        fig[1:2, 2];
+        legend_source=ax,
+        title="Binned Poisson likelihood",
+        model_label=article ? L"n_i \sim \mathrm{Poisson}(\mu_i)" : "nᵢ ~ Poisson(μᵢ)",
+        parameter_lines=parameter_lines,
+        statistic_lines=statistic_lines,
         color=foreground,
-        fontsize=palette.stats_fontsize + 4,
-        lineheight=1.1,
+        muted_color=muted,
+        fontsize=palette.stats_fontsize + 2,
     )
-    rowsize!(side, 1, Auto())
-    rowsize!(side, 2, Relative(1))
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
-    colsize!(fig.layout, 2, Fixed(500))
+    colgap!(fig.layout, 24)
     save(gallery_path("$(name)_$(style_asset_suffix(dark, style, appearance)).png"), fig)
 end
 
@@ -437,10 +419,10 @@ function save_photoelectric_work_function(
         ]
     else
         [
-            "m_emit = $(fmt_sig(emission_slope, 5)) V/THz",
+            "mₑ = $(fmt_sig(emission_slope, 5)) V/THz",
             "h = $(fmt_sig(h_fit, 4)) ± $(fmt_sig(sigma_h, 2)) J s",
-            "m_base = $(fmt_sig(baseline_slope, 4)) V/THz",
-            "ν0 = $(fmt_sig(threshold, 5)) ± $(fmt_sig(sigma_threshold, 2)) THz",
+            "mᵦ = $(fmt_sig(baseline_slope, 4)) V/THz",
+            "ν₀ = $(fmt_sig(threshold, 5)) ± $(fmt_sig(sigma_threshold, 2)) THz",
             "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_work_function_eV, 2)) eV",
         ]
     end
@@ -451,21 +433,20 @@ function save_photoelectric_work_function(
         ]
     else
         [
-            "χ²_emit/ndf = $(fmt_sig(emission_result.stats.chi2_ndf, 4))",
-            "χ²_base/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
+            "χ²ₑ/ndf = $(fmt_sig(emission_result.stats.chi2_ndf, 4))",
+            "χ²ᵦ/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
         ]
     end
     plot_info_panel!(
         fig[1, 2];
         legend_source=ax,
-        model_label=article ? L"U_0(\nu)=m_r\nu+b_r" : "U0(ν) = mr ν + br",
+        model_label=article ? L"U_0(\nu)=m_r\nu+b_r" : "U₀(ν) = mᵣν + bᵣ",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
         color=palette.stats_color,
         fontsize=palette.stats_fontsize + 5,
         muted_color=muted,
     )
-    colsize!(fig.layout, 2, Fixed(390))
     colgap!(fig.layout, 18)
     suffix = dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
     save(gallery_path("$(name)_$(suffix).png"), fig)
@@ -482,27 +463,6 @@ emit_doc_output_snapshot("quickstart") do
     println()
     println(diagnostic_dashboard_text(quick_result))
 end
-lightdark_plot(
-    quick_result,
-    "quickstart_linear";
-    title=L"\mathrm{Quickstart\ calibration}",
-    model_label=L"U(x)=m x+b",
-    xlabel=L"t",
-    xunit=L"\mathrm{s}",
-    ylabel=L"U",
-    yunit=L"\mathrm{V}",
-    parameter_names=[L"m", L"b"],
-    latex_labels=true,
-    latex_stats=true,
-    band=:prediction,
-    nsigma=1,
-    band_label=L"1\sigma\ \mathrm{prediction\ band}",
-    show_legend=true,
-    stats_position=:right,
-    stats_mode=:full,
-    stats_fontsize=20,
-    figure_size=(1200, 760),
-)
 style_variant_plot(
     quick_result,
     "quickstart_linear";
@@ -595,28 +555,6 @@ emit_doc_output_snapshot("linear_calibration") do
     println(report_text(linear_result; parameter_names=["m", "b"]))
     println(diagnostic_dashboard_text(linear_result))
 end
-lightdark_plot(
-    linear_result,
-    "linear_calibration";
-    title=L"\mathrm{Sensor\ calibration}",
-    model_label=L"U(x)=m x + b",
-    xlabel=L"x",
-    xunit=L"\mathrm{mm}",
-    ylabel=L"U",
-    yunit=L"\mathrm{V}",
-    parameter_names=[L"m", L"b"],
-    latex_labels=true,
-    latex_stats=true,
-    band=:prediction,
-    nsigma=1,
-    band_label=L"1\sigma\ \mathrm{prediction\ band}",
-    show_legend=true,
-    legend_position=:lt,
-    stats_position=:right,
-    stats_mode=:full,
-    stats_fontsize=20,
-    figure_size=(1200, 760),
-)
 style_variant_plot(
     linear_result,
     "linear_calibration";
@@ -707,8 +645,6 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     println("emission")
     println(diagnostic_dashboard_text(emission_result))
 end
-save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=false)
-save_photoelectric_work_function(emission_result, baseline_result, frequency_THz, voltage, sigma_frequency_THz, sigma_voltage, emission_mask, "photoelectric_threshold"; dark=true)
 for style in (:lab, :modern, :article), appearance in (:light, :dark)
     save_photoelectric_work_function(
         emission_result,
@@ -747,27 +683,6 @@ emit_doc_output_snapshot("full_covariance") do
     println("C = ", offset, " +/- ", sigma_offset)
     println(diagnostic_dashboard_text(cov_result))
 end
-lightdark_plot(
-    cov_result,
-    "full_covariance_decay";
-    title=L"\mathrm{Correlated\ decay\ data}",
-    model_label=L"y(t)=A e^{-\lambda t}+C",
-    xlabel=L"t",
-    xunit=L"\mathrm{s}",
-    ylabel=L"signal",
-    parameter_names=[L"A", L"\lambda", L"C"],
-    latex_labels=true,
-    latex_stats=true,
-    band=:prediction,
-    nsigma=1,
-    band_label=L"1\sigma\ \mathrm{prediction\ band}",
-    show_legend=true,
-    legend_position=:lt,
-    stats_position=:right,
-    stats_mode=:full,
-    stats_fontsize=20,
-    figure_size=(1200, 760),
-)
 style_variant_plot(
     cov_result,
     "full_covariance_decay";
@@ -822,26 +737,6 @@ emit_doc_output_snapshot("xy_uncertainties") do
     println("b = ", intercept, " +/- ", sigma_intercept)
     println(diagnostic_dashboard_text(xy_result))
 end
-lightdark_plot(
-    xy_result,
-    "xy_uncertainties";
-    title=L"\mathrm{XY\ uncertainty\ propagation}",
-    model_label=L"y=m x+b",
-    xlabel=L"x_\mathrm{meas}",
-    ylabel=L"y_\mathrm{meas}",
-    parameter_names=[L"m", L"b"],
-    latex_labels=true,
-    latex_stats=true,
-    band=:prediction,
-    nsigma=1,
-    band_label=L"1\sigma\ \mathrm{prediction\ band}",
-    show_legend=true,
-    legend_position=:lt,
-    stats_position=:right,
-    stats_mode=:full,
-    stats_fontsize=20,
-    figure_size=(1200, 760),
-)
 style_variant_plot(
     xy_result,
     "xy_uncertainties";
@@ -898,26 +793,6 @@ saturation_result = fit_model(
     parameter_priors=(index=3, mean=0.10, sigma=0.08),
     initial_guesses=[[3.0, 2.0, 0.0], [8.0, 7.0, 0.1], [2.0, 1.0, 0.2]],
 )
-lightdark_plot(
-    saturation_result,
-    "constraints_priors";
-    title=L"\mathrm{Early\ saturation\ measurement}",
-    model_label=L"y(t)=A(1-e^{-t/\tau})+c",
-    xlabel=L"t\;(\mathrm{s})",
-    ylabel=L"y\;(\mathrm{V})",
-    parameter_names=[L"A", L"\tau", L"c"],
-    latex_labels=true,
-    latex_stats=true,
-    band=:prediction,
-    nsigma=1,
-    band_label=L"1\sigma\ \mathrm{prediction\ band}",
-    show_legend=true,
-    legend_position=:lt,
-    stats_position=:right,
-    stats_mode=:full,
-    stats_fontsize=20,
-    figure_size=(1200, 760),
-)
 style_variant_plot(
     saturation_result,
     "constraints_priors";
@@ -969,54 +844,6 @@ if RENDER_DOC_ASSETS
     profile_overview_parameters = [1, 2, 3]
     profile_overview_names = ["A", "tau", "c"]
 
-    plot_profile(
-        prof;
-        theme=:lab,
-        appearance=:light,
-        title="Profile cost versus local parabola",
-        xlabel="amplitude A",
-        local_sigma=saturation_result.param_stderr[1],
-        delta_max=8,
-        filename=gallery_path("saturation_profile_light.png"),
-        format=:png,
-    )
-    plot_profile(
-        prof;
-        theme=:lab,
-        appearance=:dark,
-        title="Profile cost versus local parabola",
-        xlabel="amplitude A",
-        local_sigma=saturation_result.param_stderr[1],
-        delta_max=8,
-        filename=gallery_path("saturation_profile_dark.png"),
-        format=:png,
-    )
-    plot_contour(
-        cont;
-        theme=:lab,
-        appearance=:light,
-        title="Profile contours versus local covariance",
-        xlabel="amplitude A",
-        ylabel="time constant τ",
-        local_covariance=saturation_result.param_covariance,
-        local_center=saturation_result.params[[1, 2]],
-        figure_size=(980, 720),
-        filename=gallery_path("amplitude_timescale_contour_light.png"),
-        format=:png,
-    )
-    plot_contour(
-        cont;
-        theme=:lab,
-        appearance=:dark,
-        title="Profile contours versus local covariance",
-        xlabel="amplitude A",
-        ylabel="time constant τ",
-        local_covariance=saturation_result.param_covariance,
-        local_center=saturation_result.params[[1, 2]],
-        figure_size=(980, 720),
-        filename=gallery_path("amplitude_timescale_contour_dark.png"),
-        format=:png,
-    )
     for style in (:lab, :modern, :article), appearance in (:light, :dark)
         plot_profile(
             prof;
@@ -1089,8 +916,6 @@ emit_doc_output_snapshot("poisson_decay") do
     println("P(D) = ", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
-save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=false)
-save_poisson_counts(poisson_result, x_counts, counts, poisson_model, "poisson_counts"; dark=true)
 for style in (:lab, :modern, :article), appearance in (:light, :dark)
     save_poisson_counts(
         poisson_result,
@@ -1136,8 +961,6 @@ emit_doc_output_snapshot("histogram_likelihood") do
     println("P(D) = ", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
-save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=false)
-save_histogram_fit(hist_result, edges, hist_counts, expected_counts, "histogram_likelihood"; dark=true)
 for style in (:lab, :modern, :article), appearance in (:light, :dark)
     save_histogram_fit(
         hist_result,

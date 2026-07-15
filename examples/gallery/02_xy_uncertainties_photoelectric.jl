@@ -144,7 +144,6 @@ plot_info_panel!(
     color=palette.stats_color,
     muted_color=palette.stats_muted_color,
 )
-colsize!(fig.layout, 2, Fixed(430))
 save(example_output("02_photoelectric_fit.pdf"), fig)
 
 println("h = ", h_fit, " +/- ", sigma_h, " J s")

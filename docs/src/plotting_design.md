@@ -124,6 +124,10 @@ For compound plots, allocate the scientific panels first and place
 `plot_info_panel!` in a dedicated cell or span. The information panel does not
 dictate parent height, so a fit axis, residual stack, or diagnostic grid remains
 stable even when report content changes.
+Its width is reported to Makie's `GridLayout` by default, so standard right-side
+panels should use Makie's `Auto()` sizing rather than guessed `Fixed(...)`
+columns. Pass an explicit width only when a journal or notebook export requires
+a fixed footprint.
 
 Post-fit annotation helpers are deliberately thin Makie wrappers. They return
 the created Makie plot object, accept ordinary Makie keyword arguments such as
@@ -161,7 +165,8 @@ The profile and contour plots should make one comparison visually obvious:
   local errors,
 - **profile interval**: where the actual profile crosses the chosen threshold,
 - **profile contour**: the actual two-parameter cost geometry,
-- **local ellipse**: the covariance approximation in the same parameter plane.
+- **local ellipse**: the local quadratic/parabolic covariance approximation in
+  the same parameter plane.
 
 If the actual profile follows the local parabola and the actual contour follows
 the local ellipse, local covariance errors are usually adequate. If the profile
