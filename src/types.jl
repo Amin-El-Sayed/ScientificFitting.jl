@@ -262,6 +262,11 @@ function _assert_finite_matrix(name::AbstractString, values::AbstractMatrix)
     return nothing
 end
 
+function _assert_finite_matrix(name::AbstractString, values::SparseMatrixCSC)
+    all(isfinite, nonzeros(values)) || throw(ArgumentError("$name must contain only finite values"))
+    return nothing
+end
+
 function _assert_positive_sigma(name::AbstractString, values::AbstractVector)
     _assert_finite_vector(name, values)
     all(>(0.0), values) || throw(ArgumentError("$name entries must be > 0"))
@@ -275,6 +280,18 @@ function _assert_covariance_matrix(name::AbstractString, cov::AbstractMatrix)
         throw(ArgumentError("$name must be symmetric"))
     try
         cholesky(Symmetric(dense))
+    catch
+        throw(ArgumentError("$name must be symmetric positive definite"))
+    end
+    return nothing
+end
+
+function _assert_covariance_matrix(name::AbstractString, cov::SparseMatrixCSC{Float64, Int})
+    _assert_finite_matrix(name, cov)
+    isapprox(cov, cov'; rtol=1e-12, atol=1e-12) ||
+        throw(ArgumentError("$name must be symmetric"))
+    try
+        cholesky(Symmetric(cov))
     catch
         throw(ArgumentError("$name must be symmetric positive definite"))
     end

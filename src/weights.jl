@@ -65,13 +65,13 @@ function _prepare_covariance(cov, n::Int)
     end
 
     F = _stable_cholesky(cov)
-    logdet = 2.0 * sum(log, diag(F.L))
+    logdet = _cholesky_logdet(F)
     return DensePreparedCovariance(F, logdet)
 end
 
 function _prepare_parameter_constraint(constraint::ParameterConstraint)
     factor = _stable_cholesky(constraint.covariance)
-    logdet = 2.0 * sum(log, diag(factor.L))
+    logdet = _cholesky_logdet(factor)
     return PreparedParameterConstraint(constraint.indices, constraint.mean, factor, logdet)
 end
 
@@ -231,6 +231,27 @@ function _stable_cholesky(cov::AbstractMatrix)
     end
 end
 
+function _stable_cholesky(cov::SparseMatrixCSC{Float64, Int})
+    all(isfinite, nonzeros(cov)) || throw(ArgumentError("covariance matrix must contain only finite values"))
+    isapprox(cov, cov'; rtol=1e-12, atol=1e-12) ||
+        throw(ArgumentError("covariance matrix must be symmetric"))
+    try
+        return cholesky(Symmetric(cov))
+    catch
+        throw(ArgumentError("covariance matrix must be symmetric positive definite"))
+    end
+end
+
+_cholesky_logdet(factor) = logdet(factor)
+
+function _whiten_with_factor(factor, residual::AbstractVecOrMat)
+    return collect(factor.L \ residual)
+end
+
+function _whiten_with_factor(factor::SparseArrays.CHOLMOD.Factor, residual::AbstractVecOrMat)
+    return collect(factor.PtL \ residual)
+end
+
 function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::AbstractVector)
     cov = _effective_covariance(problem, p)
     if cov === nothing
@@ -244,7 +265,7 @@ function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::Abst
     end
 
     F = _stable_cholesky(cov)
-    return collect(F.L \ residual)
+    return _whiten_with_factor(F, residual)
 end
 
 function _whiten_residual(cache::FitEvaluationCache{NoPreparedCovariance}, p::AbstractVector, residual::AbstractVector)
@@ -261,7 +282,7 @@ function _whiten_residual(cache::FitEvaluationCache{<:DiagonalPreparedCovariance
 end
 
 function _whiten_residual(cache::FitEvaluationCache{<:DensePreparedCovariance}, p::AbstractVector, residual::AbstractVector)
-    return collect(cache.covariance.factor.L \ residual)
+    return _whiten_with_factor(cache.covariance.factor, residual)
 end
 
 function _whiten_residual(cache::FitEvaluationCache{DynamicPreparedCovariance}, p::AbstractVector, residual::AbstractVector)
@@ -508,6 +529,10 @@ function _diag_error(cov)
         return sqrt.(clamp.(cov, 0.0, Inf))
     end
     return sqrt.(clamp.(diag(Matrix(cov)), 0.0, Inf))
+end
+
+function _diag_error(cov::SparseMatrixCSC)
+    return sqrt.(clamp.(diag(cov), 0.0, Inf))
 end
 
 function _yerror_for_plot(problem::FitProblem, p::AbstractVector=problem.p0)

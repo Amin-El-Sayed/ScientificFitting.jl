@@ -111,7 +111,7 @@ function _covariance_logdet(cov, n::Int)
     end
 
     F = _stable_cholesky(cov)
-    return 2.0 * sum(log, diag(F.L))
+    return _cholesky_logdet(F)
 end
 
 function _gaussian_data_nll(problem::FitProblem, p::AbstractVector)

@@ -1,6 +1,7 @@
 using Distributions
 using JuFitter
 using LinearAlgebra
+using SparseArrays
 using Test
 
 function _linear_design(x)
@@ -83,5 +84,47 @@ end
         @test isapprox(result.stats.pvalue, ccdf(Chisq(ndf), ref.chi2); atol=2e-8, rtol=2e-8)
         @test isapprox(result.stats.aic, expected_nll + 2 * length(result.params); atol=2e-8, rtol=2e-8)
         @test isapprox(result.stats.bic, expected_nll + log(length(x)) * length(result.params); atol=2e-8, rtol=2e-8)
+    end
+
+    @testset "Sparse covariance keeps the static whitening path sparse" begin
+        n = 40
+        x = collect(range(-2.0, 3.0; length=n))
+        covariance = spdiagm(
+            -1 => fill(0.006, n - 1),
+            0 => (@. 0.055 + 0.002 * (x + 2.0)),
+            1 => fill(0.006, n - 1),
+        )
+        y = @. 0.82 * x - 0.35 + 0.015 * cos(1.6 * x)
+        model(x, p) = @. p[1] * x + p[2]
+        jacobian(x, p) = hcat(x, ones(length(x)))
+
+        ref = _generalized_linear_reference(x, y, covariance)
+        result = fit_model(
+            model,
+            x,
+            y;
+            p0=[0.0, 0.0],
+            cov_y=covariance,
+            jacobian=jacobian,
+            scale_covariance=:never,
+        )
+        cache = JuFitter._prepare_fit_cache(result.problem)
+
+        @test result.backend == :lsqfit
+        @test result.problem.cov_y isa SparseMatrixCSC
+        @test cache.covariance.factor isa SparseArrays.CHOLMOD.Factor
+        @test isapprox(result.params, ref.params; atol=2e-8, rtol=2e-8)
+        @test isapprox(result.param_covariance, ref.cov; atol=2e-7, rtol=2e-7)
+        @test isapprox(result.stats.chi2, ref.chi2; atol=2e-8, rtol=2e-8)
+        @test isapprox(JuFitter._yerror_for_plot(result.problem), sqrt.(diag(covariance)); atol=1e-14)
+
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[0.0, 0.0],
+            cov_y=covariance,
+            bounds=([-2.0, -2.0], [2.0, 2.0]),
+        )
     end
 end

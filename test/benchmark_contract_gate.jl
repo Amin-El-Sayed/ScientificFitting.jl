@@ -18,6 +18,7 @@ const REQUIRED_BENCHMARK_CASES = [
     "fit/nonlinear_1000",
     "fit/full_covariance_500",
     "fit/full_covariance_500_bounded",
+    "fit/sparse_covariance_5000",
     "likelihood/poisson_5000",
     "profile/linear_profile",
     "diagnostics/saturation_profile_matrix",

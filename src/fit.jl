@@ -13,10 +13,19 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
         end
     elseif problem.cov_y !== nothing
         F = _stable_cholesky(problem.cov_y)
-        weighted_model = (x, q) -> F.L \ problem.model(x, _expand_free_parameters(problem, q))
-        weighted_y = F.L \ problem.y
+        weighted_model = (x, q) -> _whiten_with_factor(
+            F,
+            problem.model(x, _expand_free_parameters(problem, q)),
+        )
+        weighted_y = _whiten_with_factor(F, problem.y)
         if problem.jacobian !== nothing
-            weighted_jacobian = (x, q) -> F.L \ _free_jacobian_from_full(problem, problem.jacobian(x, _expand_free_parameters(problem, q)))
+            weighted_jacobian = (x, q) -> _whiten_with_factor(
+                F,
+                _free_jacobian_from_full(
+                    problem,
+                    problem.jacobian(x, _expand_free_parameters(problem, q)),
+                ),
+            )
         end
     end
 
@@ -37,6 +46,17 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
 end
 
 function _fit_with_optimization(problem::FitProblem, options::FitOptions)
+    if _static_effective_covariance_available(problem)
+        cov = _effective_covariance(problem, problem.p0)
+        if cov isa SparseMatrixCSC
+            throw(ArgumentError(
+                "sparse covariance currently supports the unbounded least-squares backend; " *
+                "use a dense covariance for constrained or Gaussian-NLL fits until " *
+                "matrix-free whitening operators are added",
+            ))
+        end
+    end
+
     cache = _prepare_fit_cache(problem)
     objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(cache.problem, q), options.cost)
 

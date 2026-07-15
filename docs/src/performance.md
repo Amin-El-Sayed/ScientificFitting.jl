@@ -128,7 +128,9 @@ differentiation pass for common least-squares workflows.
 
 Diagonal covariance stores precomputed inverse standard deviations and log
 determinants. Dense static covariance stores a Cholesky factor and log
-determinant. Residuals are whitened using linear solves.
+determinant. Sparse static `cov_y` matrices are kept sparse on the unbounded
+least-squares path and whitened with CHOLMOD's permuted factor. Residuals are
+whitened using linear solves, not explicit covariance inverses.
 
 Parameter-dependent covariance is intentionally more expensive. X
 uncertainties and model-relative y uncertainties can change the effective
@@ -162,7 +164,10 @@ preserved when the Gaussian NLL needs gradients or Hessians.
 
 Dense covariance matrices are correct and tested, but they are not the right
 representation for huge correlated datasets. They require `O(n^2)` memory and
-`O(n^3)` factorization time.
+`O(n^3)` factorization time. Sparse static `cov_y` is the current first
+structured path for least-squares problems; constrained sparse fits, sparse
+Gaussian-NLL gradients, structured `cov_x`, and matrix-free whitening operators
+remain future work.
 
 If a large dataset truly has correlated uncertainties, the next necessary step
 is a structured covariance API: banded matrices, Toeplitz kernels,

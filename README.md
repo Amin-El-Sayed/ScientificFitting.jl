@@ -139,8 +139,9 @@ v1:
 Known limitations are explicit:
 
 - Dense covariance is exact but expensive: `O(n^2)` memory and `O(n^3)`
-  factorization. Large correlated time series, spectra, images, and detector
-  arrays need future structured covariance or whitening operators.
+  factorization. Static sparse `cov_y` is supported for unbounded least-squares
+  fits, but large correlated time series, spectra, images, and detector arrays
+  still need future structured covariance or whitening operators.
 - Parameter covariance is a local Hessian approximation. Nonlinear models,
   weak data, active bounds, and asymmetric likelihoods should be checked with
   profiles or contours.
