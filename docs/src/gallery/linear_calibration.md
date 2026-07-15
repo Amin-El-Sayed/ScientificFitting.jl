@@ -132,12 +132,13 @@ Statistics:
 
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 2, info = 0
-2 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 3, info = 0
+3 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
   1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
-  2. Look for missing curvature, drift, hysteresis, time dependence, or an incorrect independent variable transformation.</pre>
+  2. Inspect this acquisition interval for drift, missing model structure, a calibration offset, or correlated uncertainty.
+  3. Look for missing curvature, drift, hysteresis, time dependence, or an incorrect independent variable transformation.</pre>
 </div>
 ```
 

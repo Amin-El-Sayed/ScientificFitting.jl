@@ -217,12 +217,13 @@ amplitude +sigma = 0.8958761741528747
 
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 2, info = 0
-2 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 3, info = 0
+3 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
   1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
-  2. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
+  2. Use profile or contour intervals before treating symmetric covariance errors as final uncertainties.
+  3. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
 </div>
 ```
 

@@ -24,6 +24,11 @@ Required manual checks:
   or machine-local benchmark artifacts.
 - `RELEASE_AUDIT.md`, `ROADMAP.md`, and public documentation describe known
   limitations honestly.
+- The approved `LICENSE` and reviewed `CITATION.cff` are present; package name,
+  UUID, authorship, repository URL, and version metadata match the exact release
+  repository.
+- The Julia `[compat]` floor matches the CI matrix. Do not claim support for a
+  Julia version that has not run the core and package gates.
 
 ## 2. Core Correctness Gates
 
@@ -154,6 +159,7 @@ Before public promotion:
   public deployment without explicit approval.
 - Confirm package metadata, version, license, README, release notes, and known
   limitations.
+- Confirm citation metadata and the supported Julia-version matrix.
 - Confirm Git identity before any public push:
   `Amin-El-Sayed <78275938+Amin-El-Sayed@users.noreply.github.com>`.
 - Do not register the package, publish docs, or announce on Reddit/Discourse

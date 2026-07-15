@@ -307,7 +307,7 @@ C_\mathrm{prof}(a)
 The plotted quantity is
 
 ```math
-\Delta C(a)=C_\mathrm{prof}(a)-C_\min.
+\Delta C(a)=C_\mathrm{prof}(a)-C_{\min}.
 ```
 
 For two parameters, a contour scan fixes both parameters on a grid and refits

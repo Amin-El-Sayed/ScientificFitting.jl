@@ -38,6 +38,7 @@ const FORBIDDEN_PUBLIC_PATTERNS = Pair{String, Regex}[
     "private author handle in public prose" => r"(?i)\bAmin_El_Sayed\b",
     "course-internal wording" => r"(?i)\b(course[- ]internal|lab-course-internal|private dataset)\b",
     "stale public API identifier" => r"\b(profile_curve|contour_grid)\b",
+    "ungrouped TeX operator subscript" => r"_(\\min|\\max)\b",
 ]
 
 function public_file_text(path)

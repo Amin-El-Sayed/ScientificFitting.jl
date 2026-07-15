@@ -339,7 +339,7 @@ expected even if the extra freedom is unnecessary. AIC adds a parameter-count
 penalty:
 
 ```math
-\mathrm{AIC}=2k-2\log L_\max.
+\mathrm{AIC}=2k-2\log L_{\max}.
 ```
 
 Both models use the same data and Gaussian cost, so their AIC values may be

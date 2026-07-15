@@ -307,7 +307,7 @@ Across the recorded interval, the fitted angular frequency changes by
 
 ```math
 \Delta\omega
-= \beta(t_\max-t_\min)
+= \beta(t_{\max}-t_{\min})
 = (4.98 \pm 0.13)\times 10^{-3}\ \mathrm{rad\,s^{-1}}.
 ```
 

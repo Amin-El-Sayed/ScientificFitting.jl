@@ -178,20 +178,22 @@ nu0 = 548.8711027075259 +/- 11.278256662286788 THz
 baseline
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 1, info = 0
-1 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.
+  1. Use profile or contour intervals before treating symmetric covariance errors as final uncertainties.
+  2. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.
 
 emission
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 1, info = 0
-1 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
+  1. Use profile or contour intervals before treating symmetric covariance errors as final uncertainties.
+  2. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
 </div>
 ```
 
@@ -288,7 +290,6 @@ plot_info_panel!(
     muted_color=palette.stats_muted_color,
 )
 
-colsize!(fig.layout, 2, Fixed(430))
 save("photoelectric_threshold.pdf", fig)
 ```
 

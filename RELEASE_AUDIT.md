@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-06-08
+Status: 2026-07-15
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -12,6 +12,20 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Current Verification
 
+- `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes on
+  the current release-hardening branch with 501 checks in about 10m31s after
+  package-test precompilation. This run includes regression, statistical
+  reference, hostile-input, and CairoMakie plot tests in the isolated package
+  test environment.
+- The plotting release slice passes locally with 69 focused API/layout tests,
+  232 gallery-structure checks, 1151 visual-asset checks, and 83 intentional
+  PNG snapshot checks. The complete Documenter build also passes, followed by
+  2166 checks against links and assets in the rendered HTML.
+- Compound gallery figures for Poisson counts, histogram likelihoods, damped
+  oscillation, and multi-dataset fits now use the same natural-width
+  `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do
+  not guess fixed side-panel widths or resize the figure around compact report
+  content; explicit fixed widths remain an opt-in export control.
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
   passes with 64 torture checks in about 65s on the local machine after adding
@@ -59,12 +73,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   passes with 386 core checks in about 9m56s on the local machine after the
   CairoMakie plotting extension split. This is too slow for the default
   developer gate and must be split further before release CI is finalized.
-- `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes with
-  439 checks in about 13m15s for the test phase after package test
-  precompilation. This verifies that test extras load the CairoMakie extension
-  correctly.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 65
-  focused plot-regression checks in about 33s.
+- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 69
+  focused plot-regression checks locally.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
@@ -73,14 +83,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
   one-sigma semantics, valid image assets, and complete
-  `:workbench`/`:showcase`/`:publication` light/dark plot-style coverage.
+  `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 463 checks. The gate first verifies that every page in the public
+  with 485 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
   identifiers such as `profile_curve` and `contour_grid`, draft/tutorial residue
-  phrases, and public image tags without non-empty alt text.
+  phrases, public image tags without non-empty alt text, and the ungrouped TeX
+  operator subscripts that previously caused browser-side KaTeX failures.
 - `julia --project=. --startup-file=no test/docs_api_reference_gate.jl` passes
   locally. The gate verifies that every exported public binding except the
   module name has a REPL/Documenter-visible docstring, preventing `@autodocs`
@@ -243,18 +254,18 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The XY-uncertainty and full-covariance gallery pages now use explicit
   notebook-style measured arrays in public code blocks, keep uncertainty-model
   construction separate from data generation, and provide real Makie-rendered
-  `:workbench`, `:showcase`, and `:publication` plot assets for light and dark
+  `:lab`, `:modern`, and `:article` plot assets for light and dark
   documentation appearances.
-- The plot style contracts were tightened: `:workbench` is now a plain sans
-  analysis style with shorter error-bar whiskers, `:showcase` has a distinct
-  but restrained scientific color hierarchy, and the photoelectric custom plot
+- The plot style contracts were tightened: `:lab` is now a plain sans analysis
+  style with shorter error-bar whiskers, `:modern` has a distinct but
+  restrained scientific color hierarchy, and the photoelectric custom plot
   now derives theme, palette, marker sizes, whisker widths, line widths, and
   report typography from the public plotting style API.
 - The documentation style selector now covers the compound custom gallery
   figures as well as ordinary `plot_fit` figures: Poisson counts, histogram
   likelihoods, constraints/profile/contour plots, damped oscillator, and
   multi-dataset calibration all render real Makie assets for
-  `:workbench`, `:showcase`, and `:publication` in light and dark appearances.
+  `:lab`, `:modern`, and `:article` in light and dark appearances.
   The `How JuFitter Works` page now shows a flat left-to-right pipeline with
   explicit validation, cost-construction, solver-dispatch, post-fit-analysis,
   and output stages rather than a loose component inventory.
@@ -264,7 +275,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   top-level `Engineering Notes` navigation block from returning.
 - Browser QA against a temporary local Documenter server verifies that the
   Poisson/histogram page loads, exposes 12 grouped plot assets, and switches
-  the visible dark-mode image sources between `:publication` and `:workbench`
+  the visible dark-mode image sources between `:article` and `:lab`
   correctly.
 - Static gallery image reference validation passes for all Markdown sources
   under `docs/src`.
@@ -275,7 +286,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   CairoMakie extension boundary. This prevents `@autodocs` from exposing bare
   placeholder functions for `plot_fit`, `fitplot`, annotation helpers, style
   helpers, and profile/contour plotting entry points.
-- Focused plot regression tests pass with 64 checks after the plot-style
+- Focused plot regression tests pass with 69 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
@@ -325,6 +336,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   unintentional asset drift, but human visual review is still required for
   intentional plot style or renderer changes.
 - There is no documentation deployment workflow yet.
+- The repository still needs an explicitly chosen license and release citation
+  metadata before publication. Add the approved `LICENSE` and `CITATION.cff`
+  only after the maintainer has selected the license and reviewed the citation
+  fields; do not infer that policy from the source code.
 - Browser screenshots can still time out on very large documentation pages.
   Use DOM/computed-style checks plus targeted static image inspection until a
   stable visual-regression workflow exists.
@@ -339,10 +354,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   evidence proves that Makie is not loaded by the fitting core, but it does not
   yet quantify the remaining Optimization/SciML first-use cost across clean
   environments.
-- The torture suite is only starting. It must cover constraints, priors,
-  likelihoods, profiles, contours, multi-dataset fits, bad scaling, local
-  minima, invalid uncertainty models, and large datasets before release claims
-  can use words like robust.
+- Hostile-input coverage is broad enough to support a scoped v0, but it is not
+  evidence that every scientific data shape is handled. Continue extending it
+  when new constraint, likelihood, profile/contour, multi-dataset, scaling, or
+  covariance failure modes are found; public wording must stay scoped to the
+  workflows represented by reference and torture tests.
 - The following items are not automatic v0 blockers if their limitations are
   documented honestly, but they are release-audit candidates for every serious
   public claim about scale, nonlinear uncertainty, or x-covariance derivatives:
@@ -356,6 +372,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Dense covariance support is mathematically useful, but still `O(n^2)` memory
   and `O(n^3)` factorization. Large correlated datasets need structured
   covariance operators or custom whitening operators.
+- Static sparse `cov_y` now remains sparse for the unbounded least-squares
+  backend. Validation and whitening use sparse CHOLMOD factors without
+  materializing a dense covariance, and the benchmark runner includes
+  `fit/sparse_covariance_5000`. Sparse covariance in constrained or
+  Gaussian-NLL optimizer paths remains a documented limitation because CHOLMOD
+  solves do not propagate `ForwardDiff` dual numbers.
 - The first release may keep dense covariance as the explicit exact small/medium
   path, but future work must add structured covariance or whitening operators
   for long time series, images, spectra, and detector arrays. That future path
@@ -418,6 +440,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   residual/pull diagnostics now identify long same-sign pull intervals, but the
   combined visual diagnostic dashboard is still not yet at the level needed to
   compete with kafe2/Minuit-style workflows.
+- The optional CairoMakie implementation remains concentrated in a roughly
+  2100-line rendering file. The public extension boundary and API are compact
+  and tested, so a mechanical split is not required for numerical correctness,
+  but future plot features should not add another private layout framework.
+  Split style/layout, fit rendering, and diagnostic rendering only as a
+  behavior-preserving maintenance change with the same visual gates.
 
 ## Documentation Blockers
 
@@ -442,6 +470,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## CI And Packaging Blockers
 
+- Choose and add the release license and `CITATION.cff`; verify package name,
+  UUID, authorship, repository URL, and version metadata against the exact
+  repository that will be registered.
+- Decide the supported Julia-version floor intentionally. The current package
+  compat and CI matrix are both Julia 1.12 only; broader support requires real
+  test evidence rather than merely loosening `[compat]`.
 - Add a docs-deploy job for GitHub Pages or the chosen static host.
 - Confirm the new core/package/docs CI lanes on GitHub Actions after pushing.
 - Run the Python interoperability release gate in CI. The local opt-in gate now
