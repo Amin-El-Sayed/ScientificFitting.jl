@@ -69,6 +69,9 @@ report = fit_report(result; parameter_names=["m", "b"])
 
 ## Installation
 
+JuFitter supports Julia 1.10 and later. The release gate tests Julia 1.10 and
+the current Julia 1.12 release explicitly.
+
 During active development, use a checked-out repository:
 
 ```julia

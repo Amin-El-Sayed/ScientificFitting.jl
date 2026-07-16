@@ -12,6 +12,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Current Verification
 
+- Julia 1.10.11 passes the Makie-free core gate with 432 checks and the full
+  package test with 501 checks in an isolated environment resolved under Julia
+  1.10. The package `[compat]`, core CI matrix, and full-package Linux CI matrix
+  therefore support both Julia 1.10 and Julia 1.12; remote CI still needs to be
+  observed after the branch is pushed.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes on
   the current release-hardening branch with 501 checks in about 10m31s after
   package-test precompilation. This run includes regression, statistical
@@ -473,9 +478,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Choose and add the release license and `CITATION.cff`; verify package name,
   UUID, authorship, repository URL, and version metadata against the exact
   repository that will be registered.
-- Decide the supported Julia-version floor intentionally. The current package
-  compat and CI matrix are both Julia 1.12 only; broader support requires real
-  test evidence rather than merely loosening `[compat]`.
+- Julia 1.10 is the intentional support floor. Local Julia 1.10 evidence covers
+  the 432-check core gate and the 501-check full package suite; confirm the same
+  1.10/1.12 core and package matrix on GitHub Actions after pushing.
 - Add a docs-deploy job for GitHub Pages or the chosen static host.
 - Confirm the new core/package/docs CI lanes on GitHub Actions after pushing.
 - Run the Python interoperability release gate in CI. The local opt-in gate now

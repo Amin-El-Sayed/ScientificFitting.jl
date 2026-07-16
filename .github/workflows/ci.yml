@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ["1.12"]
+        version: ["1.10", "1.12"]
         os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
@@ -36,13 +36,17 @@ jobs:
           JUFITTER_PERFORMANCE_BUDGET_SCALE: "4.0"
 
   package:
-    name: Full package test - Julia 1.12 - ubuntu
+    name: Full package test - Julia ${{ matrix.version }} - ubuntu
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["1.10", "1.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
-          version: "1.12"
+          version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
       - name: Instantiate
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'

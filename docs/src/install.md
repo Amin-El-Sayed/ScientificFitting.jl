@@ -1,7 +1,10 @@
 # Install
 
-JuFitter is a Julia package. During active development, use it from a checked
-out repository:
+JuFitter supports Julia 1.10 and later. The release gate tests Julia 1.10 and
+Julia 1.12 explicitly instead of treating the version floor as an unverified
+compatibility claim.
+
+During active development, use JuFitter from a checked-out repository:
 
 ```julia
 using Pkg
