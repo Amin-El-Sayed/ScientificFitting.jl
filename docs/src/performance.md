@@ -83,6 +83,7 @@ julia --project=benchmarks benchmarks/runbenchmarks.jl --plot --seconds=1
 The current suite covers:
 
 - linear and nonlinear least-squares fits,
+- out-of-place and in-place 10k-point linear fits under identical data,
 - no-op bounds that must preserve the fast path,
 - dense covariance fits,
 - bounded dense-covariance fits through `Optimization.jl`,
@@ -123,6 +124,35 @@ the form `[-Inf, Inf]` are treated as no-op bounds and keep the fast path open.
 When `LsqFit` computes a weighted Jacobian, JuFitter reuses it during
 `FitResult` construction. This avoids an unnecessary second automatic
 differentiation pass for common least-squares workflows.
+
+For models whose output buffer is large or whose implementation would otherwise
+allocate temporaries, use the in-place contract:
+
+```julia
+function model!(out, x, p)
+    @. out = p[1] * exp(-p[2] * x) + p[3]
+    return nothing
+end
+
+result = fit_model(
+    model!,
+    x,
+    y;
+    p0=[1.0, 0.5, 0.0],
+    sigma_y=sigma_y,
+    inplace=true,
+)
+```
+
+An analytic in-place Jacobian uses `jacobian!(J, x, p)` and is passed with
+`jacobian=jacobian!`. The unbounded least-squares backend forwards these
+functions to LsqFit's native in-place interface. Bounds, constraints, and
+parameter-dependent covariance still use the general optimizer, but preserve
+the same mutating model contract with an output buffer of the correct AD type.
+JuFitter evaluates both mutating functions once at `p0` and rejects incomplete
+or non-finite output buffers before solver dispatch. Keep their buffer and
+parameter signatures generic rather than restricting them to `Float64`; AD-based
+optimizer paths evaluate them with dual-number element types.
 
 ## Covariance Costs
 

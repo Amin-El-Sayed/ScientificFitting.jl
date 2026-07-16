@@ -168,6 +168,14 @@ Current evidence:
 - X-uncertainty propagation now accepts a vectorized `x_derivative=(x, p) ->
   dy_dx` hook, so large datasets can avoid the default pointwise AD derivative
   when the model derivative is known.
+- `fit_model(...; inplace=true)` accepts `model!(out, x, p)` and an optional
+  `jacobian!(J, x, p)`. The LsqFit fast path forwards both functions to its
+  native in-place interface, while the general optimizer preserves the same
+  model contract with AD-compatible output buffers. Numerical references cover
+  diagonal, dense, and sparse covariance, fixed parameters, profile refits, and
+  both solver backends. Constructors reject incomplete or non-finite mutating
+  output buffers before solver dispatch; the benchmark suite contains a matched
+  10k-point comparison.
 - Dense covariance remains intentionally documented as an expensive `O(n^2)`
   memory and `O(n^3)` factorization path; huge correlated datasets need future
   structured covariance operators rather than dense matrices.
@@ -234,7 +242,6 @@ Open hardening work:
   The current finite-difference reference covers the known full-covariance
   propagation bug, but future changes must recheck value, gradient, and Hessian
   whenever validation or factorization code touches `ForwardDiff.value`.
-- Add in-place model and residual APIs for huge datasets.
 - Add explicit optimizer fallback and parameter-scaling diagnostics.
 - Expand torture tests until they cover constraints, priors, likelihoods,
   profiles, contours, and multi-dataset workflows under hostile conditions.

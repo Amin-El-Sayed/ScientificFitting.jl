@@ -1,38 +1,85 @@
+function _apply_lsqfit_weight!(values::AbstractVector, sigma, factor)
+    if sigma !== nothing
+        @inbounds for i in eachindex(values, sigma)
+            values[i] /= sigma[i]
+        end
+    elseif factor !== nothing
+        copyto!(values, _whiten_with_factor(factor, values))
+    end
+    return values
+end
+
+function _apply_lsqfit_weight!(values::AbstractMatrix, sigma, factor)
+    if sigma !== nothing
+        @inbounds for j in axes(values, 2), i in axes(values, 1)
+            values[i, j] /= sigma[i]
+        end
+    elseif factor !== nothing
+        copyto!(values, _whiten_with_factor(factor, values))
+    end
+    return values
+end
+
 function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     free_p0 = _free_p0(problem)
-    weighted_model = (x, q) -> problem.model(x, _expand_free_parameters(problem, q))
-    weighted_y = problem.y
-    weighted_jacobian = problem.jacobian === nothing ? nothing : (x, q) -> _free_jacobian_from_full(problem, problem.jacobian(x, _expand_free_parameters(problem, q)))
+    sigma = problem.sigma_y
+    factor = problem.cov_y === nothing ? nothing : _stable_cholesky(problem.cov_y)
+    weighted_y = sigma !== nothing ? problem.y ./ sigma :
+                 factor !== nothing ? _whiten_with_factor(factor, problem.y) : problem.y
 
-    if problem.sigma_y !== nothing
-        sigma = problem.sigma_y
-        weighted_model = (x, q) -> problem.model(x, _expand_free_parameters(problem, q)) ./ sigma
-        weighted_y = problem.y ./ sigma
-        if problem.jacobian !== nothing
-            weighted_jacobian = (x, q) -> _free_jacobian_from_full(problem, problem.jacobian(x, _expand_free_parameters(problem, q))) ./ reshape(sigma, :, 1)
+    fit_result = if problem.model isa _InPlaceModel
+        weighted_model! = function (out, x, q)
+            problem.model(out, x, _expand_free_parameters(problem, q))
+            _apply_lsqfit_weight!(out, sigma, factor)
+            return nothing
         end
-    elseif problem.cov_y !== nothing
-        F = _stable_cholesky(problem.cov_y)
-        weighted_model = (x, q) -> _whiten_with_factor(
-            F,
-            problem.model(x, _expand_free_parameters(problem, q)),
-        )
-        weighted_y = _whiten_with_factor(F, problem.y)
-        if problem.jacobian !== nothing
-            weighted_jacobian = (x, q) -> _whiten_with_factor(
-                F,
-                _free_jacobian_from_full(
-                    problem,
-                    problem.jacobian(x, _expand_free_parameters(problem, q)),
-                ),
+
+        if problem.jacobian === nothing
+            LsqFit.curve_fit(weighted_model!, problem.x, weighted_y, free_p0; inplace=true)
+        else
+            free_idx = _free_indices(problem)
+            full_jacobian = length(free_idx) == length(problem.p0) ? nothing :
+                            Matrix{Float64}(undef, length(problem.x), length(problem.p0))
+            weighted_jacobian! = function (out, x, q)
+                params = _expand_free_parameters(problem, q)
+                if full_jacobian === nothing
+                    problem.jacobian(out, x, params)
+                else
+                    problem.jacobian(full_jacobian, x, params)
+                    copyto!(out, view(full_jacobian, :, free_idx))
+                end
+                _apply_lsqfit_weight!(out, sigma, factor)
+                return nothing
+            end
+            LsqFit.curve_fit(
+                weighted_model!,
+                weighted_jacobian!,
+                problem.x,
+                weighted_y,
+                free_p0;
+                inplace=true,
             )
         end
-    end
-
-    fit_result = if weighted_jacobian === nothing
-        LsqFit.curve_fit(weighted_model, problem.x, weighted_y, free_p0)
     else
-        LsqFit.curve_fit(weighted_model, weighted_jacobian, problem.x, weighted_y, free_p0)
+        weighted_model = (x, q) -> begin
+            values = problem.model(x, _expand_free_parameters(problem, q))
+            sigma !== nothing && return values ./ sigma
+            factor !== nothing && return _whiten_with_factor(factor, values)
+            return values
+        end
+        weighted_jacobian = problem.jacobian === nothing ? nothing : (x, q) -> begin
+            full = problem.jacobian(x, _expand_free_parameters(problem, q))
+            values = _free_jacobian_from_full(problem, full)
+            sigma !== nothing && return values ./ reshape(sigma, :, 1)
+            factor !== nothing && return _whiten_with_factor(factor, values)
+            return values
+        end
+
+        if weighted_jacobian === nothing
+            LsqFit.curve_fit(weighted_model, problem.x, weighted_y, free_p0)
+        else
+            LsqFit.curve_fit(weighted_model, weighted_jacobian, problem.x, weighted_y, free_p0)
+        end
     end
     params = _expand_free_parameters(problem, LsqFit.coef(fit_result))
 
@@ -273,6 +320,11 @@ Useful parameter-control kwargs:
 For fits with x uncertainty, `x_derivative=(x, p) -> dy_dx` supplies a
 vectorized model derivative with respect to x. This avoids the default
 point-by-point AD path and is the preferred route for large datasets.
+
+Set `inplace=true` for `model!(out, x, p)`. The unbounded least-squares backend
+uses LsqFit's native in-place model interface; generic optimizer paths preserve
+the same contract with a type-correct output buffer. An optional analytic
+Jacobian must then use `jacobian!(J, x, p)`.
 """
 function fit_model(
     model,
@@ -291,6 +343,7 @@ function fit_model(
     fixed_parameters=nothing,
     jacobian=nothing,
     x_derivative=nothing,
+    inplace::Bool=false,
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
@@ -317,6 +370,7 @@ function fit_model(
         fixed_parameters=fixed_parameters,
         jacobian=jacobian,
         x_derivative=x_derivative,
+        inplace=inplace,
     )
 
     return fit(

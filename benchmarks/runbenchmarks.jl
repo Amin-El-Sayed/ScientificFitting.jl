@@ -30,6 +30,17 @@ function linear_problem(n::Int)
     return model, jacobian, x, y, sigma_y
 end
 
+function linear_model!(out, x, p)
+    @. out = p[1] * x + p[2]
+    return nothing
+end
+
+function linear_jacobian!(J, x, p)
+    J[:, 1] .= x
+    J[:, 2] .= 1
+    return nothing
+end
+
 function nonlinear_problem(n::Int)
     x = collect(range(0.0, 4.0; length=n))
     model(x, p) = @. p[1] * exp(-p[2] * x) + p[3]
@@ -92,6 +103,15 @@ saturation_model_bench, saturation_x, saturation_y, saturation_sigma_x, saturati
 
 SUITE["fit"]["linear_100"] = @benchmarkable fit_model($model100, $x100, $y100; p0=[1.0, 0.0], sigma_y=$sy100, jacobian=$jac100)
 SUITE["fit"]["linear_10000"] = @benchmarkable fit_model($model10k, $x10k, $y10k; p0=[1.0, 0.0], sigma_y=$sy10k, jacobian=$jac10k)
+SUITE["fit"]["linear_10000_inplace"] = @benchmarkable fit_model(
+    $linear_model!,
+    $x10k,
+    $y10k;
+    p0=[1.0, 0.0],
+    sigma_y=$sy10k,
+    jacobian=$linear_jacobian!,
+    inplace=true,
+)
 SUITE["fit"]["linear_10000_noop_bounds"] = @benchmarkable fit_model($model10k, $x10k, $y10k; p0=[1.0, 0.0], sigma_y=$sy10k, jacobian=$jac10k, bounds=([-Inf, -Inf], [Inf, Inf]))
 SUITE["fit"]["nonlinear_1000"] = @benchmarkable fit_model($nlmodel, $nlx, $nly; p0=[1.5, 0.4, 0.0], sigma_y=$nlsy)
 SUITE["fit"]["full_covariance_500"] = @benchmarkable fit_model($fcmodel, $fcx, $fcy; p0=[1.0, 0.0], cov_y=$fccov, scale_covariance=:never)

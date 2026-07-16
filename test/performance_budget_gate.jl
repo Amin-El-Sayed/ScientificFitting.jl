@@ -24,6 +24,17 @@ function _linear_problem(n::Int)
     return model, jacobian, x, y, sigma_y
 end
 
+function _linear_model!(out, x, p)
+    @. out = p[1] * x + p[2]
+    return nothing
+end
+
+function _linear_jacobian!(J, x, p)
+    J[:, 1] .= x
+    J[:, 2] .= 1
+    return nothing
+end
+
 function _dense_covariance_problem(n::Int)
     model, _, x, _, _ = _linear_problem(n)
     sigma = @. 0.1 + 0.01 * abs(sin(x))
@@ -43,6 +54,49 @@ end
         fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y, jacobian=jacobian)
     end
     @test fast_time < 0.25 * PERFORMANCE_BUDGET_SCALE
+
+    inplace_result = fit_model(
+        _linear_model!,
+        x,
+        y;
+        p0=[1.0, 0.0],
+        sigma_y=sigma_y,
+        jacobian=_linear_jacobian!,
+        inplace=true,
+    )
+    @test inplace_result.backend == :lsqfit
+
+    inplace_time = _median_elapsed() do
+        fit_model(
+            _linear_model!,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma_y,
+            jacobian=_linear_jacobian!,
+            inplace=true,
+        )
+    end
+    @test inplace_time < 0.25 * PERFORMANCE_BUDGET_SCALE
+
+    fast_bytes = @allocated fit_model(
+        model,
+        x,
+        y;
+        p0=[1.0, 0.0],
+        sigma_y=sigma_y,
+        jacobian=jacobian,
+    )
+    inplace_bytes = @allocated fit_model(
+        _linear_model!,
+        x,
+        y;
+        p0=[1.0, 0.0],
+        sigma_y=sigma_y,
+        jacobian=_linear_jacobian!,
+        inplace=true,
+    )
+    @test inplace_bytes < fast_bytes
 
     noop_result = fit_model(
         model,

@@ -137,12 +137,19 @@ banded, Toeplitz, low-rank-plus-diagonal, sparse precision, or custom
 application-specific solvers. That is a data-structure extension, not a
 micro-optimization of dense matrices.
 
+Large ordinary least-squares problems can use `fit_model(...; inplace=true)`
+with `model!(out, x, p)` and, optionally, `jacobian!(J, x, p)`. The LsqFit path
+then evaluates model values and residuals in reusable solver buffers. General
+constrained and parameter-dependent-covariance objectives retain the same user
+contract, but automatic differentiation still requires temporary dual-number
+buffers.
+
 ## Extension Points
 
 The main backend extension points are:
 
 - structured covariance and custom whitening operators,
-- in-place model and residual APIs for huge datasets,
+- in-place likelihood and custom-objective evaluation,
 - analytic Jacobian hooks for likelihood workflows,
 - optimizer fallback and parameter scaling policies,
 - stronger profile/contour refinement,

@@ -866,6 +866,7 @@ const _FITPLOT_FIT_KWARGS = Set([
     :fixed_parameters,
     :jacobian,
     :x_derivative,
+    :inplace,
     :backend,
     :cost,
     :maxiters,

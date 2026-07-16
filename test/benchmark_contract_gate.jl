@@ -14,6 +14,7 @@ const CANONICAL_BENCHMARK_COMMAND =
 const REQUIRED_BENCHMARK_CASES = [
     "fit/linear_100",
     "fit/linear_10000",
+    "fit/linear_10000_inplace",
     "fit/linear_10000_noop_bounds",
     "fit/nonlinear_1000",
     "fit/full_covariance_500",

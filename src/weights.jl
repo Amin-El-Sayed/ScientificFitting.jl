@@ -89,13 +89,20 @@ function _prepare_fit_cache(problem::FitProblem)
     return FitEvaluationCache(problem, _prepare_covariance(cov, length(problem.y)), prepared_constraints)
 end
 
+function _validated_model_values(values::AbstractVector, n::Int)
+    length(values) == n || throw(ArgumentError("model output length must match x length"))
+    all(value -> isfinite(_finite_value(value)), values) ||
+        throw(ArgumentError("model output must contain only finite values"))
+    return values
+end
+
 function _model_values(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
     values = problem.model(x, p)
-    length(values) == length(x) || throw(ArgumentError("model output length must match x length"))
-    collected = collect(values)
-    finite_values = _finite_value.(collected)
-    all(isfinite, finite_values) || throw(ArgumentError("model output must contain only finite values"))
-    return collected
+    return _validated_model_values(collect(values), length(x))
+end
+
+function _model_values(problem::FitProblem{<:_InPlaceModel}, p::AbstractVector; x::AbstractVector=problem.x)
+    return _validated_model_values(problem.model(x, p), length(x))
 end
 
 function _model_scalar(problem::FitProblem, x::Real, p::AbstractVector)

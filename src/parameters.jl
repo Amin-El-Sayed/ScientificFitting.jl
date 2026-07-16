@@ -22,7 +22,7 @@ end
 function _expand_free_parameters(problem, free_params::AbstractVector)
     if isempty(problem.fixed_parameters)
         length(free_params) == length(problem.p0) || throw(ArgumentError("free parameter vector has wrong length"))
-        return collect(free_params)
+        return free_params
     end
 
     free_idx = _free_indices(problem)

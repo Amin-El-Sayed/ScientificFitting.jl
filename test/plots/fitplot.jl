@@ -108,6 +108,24 @@ using Test
     @test nonlinear.result.converged
     @test isfile(out)
 
+    function model!(out, x, p)
+        @. out = p[1] * exp(-p[2] * x) + p[3]
+        return nothing
+    end
+    inplace_plot = fitplot(
+        model!,
+        x,
+        y2;
+        p0=[1.0, 0.3, 0.0],
+        sigma_y=sigma_y,
+        inplace=true,
+        report=:none,
+        band=:none,
+    )
+    @test inplace_plot.result.backend == :lsqfit
+    @test inplace_plot.result.converged
+    @test inplace_plot.figure !== nothing
+
     lab_out = joinpath(mktempdir(), "fitplot_lab.png")
     modern_out = joinpath(mktempdir(), "fitplot_modern_dark.png")
     article_out = joinpath(mktempdir(), "fitplot_article.png")

@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-07-15
+Status: 2026-07-16
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -12,17 +12,19 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Current Verification
 
-- Julia 1.10.11 passes the Makie-free core gate with 432 checks and the full
-  package test with 501 checks in an isolated environment resolved under Julia
-  1.10. The package `[compat]`, core CI matrix, and full-package Linux CI matrix
-  therefore support both Julia 1.10 and Julia 1.12; remote CI still needs to be
-  observed after the branch is pushed.
+- Julia 1.10.11 previously passed the Makie-free core gate with 432 checks and
+  the full package test with 501 checks in an isolated environment resolved
+  under Julia 1.10. The current in-place model/Jacobian slice additionally
+  passes its 18-check focused reference under Julia 1.10. The package `[compat]`,
+  core CI matrix, and full-package Linux CI matrix support both Julia 1.10 and
+  Julia 1.12; the complete current matrix still needs to be observed remotely
+  after the branch is pushed.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes on
-  the current release-hardening branch with 501 checks in about 10m31s after
+  the current release-hardening branch with 504 checks in about 25m29s after
   package-test precompilation. This run includes regression, statistical
   reference, hostile-input, and CairoMakie plot tests in the isolated package
   test environment.
-- The plotting release slice passes locally with 69 focused API/layout tests,
+- The plotting release slice passes locally with 72 focused API/layout tests,
   232 gallery-structure checks, 1151 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
   2166 checks against links and assets in the rendered HTML.
@@ -75,10 +77,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   concrete point and x interval, so structured residual warnings point to a
   data region a lab user can inspect.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 386 core checks in about 9m56s on the local machine after the
-  CairoMakie plotting extension split. This is too slow for the default
-  developer gate and must be split further before release CI is finalized.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 69
+  passes with 450 core checks in about 15m05s on the local machine. This is too
+  slow for the default developer gate and should remain a release/CI gate while
+  focused suites provide the edit-test loop.
+- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 72
   focused plot-regression checks locally.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
@@ -142,14 +144,24 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `JUFITTER_DOC_SNAPSHOT_ONLY=1`, so it verifies computations and terminal
   output without re-rendering Makie assets.
 - `test/performance_budget_gate.jl` now covers representative steady-state hot
-  paths with deliberately broad budgets: 10k-point analytic linear
-  least-squares, no-op bounds preserving the fast path, and 300-point dense
-  covariance. This is wired into the core CI lane with a runner scale factor.
-  It is a regression guard, not a publishable benchmark claim.
+  paths with deliberately broad budgets: out-of-place and in-place 10k-point
+  analytic linear least-squares, no-op bounds preserving the fast path, and
+  300-point dense covariance. This is wired into the core CI lane with a runner
+  scale factor. It is a regression guard, not a publishable benchmark claim.
 - `julia --project=. --startup-file=no test/performance_budget_gate.jl` passes
-  locally with 7 checks in about 9.7s. This verifies the current steady-state
+  locally with 10 checks. This verifies the current steady-state
   budget guard and the Makie-free core extension boundary, but it remains a
   regression guard rather than publishable benchmark evidence.
+- `julia --project=. --startup-file=no test/numerics/inplace_model_reference.jl`
+  passes with 18 checks under Julia 1.12 and Julia 1.10. It verifies numerical
+  agreement between out-of-place and `model!(out, x, p)` fits for diagonal,
+  dense, and sparse covariance, native in-place LsqFit evaluation, the general
+  bounded optimizer path, and an in-place full Jacobian with a fixed parameter.
+  Profile refits preserve the mutating contract. Invalid signatures and
+  incomplete or non-finite mutating output buffers fail before solver dispatch.
+  The matched 10k-point local benchmark records both variants' time, memory,
+  and allocation counts without turning one machine's ratio into a public
+  performance claim.
 - `test/benchmark_contract_gate.jl` checks the benchmark release contract
   without measuring timings: the benchmark runner keeps the required hot-path
   cases including profile-matrix diagnostics, records the required summary
@@ -291,7 +303,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   CairoMakie extension boundary. This prevents `@autodocs` from exposing bare
   placeholder functions for `plot_fit`, `fitplot`, annotation helpers, style
   helpers, and profile/contour plotting entry points.
-- Focused plot regression tests pass with 69 checks after the plot-style
+- Focused plot regression tests pass with 72 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
@@ -371,9 +383,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   parameter-dependent dense `cov_x` automatic differentiation.
 - x-uncertainty propagation now has a public vectorized
   `x_derivative=(x, p) -> dy_dx` hook, which avoids the default point-by-point
-  AD derivative when the model derivative is known. The default path remains
-  pointwise for API simplicity, and very large workflows still need future
-  in-place model/residual APIs.
+  AD derivative when the model derivative is known. Large least-squares models
+  can additionally use the in-place model/Jacobian contract; the default x
+  derivative remains pointwise for API simplicity.
 - Dense covariance support is mathematically useful, but still `O(n^2)` memory
   and `O(n^3)` factorization. Large correlated datasets need structured
   covariance operators or custom whitening operators.
@@ -388,9 +400,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   for long time series, images, spectra, and detector arrays. That future path
   must define matrix-free whitening, log-determinant handling where needed, and
   diagnostics that tell users when dense covariance is the wrong model.
-- Objective functions still allocate substantially through `ForwardDiff`
-  Jacobians/Hessians and array-returning model calls. Very large datasets need
-  an in-place residual/model API.
+- General constrained and parameter-dependent-covariance objectives still
+  allocate through `ForwardDiff` Jacobians/Hessians and dual-number output
+  buffers. The in-place model contract removes avoidable user-model and LsqFit
+  allocations, but matrix-free residual objectives and in-place likelihood
+  evaluation remain future large-scale work.
 - The parameter-dependent dense covariance audit found and fixed a real AD
   defect: Cholesky validation stripped `ForwardDiff` dual information before
   factorization. Validation now strips duals only for finite/symmetry checks,
@@ -479,7 +493,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   UUID, authorship, repository URL, and version metadata against the exact
   repository that will be registered.
 - Julia 1.10 is the intentional support floor. Local Julia 1.10 evidence covers
-  the 432-check core gate and the 501-check full package suite; confirm the same
+  the earlier 432-check core gate and 501-check full package suite plus the
+  current 18-check in-place reference slice; confirm the complete current
   1.10/1.12 core and package matrix on GitHub Actions after pushing.
 - Add a docs-deploy job for GitHub Pages or the chosen static host.
 - Confirm the new core/package/docs CI lanes on GitHub Actions after pushing.

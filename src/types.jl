@@ -114,6 +114,47 @@ end
 
 const CovarianceLike = Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int}}
 
+# These adapters keep one model contract inside JuFitter while allowing the
+# least-squares backend to call allocation-free user functions directly.
+struct _InPlaceModel{F}
+    f!::F
+end
+
+function (model::_InPlaceModel)(out::AbstractVector, x::AbstractVector, p::AbstractVector)
+    model.f!(out, x, p)
+    return out
+end
+
+function (model::_InPlaceModel)(x::AbstractVector, p::AbstractVector)
+    T = promote_type(eltype(x), eltype(p))
+    out = Vector{T}(undef, length(x))
+    return model(out, x, p)
+end
+
+struct _InPlaceJacobian{F}
+    f!::F
+end
+
+function (jacobian::_InPlaceJacobian)(out::AbstractMatrix, x::AbstractVector, p::AbstractVector)
+    jacobian.f!(out, x, p)
+    return out
+end
+
+function (jacobian::_InPlaceJacobian)(x::AbstractVector, p::AbstractVector)
+    T = promote_type(eltype(x), eltype(p))
+    out = Matrix{T}(undef, length(x), length(p))
+    return jacobian(out, x, p)
+end
+
+function _validate_inplace_output!(f!, output, x, p, name::AbstractString)
+    fill!(output, NaN)
+    f!(output, x, p)
+    all(isfinite, output) || throw(ArgumentError(
+        "$name must write a finite value to every output element at p0",
+    ))
+    return nothing
+end
+
 struct FitProblem{TF}
     model::TF
     x::Vector{Float64}
@@ -518,7 +559,10 @@ function _assert_fixed_parameters_within_bounds(fixed::Vector{FixedParameter}, b
 end
 
 """
-    FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x, error_components, bounds, constraints, parameter_priors, parameter_constraints, fixed_parameters, jacobian, x_derivative)
+    FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x,
+               error_components, bounds, constraints, parameter_priors,
+               parameter_constraints, fixed_parameters, jacobian,
+               x_derivative, inplace=false)
 
 Build a fit problem for 1D `x` and scalar `y` observations.
 
@@ -549,6 +593,15 @@ single NamedTuple or vector of NamedTuples:
 `x_derivative(x, p)` optionally supplies the vector derivative `dy/dx` used for
 effective x-uncertainty propagation. If omitted, JuFitter differentiates the
 model with respect to each x value by automatic differentiation.
+
+Set `inplace=true` when the model has the signature `model!(out, x, p)`. On the
+unbounded least-squares path, JuFitter forwards this contract to LsqFit's native
+in-place solver interface. Other solver paths use the same model through a
+type-preserving output buffer. If `jacobian` is also supplied, its in-place
+signature must be `jacobian!(J, x, p)`. Mutating functions used with bounds,
+constraints, or parameter-dependent covariance must accept buffers whose
+element type is chosen by automatic differentiation; avoid `Float64`-specific
+method signatures.
 """
 function FitProblem(
     model,
@@ -567,6 +620,7 @@ function FitProblem(
     fixed_parameters=nothing,
     jacobian=nothing,
     x_derivative=nothing,
+    inplace::Bool=false,
 )
     x_vec = _float_vector(x)
     y_vec = _float_vector(y)
@@ -579,6 +633,21 @@ function FitProblem(
     _assert_finite_vector("x", x_vec)
     _assert_finite_vector("y", y_vec)
     _assert_finite_vector("p0", p0_vec)
+
+    if inplace
+        model_output = similar(y_vec)
+        applicable(model, model_output, x_vec, p0_vec) || throw(ArgumentError(
+            "inplace=true requires model!(out, x, p)",
+        ))
+        _validate_inplace_output!(model, model_output, x_vec, p0_vec, "model!")
+        if jacobian !== nothing
+            J = Matrix{Float64}(undef, n, length(p0_vec))
+            applicable(jacobian, J, x_vec, p0_vec) || throw(ArgumentError(
+                "inplace=true requires jacobian!(J, x, p)",
+            ))
+            _validate_inplace_output!(jacobian, J, x_vec, p0_vec, "jacobian!")
+        end
+    end
 
     if sigma_y !== nothing && cov_y !== nothing
         throw(ArgumentError("use either sigma_y or cov_y, not both"))
@@ -614,8 +683,11 @@ function FitProblem(
     fixed = _normalize_fixed_parameters(fixed_parameters, length(p0_vec))
     _assert_fixed_parameters_within_bounds(fixed, bnd)
 
+    model_impl = inplace ? _InPlaceModel(model) : model
+    jacobian_impl = inplace && jacobian !== nothing ? _InPlaceJacobian(jacobian) : jacobian
+
     return FitProblem(
-        model,
+        model_impl,
         x_vec,
         y_vec,
         p0_vec,
@@ -629,7 +701,7 @@ function FitProblem(
         priors,
         par_constraints,
         fixed,
-        jacobian,
+        jacobian_impl,
         x_derivative,
     )
 end
