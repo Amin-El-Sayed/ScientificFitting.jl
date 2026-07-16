@@ -276,6 +276,13 @@ H=\nabla^2 \mathrm{NLL}(\hat\theta)
 
 in the convention ``\mathrm{NLL}=-2\log L``.
 
+The fitted point must actually be a local minimum for this interpretation to
+make sense. A negative eigenvalue in the resulting covariance indicates
+negative local curvature or another invalid local approximation. JuFitter marks
+that condition as critical, returns `NaN` instead of a fabricated zero standard
+error for materially negative marginal variances, and makes the diagnostic
+dashboard return `:stop`.
+
 This approximation is useful but not a promise that the likelihood is
 parabolic. Nonlinear models, weak data, active bounds, and asymmetric
 likelihoods can make the local covariance too optimistic or even misleading.

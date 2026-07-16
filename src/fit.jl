@@ -204,7 +204,7 @@ function _build_fit_result(
         free_cov = _covariance_from_weighted_jacobian(Jw[:, free_idx], chi2, ndf, scale)
         _embed_free_covariance(problem, free_cov)
     end
-    stderr = sqrt.(clamp.(diag(cov), 0.0, Inf))
+    stderr = _standard_errors_from_covariance(cov)
     corr = _correlation_from_covariance(cov)
 
     stats = FitStatistics(_resolve_cost(problem, options.cost), cost_min, nll_min, chi2, chi2_ndf, ndf, pvalue, aic, bic)
@@ -251,6 +251,12 @@ Run a fit and return a `FitResult`.
 - `:always`: multiply by `chi2/ndf`
 
 `initial_guesses` and `multistart` can be used for difficult nonlinear fits.
+
+`backend=:auto` selects the fast `LsqFit` path only when static chi-square
+least squares can represent the complete problem. An explicit
+`backend=:lsqfit` request fails if bounds, priors, constraints,
+parameter-dependent covariance, active error components, or another cost would
+otherwise be ignored.
 """
 function fit(
     problem::FitProblem;
@@ -263,7 +269,6 @@ function fit(
     initial_guesses=nothing,
     multistart::Int=1,
 )
-    multistart > 0 || throw(ArgumentError("multistart must be >= 1"))
     options = FitOptions(
         backend=backend,
         cost=_resolve_cost(problem, cost),

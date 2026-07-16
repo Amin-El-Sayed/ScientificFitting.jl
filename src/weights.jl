@@ -486,48 +486,71 @@ function _covariance_from_cost_hessian(cache::FitEvaluationCache, p::AbstractVec
     return _embed_free_covariance(problem, cov)
 end
 
+function _standard_errors_from_covariance(cov::AbstractMatrix)
+    variances = diag(cov)
+    scale = maximum(abs, variances; init=0.0)
+    tolerance = max(scale, 1.0) * 1e-10
+    return map(variances) do variance
+        !isfinite(variance) || variance < -tolerance ? NaN : sqrt(max(variance, 0.0))
+    end
+end
+
 function _correlation_from_covariance(cov::AbstractMatrix)
-    sigma = sqrt.(clamp.(diag(cov), 0.0, Inf))
+    sigma = _standard_errors_from_covariance(cov)
     corr = zeros(Float64, size(cov))
     for i in axes(cov, 1), j in axes(cov, 2)
+        if !isfinite(sigma[i]) || !isfinite(sigma[j])
+            corr[i, j] = NaN
+            continue
+        end
         denom = sigma[i] * sigma[j]
         corr[i, j] = denom > 0 ? cov[i, j] / denom : 0.0
     end
     return corr
 end
 
-function _solve_backend(problem::FitProblem, backend::Symbol, cost::Symbol)
-    if backend != :auto
-        return backend
-    end
-
+function _lsqfit_incompatibility(problem::FitProblem, cost::Symbol)
     if _resolve_cost(problem, cost) != :chi2
-        return :optimization
+        return "the selected cost is not static chi-square"
     end
 
     if has_parameter_priors(problem) || has_parameter_constraints(problem)
-        # Priors add parameter-space penalty terms, so we use the generic objective path.
-        return :optimization
+        return "parameter priors or correlated parameter constraints add cost terms"
     end
 
     if has_constraints(problem.constraints)
-        return :optimization
+        return "nonlinear parameter constraints require the constrained optimizer"
     end
 
     if problem.bounds !== nothing
-        return :optimization
+        return "active parameter bounds require the general optimizer"
     end
 
     if any(c -> c.active, problem.error_components)
-        return :optimization
+        return "active error components are evaluated by the general objective"
     end
 
     if _has_parameter_dependent_covariance(problem)
-        # Effective-variance terms depend on parameters and are not static weights.
-        return :optimization
+        return "the effective covariance depends on fitted parameters"
     end
 
-    return :lsqfit
+    return nothing
+end
+
+function _solve_backend(problem::FitProblem, backend::Symbol, cost::Symbol)
+    backend in (:auto, :lsqfit, :optimization) || throw(ArgumentError(
+        "unsupported backend: $backend (use :auto, :lsqfit, or :optimization)",
+    ))
+    backend == :optimization && return :optimization
+
+    incompatibility = _lsqfit_incompatibility(problem, cost)
+    if backend == :lsqfit && incompatibility !== nothing
+        throw(ArgumentError(
+            "backend=:lsqfit cannot represent this fit because $incompatibility; " *
+            "use backend=:auto or backend=:optimization",
+        ))
+    end
+    return incompatibility === nothing ? :lsqfit : :optimization
 end
 
 function _constraint_vectors(spec::ConstraintSpec, p::AbstractVector)

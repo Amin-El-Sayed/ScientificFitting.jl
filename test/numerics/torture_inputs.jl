@@ -7,6 +7,89 @@ using Test
     y = @. 2.0 * x + 1.0
     model(x, p) = @. p[1] * x + p[2]
 
+    @testset "Solver controls and backend requests fail clearly" begin
+        @test_throws ArgumentError FitOptions(backend=:unknown)
+        @test_throws ArgumentError FitOptions(maxiters=0)
+        @test_throws ArgumentError FitOptions(tol=NaN)
+        @test_throws ArgumentError FitOptions(tol=0.0)
+        @test_throws ArgumentError FitOptions(ci_level=0.0)
+        @test_throws ArgumentError FitOptions(ci_level=1.0)
+        @test_throws ArgumentError FitOptions(scale_covariance=:invalid)
+        @test_throws ArgumentError FitOptions(multistart=0)
+        @test FitOptions(tol=1).tol === 1.0
+        @test FitOptions(ci_level=1 // 2).ci_level === 0.5
+
+        sigma = fill(0.1, length(x))
+        @test fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma,
+            backend=:lsqfit,
+        ).backend == :lsqfit
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma,
+            bounds=([0.0, -Inf], [3.0, Inf]),
+            backend=:lsqfit,
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma,
+            parameter_priors=(index=1, mean=2.0, sigma=0.2),
+            backend=:lsqfit,
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma,
+            cost=:gaussian_nll,
+            backend=:lsqfit,
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma,
+            sigma_x=fill(0.02, length(x)),
+            backend=:lsqfit,
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma,
+            constraints=ConstraintSpec(ineq=p -> p[1]),
+            backend=:lsqfit,
+        )
+        @test_throws ArgumentError fit_model(
+            model,
+            x,
+            y;
+            p0=[1.0, 0.0],
+            sigma_y=sigma,
+            error_components=(name=:extra, target=:y, mode=:absolute, values=0.1),
+            backend=:lsqfit,
+        )
+
+        likelihood = fit_custom(p -> abs2(p[1] - 1.0); p0=[0.0], nobs=2)
+        @test_throws MethodError JuFitter.fit(
+            likelihood.problem;
+            unsupported_keyword=true,
+        )
+    end
+
     @testset "Unphysical data and uncertainties fail before optimization" begin
         @test_throws ArgumentError fit_model(model, Float64[], Float64[]; p0=[1.0, 0.0])
         @test_throws ArgumentError fit_model(model, [0.0, NaN], [1.0, 2.0]; p0=[1.0, 0.0])

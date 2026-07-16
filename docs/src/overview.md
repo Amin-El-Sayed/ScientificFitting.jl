@@ -34,8 +34,10 @@ Choose the simplest uncertainty representation that is scientifically honest:
 
 Dense covariance is exact but expensive. It is appropriate for small and
 medium correlated datasets, not for every long time series, image, spectrum, or
-detector array. Large structured correlations are tracked as future whitening
-operator work in the release audit.
+detector array. For a known complete static covariance with exploitable
+structure, `WhiteningOperator` provides a matrix-free residual/Jacobian
+whitening contract. Convenient built-in Toeplitz, banded, low-rank, and sparse-
+precision constructors remain future work.
 
 ## Read The Result Before Plotting
 

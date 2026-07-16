@@ -1,6 +1,7 @@
 module JuFitter
 
 using ADTypes
+import StatsAPI: fit
 using Distributions
 using DifferentiationInterface
 using ForwardDiff

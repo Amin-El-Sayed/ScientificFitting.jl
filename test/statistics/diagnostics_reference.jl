@@ -29,6 +29,26 @@ using Test
         @test any(f -> f.code == :ill_conditioned_hessian, report.findings)
     end
 
+    @testset "Negative local curvature stops reporting" begin
+        stationary_maximum = fit_custom(
+            p -> -abs2(p[1]);
+            p0=[0.0],
+            nobs=2,
+            bounds=([-1.0], [1.0]),
+        )
+
+        @test stationary_maximum.converged
+        @test stationary_maximum.param_covariance[1, 1] < 0
+        @test isnan(stationary_maximum.param_stderr[1])
+        @test isnan(stationary_maximum.param_correlation[1, 1])
+        @test any(
+            f -> f.code == :nonpositive_parameter_covariance && f.severity == :critical,
+            diagnose(stationary_maximum).findings,
+        )
+        @test any(contains("symmetric parameter errors must not be reported"), stationary_maximum.diagnostics.warnings)
+        @test diagnostic_dashboard(stationary_maximum).status == :stop
+    end
+
     @testset "Non-positive degrees of freedom warns about reduced statistics" begin
         x = [0.0, 1.0]
         y = [1.0, 3.0]

@@ -123,6 +123,9 @@ For slow shared runners, the budgets can be scaled with
 Unbounded static chi-square fits use `LsqFit`. This includes fits without
 active bounds, constraints, priors, or parameter-dependent covariance. Bounds of
 the form `[-Inf, Inf]` are treated as no-op bounds and keep the fast path open.
+JuFitter rejects an explicit `backend=:lsqfit` request when that backend would
+discard any part of the cost or parameter controls; selecting a fast backend
+must never change the statistical problem.
 
 When `LsqFit` computes a weighted Jacobian, JuFitter reuses it during
 `FitResult` construction. This avoids an unnecessary second automatic

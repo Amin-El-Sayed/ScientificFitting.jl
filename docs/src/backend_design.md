@@ -29,6 +29,9 @@ The `FitProblem` stores data, model, uncertainty inputs, fixed parameters,
 bounds, priors, and constraints. The cost layer decides what is minimized. The
 optimizer only solves the numerical minimization problem.
 
+The low-level `fit(problem)` methods extend `StatsAPI.fit`; JuFitter does not
+create a competing generic with the same ecosystem-wide name.
+
 ## Cost Functions
 
 For Gaussian XY fits, JuFitter currently distinguishes:
@@ -75,6 +78,12 @@ computed by `LsqFit` is reused when constructing the `FitResult`.
 
 The general path uses `Optimization.jl` for scalar objectives, bounds,
 constraints, priors, parameter-dependent covariance, and likelihood workflows.
+
+An explicit backend request cannot weaken the statistical problem.
+`backend=:lsqfit` is rejected when the fit contains a non-chi-square cost,
+bounds, priors, parameter constraints, nonlinear constraints, active error
+components, or parameter-dependent covariance. Use `backend=:auto` unless a
+specific compatible backend is needed for a controlled comparison.
 
 No-op bounds such as `[-Inf, Inf]` are normalized and do not block the fast
 least-squares path. This matters because generic APIs often pass bounds even
@@ -132,6 +141,7 @@ Important cases that must stay visible:
 - strong parameter correlations,
 - suspicious residual structure,
 - failed profile or contour refits.
+- non-finite or non-positive-semidefinite local parameter covariance.
 
 ## Scaling Limits
 

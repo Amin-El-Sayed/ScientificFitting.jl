@@ -26,6 +26,9 @@ package.
   `FitEvaluationCache`.
 - Diagonal covariance uses precomputed inverse standard deviations.
 - Dense covariance uses Cholesky solves and cached log determinants.
+- Application-specific static structured covariance uses
+  `WhiteningOperator`; residuals and Jacobian columns share the same operator
+  contract without materializing a dense matrix.
 - Correlated Gaussian parameter constraints are prepared once as
   `PreparedParameterConstraint` objects. The same Cholesky factor and log
   determinant are reused for weighted residuals, chi-square, Gaussian NLL,
@@ -48,9 +51,8 @@ belongs in a cache.
   operators, not denser micro-optimizations.
 - Dense covariance should remain the explicit exact path for small and medium
   correlated datasets. Long time series, images, spectra, and detector arrays
-  need future banded, sparse, low-rank, Toeplitz, or custom whitening
-  representations so memory and factorization cost scale with the measurement
-  structure rather than with a dense matrix.
+  can use a validated custom `WhiteningOperator`; convenient built-in banded,
+  low-rank, Toeplitz, and sparse-precision wrappers remain future work.
 - Parameter-dependent x uncertainties require recomputing effective covariance
   terms. This is statistical work, not accidental overhead. For large datasets,
   prefer the public `x_derivative=(x, p) -> dy_dx` hook over the default

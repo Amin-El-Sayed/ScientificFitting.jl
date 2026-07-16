@@ -43,12 +43,15 @@ A code block is not done until:
 
 ## Current Priority
 
-Code robustness comes before documentation polish. The current technical backlog
-is:
+The scoped v0 core has local reference, torture, performance, profile/contour,
+structured-whitening, in-place, plotting, and full-package evidence. Current
+work should therefore proceed in this order:
 
-1. Robust and adaptive profile/contour scans.
-2. Useful diagnosis dashboard and diagnostic plots.
-3. Performance gates and benchmark baselines.
-4. Structured covariance or custom whitening operators.
-5. In-place model/residual APIs for very large datasets.
-6. Full documentation pass only after the core behavior is stable.
+1. Finish the page-by-page public documentation and API-reference review.
+2. Keep code changes limited to concrete defects found by that review; every
+   such defect needs a focused regression test.
+3. Prepare packaging metadata, deployment, CI observation, and benchmark
+   baselines only after explicit maintainer decisions and approval.
+4. Treat built-in structured covariance families, automatic nonlinear-
+   uncertainty triggers, and broader multi-fit uncertainty models as post-v0
+   architecture unless a release-blocking defect proves otherwise.

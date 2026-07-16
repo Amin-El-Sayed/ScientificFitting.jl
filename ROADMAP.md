@@ -96,8 +96,9 @@ Completion evidence:
 
 ## Phase 3: Numerics, Performance, and Torture Testing
 
-Status: reopened as the release gate. The previous benchmark baseline was useful
-but not strict enough for a public scientific package.
+Status: locally complete for the scoped v0 core. Remote CI observation, a named
+release benchmark baseline, and maintainer release review remain external
+release gates rather than missing numerical architecture.
 
 Goal: robustness and speed are measured continuously.
 
@@ -115,7 +116,8 @@ Key deliverables:
   hidden jitter.
 - Clear AD/Jacobian policy: analytic, automatic differentiation, finite
   differences as fallback.
-- Parameter scaling and optimizer fallback policy.
+- Explicit solver controls and backend-compatibility policy. Automatic
+  parameter rescaling and multi-optimizer fallback remain post-v0 work.
 
 Acceptance criteria:
 
@@ -221,12 +223,22 @@ Current evidence:
   of panels that need attention, including parameter names, status, severity
   counts, finding codes, and a first next action. This keeps lab-notebook
   output, plots, and future CI checks on the same diagnostic contract.
+- Explicit `backend=:lsqfit` requests are rejected when bounds, priors,
+  constraints, active error components, parameter-dependent covariance, or a
+  non-chi-square cost would be discarded. Solver controls are validated before
+  dispatch, and unknown likelihood-fit keywords are no longer ignored.
+- JuFitter's low-level `fit(problem)` methods extend `StatsAPI.fit`, avoiding an
+  ambiguous second `fit` generic when scientific workflows also load
+  `Distributions` or `StatsBase`.
+- Local parameter covariance is checked for negative eigenvalues. Invalid
+  curvature produces a critical diagnostic and dashboard status `:stop`
+  instead of presenting clamped zero errors as usable uncertainty.
+- `Pkg.test()` delegates to the authoritative Makie-free core runner and then
+  adds plotting tests, preventing focused reference suites from drifting out of
+  the package release gate.
 
-Open hardening work:
+Post-v0 hardening work:
 
-- Apply small, local numerical optimizations before larger architecture work:
-  cache static parameter-constraint factorizations, avoid repeated
-  model-independent work inside objectives, and add tests for every such change.
 - Improve adaptive contour refinement for strongly curved/non-elliptic regions
   beyond simple level-bracketing cells.
 - Improve the kafe2-inspired but JuFitter-native profile/contour matrix beyond
@@ -254,12 +266,10 @@ Open hardening work:
 
 Deferred scientific architecture candidates:
 
-- Structured covariance and whitening operators. Dense covariance matrices are
-  the exact small/medium-data path, but they scale as `O(n^2)` in memory and
-  `O(n^3)` for factorization. Large time series, images, spectra, and detector
-  arrays need matrix-free or structured operators with explicit whitening,
-  log-determinant, and diagnostic semantics before JuFitter should claim
-  large-scale correlated-data leadership.
+- Built-in structured covariance families. The low-level static whitening
+  contract is implemented and tested; convenient banded, Toeplitz,
+  low-rank-plus-diagonal, sparse-precision, parameter-dependent, and structured
+  x-covariance wrappers remain future architecture.
 - Beyond local parameter covariance. `Cov(p̂)` is a local quadratic
   approximation. It can be too optimistic for nonlinear models, weak data,
   active bounds, and asymmetric likelihoods. Profiles and contours are the
@@ -276,7 +286,9 @@ Deferred scientific architecture candidates:
 
 ## Phase 3.5: Diagnostic Plots and Contours
 
-Status: blocked on the Phase 3 hardening gate.
+Status: complete for the scoped v0 core and plotting API. Further automatic
+nonlinearity detection and richer combined dashboards remain post-v0 work; the
+current release task is documentation and human visual review.
 
 Goal: profile, contour, residual, pull, covariance, and likelihood diagnostics
 must communicate statistical meaning as clearly as kafe2/Minuit-style tools,
@@ -314,9 +326,9 @@ Acceptance criteria:
 
 ## Phase 4: Documentation and Gallery
 
-Status: postponed behind Phase 3 and Phase 3.5 quality gates. Documentation
-work continues only where it records architecture decisions, known limitations,
-and hardening results.
+Status: active release focus. Core and diagnostic gates are locally green; the
+remaining work is a page-by-page editorial, didactic, API-reference, and visual
+review plus packaging/deployment decisions requiring maintainer approval.
 
 Goal: documentation is good enough to teach scientific fitting, not only list
 function signatures.

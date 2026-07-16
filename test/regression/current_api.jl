@@ -1,8 +1,11 @@
 using JuFitter
 using LinearAlgebra
+using StatsAPI
 using Test
 
 @testset "JuFitter" begin
+    @test JuFitter.fit === StatsAPI.fit
+
     @testset "Linear fit with sigma_y" begin
         x = collect(range(0.0, 10.0; length=120))
         p_true = [2.0, -1.5]

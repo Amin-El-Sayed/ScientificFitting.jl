@@ -27,24 +27,32 @@ profile-matrix, and diagnostic-warning semantics.
 Numerics and performance: reproducible benchmarks, stable factorizations,
 diagnostics, AD/Jacobian policy, and optimizer fallback strategy.
 
-Status: reopened as the release gate. Static covariance factorizations are
-cached, explicit production matrix inverses were removed, no-op bounds keep the
-fast least-squares backend, and benchmark coverage now includes least-squares,
-dense covariance, bounded covariance, Poisson likelihood, plotting, and
-profiles. That evidence is useful, but it is not enough for public robustness
-claims until the torture suite covers more hostile constraints, priors,
-likelihood, profile, contour, and multi-dataset workflows.
+Status: locally complete for the scoped v0 core. Static covariance and
+parameter-constraint factors are cached, no-op bounds preserve the fast path,
+incompatible explicit backend requests fail rather than weakening the cost,
+hostile-input and local-curvature diagnostics are release-tested, and benchmark
+coverage includes least squares, dense/sparse/structured covariance,
+likelihoods, profiles, diagnostics, and plotting. Remote CI and a named release
+benchmark baseline remain publication gates.
 
 Dense covariance fits remain the intentionally expensive path: they are correct
-and tested, but very large correlated datasets need future structured
-covariance operators instead of materialized dense matrices.
+and tested, while large static correlated datasets can use a validated
+matrix-free `WhiteningOperator` instead of materialized dense matrices.
+
+## Phase 3.5
+
+Diagnostic plots and contours: profile/contour matrices, local-covariance
+comparisons, residual/pull diagnostics, triage, and post-fit Makie annotations.
+
+Status: complete for the scoped v0 interface. Richer combined dashboards and
+automatic nonlinear-likelihood triggers are post-v0 candidates.
 
 ## Phase 4
 
 Documentation and gallery: tutorials, theory guide, API reference, and
 real-data examples with generated plots.
 
-Status: in progress. The docs now have explicit pages for installation,
+Status: active release focus. The docs now have explicit pages for installation,
 quickstart, gallery workflows, mathematics/statistics, plotting design,
 performance, maintenance notes, and curated API reference. The remaining work
 is the final page-by-page editorial and visual review before public promotion;

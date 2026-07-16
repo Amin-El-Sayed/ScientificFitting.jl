@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "e427b2891e449ad37c76f9b28af388de3fcac30c"
+project_hash = "a62c3cf2d3b32f2bb1fe31a2cd406e990e08e6d4"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
@@ -417,7 +417,7 @@ uuid = "ae98c720-c025-4a4a-838c-29b094483192"
 version = "0.2.1"
 
 [[deps.JuFitter]]
-deps = ["ADTypes", "DifferentiationInterface", "Distributions", "ForwardDiff", "LaTeXStrings", "LinearAlgebra", "LsqFit", "Optimization", "OptimizationOptimJL", "QuadGK", "SparseArrays", "SpecialFunctions", "Statistics"]
+deps = ["ADTypes", "DifferentiationInterface", "Distributions", "ForwardDiff", "LaTeXStrings", "LinearAlgebra", "LsqFit", "Optimization", "OptimizationOptimJL", "QuadGK", "SparseArrays", "SpecialFunctions", "Statistics", "StatsAPI"]
 path = "."
 uuid = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
 version = "0.1.0"

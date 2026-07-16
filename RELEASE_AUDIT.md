@@ -16,15 +16,24 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   the full package test with 501 checks in an isolated environment resolved
   under Julia 1.10. The current in-place model/Jacobian slice additionally
   passes its 18-check focused reference, and the structured-whitening slice
-  passes its current 35-check reference under Julia 1.10. The package
+  passes its current 35-check reference under Julia 1.10. On the current audit
+  branch, a fresh Julia-1.10-resolved temporary environment also passes the
+  82-check torture suite, the 56-check diagnostic suite, and the shared
+  `StatsAPI.fit` binding check. The package
   `[compat]`, core CI matrix, and full-package Linux CI matrix support both
   Julia 1.10 and Julia 1.12; the complete current matrix still needs to be
   observed remotely after the branch is pushed.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes on
-  the current structured-whitening branch with 509 checks in about 22m23s after
-  package-test precompilation. This run includes regression, statistical
-  reference, hostile-input, and CairoMakie plot tests in the isolated package
-  test environment.
+  the current release-audit branch with 588 checks in about 57m57s after
+  package-test precompilation. `test/runtests.jl` now delegates to the single
+  authoritative Makie-free core inventory before adding CairoMakie tests. This
+  corrected a real gate defect: the previous 509-check package runner omitted
+  the structured-whitening and in-place reference files even though their
+  focused suites passed separately.
+- JuFitter's low-level methods extend `StatsAPI.fit` rather than creating a
+  competing generic. A local namespace check with `JuFitter`, `Distributions`,
+  and `StatsAPI` loaded together confirms the shared binding and executes a
+  converged `fit(problem)` call without ambiguity.
 - The plotting release slice passes locally with 77 focused API/layout tests,
   232 gallery-structure checks, 1151 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
@@ -36,7 +45,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   content; explicit fixed widths remain an opt-in export control.
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
-  passes with 64 torture checks in about 65s on the local machine after adding
+  passes with 82 torture checks in about 1m52s on the local machine after adding
   validation that fixed/profiled parameter values cannot bypass declared bounds
   and that `p0` and user-provided `initial_guesses` are finite and inside
   declared bounds instead of being silently clipped before optimization. The
@@ -48,7 +57,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   can turn invalid scientific input into vague convergence failures. Indexed
   and multi-dataset Gaussian wrappers now reject non-finite observations,
   non-positive or non-finite `sigma_y`, invalid indexed `cov_y`, and empty
-  multi-fit inputs before objective evaluation.
+  multi-fit inputs before objective evaluation. Solver controls now fail during
+  construction, incompatible explicit `backend=:lsqfit` requests cannot discard
+  statistical terms or constraints, and unsupported likelihood-fit keywords no
+  longer disappear silently.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
   passes with 81 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds, finite positive profile
@@ -71,16 +83,19 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   with full `cov_x` propagation, where the effective dense covariance depends on
   the fitted model parameter.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
-  passes with 49 diagnostic reference checks in about 39s, including the
+  passes with 56 diagnostic reference checks in about 46s, including the
   local-covariance warning that recommends profile/contour intervals when
   active bounds or strong parameter correlations make symmetric errors suspect.
   The same gate now checks that a long same-sign pull run is reported with its
   concrete point and x interval, so structured residual warnings point to a
-  data region a lab user can inspect.
-- `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 485 core checks in about 24m40s on the local machine. This is too
-  slow for the default developer gate and should remain a release/CI gate while
-  focused suites provide the edit-test loop.
+  data region a lab user can inspect. A converged stationary maximum with
+  negative local curvature now produces a critical finding, dashboard status
+  `:stop`, and `NaN` uncertainty/correlation values rather than fabricated zero
+  errors.
+- The complete core inventory is exercised by the 588-check package gate above.
+  Its roughly one-hour runtime is too slow for the default developer loop and
+  remains a release/CI gate; focused reference and torture suites provide the
+  edit-test loop.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 77
   focused plot-regression checks locally, including structured-whitening error
   bars, prediction-band semantics, and the no-marginals failure path.
@@ -348,8 +363,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   approximation, and interval threshold, and can focus the displayed delta-cost
   range without changing the scan. The plot path also covers failed-refit cells,
   invalid display limits, and fully non-finite contour surfaces.
-- Phase 3 is reopened as the release gate. The project no longer treats
-  friendly-path examples or smoke tests as evidence of production robustness.
+- The scoped v0 core is locally through its focused numerical gates. Friendly
+  examples and smoke tests are not accepted as evidence; package, CI, and
+  documentation gates below remain mandatory before publication.
 
 ## Release Blockers
 
@@ -380,7 +396,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Use DOM/computed-style checks plus targeted static image inspection until a
   stable visual-regression workflow exists.
 
-## Code And Numerical Blockers
+## Known Numerical Limits And Post-v0 Work
 
 - Plotting now uses a CairoMakie package extension, so fitting/reporting no
   longer requires Makie at load time. Plotting still has the expected

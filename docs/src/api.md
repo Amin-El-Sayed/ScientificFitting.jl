@@ -9,6 +9,9 @@ the [Gallery](gallery.md).
 ## Fitting Workflows
 
 Use these entry points for ordinary model fits and likelihood fits.
+`JuFitter.fit` extends the standard `StatsAPI.fit` generic for JuFitter problem
+types, so loading `Distributions` or `StatsBase` does not create a second,
+ambiguous `fit` binding.
 
 ```@docs
 JuFitter.fit

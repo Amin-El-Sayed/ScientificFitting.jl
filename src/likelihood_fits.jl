@@ -181,7 +181,7 @@ function _build_likelihood_result(
     aic = cost_min + 2.0 * npar
     bic = cost_min + log(nobs) * npar
     cov = _likelihood_covariance(cache, params)
-    stderr = sqrt.(clamp.(diag(cov), 0.0, Inf))
+    stderr = _standard_errors_from_covariance(cov)
     corr = _correlation_from_covariance(cov)
     stats = FitStatistics(problem.cost_name, cost_min, cost_min, gof, gof_ndf, ndf, pvalue, aic, bic)
     free_idx = _free_indices(problem)
@@ -198,9 +198,7 @@ function fit(
     ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
-    kwargs...,
 )
-    multistart > 0 || throw(ArgumentError("multistart must be >= 1"))
     options = FitOptions(
         backend=:optimization,
         cost=problem.cost_name,

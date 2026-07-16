@@ -152,12 +152,48 @@ function _basic_diagnostic_findings(
     return findings
 end
 
+function _local_covariance_validity_findings(cov::AbstractMatrix)
+    isempty(cov) && return DiagnosticFinding[]
+    covariance = Matrix{Float64}(cov)
+    all(isfinite, covariance) || return DiagnosticFinding[
+        _finding(
+            :critical,
+            :invalid_local_covariance,
+            "Local parameter covariance is not finite",
+            "The curvature-based parameter covariance contains non-finite values.",
+            "Do not report symmetric parameter errors. Check convergence, parameter scaling, and the objective near the fitted point; use profiles only after a valid minimum is established.",
+        ),
+    ]
+
+    eigenvalues = eigvals(Symmetric((covariance + covariance') / 2))
+    scale = maximum(abs, eigenvalues; init=0.0)
+    tolerance = max(scale, 1.0) * 1e-10
+    minimum_eigenvalue = minimum(eigenvalues)
+    minimum_eigenvalue >= -tolerance && return DiagnosticFinding[]
+
+    return DiagnosticFinding[
+        _finding(
+            :critical,
+            :nonpositive_parameter_covariance,
+            "Local parameter covariance is not positive semidefinite",
+            "minimum covariance eigenvalue = $(_fmt_scientific(minimum_eigenvalue)).",
+            "Do not report symmetric parameter errors. Verify that the fitted point is a minimum, inspect the objective/profile shape, and reconsider model identifiability or parameter scaling.",
+        ),
+    ]
+end
+
 function _fit_diagnostics(problem, params::AbstractVector, cov::AbstractMatrix, converged::Bool, ndf::Int; hessian=nothing, gof=nothing)
     cov_cond = _safe_condition_number(cov)
     hess_cond = hessian === nothing ? NaN : _safe_condition_number(hessian)
     active_bounds = _active_bound_indices(problem.bounds, params)
     warnings = _diagnostic_warnings(converged, ndf, cov_cond, hess_cond, active_bounds; gof=gof)
     findings = _basic_diagnostic_findings(converged, ndf, cov_cond, hess_cond, active_bounds; gof=gof)
+    covariance_findings = _local_covariance_validity_findings(cov)
+    append!(findings, covariance_findings)
+    !isempty(covariance_findings) && push!(
+        warnings,
+        "local parameter covariance is invalid; symmetric parameter errors must not be reported",
+    )
     return FitDiagnostics(warnings, cov_cond, hess_cond, active_bounds, findings)
 end
 

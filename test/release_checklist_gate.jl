@@ -2,6 +2,7 @@ using Test
 
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const RELEASE_CHECKLIST = joinpath(ROOT, "RELEASE_CHECKLIST.md")
+const PACKAGE_TEST_RUNNER = joinpath(ROOT, "test", "runtests.jl")
 
 const REQUIRED_RELEASE_CHECKLIST_STRINGS = [
     "do not push, publish, register, deploy documentation",
@@ -44,4 +45,8 @@ const REQUIRED_RELEASE_CHECKLIST_STRINGS = [
     for required in REQUIRED_RELEASE_CHECKLIST_STRINGS
         @test occursin(required, text)
     end
+
+    runner = read(PACKAGE_TEST_RUNNER, String)
+    @test occursin("include(\"core_runtests.jl\")", runner)
+    @test occursin("include(\"plots/fitplot.jl\")", runner)
 end

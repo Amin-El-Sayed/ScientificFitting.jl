@@ -1,12 +1,8 @@
 using Test
 
 @testset "JuFitter test suite" begin
-    include("regression/current_api.jl")
-    include("statistics/covariance_semantics_reference.jl")
-    include("statistics/diagnostics_reference.jl")
-    include("statistics/linear_gaussian_reference.jl")
-    include("statistics/likelihood_reference.jl")
-    include("statistics/profile_contour_reference.jl")
-    include("numerics/torture_inputs.jl")
+    # Keep one authoritative Makie-free inventory. Pkg.test adds only the
+    # optional plotting slice so new core references cannot be omitted here.
+    include("core_runtests.jl")
     include("plots/fitplot.jl")
 end
