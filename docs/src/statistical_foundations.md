@@ -130,6 +130,29 @@ JuFitter does not form ``V^{-1}`` explicitly in production calculations. It
 uses factorization and linear solves, because those are more stable and faster
 than materializing an inverse matrix.
 
+### Whitening Without A Dense Matrix
+
+A whitening operator ``W`` rewrites the same quadratic form as
+
+```math
+W^T W=V^{-1}, \qquad
+\chi^2=\lVert Wr\rVert^2.
+```
+
+This is not a different statistical model. It is a more appropriate data
+structure when the covariance has exploitable structure. For example, a
+stationary AR(1) time series with ``V_{ij}=\sigma^2\rho^{|i-j|}`` can be
+whitened by subtracting ``\rho`` times the previous residual and dividing by
+the innovation standard deviation ``\sigma\sqrt{1-\rho^2}``. The calculation
+is ``O(n)`` although the equivalent dense matrix has ``n^2`` entries.
+
+`WhiteningOperator` exposes this path for a complete static covariance. The
+user supplies both the transformation and ``\log\det V``. The determinant does
+not move a static chi-square minimum, but it is required for a normalized
+Gaussian likelihood and therefore for comparable AIC/BIC values. A small dense
+reference case should verify both quantities before the structured operator is
+trusted on a large dataset.
+
 ## Full Gaussian Likelihood
 
 If the data are distributed as

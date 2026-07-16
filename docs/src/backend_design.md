@@ -89,6 +89,13 @@ Dense static covariance stores a Cholesky factor and log determinant. Residuals
 are whitened by linear solves, not by multiplying with an explicit inverse
 matrix.
 
+`WhiteningOperator` is the matrix-free static path. Its user function applies a
+complete operator ``W`` with ``W^T W=V^{-1}``; JuFitter applies the same
+operation to residuals and Jacobian columns. The supplied log determinant keeps
+the normalized Gaussian NLL and information criteria consistent. The operator
+is exclusive with other observation-uncertainty inputs, so the cache never
+silently combines covariance models with unknown semantics.
+
 Parameter-dependent covariance remains dynamic by design. Recomputing the
 effective covariance for x uncertainties or model-relative uncertainty is part
 of the statistical model, not accidental overhead.
@@ -132,10 +139,12 @@ Diagonal and uncorrelated problems are the target class for very large datasets.
 Dense covariance matrices are supported and tested, but they scale as `O(n^2)`
 memory and `O(n^3)` factorization time.
 
-Large correlated datasets need structured covariance or whitening operators:
-banded, Toeplitz, low-rank-plus-diagonal, sparse precision, or custom
-application-specific solvers. That is a data-structure extension, not a
-micro-optimization of dense matrices.
+Large correlated datasets can provide a `WhiteningOperator` instead of a dense
+matrix. Its cost and storage are defined by the application-specific operation;
+an AR(1) recurrence is ``O(n)`` in both time and working memory. Built-in
+banded, Toeplitz, low-rank-plus-diagonal, and sparse-precision wrappers remain
+future extensions. This is a data-structure problem, not a micro-optimization
+of dense matrices.
 
 Large ordinary least-squares problems can use `fit_model(...; inplace=true)`
 with `model!(out, x, p)` and, optionally, `jacobian!(J, x, p)`. The LsqFit path
@@ -148,7 +157,8 @@ buffers.
 
 The main backend extension points are:
 
-- structured covariance and custom whitening operators,
+- built-in structured covariance wrappers on top of the whitening contract,
+- parameter-dependent and structured x-covariance operators,
 - in-place likelihood and custom-objective evaluation,
 - analytic Jacobian hooks for likelihood workflows,
 - optimizer fallback and parameter scaling policies,

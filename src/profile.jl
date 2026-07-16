@@ -112,6 +112,7 @@ function _refit_with_fixed(result::FitResult, fixed::Vector{FixedParameter})
         sigma_x=problem.sigma_x,
         cov_y=problem.cov_y,
         cov_x=problem.cov_x,
+        whitening=problem.whitening,
         error_components=problem.error_components,
         bounds=problem.bounds,
         constraints=problem.constraints,

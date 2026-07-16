@@ -87,6 +87,7 @@ The current suite covers:
 - no-op bounds that must preserve the fast path,
 - dense covariance fits,
 - bounded dense-covariance fits through `Optimization.jl`,
+- a 100k-point matrix-free structured-whitening fit,
 - Poisson likelihood fits,
 - plot export,
 - profile scans,
@@ -108,8 +109,10 @@ julia --project=. --startup-file=no test/performance_budget_gate.jl
 It is not a benchmark report. The gate warms compilation first and then checks
 only broad budgets for representative hot paths: a 10k-point linear
 least-squares fit, the same fit with no-op bounds, and a 300-point dense
-covariance fit. Its job is to catch accidental slowdowns such as losing the
-`LsqFit` fast path or recomputing static covariance work inside the objective.
+covariance fit. It also checks a 50k-point structured-whitening fit and verifies
+that allocations remain linear between 10k and 50k points. Its job is to catch
+accidental slowdowns such as losing the `LsqFit` fast path or recomputing static
+covariance work inside the objective.
 
 For slow shared runners, the budgets can be scaled with
 `JUFITTER_PERFORMANCE_BUDGET_SCALE`. Any release claim still needs a proper
@@ -162,6 +165,11 @@ determinant. Sparse static `cov_y` matrices are kept sparse on the unbounded
 least-squares path and whitened with CHOLMOD's permuted factor. Residuals are
 whitened using linear solves, not explicit covariance inverses.
 
+A `WhiteningOperator` stores neither covariance nor precision matrix. It applies
+the user-supplied static whitening transformation directly to residuals and to
+the columns of analytic Jacobians. This keeps the asymptotic cost equal to the
+operator supplied by the user.
+
 Parameter-dependent covariance is intentionally more expensive. X
 uncertainties and model-relative y uncertainties can change the effective
 covariance at every parameter point, so the cost function must recompute the
@@ -190,20 +198,81 @@ JuFitter validates that `x_derivative(x, p)` has the same length as `x` and
 contains finite values. The derivative may depend on `p`; AD information is
 preserved when the Gaussian NLL needs gradients or Hessians.
 
+## Matrix-Free Structured Whitening
+
+Suppose a time series has stationary AR(1) covariance
+
+```math
+C_{ij}=\sigma^2\rho^{|i-j|}, \qquad |\rho|<1.
+```
+
+Materializing ``C`` costs ``O(n^2)`` memory even though its whitening operation
+is a one-pass recurrence. If ``r`` is the residual vector, define
+
+```math
+z_1=\frac{r_1}{\sigma}, \qquad
+z_i=\frac{r_i-\rho r_{i-1}}{\sigma\sqrt{1-\rho^2}}.
+```
+
+Then ``\lVert z\rVert^2=r^T C^{-1}r``. The corresponding determinant is
+
+```math
+\log\det C=2n\log\sigma+(n-1)\log(1-\rho^2).
+```
+
+The complete JuFitter contract is therefore compact:
+
+```julia
+sigma = 0.20
+rho = 0.65
+innovation_sigma = sigma * sqrt(1 - rho^2)
+
+function whiten_ar1!(out, residual)
+    out[1] = residual[1] / sigma
+    @inbounds for i in 2:length(residual)
+        out[i] = (residual[i] - rho * residual[i - 1]) / innovation_sigma
+    end
+    return nothing
+end
+
+n = length(y)
+whitening = WhiteningOperator(
+    whiten_ar1!;
+    logdet_covariance=2n * log(sigma) + (n - 1) * log1p(-rho^2),
+    marginal_sigma=sigma,
+)
+
+result = fit_model(model, x, y; p0=p0, whitening)
+```
+
+`logdet_covariance` is required even for a chi-square fit because JuFitter also
+reports the normalized Gaussian NLL, AIC, and BIC. `marginal_sigma` is optional
+and affects only pointwise error bars and prediction bands; it does not enter
+the cost. Without it, use `band=:confidence` rather than claiming a prediction
+band whose observation variance is unknown.
+
+The operator represents the **complete static observation covariance**. Do not
+also pass `sigma_y`, `cov_y`, x uncertainties, or active error components.
+JuFitter rejects those combinations because adding covariance models requires
+an explicit scientific derivation. The function must accept `AbstractVector`
+views and generic element types. That is necessary for Jacobian whitening and
+for automatic differentiation on bounded or constrained optimizer paths.
+
+JuFitter can validate dimensions, finite output, and interface compatibility;
+it cannot prove that a custom transformation really satisfies
+``W^T W=C^{-1}`` or that its supplied determinant is correct. Reference the
+operator against a small dense covariance before using it at large scale.
+
 ## Known Limits
 
 Dense covariance matrices are correct and tested, but they are not the right
 representation for huge correlated datasets. They require `O(n^2)` memory and
-`O(n^3)` factorization time. Sparse static `cov_y` is the current first
-structured path for least-squares problems; constrained sparse fits, sparse
-Gaussian-NLL gradients, structured `cov_x`, and matrix-free whitening operators
-remain future work.
-
-If a large dataset truly has correlated uncertainties, the next necessary step
-is a structured covariance API: banded matrices, Toeplitz kernels,
-low-rank-plus-diagonal structure, sparse precision matrices, or custom
-whitening operators. Dense-matrix micro-optimization cannot fix the asymptotic
-scaling.
+`O(n^3)` factorization time. Sparse static `cov_y` supports unbounded
+least-squares problems. `WhiteningOperator` supports complete static observation
+covariance on both least-squares and AD-compatible constrained paths. Built-in
+banded, Toeplitz, low-rank-plus-diagonal, sparse-precision, structured `cov_x`,
+and parameter-dependent operator types remain future work. Dense-matrix
+micro-optimization cannot fix the asymptotic scaling.
 
 This is especially relevant for long time series, images, spectra, and detector
 arrays. In those cases the covariance structure is usually the scientific model;

@@ -43,6 +43,24 @@ function _dense_covariance_problem(n::Int)
     return model, x, y, cov
 end
 
+function _structured_covariance_problem(n::Int)
+    model, jacobian, x, _, _ = _linear_problem(n)
+    sigma = 0.12
+    rho = 0.72
+    innovation_sigma = sigma * sqrt(1 - rho^2)
+    function whiten!(out, residual)
+        out[1] = residual[1] / sigma
+        @inbounds for i in 2:length(residual)
+            out[i] = (residual[i] - rho * residual[i - 1]) / innovation_sigma
+        end
+        return nothing
+    end
+    logdet_covariance = 2n * log(sigma) + (n - 1) * log1p(-rho^2)
+    whitening = WhiteningOperator(whiten!; logdet_covariance)
+    y = model(x, [2.0, 1.0]) .+ 0.03 .* sin.(0.9 .* x)
+    return model, jacobian, x, y, whitening
+end
+
 @testset "Performance budget gate" begin
     @test Base.get_extension(JuFitter, :JuFitterCairoMakieExt) === nothing
 
@@ -144,4 +162,53 @@ end
         )
     end
     @test dense_time < 0.75 * PERFORMANCE_BUDGET_SCALE
+
+    structured_model, structured_jacobian, structured_x, structured_y, whitening =
+        _structured_covariance_problem(50_000)
+    structured_result = fit_model(
+        structured_model,
+        structured_x,
+        structured_y;
+        p0=[1.0, 0.0],
+        whitening,
+        jacobian=structured_jacobian,
+        scale_covariance=:never,
+    )
+    @test structured_result.backend == :lsqfit
+    @test structured_result.problem.cov_y === nothing
+
+    structured_time = _median_elapsed() do
+        fit_model(
+            structured_model,
+            structured_x,
+            structured_y;
+            p0=[1.0, 0.0],
+            whitening,
+            jacobian=structured_jacobian,
+            scale_covariance=:never,
+        )
+    end
+    @test structured_time < 0.75 * PERFORMANCE_BUDGET_SCALE
+
+    small_model, small_jacobian, small_x, small_y, small_whitening =
+        _structured_covariance_problem(10_000)
+    small_bytes = @allocated fit_model(
+        small_model,
+        small_x,
+        small_y;
+        p0=[1.0, 0.0],
+        whitening=small_whitening,
+        jacobian=small_jacobian,
+        scale_covariance=:never,
+    )
+    large_bytes = @allocated fit_model(
+        structured_model,
+        structured_x,
+        structured_y;
+        p0=[1.0, 0.0],
+        whitening,
+        jacobian=structured_jacobian,
+        scale_covariance=:never,
+    )
+    @test large_bytes < 8 * small_bytes
 end

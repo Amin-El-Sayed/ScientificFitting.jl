@@ -38,12 +38,13 @@ JuFitter.FitOptions
 ## Uncertainties, Bounds, And Constraints
 
 Use these structures when pointwise `sigma_y`/`sigma_x` is not enough. Dense
-covariance is exact for small and medium datasets, but large correlated
-measurements should eventually use structured covariance or custom whitening
-operators; see the roadmap and release audit for that limitation.
+covariance is exact for small and medium datasets. `WhiteningOperator` supplies
+a complete static covariance through an application-specific matrix-free
+operation when materializing that matrix would be the wrong scaling model.
 
 ```@docs
 JuFitter.ErrorComponent
+JuFitter.WhiteningOperator
 JuFitter.ParameterPrior
 JuFitter.FixedParameter
 JuFitter.ParameterConstraint

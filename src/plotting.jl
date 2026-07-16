@@ -385,6 +385,13 @@ end
 function _fit_band_sigma(result::FitResult, xgrid::AbstractVector, band::Symbol)
     parameter_sigma = _prediction_band_sigma(result, xgrid)
     band == :confidence && return parameter_sigma
+    if band == :prediction && result.problem.whitening !== nothing &&
+       result.problem.whitening.marginal_sigma === nothing
+        throw(ArgumentError(
+            "band=:prediction requires marginal_sigma in WhiteningOperator; " *
+            "provide marginal standard deviations or use band=:confidence",
+        ))
+    end
     band == :prediction && return sqrt.(parameter_sigma .^ 2 .+ _observation_band_sigma(result, xgrid) .^ 2)
     return zeros(Float64, length(xgrid))
 end
@@ -858,6 +865,7 @@ const _FITPLOT_FIT_KWARGS = Set([
     :sigma_x,
     :cov_y,
     :cov_x,
+    :whitening,
     :error_components,
     :bounds,
     :constraints,
@@ -930,8 +938,8 @@ end
     fitplot(x, y; p0=nothing, report=:plot, kwargs...)
 
 Fit and plot in one call. The `model, x, y` method forwards fitting keywords
-such as `sigma_y`, `sigma_x`, `x_derivative`, `bounds`, `parameter_priors`, and
-`backend` to `fit_model`; plotting keywords such as `xlabel`, `ylabel`,
+such as `sigma_y`, `sigma_x`, `whitening`, `x_derivative`, `bounds`,
+`parameter_priors`, and `backend` to `fit_model`; plotting keywords such as `xlabel`, `ylabel`,
 `theme`, `nsigma`, `report`, and `filename` are forwarded to `plot_fit`.
 
 The `x, y` method uses a linear model by default. All methods return a named

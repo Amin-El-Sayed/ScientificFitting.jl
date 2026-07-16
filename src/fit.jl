@@ -1,21 +1,27 @@
-function _apply_lsqfit_weight!(values::AbstractVector, sigma, factor)
+function _apply_lsqfit_weight!(values::AbstractVector, sigma, factor, operator, scratch)
     if sigma !== nothing
         @inbounds for i in eachindex(values, sigma)
             values[i] /= sigma[i]
         end
     elseif factor !== nothing
         copyto!(values, _whiten_with_factor(factor, values))
+    elseif operator !== nothing
+        _whiten_with_operator!(scratch, operator, values)
+        copyto!(values, scratch)
     end
     return values
 end
 
-function _apply_lsqfit_weight!(values::AbstractMatrix, sigma, factor)
+function _apply_lsqfit_weight!(values::AbstractMatrix, sigma, factor, operator, scratch)
     if sigma !== nothing
         @inbounds for j in axes(values, 2), i in axes(values, 1)
             values[i, j] /= sigma[i]
         end
     elseif factor !== nothing
         copyto!(values, _whiten_with_factor(factor, values))
+    elseif operator !== nothing
+        _whiten_with_operator!(scratch, operator, values)
+        copyto!(values, scratch)
     end
     return values
 end
@@ -24,13 +30,16 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     free_p0 = _free_p0(problem)
     sigma = problem.sigma_y
     factor = problem.cov_y === nothing ? nothing : _stable_cholesky(problem.cov_y)
+    operator = problem.whitening
     weighted_y = sigma !== nothing ? problem.y ./ sigma :
-                 factor !== nothing ? _whiten_with_factor(factor, problem.y) : problem.y
+                 factor !== nothing ? _whiten_with_factor(factor, problem.y) :
+                 operator !== nothing ? _whiten_with_operator(operator, problem.y) : problem.y
+    model_whitening_scratch = operator === nothing ? nothing : similar(problem.y)
 
     fit_result = if problem.model isa _InPlaceModel
         weighted_model! = function (out, x, q)
             problem.model(out, x, _expand_free_parameters(problem, q))
-            _apply_lsqfit_weight!(out, sigma, factor)
+            _apply_lsqfit_weight!(out, sigma, factor, operator, model_whitening_scratch)
             return nothing
         end
 
@@ -40,6 +49,8 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
             free_idx = _free_indices(problem)
             full_jacobian = length(free_idx) == length(problem.p0) ? nothing :
                             Matrix{Float64}(undef, length(problem.x), length(problem.p0))
+            jacobian_whitening_scratch = operator === nothing ? nothing :
+                                         Matrix{Float64}(undef, length(problem.x), length(free_idx))
             weighted_jacobian! = function (out, x, q)
                 params = _expand_free_parameters(problem, q)
                 if full_jacobian === nothing
@@ -48,7 +59,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
                     problem.jacobian(full_jacobian, x, params)
                     copyto!(out, view(full_jacobian, :, free_idx))
                 end
-                _apply_lsqfit_weight!(out, sigma, factor)
+                _apply_lsqfit_weight!(out, sigma, factor, operator, jacobian_whitening_scratch)
                 return nothing
             end
             LsqFit.curve_fit(
@@ -65,6 +76,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
             values = problem.model(x, _expand_free_parameters(problem, q))
             sigma !== nothing && return values ./ sigma
             factor !== nothing && return _whiten_with_factor(factor, values)
+            operator !== nothing && return _whiten_with_operator(operator, values)
             return values
         end
         weighted_jacobian = problem.jacobian === nothing ? nothing : (x, q) -> begin
@@ -72,6 +84,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
             values = _free_jacobian_from_full(problem, full)
             sigma !== nothing && return values ./ reshape(sigma, :, 1)
             factor !== nothing && return _whiten_with_factor(factor, values)
+            operator !== nothing && return _whiten_with_operator(operator, values)
             return values
         end
 
@@ -98,8 +111,8 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
         if cov isa SparseMatrixCSC
             throw(ArgumentError(
                 "sparse covariance currently supports the unbounded least-squares backend; " *
-                "use a dense covariance for constrained or Gaussian-NLL fits until " *
-                "matrix-free whitening operators are added",
+                "use a dense covariance or an AD-compatible WhiteningOperator for " *
+                "constrained or Gaussian-NLL fits",
             ))
         end
     end
@@ -321,6 +334,12 @@ For fits with x uncertainty, `x_derivative=(x, p) -> dy_dx` supplies a
 vectorized model derivative with respect to x. This avoids the default
 point-by-point AD path and is the preferred route for large datasets.
 
+For large static correlated datasets, `whitening=WhiteningOperator(...)`
+supplies the complete covariance through a matrix-free operation. It cannot be
+combined with other observation-uncertainty keywords. The operator must accept
+generic `AbstractVector` inputs and AD element types when the general optimizer
+is used.
+
 Set `inplace=true` for `model!(out, x, p)`. The unbounded least-squares backend
 uses LsqFit's native in-place model interface; generic optimizer paths preserve
 the same contract with a type-correct output buffer. An optional analytic
@@ -335,6 +354,7 @@ function fit_model(
     sigma_x=nothing,
     cov_y=nothing,
     cov_x=nothing,
+    whitening=nothing,
     error_components=nothing,
     bounds=nothing,
     constraints=nothing,
@@ -362,6 +382,7 @@ function fit_model(
         sigma_x=sigma_x,
         cov_y=cov_y,
         cov_x=cov_x,
+        whitening=whitening,
         error_components=error_components,
         bounds=bounds,
         constraints=constraints,

@@ -126,6 +126,59 @@ using Test
     @test inplace_plot.result.converged
     @test inplace_plot.figure !== nothing
 
+    rho = 0.45
+    whitening_sigma = 0.10
+    innovation_sigma = whitening_sigma * sqrt(1 - rho^2)
+    function whiten!(out, residual)
+        out[1] = residual[1] / whitening_sigma
+        @inbounds for i in 2:length(residual)
+            out[i] = (residual[i] - rho * residual[i - 1]) / innovation_sigma
+        end
+        return nothing
+    end
+    whitening = WhiteningOperator(
+        whiten!;
+        logdet_covariance=2 * length(x) * log(whitening_sigma) +
+                              (length(x) - 1) * log1p(-rho^2),
+        marginal_sigma=whitening_sigma,
+    )
+    linear_model(x, p) = @. p[1] * x + p[2]
+    whitening_plot = fitplot(
+        linear_model,
+        x,
+        y;
+        p0=[1.0, 0.0],
+        whitening,
+        report=:none,
+    )
+    @test whitening_plot.result.backend == :lsqfit
+    @test whitening_plot.result.problem.whitening === whitening
+    @test whitening_plot.figure !== nothing
+
+    whitening_without_marginals = WhiteningOperator(
+        whiten!;
+        logdet_covariance=whitening.logdet_covariance,
+    )
+    result_without_marginals = fit_model(
+        linear_model,
+        x,
+        y;
+        p0=[1.0, 0.0],
+        whitening=whitening_without_marginals,
+    )
+    @test_throws ArgumentError plot_fit(
+        result_without_marginals;
+        show_stats=false,
+        show_legend=false,
+        band=:prediction,
+    )
+    @test plot_fit(
+        result_without_marginals;
+        show_stats=false,
+        show_legend=false,
+        band=:confidence,
+    ) !== nothing
+
     lab_out = joinpath(mktempdir(), "fitplot_lab.png")
     modern_out = joinpath(mktempdir(), "fitplot_modern_dark.png")
     article_out = joinpath(mktempdir(), "fitplot_article.png")

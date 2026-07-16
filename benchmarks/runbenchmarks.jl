@@ -72,6 +72,26 @@ function sparse_covariance_problem(n::Int)
     return model, jacobian, x, y, covariance
 end
 
+function structured_covariance_problem(n::Int)
+    x = collect(range(0.0, 20.0; length=n))
+    model(x, p) = @. p[1] * x + p[2]
+    jacobian(x, p) = hcat(x, ones(length(x)))
+    sigma = 0.10
+    rho = 0.70
+    innovation_sigma = sigma * sqrt(1 - rho^2)
+    function whiten!(out, residual)
+        out[1] = residual[1] / sigma
+        @inbounds for i in 2:length(residual)
+            out[i] = (residual[i] - rho * residual[i - 1]) / innovation_sigma
+        end
+        return nothing
+    end
+    logdet_covariance = 2n * log(sigma) + (n - 1) * log1p(-rho^2)
+    whitening = WhiteningOperator(whiten!; logdet_covariance)
+    y = model(x, [1.5, -0.2]) .+ 0.03 .* sin.(0.8 .* x)
+    return model, jacobian, x, y, whitening
+end
+
 function poisson_problem(n::Int)
     x = collect(range(0.0, 5.0; length=n))
     model(x, p) = @. exp(p[1] + p[2] * x)
@@ -97,6 +117,7 @@ model10k, jac10k, x10k, y10k, sy10k = linear_problem(10_000)
 nlmodel, nlx, nly, nlsy = nonlinear_problem(1_000)
 fcmodel, fcx, fcy, fccov = full_covariance_problem(500)
 scmodel, scjac, scx, scy, sccov = sparse_covariance_problem(5_000)
+wcmodel, wcjac, wcx, wcy, wcwhitening = structured_covariance_problem(100_000)
 pmodel, px, pcounts = poisson_problem(5_000)
 saturation_model_bench, saturation_x, saturation_y, saturation_sigma_x, saturation_sigma_y =
     saturation_problem()
@@ -117,6 +138,7 @@ SUITE["fit"]["nonlinear_1000"] = @benchmarkable fit_model($nlmodel, $nlx, $nly; 
 SUITE["fit"]["full_covariance_500"] = @benchmarkable fit_model($fcmodel, $fcx, $fcy; p0=[1.0, 0.0], cov_y=$fccov, scale_covariance=:never)
 SUITE["fit"]["full_covariance_500_bounded"] = @benchmarkable fit_model($fcmodel, $fcx, $fcy; p0=[1.0, 0.0], cov_y=$fccov, bounds=([0.0, -5.0], [5.0, 5.0]), scale_covariance=:never, maxiters=200)
 SUITE["fit"]["sparse_covariance_5000"] = @benchmarkable fit_model($scmodel, $scx, $scy; p0=[1.0, 0.0], cov_y=$sccov, jacobian=$scjac, scale_covariance=:never)
+SUITE["fit"]["structured_whitening_100000"] = @benchmarkable fit_model($wcmodel, $wcx, $wcy; p0=[1.0, 0.0], whitening=$wcwhitening, jacobian=$wcjac, scale_covariance=:never)
 SUITE["likelihood"]["poisson_5000"] = @benchmarkable fit_poisson_model($pmodel, $px, $pcounts; p0=[1.0, 0.1], bounds=([-10.0, -10.0], [10.0, 10.0]), maxiters=200)
 
 baseline = fit_model(model100, x100, y100; p0=[1.0, 0.0], sigma_y=sy100, jacobian=jac100)

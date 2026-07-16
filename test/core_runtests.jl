@@ -5,6 +5,7 @@ using Test
     include("statistics/covariance_semantics_reference.jl")
     include("statistics/diagnostics_reference.jl")
     include("statistics/linear_gaussian_reference.jl")
+    include("statistics/structured_whitening_reference.jl")
     include("statistics/likelihood_reference.jl")
     include("statistics/profile_contour_reference.jl")
     include("numerics/inplace_model_reference.jl")

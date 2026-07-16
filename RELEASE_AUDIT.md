@@ -15,16 +15,17 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Julia 1.10.11 previously passed the Makie-free core gate with 432 checks and
   the full package test with 501 checks in an isolated environment resolved
   under Julia 1.10. The current in-place model/Jacobian slice additionally
-  passes its 18-check focused reference under Julia 1.10. The package `[compat]`,
-  core CI matrix, and full-package Linux CI matrix support both Julia 1.10 and
-  Julia 1.12; the complete current matrix still needs to be observed remotely
-  after the branch is pushed.
+  passes its 18-check focused reference, and the structured-whitening slice
+  passes its current 35-check reference under Julia 1.10. The package
+  `[compat]`, core CI matrix, and full-package Linux CI matrix support both
+  Julia 1.10 and Julia 1.12; the complete current matrix still needs to be
+  observed remotely after the branch is pushed.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes on
-  the current release-hardening branch with 504 checks in about 25m29s after
+  the current structured-whitening branch with 509 checks in about 22m23s after
   package-test precompilation. This run includes regression, statistical
   reference, hostile-input, and CairoMakie plot tests in the isolated package
   test environment.
-- The plotting release slice passes locally with 72 focused API/layout tests,
+- The plotting release slice passes locally with 77 focused API/layout tests,
   232 gallery-structure checks, 1151 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
   2166 checks against links and assets in the rendered HTML.
@@ -77,11 +78,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   concrete point and x interval, so structured residual warnings point to a
   data region a lab user can inspect.
 - `julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'`
-  passes with 450 core checks in about 15m05s on the local machine. This is too
+  passes with 485 core checks in about 24m40s on the local machine. This is too
   slow for the default developer gate and should remain a release/CI gate while
   focused suites provide the edit-test loop.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 72
-  focused plot-regression checks locally.
+- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 77
+  focused plot-regression checks locally, including structured-whitening error
+  bars, prediction-band semantics, and the no-marginals failure path.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
@@ -149,7 +151,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   300-point dense covariance. This is wired into the core CI lane with a runner
   scale factor. It is a regression guard, not a publishable benchmark claim.
 - `julia --project=. --startup-file=no test/performance_budget_gate.jl` passes
-  locally with 10 checks. This verifies the current steady-state
+  locally with 14 checks. This verifies the current steady-state
   budget guard and the Makie-free core extension boundary, but it remains a
   regression guard rather than publishable benchmark evidence.
 - `julia --project=. --startup-file=no test/numerics/inplace_model_reference.jl`
@@ -162,6 +164,22 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   The matched 10k-point local benchmark records both variants' time, memory,
   and allocation counts without turning one machine's ratio into a public
   performance claim.
+- `test/statistics/structured_whitening_reference.jl` passes with 35 checks.
+  The public `WhiteningOperator` represents a complete static observation
+  covariance through `whiten!(out, residual)`, an explicit covariance log
+  determinant, and optional marginal standard deviations for plotting. Dense
+  AR(1) references verify fitted parameters, parameter covariance, weighted
+  residuals, chi-square, normalized NLL, AIC/BIC, bounded Gaussian-NLL AD,
+  in-place model/Jacobian evaluation, and profile refits. Invalid signatures,
+  incomplete or non-finite output, Vector-only methods, inconsistent marginal
+  dimensions, and attempts to combine independent covariance descriptions fail
+  before solver dispatch.
+- The benchmark suite includes `fit/structured_whitening_100000`, and the
+  performance gate compares 10k and 50k allocations to guard linear scaling.
+  An exploratory local BenchmarkTools run of the 100k AR(1) case recorded about
+  19 ms, 119 MiB, and 628 allocations after compilation. This is internal
+  evidence only, not a portable performance claim or a replacement for a saved
+  baseline on selected release hardware.
 - `test/benchmark_contract_gate.jl` checks the benchmark release contract
   without measuring timings: the benchmark runner keeps the required hot-path
   cases including profile-matrix diagnostics, records the required summary
@@ -199,11 +217,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   finite and positive, tolerance finite and non-negative, and baseline paths
   non-empty. Local benchmark manifests and outputs are ignored because they are
   machine-specific.
-- A real benchmark-runner smoke test passed locally with
+- A real benchmark-runner smoke test passed locally at the corresponding
+  earlier revision with
   `julia --project=benchmarks --startup-file=no benchmarks/runbenchmarks.jl
   --seconds=0.01 --save=/tmp/jufitter-benchmark-smoke.toml
   --compare=/tmp/jufitter-benchmark-smoke.toml --tolerance=0.25`. This verified
-  the full save/compare path for the current nine benchmark cases, including
+  the full save/compare path for that revision's nine benchmark cases, including
   `diagnostics/saturation_profile_matrix`, and metadata serialization. It is
   deliberately not release benchmark evidence because `--seconds=0.01` is too
   short for stable performance claims and no reference runner has been
@@ -303,7 +322,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   CairoMakie extension boundary. This prevents `@autodocs` from exposing bare
   placeholder functions for `plot_fit`, `fitplot`, annotation helpers, style
   helpers, and profile/contour plotting entry points.
-- Focused plot regression tests pass with 72 checks after the plot-style
+- Focused plot regression tests pass with 77 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
@@ -387,19 +406,22 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   can additionally use the in-place model/Jacobian contract; the default x
   derivative remains pointwise for API simplicity.
 - Dense covariance support is mathematically useful, but still `O(n^2)` memory
-  and `O(n^3)` factorization. Large correlated datasets need structured
-  covariance operators or custom whitening operators.
+  and `O(n^3)` factorization. Large correlated datasets with a known complete
+  static covariance can now use an application-specific `WhiteningOperator`.
 - Static sparse `cov_y` now remains sparse for the unbounded least-squares
   backend. Validation and whitening use sparse CHOLMOD factors without
   materializing a dense covariance, and the benchmark runner includes
   `fit/sparse_covariance_5000`. Sparse covariance in constrained or
   Gaussian-NLL optimizer paths remains a documented limitation because CHOLMOD
   solves do not propagate `ForwardDiff` dual numbers.
-- The first release may keep dense covariance as the explicit exact small/medium
-  path, but future work must add structured covariance or whitening operators
-  for long time series, images, spectra, and detector arrays. That future path
-  must define matrix-free whitening, log-determinant handling where needed, and
-  diagnostics that tell users when dense covariance is the wrong model.
+- `WhiteningOperator` supplies matrix-free static residual and Jacobian
+  whitening plus the covariance log determinant required for normalized NLL and
+  information criteria. It is deliberately a low-level scientific contract:
+  JuFitter can validate its interface and finite output, but cannot prove that
+  a custom operator satisfies `W'W = inv(C)` or that its determinant is correct.
+  Built-in banded, Toeplitz, low-rank-plus-diagonal, sparse-precision,
+  parameter-dependent, and structured x-covariance operators remain future
+  work.
 - General constrained and parameter-dependent-covariance objectives still
   allocate through `ForwardDiff` Jacobians/Hessians and dual-number output
   buffers. The in-place model contract removes avoidable user-model and LsqFit
@@ -494,8 +516,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   repository that will be registered.
 - Julia 1.10 is the intentional support floor. Local Julia 1.10 evidence covers
   the earlier 432-check core gate and 501-check full package suite plus the
-  current 18-check in-place reference slice; confirm the complete current
-  1.10/1.12 core and package matrix on GitHub Actions after pushing.
+  current 18-check in-place and 35-check structured-whitening reference slices;
+  confirm the complete current 1.10/1.12 core and package matrix on GitHub
+  Actions after pushing.
 - Add a docs-deploy job for GitHub Pages or the chosen static host.
 - Confirm the new core/package/docs CI lanes on GitHub Actions after pushing.
 - Run the Python interoperability release gate in CI. The local opt-in gate now

@@ -116,6 +116,9 @@ end
 
 function _gaussian_data_nll(problem::FitProblem, p::AbstractVector)
     n = length(problem.y)
+    if problem.whitening !== nothing
+        return n * LOG2PI + problem.whitening.logdet_covariance + _data_chi2(problem, p)
+    end
     cov = _effective_covariance(problem, p)
     return n * LOG2PI + _covariance_logdet(cov, n) + _data_chi2(problem, p)
 end
@@ -124,7 +127,7 @@ function _gaussian_data_nll(cache::FitEvaluationCache{NoPreparedCovariance}, p::
     return length(cache.problem.y) * LOG2PI + _data_chi2(cache, p)
 end
 
-function _gaussian_data_nll(cache::FitEvaluationCache{<:Union{DiagonalPreparedCovariance, DensePreparedCovariance}}, p::AbstractVector)
+function _gaussian_data_nll(cache::FitEvaluationCache{<:Union{DiagonalPreparedCovariance, DensePreparedCovariance, OperatorPreparedCovariance}}, p::AbstractVector)
     return length(cache.problem.y) * LOG2PI + cache.covariance.logdet + _data_chi2(cache, p)
 end
 

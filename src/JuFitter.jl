@@ -31,6 +31,7 @@ export ParameterPrior
 export FixedParameter
 export ParameterConstraint
 export ErrorComponent
+export WhiteningOperator
 export FitOptions
 export FitProblem
 export FitResult

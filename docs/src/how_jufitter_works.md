@@ -81,8 +81,9 @@ Every ordinary fit starts with four concepts:
   observations.
 - **Model:** a Julia function that maps data coordinates and parameters to
   predictions.
-- **Uncertainty model:** `sigma_y`, `sigma_x`, dense covariance, named error
-  components, Poisson counts, histogram likelihoods, or custom objectives.
+- **Uncertainty model:** `sigma_y`, `sigma_x`, dense/sparse covariance,
+  matrix-free static whitening, named error components, Poisson counts,
+  histogram likelihoods, or custom objectives.
 - **Parameter control:** starting values, bounds, fixed parameters, priors, and
   Gaussian parameter constraints.
 
@@ -100,6 +101,10 @@ deviation. Dense covariance is handled by factorization and whitening:
 V = L L^\mathsf{T}, \qquad
 \chi^2 = \lVert L^{-1}(y-f(x,p)) \rVert^2.
 ```
+
+For large structured covariance, a `WhiteningOperator` supplies the equivalent
+``L^{-1}`` action without storing the dense matrix. The statistical cost is the
+same; only the representation and asymptotic scaling change.
 
 For likelihood fits, JuFitter minimizes the appropriate negative
 log-likelihood or deviance. Poisson and histogram workflows do not invent

@@ -114,6 +114,119 @@ end
 
 const CovarianceLike = Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int}}
 
+"""
+    WhiteningOperator(whiten!; logdet_covariance, marginal_sigma=nothing)
+
+Represent a complete static data covariance without materializing it.
+`whiten!(out, residual)` must apply a linear operator `W` satisfying
+`W'W = inv(C)`, where `C` is the observation covariance. The required
+`logdet_covariance` is `log(det(C))`; JuFitter uses it for the normalized
+Gaussian likelihood, AIC, and BIC.
+
+`marginal_sigma` is optional scalar or pointwise marginal standard deviation.
+It does not change the fit; plotting uses it for data error bars and pointwise
+prediction bands. Without it, confidence bands remain available but a
+prediction band would not have enough information.
+
+The mutating function must write every element of `out` and support the element
+types used by automatic differentiation when the general optimizer is needed.
+It must accept `AbstractVector` views because JuFitter applies the same operator
+columnwise to analytic Jacobians.
+"""
+struct WhiteningOperator{F, MS}
+    whiten!::F
+    logdet_covariance::Float64
+    marginal_sigma::MS
+
+    function WhiteningOperator{F, MS}(
+        whiten!::F,
+        logdet_covariance::Float64,
+        marginal_sigma::MS,
+    ) where {F, MS}
+        isfinite(logdet_covariance) || throw(ArgumentError(
+            "logdet_covariance must be finite",
+        ))
+        marginal_sigma isa Union{Nothing, Float64, Vector{Float64}} || throw(ArgumentError(
+            "marginal_sigma must be nothing, a scalar, or a vector",
+        ))
+        if marginal_sigma isa Float64
+            isfinite(marginal_sigma) || throw(ArgumentError(
+                "marginal_sigma must be finite",
+            ))
+            marginal_sigma > 0 || throw(ArgumentError(
+                "marginal_sigma must be positive",
+            ))
+        elseif marginal_sigma isa Vector{Float64}
+            all(isfinite, marginal_sigma) || throw(ArgumentError(
+                "marginal_sigma must contain only finite values",
+            ))
+            all(>(0), marginal_sigma) || throw(ArgumentError(
+                "marginal_sigma must contain only positive values",
+            ))
+        end
+        return new{F, MS}(whiten!, logdet_covariance, marginal_sigma)
+    end
+end
+
+function WhiteningOperator(whiten!; logdet_covariance, marginal_sigma=nothing)
+    normalized_sigma = if marginal_sigma === nothing
+        nothing
+    elseif marginal_sigma isa Real
+        Float64(marginal_sigma)
+    elseif marginal_sigma isa AbstractVector
+        collect(Float64, marginal_sigma)
+    else
+        throw(ArgumentError("marginal_sigma must be nothing, a scalar, or a vector"))
+    end
+    return WhiteningOperator{typeof(whiten!), typeof(normalized_sigma)}(
+        whiten!,
+        Float64(logdet_covariance),
+        normalized_sigma,
+    )
+end
+
+function (operator::WhiteningOperator)(out::AbstractVector, residual::AbstractVector)
+    length(out) == length(residual) || throw(ArgumentError(
+        "whitening input and output must have equal length",
+    ))
+    operator.whiten!(out, residual)
+    return out
+end
+
+function _validate_whitening_operator(operator::WhiteningOperator, n::Int)
+    input = collect(range(-0.75, 1.25; length=n))
+    output = fill(NaN, n)
+    applicable(operator.whiten!, output, input) || throw(ArgumentError(
+        "whiten! must have the signature whiten!(out, residual)",
+    ))
+    operator(output, input)
+    all(isfinite, output) || throw(ArgumentError(
+        "whiten! must write a finite value to every output element",
+    ))
+    any(x -> !iszero(x), output) || throw(ArgumentError(
+        "whiten! must not map a nonzero residual vector to zero",
+    ))
+
+    # Analytic Jacobians are whitened columnwise through views. Reject
+    # Vector-only methods before solver dispatch instead of failing mid-fit.
+    input_view = view(input, :)
+    output_view = view(output, :)
+    applicable(operator.whiten!, output_view, input_view) || throw(ArgumentError(
+        "whiten! must accept AbstractVector views for Jacobian whitening",
+    ))
+    fill!(output_view, NaN)
+    operator(output_view, input_view)
+    all(isfinite, output_view) || throw(ArgumentError(
+        "whiten! must write a finite value to every output element",
+    ))
+
+    marginal_sigma = operator.marginal_sigma
+    if marginal_sigma isa AbstractVector && length(marginal_sigma) != n
+        throw(ArgumentError("marginal_sigma length must match y"))
+    end
+    return nothing
+end
+
 # These adapters keep one model contract inside JuFitter while allowing the
 # least-squares backend to call allocation-free user functions directly.
 struct _InPlaceModel{F}
@@ -155,7 +268,7 @@ function _validate_inplace_output!(f!, output, x, p, name::AbstractString)
     return nothing
 end
 
-struct FitProblem{TF}
+struct FitProblem{TF, TW}
     model::TF
     x::Vector{Float64}
     y::Vector{Float64}
@@ -164,6 +277,7 @@ struct FitProblem{TF}
     sigma_x::Union{Nothing, Vector{Float64}}
     cov_y::Union{Nothing, CovarianceLike}
     cov_x::Union{Nothing, CovarianceLike}
+    whitening::TW
     error_components::Vector{ErrorComponent}
     bounds::Union{Nothing, Tuple{Vector{Float64}, Vector{Float64}}}
     constraints::ConstraintSpec
@@ -559,7 +673,7 @@ function _assert_fixed_parameters_within_bounds(fixed::Vector{FixedParameter}, b
 end
 
 """
-    FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x,
+    FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x, whitening,
                error_components, bounds, constraints, parameter_priors,
                parameter_constraints, fixed_parameters, jacobian,
                x_derivative, inplace=false)
@@ -594,6 +708,11 @@ single NamedTuple or vector of NamedTuples:
 effective x-uncertainty propagation. If omitted, JuFitter differentiates the
 model with respect to each x value by automatic differentiation.
 
+`whitening=WhiteningOperator(...)` supplies the complete static observation
+covariance through a matrix-free whitening operation. It is mutually exclusive
+with y/x uncertainties and active `error_components`; combining covariance
+models without an explicit derivation would change the statistical model.
+
 Set `inplace=true` when the model has the signature `model!(out, x, p)`. On the
 unbounded least-squares path, JuFitter forwards this contract to LsqFit's native
 in-place solver interface. Other solver paths use the same model through a
@@ -612,6 +731,7 @@ function FitProblem(
     sigma_x=nothing,
     cov_y=nothing,
     cov_x=nothing,
+    whitening=nothing,
     error_components=nothing,
     bounds=nothing,
     constraints=nothing,
@@ -662,6 +782,20 @@ function FitProblem(
     cov_x_mat = cov_x === nothing ? nothing : _float_matrix(cov_x)
     components = _normalize_error_components(error_components, n)
 
+    if whitening !== nothing
+        whitening isa WhiteningOperator || throw(ArgumentError(
+            "whitening must be a WhiteningOperator",
+        ))
+        if sigma_y !== nothing || cov_y !== nothing || sigma_x !== nothing || cov_x !== nothing ||
+           any(component -> component.active, components)
+            throw(ArgumentError(
+                "whitening describes the complete data covariance and cannot be combined " *
+                "with sigma_y, cov_y, sigma_x, cov_x, or active error_components",
+            ))
+        end
+        _validate_whitening_operator(whitening, n)
+    end
+
     sigma_y_vec !== nothing && length(sigma_y_vec) != n && throw(ArgumentError("sigma_y length must match y"))
     sigma_x_vec !== nothing && length(sigma_x_vec) != n && throw(ArgumentError("sigma_x length must match x"))
     sigma_y_vec !== nothing && _assert_positive_sigma("sigma_y", sigma_y_vec)
@@ -695,6 +829,7 @@ function FitProblem(
         sigma_x_vec,
         cov_y_mat,
         cov_x_mat,
+        whitening,
         components,
         bnd,
         cons,

@@ -176,9 +176,16 @@ Current evidence:
   both solver backends. Constructors reject incomplete or non-finite mutating
   output buffers before solver dispatch; the benchmark suite contains a matched
   10k-point comparison.
+- `WhiteningOperator` supplies a complete static covariance through a
+  matrix-free `whiten!(out, residual)` contract and an explicit covariance log
+  determinant. Dense AR(1) references verify parameters, parameter covariance,
+  weighted residuals, chi-square, normalized NLL, AIC/BIC, bounded AD paths,
+  in-place models/Jacobians, and profile refits. A 100k-point benchmark and
+  10k-to-50k allocation gate cover the linear-scaling path.
 - Dense covariance remains intentionally documented as an expensive `O(n^2)`
-  memory and `O(n^3)` factorization path; huge correlated datasets need future
-  structured covariance operators rather than dense matrices.
+  memory and `O(n^3)` factorization path; large correlated datasets should use
+  sparse static covariance or a validated application-specific whitening
+  operator rather than materializing a dense matrix.
 - Parameter covariance is intentionally treated as a local approximation.
   Nonlinear models, weak data, active bounds, and asymmetric likelihoods can
   make `Cov(p̂)` optimistic or misleading; profile and contour workflows are
@@ -229,11 +236,10 @@ Open hardening work:
   merely copying kafe2's visual grammar.
 - Turn the diagnostic dashboard into a visual Makie report that combines fit
   quality, pulls, profiles, contours, and next actions.
-- Add structured covariance/whitening operators for large correlated data.
-  Target use cases include long time series, images, spectra, detector arrays,
-  and other measurements where dense covariance storage or factorization is the
-  wrong asymptotic model. Dense covariance is the exact small/medium-data path,
-  not the future architecture for every correlated measurement.
+- Add built-in banded, Toeplitz, low-rank-plus-diagonal, and sparse-precision
+  wrappers on top of the static `WhiteningOperator` contract. Extend the
+  operator architecture to parameter-dependent and structured x covariance
+  only with explicit determinant and AD semantics.
 - Extend uncertainty guidance beyond the current local-risk triggers.
   Nonlinear models, weak data, and asymmetric likelihoods should eventually be
   detected more directly instead of relying only on bounds, conditioning, and

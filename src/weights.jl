@@ -1,5 +1,5 @@
 has_x_uncertainty(problem::FitProblem) = !(problem.sigma_x === nothing && problem.cov_x === nothing) || any(c -> c.active && c.target == :x, problem.error_components)
-has_y_uncertainty(problem::FitProblem) = !(problem.sigma_y === nothing && problem.cov_y === nothing) || any(c -> c.active && c.target == :y, problem.error_components)
+has_y_uncertainty(problem::FitProblem) = problem.whitening !== nothing || !(problem.sigma_y === nothing && problem.cov_y === nothing) || any(c -> c.active && c.target == :y, problem.error_components)
 has_parameter_priors(problem) = !isempty(problem.parameter_priors)
 has_parameter_constraints(problem) = !isempty(problem.parameter_constraints)
 
@@ -16,6 +16,11 @@ end
 
 struct DensePreparedCovariance{F} <: PreparedCovariance
     factor::F
+    logdet::Float64
+end
+
+struct OperatorPreparedCovariance{W} <: PreparedCovariance
+    operator::W
     logdet::Float64
 end
 
@@ -82,6 +87,13 @@ end
 
 function _prepare_fit_cache(problem::FitProblem)
     prepared_constraints = _prepare_parameter_constraints(problem)
+    if problem.whitening !== nothing
+        prepared = OperatorPreparedCovariance(
+            problem.whitening,
+            problem.whitening.logdet_covariance,
+        )
+        return FitEvaluationCache(problem, prepared, prepared_constraints)
+    end
     if !_static_effective_covariance_available(problem)
         return FitEvaluationCache(problem, DynamicPreparedCovariance(), prepared_constraints)
     end
@@ -259,7 +271,31 @@ function _whiten_with_factor(factor::SparseArrays.CHOLMOD.Factor, residual::Abst
     return collect(factor.PtL \ residual)
 end
 
+function _whiten_with_operator!(out::AbstractVector, operator::WhiteningOperator, residual::AbstractVector)
+    operator(out, residual)
+    all(value -> isfinite(_finite_value(value)), out) || throw(ArgumentError(
+        "whitening output must contain only finite values",
+    ))
+    return out
+end
+
+function _whiten_with_operator!(out::AbstractMatrix, operator::WhiteningOperator, values::AbstractMatrix)
+    size(out) == size(values) || throw(ArgumentError(
+        "whitening matrix input and output must have equal size",
+    ))
+    @inbounds for j in axes(values, 2)
+        _whiten_with_operator!(view(out, :, j), operator, view(values, :, j))
+    end
+    return out
+end
+
+function _whiten_with_operator(operator::WhiteningOperator, values::AbstractVecOrMat)
+    out = similar(values)
+    return _whiten_with_operator!(out, operator, values)
+end
+
 function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::AbstractVector)
+    problem.whitening !== nothing && return _whiten_with_operator(problem.whitening, residual)
     cov = _effective_covariance(problem, p)
     if cov === nothing
         return collect(residual)
@@ -290,6 +326,10 @@ end
 
 function _whiten_residual(cache::FitEvaluationCache{<:DensePreparedCovariance}, p::AbstractVector, residual::AbstractVector)
     return _whiten_with_factor(cache.covariance.factor, residual)
+end
+
+function _whiten_residual(cache::FitEvaluationCache{<:OperatorPreparedCovariance}, p::AbstractVector, residual::AbstractVector)
+    return _whiten_with_operator(cache.covariance.operator, residual)
 end
 
 function _whiten_residual(cache::FitEvaluationCache{DynamicPreparedCovariance}, p::AbstractVector, residual::AbstractVector)
@@ -543,6 +583,12 @@ function _diag_error(cov::SparseMatrixCSC)
 end
 
 function _yerror_for_plot(problem::FitProblem, p::AbstractVector=problem.p0)
+    if problem.whitening !== nothing
+        marginal_sigma = problem.whitening.marginal_sigma
+        marginal_sigma === nothing && return nothing
+        marginal_sigma isa Real && return fill(marginal_sigma, length(problem.y))
+        return marginal_sigma
+    end
     return _diag_error(_base_y_covariance(problem, p))
 end
 

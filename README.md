@@ -10,8 +10,8 @@ hardened before broad public promotion or Julia package registration.
 
 ## Why JuFitter
 
-- Weighted nonlinear least squares with diagonal, full-covariance, x/y, and
-  component-based uncertainty models.
+- Weighted nonlinear least squares with diagonal, full-covariance, x/y,
+  component-based, and matrix-free static whitening uncertainty models.
 - Poisson, histogram, unbinned, extended-unbinned, indexed, custom-objective,
   and multi-dataset likelihood workflows.
 - Bounds, fixed parameters, Gaussian priors, correlated parameter constraints,
@@ -129,7 +129,8 @@ Then serve `docs/build` with any static file server.
 JuFitter is intended to cover the common scientific fitting workflows before
 v1:
 
-- Gaussian XY fits with diagonal or dense covariance.
+- Gaussian XY fits with diagonal, dense, sparse-static, or custom
+  matrix-free static covariance whitening.
 - Effective x-uncertainty propagation, including a vectorized derivative hook
   for large datasets.
 - Likelihood fits for counts, histograms, unbinned samples, and custom
@@ -143,8 +144,10 @@ Known limitations are explicit:
 
 - Dense covariance is exact but expensive: `O(n^2)` memory and `O(n^3)`
   factorization. Static sparse `cov_y` is supported for unbounded least-squares
-  fits, but large correlated time series, spectra, images, and detector arrays
-  still need future structured covariance or whitening operators.
+  fits. Large correlated time series, spectra, images, and detector arrays can
+  use `WhiteningOperator` when their complete static covariance has an
+  application-specific fast whitening operation; built-in structured operator
+  families and structured x covariance remain future work.
 - Parameter covariance is a local Hessian approximation. Nonlinear models,
   weak data, active bounds, and asymmetric likelihoods should be checked with
   profiles or contours.
