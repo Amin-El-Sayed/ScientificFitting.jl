@@ -70,11 +70,16 @@ end
     @testset "Rendered first-user path" begin
         home = read(joinpath(DOCS_BUILD, "index.html"), String)
         quickstart = read(joinpath(DOCS_BUILD, "quickstart.html"), String)
+        architecture = read(joinpath(DOCS_BUILD, "how_jufitter_works.html"), String)
+        css = read(joinpath(DOCS_BUILD, "assets", "jufitter.css"), String)
 
         @test occursin("<section class=\"jufitter-hero\">", home)
         @test !occursin("&lt;section", home)
         @test occursin("data-jufitter-plot-group=\"home-first-fit\"", home)
         @test occursin("using CairoMakie", quickstart)
         @test occursin("iterations = unavailable", quickstart)
+        @test occursin("data-flow-direction=\"top-to-bottom\"", architecture)
+        @test occursin("FitProblem</code> or <code>LikelihoodFitProblem", architecture)
+        @test !occursin("min-width: 1280px", css)
     end
 end

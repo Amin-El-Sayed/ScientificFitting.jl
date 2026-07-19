@@ -40,12 +40,13 @@ after `plot_fit` without rebuilding the fit.
 function fit_axis end
 
 """
-    add_curve!(axis, model, x; params, label=nothing, kwargs...)
+    add_curve!(axis, f; xgrid=nothing, xspan=nothing, n=400, label=nothing, kwargs...)
     add_curve!(axis, x, y; label=nothing, kwargs...)
 
-Add a model curve or precomputed curve to an existing fit axis. Style defaults
-follow the active JuFitter plot contract unless Makie keyword arguments such as
-`color` or `linewidth` are explicitly supplied.
+Add a function-valued or precomputed curve to an existing fit axis. A function
+is sampled on `xgrid`, `xspan`, or the current visible axis range. Style
+defaults follow the active JuFitter plot contract unless Makie keyword
+arguments such as `color` or `linewidth` are explicitly supplied.
 """
 function add_curve! end
 

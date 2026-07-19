@@ -355,71 +355,93 @@ html.theme--documenter-dark .jufitter-flow-step {
 
 .jufitter-fit-flow {
   margin: 2rem 0 1rem;
-  overflow-x: auto;
-  padding-bottom: 0.35rem;
 }
 
 .jufitter-fit-track {
-  align-items: stretch;
   display: grid;
-  gap: 0.85rem;
-  grid-template-columns: minmax(11rem, 0.9fr) auto minmax(14rem, 1.15fr) auto minmax(13rem, 1fr) auto minmax(16rem, 1.2fr) auto minmax(16rem, 1.2fr) auto minmax(12rem, 0.95fr) auto minmax(13rem, 1fr);
-  min-width: 1280px;
+  gap: 0.45rem;
+  min-width: 0;
 }
 
 .jufitter-fit-stage {
+  --flow-color: #2f5fb3;
   background: var(--jufitter-panel);
   border: 1px solid var(--jufitter-line);
+  border-left: 4px solid var(--flow-color);
   border-radius: 18px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.045);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.9rem;
-}
-
-.jufitter-fit-stage.api,
-.jufitter-fit-stage.output {
-  border-top: 4px solid #2f5fb3;
-}
-
-.jufitter-fit-stage.object,
-.jufitter-fit-stage.result {
-  border-top: 4px solid #007f83;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(9.5rem, 0.27fr) minmax(0, 1fr);
+  padding: 1rem;
 }
 
 .jufitter-fit-stage.check {
-  border-top: 4px solid #6f7784;
+  --flow-color: #626b78;
 }
 
 .jufitter-fit-stage.stats {
-  border-top: 4px solid #b45309;
+  --flow-color: #a45312;
 }
 
 .jufitter-fit-stage.solver {
-  border-top: 4px solid #ad3434;
+  --flow-color: #a23b3b;
+}
+
+.jufitter-fit-stage.result {
+  --flow-color: #087b78;
+}
+
+.jufitter-fit-stage-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.7rem;
 }
 
 .jufitter-fit-stage-title {
-  color: var(--jufitter-muted);
-  font-size: 0.78rem;
+  color: var(--flow-color);
+  font-size: 0.9rem;
   font-weight: 850;
-  letter-spacing: 0.15em;
-  margin: 0.05rem 0 0.35rem;
-  text-transform: uppercase;
+  line-height: 1.2;
+  margin: 0.15rem 0 0.3rem;
+}
+
+.jufitter-fit-stage-head span:not(.jufitter-fit-step) {
+  color: var(--jufitter-muted);
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.jufitter-fit-step {
+  background: var(--flow-color);
+  border-radius: 999px;
+  color: #fff;
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  padding: 0.28rem 0.42rem;
+}
+
+.jufitter-fit-stage-body {
+  min-width: 0;
 }
 
 .jufitter-fit-node,
-.jufitter-fit-merge {
+.jufitter-fit-merge,
+.jufitter-fit-note,
+.jufitter-fit-stop {
   border-radius: 12px;
   color: var(--jufitter-ink);
-  font-weight: 740;
+  font-weight: 720;
   line-height: 1.16;
   padding: 0.66rem 0.74rem;
   text-align: left;
 }
 
-.jufitter-fit-node span {
+.jufitter-fit-node span,
+.jufitter-fit-merge span {
   color: var(--jufitter-muted);
   display: block;
   font-size: 0.74rem;
@@ -427,114 +449,55 @@ html.theme--documenter-dark .jufitter-flow-step {
   margin-top: 0.25rem;
 }
 
-.jufitter-fit-node.public,
-.jufitter-fit-node.result,
-.jufitter-fit-node.object,
-.jufitter-fit-node.check,
-.jufitter-fit-node.stats,
-.jufitter-fit-node.solver,
+.jufitter-fit-node,
 .jufitter-fit-merge {
-  border-left: 3px solid transparent;
-}
-
-.jufitter-fit-node.public {
-  background: rgba(47, 95, 179, 0.11);
-  border-left-color: #2f5fb3;
-}
-
-.jufitter-fit-node.object {
-  background: rgba(0, 127, 131, 0.11);
-  border-left-color: #007f83;
-}
-
-.jufitter-fit-node.check {
-  background: rgba(111, 119, 132, 0.11);
-  border-left-color: #6f7784;
-}
-
-.jufitter-fit-node.stats {
-  background: rgba(180, 83, 9, 0.11);
-  border-left-color: #b45309;
-}
-
-.jufitter-fit-node.solver {
-  background: rgba(174, 48, 48, 0.11);
-  border-left-color: #ad3434;
-}
-
-.jufitter-fit-node.result {
-  background: rgba(0, 127, 131, 0.10);
-  border-left-color: #007f83;
+  background: color-mix(in srgb, var(--flow-color) 10%, var(--jufitter-panel));
+  border-left: 3px solid var(--flow-color);
 }
 
 .jufitter-fit-node.optional {
-  background: rgba(47, 95, 179, 0.08);
-  border: 1px dashed var(--jufitter-line);
-  color: var(--jufitter-muted);
+  border: 1px dashed var(--flow-color);
+  border-left-width: 3px;
 }
 
 .jufitter-fit-branch {
   display: grid;
   gap: 0.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.jufitter-fit-branch.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.jufitter-fit-branch.four {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .jufitter-fit-merge {
-  background: rgba(180, 83, 9, 0.16);
-  border-left-color: #b45309;
   font-size: 0.92rem;
-  margin-top: 0.2rem;
+  margin-top: 0.55rem;
+}
+
+.jufitter-fit-note,
+.jufitter-fit-stop {
+  background: color-mix(in srgb, var(--jufitter-paper) 82%, var(--flow-color));
+  color: var(--jufitter-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  margin-top: 0.55rem;
+}
+
+.jufitter-fit-stop {
+  border: 1px solid color-mix(in srgb, var(--flow-color) 36%, var(--jufitter-line));
 }
 
 .jufitter-fit-arrow {
-  align-self: center;
   color: var(--jufitter-accent);
-  font-size: 2rem;
+  font-size: 1.55rem;
   font-weight: 850;
   justify-self: center;
-}
-
-.jufitter-fit-legend {
-  align-items: center;
-  color: var(--jufitter-muted);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 0.86rem;
-  gap: 0.75rem 1.1rem;
-  margin: 0 0 2rem;
-}
-
-.jufitter-fit-legend b {
-  border-radius: 999px;
-  color: #fff;
-  display: inline-block;
-  font-size: 0.75rem;
-  padding: 0.08rem 0.42rem;
-}
-
-.jufitter-fit-legend b.api {
-  background: #2f5fb3;
-}
-
-.jufitter-fit-legend b.object {
-  background: #007f83;
-}
-
-.jufitter-fit-legend b.check {
-  background: #6f7784;
-}
-
-.jufitter-fit-legend b.stats {
-  background: #b45309;
-}
-
-.jufitter-fit-legend b.solver {
-  background: #ad3434;
-}
-
-.jufitter-fit-legend b.optional {
-  background: transparent;
-  border: 1px dashed var(--jufitter-line);
-  color: var(--jufitter-muted);
+  line-height: 1;
 }
 
 @media (max-width: 980px) {
@@ -548,12 +511,40 @@ html.theme--documenter-dark .jufitter-flow-step {
   }
 
   .jufitter-fit-track {
-    grid-template-columns: 1fr;
     min-width: 0;
   }
 
-  .jufitter-fit-arrow {
-    transform: rotate(90deg);
+  .jufitter-fit-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .jufitter-fit-branch,
+  .jufitter-fit-branch.two,
+  .jufitter-fit-branch.four {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  #documenter .docs-main .docs-navbar,
+  html.theme--documenter-light #documenter .docs-main header.docs-navbar,
+  html.theme--documenter-dark #documenter .docs-main header.docs-navbar {
+    margin: 0.5rem 0.55rem 1rem !important;
+    min-height: 3.5rem;
+    padding: 0.55rem 0.65rem;
+    width: auto !important;
+  }
+
+  .jufitter-toolbar-control {
+    font-size: 0.74rem;
+    gap: 0.2rem;
+    margin-left: 0.35rem;
+    padding: 0.25rem 0.3rem 0.25rem 0.5rem;
+  }
+
+  .jufitter-toolbar-select {
+    max-width: 5.5rem;
+    padding: 0.12rem 0.2rem;
   }
 }
 

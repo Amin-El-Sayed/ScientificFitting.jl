@@ -43,7 +43,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The plotting release slice passes locally with 77 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
-  2207 checks against links and assets in the rendered HTML.
+  2212 checks against links, assets, and the responsive architecture flow in
+  the rendered HTML.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
   `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do
@@ -143,10 +144,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2207 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2212 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
-  source Markdown.
+  source Markdown. It also guards the bounded, top-to-bottom architecture flow
+  against the fixed-width layout that previously overflowed the article.
 - The public landing page, installation page, and quickstart now form one
   verified first-user path. Installation distinguishes the local pre-release
   workflow from the future registry command, fitting/reporting from optional
@@ -335,9 +337,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   likelihoods, constraints/profile/contour plots, damped oscillator, and
   multi-dataset calibration all render real Makie assets for
   `:lab`, `:modern`, and `:article` in light and dark appearances.
-  The `How JuFitter Works` page now shows a flat left-to-right pipeline with
-  explicit validation, cost-construction, solver-dispatch, post-fit-analysis,
-  and output stages rather than a loose component inventory.
+- The `How JuFitter Works` page now follows the implemented architecture in a
+  bounded top-to-bottom flow: typed problem construction, validation, objective
+  construction, compatible solver dispatch, result construction, and optional
+  post-fit analysis. It distinguishes Gaussian and likelihood problem types,
+  additive parameter information from bounds and fixed parameters, and primary
+  fitting from profile/contour refits. Desktop, narrow mobile, and dark-mode
+  browser checks show no horizontal overflow; the same mobile check caught and
+  fixed an overflowing documentation toolbar.
 - Technical maintenance pages remain in the rendered documentation, but they
   are nested under `Reference > Technical Notes` rather than appearing as a
   top-level user path. The public documentation hygiene gate now prevents a
