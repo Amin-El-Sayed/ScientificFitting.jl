@@ -1,41 +1,59 @@
-# Install
+# Installation
 
-JuFitter supports Julia 1.10 and later. The release gate tests Julia 1.10 and
-Julia 1.12 explicitly instead of treating the version floor as an unverified
-compatibility claim.
+JuFitter supports Julia 1.10 and later. Julia 1.10 and Julia 1.12 are exercised
+by the release test matrix; Julia 1.10 is the compatibility floor.
 
-During active development, use JuFitter from a checked-out repository:
+!!! note "Pre-release package"
+    JuFitter is not registered yet and the repository must not be published
+    before maintainer review. Until that release decision, install from a local
+    checkout. The registry command below documents the intended final path, not
+    a command that works today.
 
-```julia
-using Pkg
-Pkg.activate("/path/to/JuFitter")
-Pkg.instantiate()
+## Current Local Checkout
+
+From a terminal, instantiate the numerical core in the repository root:
+
+```bash
+cd /path/to/JuFitter
+julia --project=. --startup-file=no -e 'using Pkg; Pkg.instantiate()'
 ```
 
-From the repository root:
+Start a Julia session in that environment:
 
 ```bash
 julia --project=.
 ```
 
-Then:
+Then load the package:
 
 ```julia
 using JuFitter
 ```
 
-This loads the fitting, likelihood, diagnostics, profiling, and reporting core.
-It does not load Makie.
+This loads fitting, likelihoods, diagnostics, profiles, contours, and text
+reports. It does **not** load Makie.
 
-When JuFitter is registered, the intended user-facing installation path is:
+The checked-out repository keeps plotting and documentation dependencies in a
+separate environment. Instantiate it when running the gallery or building the
+site:
+
+```bash
+julia --project=docs --startup-file=no -e 'using Pkg; Pkg.instantiate()'
+julia --project=docs examples/gallery/01_quickstart_linear.jl
+```
+
+The example writes its figure to the ignored `examples/output/` directory.
+
+## Registry Installation After Release
+
+Once JuFitter is registered, a normal Julia environment will use:
 
 ```julia
 using Pkg
 Pkg.add("JuFitter")
 ```
 
-For plotting, install a Makie backend in the same environment and load it before
-calling JuFitter plot functions:
+For static PNG, PDF, and SVG plots, install CairoMakie in the same environment:
 
 ```julia
 using Pkg
@@ -45,71 +63,58 @@ using JuFitter
 using CairoMakie
 ```
 
-## First Compile
+Keeping CairoMakie optional is deliberate. A batch analysis can fit data,
+create reports, and run diagnostics without compiling a graphics stack.
 
-The first fitting-only run should compile JuFitter's numerical core without
-Makie. The first plotting run can still take noticeably longer because Julia
-compiles CairoMakie and its rendering dependencies. This is startup and
-precompilation cost, not fit runtime. After the relevant methods are compiled,
-repeated fits and plots in the same environment reuse the compiled code.
+## First Use And Compilation
 
-For a clean local check:
+The first `using JuFitter` in a new environment compiles the numerical core.
+The first `using CairoMakie` and first rendered figure take longer because Julia
+also compiles Makie's layout, text, and rendering methods. Later sessions reuse
+the precompile cache unless Julia, package versions, preferences, or the target
+environment change.
+
+Do not use the full package test suite to check an installation; it is a slow
+release gate. A core-only check is enough:
 
 ```bash
-julia --project=. -e 'using Pkg; Pkg.test()'
+julia --project=. --startup-file=no -e 'using JuFitter; println("JuFitter core ready")'
 ```
 
-## Plot Backends
+For plotting, run the tracked quickstart example shown above. It exercises the
+same API used by the first tutorial and confirms CairoMakie export.
 
-JuFitter's plotting API is provided by an optional CairoMakie extension. The
-core package remains usable for fitting and reporting without CairoMakie. Static
-documentation figures use CairoMakie because it is the right default for PNG,
-PDF, and SVG output. Later interactive examples can add GLMakie or WGLMakie
-workflows, but static output stays the default for reproducible docs.
+## Python Interoperability (Experimental)
 
-## Calling JuFitter From Python
-
-The intended Python interoperability path is JuliaCall/PythonCall: Python starts
-Julia, loads JuFitter, and calls the same fitting/reporting engine. This is
-useful when a project is mostly Python but the fit should use JuFitter's
-statistical model and diagnostics.
-
-The minimal example is Makie-free:
+Python can call the Julia implementation through JuliaCall. This path reuses
+JuFitter's fit results, reports, and diagnostics; it is not a separate Python
+rewrite.
 
 ```bash
-pip install juliacall
+python3 -m pip install juliacall
 python3 examples/python/fit_from_python.py
 ```
 
-That script develops the local checkout into JuliaCall's managed Julia
-environment, calls `fit_model`, prints `report_text` and
-`diagnostic_dashboard_text`, and verifies that neither Makie nor CairoMakie was
-loaded. Keeping JuliaCall's managed environment active is intentional: it
-contains `PythonCall.jl`, while JuFitter itself should not depend on PythonCall
-for ordinary Julia users. The example therefore checks the numerical and
-text-reporting path without paying plotting compilation cost.
-
-Release policy: Python support is not a public v0 claim until the opt-in gate
-has passed in a clean Python environment:
+The tracked script develops the local checkout into JuliaCall's managed Julia
+environment and keeps plotting out of the process. The release gate is opt-in:
 
 ```bash
 JUFITTER_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_interop_gate.jl
 ```
 
-If that gate has not been run with `juliacall` installed, document Python use as
-experimental or deferred for the release.
+Python support remains experimental or deferred for public v0 claims until the
+same path is observed on the selected release CI or release machine.
 
 ## Troubleshooting
 
-If `using JuFitter` is slow the first time, wait for precompilation to finish.
-If every new Julia session is slow, check that you are reusing the same project
-environment and not creating a fresh temporary environment each time.
+| symptom | first check |
+| --- | --- |
+| `using JuFitter` is slow once | Let precompilation finish; this is not fit runtime. |
+| Every fresh session recompiles | Reuse the same project and depot; check whether Julia or package versions keep changing. |
+| `plot_fit` says the extension is unavailable | Add and load `CairoMakie` before calling plotting functions. |
+| PDF or SVG export fails | Verify a minimal CairoMakie figure in the same environment; inspect backend and font errors first. |
+| A fit is unexpectedly slow | Check for dense covariance, bounds, constraints, priors, parameter-dependent covariance, or pointwise x-derivatives. These select more general numerical paths. |
+| Package versions will not resolve | Confirm Julia is at least 1.10 and instantiate a clean environment rather than mixing incompatible manifests. |
 
-If PDF or SVG export fails, first verify that CairoMakie can render a minimal
-figure in the same environment. Most export issues are backend or font related,
-not fit related.
-
-If a fit is unexpectedly slow, check whether the problem uses dense covariance
-matrices, bounds, constraints, priors, or parameter-dependent x uncertainties.
-Those features are supported, but they intentionally move the fit from the fast
-least-squares path to the generic optimizer path.
+Continue with the [Quickstart](quickstart.md). For package internals and scaling
+limits, see [Backend Design](backend_design.md) and [Performance](performance.md).

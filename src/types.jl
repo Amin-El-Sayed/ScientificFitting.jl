@@ -416,13 +416,15 @@ statistics, and diagnostics.
 The parameter covariance is a local quadratic approximation. For nonlinear
 models, active bounds, weak data, or asymmetric likelihoods, inspect
 `profile(...)` or `contour(...)` before treating symmetric errors as final.
+`iterations` is `missing` when a backend does not expose an iteration count;
+JuFitter never substitutes the configured iteration limit for an unknown value.
 """
 struct FitResult
     problem::FitProblem
     options::FitOptions
     backend::Symbol
     converged::Bool
-    iterations::Int
+    iterations::Union{Int, Missing}
     message::String
     params::Vector{Float64}
     param_stderr::Vector{Float64}

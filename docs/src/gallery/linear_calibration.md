@@ -112,7 +112,7 @@ println(diagnostic_dashboard_text(result))
 <pre>Fit report
 backend = lsqfit
 converged = true
-iterations = 500
+iterations = unavailable
 message = Converged with LsqFit
 
 Parameters:

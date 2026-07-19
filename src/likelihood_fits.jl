@@ -29,13 +29,16 @@ covariance, statistics, and diagnostics fields of `FitResult`, but stores a
 `LikelihoodFitProblem` instead of x-y residual data. Plotting support depends on
 the specific likelihood workflow because not every objective has a natural
 curve representation.
+
+`iterations` is `missing` when the selected optimizer does not expose an
+iteration count.
 """
 struct LikelihoodFitResult
     problem::LikelihoodFitProblem
     options::FitOptions
     backend::Symbol
     converged::Bool
-    iterations::Int
+    iterations::Union{Int, Missing}
     message::String
     params::Vector{Float64}
     param_stderr::Vector{Float64}
@@ -140,7 +143,8 @@ function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOpti
     params = _expand_free_parameters(problem, sol.u)
     retcode_text = string(sol.retcode)
     converged = occursin("Success", retcode_text) || occursin("Default", retcode_text)
-    iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ? sol.stats.iterations : options.maxiters
+    iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ?
+                 Int(sol.stats.iterations) : missing
     return params, converged, iterations, retcode_text
 end
 
@@ -166,7 +170,7 @@ function _build_likelihood_result(
     options::FitOptions,
     params::Vector{Float64},
     converged::Bool,
-    iterations::Int,
+    iterations::Union{Int, Missing},
     message::String,
 )
     cache = _prepare_likelihood_cache(problem)

@@ -17,7 +17,6 @@ makedocs(;
     sitename="JuFitter",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://aminelsayed.github.io/JuFitter.jl",
         edit_link=nothing,
         repolink=nothing,
         assets=["assets/jufitter.css", "assets/jufitter.js"],

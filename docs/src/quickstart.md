@@ -9,12 +9,14 @@ it still follows the same logic as a real analysis:
 4. inspect the result,
 5. decide whether the result is trustworthy enough to use.
 
-The data below are a controlled calibration example, not a claim about a real
-instrument. Real workflows start in the [Gallery](gallery.md).
+The data below are controlled rather than archival measurements. Their smooth
+residual pattern is intentional: the first fit should teach both the convenient
+path and the fact that a good-looking line can still need review. Real workflows
+start in the [Gallery](gallery.md).
 
 ## Question
 
-A sensor output ``U`` should be approximately linear in an input position ``x``.
+A sensor voltage ``U`` should be approximately linear in an input position ``x``.
 We want the calibration slope and offset, including uncertainties, and a plot
 that already shows whether the fit is plausible.
 
@@ -26,9 +28,10 @@ We have three arrays:
 - `y`: measured sensor output,
 - `sigma_y`: one-standard-deviation uncertainty of each output value.
 
-The uncertainties are slightly larger at large ``x``. That is common in
-calibrations where readout noise, alignment error, or gain uncertainty grows
-with signal size.
+The uncertainties are slightly larger at large ``x``. Here they represent
+pointwise repeatability of the voltage reading after range-dependent noise has
+been characterized. A shared gain uncertainty would instead correlate points
+and should not be encoded as independent `sigma_y` values.
 
 ## Model
 
@@ -60,6 +63,7 @@ available:
 
 ```julia
 using JuFitter
+using CairoMakie
 
 # Measured calibration points. sigma_y is the one-standard-deviation
 # uncertainty of each voltage reading.
@@ -79,11 +83,13 @@ fit = fitplot(
     x,
     y;
     sigma_y=sigma_y,
-    xlabel="time",
-    xunit="s",
-    ylabel="signal",
+    title="Quickstart calibration",
+    model_label="U(x) = m x + b",
+    xlabel="x",
+    xunit="mm",
+    ylabel="U",
     yunit="V",
-    parameter_names=["slope", "offset"],
+    parameter_names=["m", "b"],
     band=:prediction,
     nsigma=1,
     band_label="1σ prediction band",
@@ -94,7 +100,6 @@ fit = fitplot(
 
 result = fit.result
 
-println(report_text(result; parameter_names=["slope", "offset"]))
 println()
 println(diagnostic_dashboard_text(result))
 ```
@@ -105,23 +110,23 @@ println(diagnostic_dashboard_text(result))
 <pre>Fit report
 backend = lsqfit
 converged = true
-iterations = 500
+iterations = unavailable
 message = Converged with LsqFit
 
 Parameters:
-  slope = 1.84747 +/- 0.0169517
-  offset = 0.736944 +/- 0.0774848
+  m = 1.84747 +/- 0.0169514
+  b = 0.736949 +/- 0.0774882
 
 Statistics:
   cost = chi2
-  cost_min = 11.0239
-  nll_min = -10.88
-  chi2 = 11.0239
+  cost_min = 11.0224
+  nll_min = -10.881
+  chi2 = 11.0224
   ndf = 22
-  chi2/ndf = 0.501087
-  pvalue = 0.974406
-  AIC = -6.88004
-  BIC = -4.52393
+  chi2/ndf = 0.501018
+  pvalue = 0.974428
+  AIC = -6.88096
+  BIC = -4.52485
 
 Fit diagnostic dashboard
 status = review - inspect diagnostics
@@ -142,6 +147,10 @@ Next actions:
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_dark.png" alt="Quickstart calibration fit in article dark style">
 ```
 
+`report=:both` puts the numerical summary beside the axes and prints the same
+real report to the terminal. Set it to `:plot`, `:console`, or `:none` when only
+one output is wanted. The returned `fit.figure` is an ordinary Makie figure.
+
 `fitplot(x, y; sigma_y=...)` uses a straight-line model by default. If you want
 to make the model explicit, use:
 
@@ -154,7 +163,8 @@ The explicit form is preferred once the model is not a straight line.
 
 ## What The Plot Means
 
-The plot contains:
+The selected plot style changes typography and visual hierarchy, not the data,
+fit, band, or reported numbers. The plot contains:
 
 - measured data points,
 - y error bars from `sigma_y`,

@@ -175,6 +175,37 @@ html.theme--documenter-dark .jufitter-hero {
   max-width: 58rem;
 }
 
+.jufitter-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.35rem;
+}
+
+.jufitter-button {
+  background: var(--jufitter-panel);
+  border: 1px solid var(--jufitter-line);
+  border-radius: 999px;
+  color: var(--jufitter-ink) !important;
+  display: inline-block;
+  font-weight: 720;
+  padding: 0.58rem 0.9rem;
+  text-decoration: none !important;
+}
+
+.jufitter-button.primary {
+  background: var(--jufitter-accent);
+  border-color: var(--jufitter-accent);
+  color: #ffffff !important;
+}
+
+.jufitter-figure-note {
+  color: var(--jufitter-muted);
+  font-size: 0.92rem;
+  margin: -1.35rem 0 2.2rem;
+  max-width: 70rem;
+}
+
 .jufitter-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));

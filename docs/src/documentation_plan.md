@@ -33,6 +33,13 @@ The Gallery comes before Guides because many scientists learn fitting by
 recognizing a workflow close to their own experiment. Guides explain general
 rules after the reader has seen concrete examples.
 
+Current first-user status: the landing page, installation page, and quickstart
+have completed this page-level pass. They present the pre-release installation
+state honestly, show a real plot immediately, use visible explicit arrays as the
+only numerical source, and keep every displayed report synchronized with the
+executable snapshot gate. The next editorial unit starts at `How JuFitter Works`
+and then continues through the public guides, mathematics, and API reference.
+
 ## Core Narrative
 
 The documentation should teach one repeated workflow:

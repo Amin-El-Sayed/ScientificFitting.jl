@@ -63,6 +63,14 @@ function install_page_text()
     return public_file_text(joinpath(DOCS_SRC, "install.md"))
 end
 
+function quickstart_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "quickstart.md"))
+end
+
+function home_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "index.md"))
+end
+
 function markdown_image_alt_texts(text::AbstractString)
     return [match.captures[1] for match in eachmatch(r"!\[([^\]]*)\]\([^)]+\)", text)]
 end
@@ -118,5 +126,21 @@ end
         @test occursin("examples/python/fit_from_python.py", text)
         @test occursin("JUFITTER_RUN_PYTHON_INTEROP=1", text)
         @test occursin("experimental or deferred", text)
+    end
+
+    @testset "First-user path is executable and honest" begin
+        home = home_page_text()
+        quickstart = quickstart_page_text()
+        install = install_page_text()
+
+        @test occursin("```@raw html\n<section class=\"jufitter-hero\">", home)
+        @test occursin("data-jufitter-plot-group=\"home-first-fit\"", home)
+        @test !occursin("collect(range", home)
+        @test occursin("using CairoMakie", quickstart)
+        @test !occursin("collect(range", quickstart)
+        @test occursin("report=:both", quickstart)
+        @test !occursin("println(report_text", quickstart)
+        @test !occursin("Pkg.test()", install)
+        @test !occursin("canonical=", documenter_make_text())
     end
 end

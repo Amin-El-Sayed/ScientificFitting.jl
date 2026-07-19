@@ -31,7 +31,7 @@ struct FitReport
     correlation::Matrix{Float64}
     backend::Symbol
     converged::Bool
-    iterations::Int
+    iterations::Union{Int, Missing}
     message::String
     diagnostics::FitDiagnostics
 end
@@ -142,11 +142,12 @@ function fit_report(
 end
 
 function _report_lines(report::FitReport; sigdigits::Int=6)
+    iterations = ismissing(report.iterations) ? "unavailable" : string(report.iterations)
     lines = String[
         "Fit report",
         "backend = $(report.backend)",
         "converged = $(report.converged)",
-        "iterations = $(report.iterations)",
+        "iterations = $iterations",
         "message = $(report.message)",
         "",
         "Parameters:",

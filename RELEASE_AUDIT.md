@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-07-16
+Status: 2026-07-19
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -24,7 +24,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Julia 1.10 and Julia 1.12; the complete current matrix still needs to be
   observed remotely after the branch is pushed.
 - `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes on
-  the current release-audit branch with 588 checks in about 57m57s after
+  the current documentation-finalization branch with 590 checks in about
+  40m55s after
   package-test precompilation. `test/runtests.jl` now delegates to the single
   authoritative Makie-free core inventory before adding CairoMakie tests. This
   corrected a real gate defect: the previous 509-check package runner omitted
@@ -34,10 +35,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   competing generic. A local namespace check with `JuFitter`, `Distributions`,
   and `StatsAPI` loaded together confirms the shared binding and executes a
   converged `fit(problem)` call without ambiguity.
+- Solver iteration counts are no longer invented when a backend does not expose
+  them. `FitResult`, `LikelihoodFitResult`, and `FitReport` use `missing` for an
+  unavailable count, and text reports render `iterations = unavailable` instead
+  of substituting the configured iteration limit. The focused public-API
+  regression covers the LsqFit path.
 - The plotting release slice passes locally with 77 focused API/layout tests,
-  232 gallery-structure checks, 1151 visual-asset checks, and 83 intentional
+  232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
-  2166 checks against links and assets in the rendered HTML.
+  2207 checks against links and assets in the rendered HTML.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
   `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do
@@ -92,7 +98,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   negative local curvature now produces a critical finding, dashboard status
   `:stop`, and `NaN` uncertainty/correlation values rather than fabricated zero
   errors.
-- The complete core inventory is exercised by the 588-check package gate above.
+- The complete core inventory is exercised by the 590-check package gate above.
   Its roughly one-hour runtime is too slow for the default developer loop and
   remains a release/CI gate; focused reference and torture suites provide the
   edit-test loop.
@@ -109,13 +115,17 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 485 checks. The gate first verifies that every page in the public
+  with 506 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
   identifiers such as `profile_curve` and `contour_grid`, draft/tutorial residue
   phrases, public image tags without non-empty alt text, and the ungrouped TeX
-  operator subscripts that previously caused browser-side KaTeX failures.
+  operator subscripts that previously caused browser-side KaTeX failures. The
+  first-user checks additionally require a real rendered landing-page hero,
+  visible style-switchable plot assets, an explicit CairoMakie import in the
+  plotting quickstart, a single report emission, and no undeployed canonical
+  URL.
 - `julia --project=. --startup-file=no test/docs_api_reference_gate.jl` passes
   locally. The gate verifies that every exported public binding except the
   module name has a REPL/Documenter-visible docstring, preventing `@autodocs`
@@ -129,16 +139,24 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 335 local Markdown links, HTML links, and image sources
+  The gate validates 365 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2166 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2207 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown.
+- The public landing page, installation page, and quickstart now form one
+  verified first-user path. Installation distinguishes the local pre-release
+  workflow from the future registry command, fitting/reporting from optional
+  plotting dependencies, and one-time compilation from steady-state runtime.
+  The quickstart uses only the explicit arrays shown to the reader, renders a
+  plot on the page, prints one real report plus one real diagnostic dashboard,
+  and explains the prediction-band and `report` switches. Its documented output
+  is checked by the executable snapshot gate.
 - `julia --project=. --startup-file=no test/docs_visual_asset_gate.jl` passes
-  locally with 1151 checks. The gate validates documentation PNG headers,
+  locally with 1201 checks. The gate validates documentation PNG headers,
   minimum dimensions, non-empty alt text, complete style/appearance coverage,
   consistent dimensions within each plot group, and rejects unreferenced
   gallery PNG leftovers. This is a visual-asset sanity gate; it does not

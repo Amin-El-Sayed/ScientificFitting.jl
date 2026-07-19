@@ -97,7 +97,8 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     params = _expand_free_parameters(problem, LsqFit.coef(fit_result))
 
     converged = true
-    iterations = hasproperty(fit_result, :iterations) ? getproperty(fit_result, :iterations) : options.maxiters
+    iterations = hasproperty(fit_result, :iterations) ?
+                 Int(getproperty(fit_result, :iterations)) : missing
     message = "Converged with LsqFit"
 
     # LsqFit stores the weighted model Jacobian. JuFitter stores residual
@@ -156,7 +157,8 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     params = _expand_free_parameters(problem, sol.u)
     retcode_text = string(sol.retcode)
     converged = occursin("Success", retcode_text) || occursin("Default", retcode_text)
-    iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ? sol.stats.iterations : options.maxiters
+    iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ?
+                 Int(sol.stats.iterations) : missing
     message = string(sol.retcode)
 
     return params, converged, iterations, message, nothing
@@ -168,7 +170,7 @@ function _build_fit_result(
     backend::Symbol,
     params::Vector{Float64},
     converged::Bool,
-    iterations::Int,
+    iterations::Union{Int, Missing},
     message::String,
     backend_jacobian=nothing,
 )

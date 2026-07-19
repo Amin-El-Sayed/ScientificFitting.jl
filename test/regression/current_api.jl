@@ -17,6 +17,8 @@ using Test
 
         @test result.backend == :lsqfit
         @test result.converged
+        @test ismissing(result.iterations)
+        @test occursin("iterations = unavailable", report_text(result))
         @test isapprox(result.params[1], p_true[1]; atol=0.08)
         @test isapprox(result.params[2], p_true[2]; atol=0.2)
         @test result.stats.ndf == length(x) - length(p_true)
