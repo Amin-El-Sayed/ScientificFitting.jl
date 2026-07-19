@@ -23,14 +23,18 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `[compat]`, core CI matrix, and full-package Linux CI matrix support both
   Julia 1.10 and Julia 1.12; the complete current matrix still needs to be
   observed remotely after the branch is pushed.
-- `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` passes on
-  the current documentation-finalization branch with 590 checks in about
+- The last completed
+  `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` release gate
+  passed on the documentation-finalization branch with 590 checks in about
   40m55s after
   package-test precompilation. `test/runtests.jl` now delegates to the single
   authoritative Makie-free core inventory before adding CairoMakie tests. This
   corrected a real gate defect: the previous 509-check package runner omitted
   the structured-whitening and in-place reference files even though their
-  focused suites passed separately.
+  focused suites passed separately. The full gate must be repeated after the
+  remaining documentation review; the current API-reference unit is covered by
+  the focused public-API, likelihood, torture, plotting, and documentation
+  gates listed below.
 - JuFitter's low-level methods extend `StatsAPI.fit` rather than creating a
   competing generic. A local namespace check with `JuFitter`, `Distributions`,
   and `StatsAPI` loaded together confirms the shared binding and executes a
@@ -43,7 +47,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The plotting release slice passes locally with 79 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
-  2262 checks against links, assets, and the responsive architecture flow in
+  2344 checks against links, assets, and the responsive architecture flow in
   the rendered HTML.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
@@ -52,8 +56,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   content; explicit fixed widths remain an opt-in export control.
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
-  passes with 82 torture checks in about 1m52s on the local machine after adding
-  validation that fixed/profiled parameter values cannot bypass declared bounds
+  passes with 79 torture checks in about 1m38s on the local machine. Three
+  validation checks for the former `ci_level` storage option were removed with
+  that inert public keyword; the remaining suite continues to cover the
+  scientific input and solver failures below. It verifies that fixed/profiled
+  parameter values cannot bypass declared bounds
   and that `p0` and user-provided `initial_guesses` are finite and inside
   declared bounds instead of being silently clipped before optimization. The
   same suite now checks that parameter priors, correlated parameter
@@ -133,10 +140,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   plotting quickstart, a single report emission, and no undeployed canonical
   URL.
 - `julia --project=. --startup-file=no test/docs_api_reference_gate.jl` passes
-  locally. The gate verifies that every exported public binding except the
+  with 15 checks. The gate verifies that every exported public binding except the
   module name has a REPL/Documenter-visible docstring, preventing `@autodocs`
   from exposing undocumented public names. It also requires each public export
-  to appear on the curated API reference page.
+  to appear on the curated API reference page and protects the entry-point,
+  model-signature, uncertainty, failure, custom-objective, profile, and
+  optional-plotting contracts.
 - `README.md` has been rewritten from an API dump into a public landing page:
   concise project purpose, quickstart, installation status, documentation entry
   points, current scope, known limitations, development gates, and release
@@ -145,11 +154,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 389 local Markdown links, HTML links, and image sources
+  The gate validates 393 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2262 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2344 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown. It also guards the bounded, top-to-bottom architecture flow
@@ -421,6 +430,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   constrains AIC/BIC comparisons to compatible normalized likelihoods. Light-
   and dark-mode browser checks confirm that equations and threshold tables
   render correctly.
+- The API reference now provides an observation-model entry-point table,
+  allocating and in-place model contracts, complete uncertainty and
+  parameter-control semantics, solver and failure behavior, result-field
+  definitions, likelihood assumptions, profile thresholds, report selection,
+  and the optional CairoMakie boundary before the generated method docstrings.
+  The page builds with method-specific `fit` documentation, passes light/dark
+  browser review, and has no unresolved local or rendered links. The unused
+  `ci_level` fit keyword was removed rather than presenting a scientifically
+  inert option; profile and contour coverage remains explicit through
+  `threshold` and `levels` where those choices actually affect computation.
 
 ## Release Blockers
 
@@ -430,11 +449,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   documentation source, the main technical concept pages are now in polished
   English, and the public reference overview has been rewritten as a workflow
   map with current API names.
-- The API reference is generated from docstrings, and every exported public
-  binding now has baseline REPL/Documenter documentation. The public API page
-  is curated by workflow area instead of relying on an unstructured
-  `@autodocs` dump. The next release polish step is richer
-  parameter-by-parameter reference entries for the highest-traffic workflows.
+- The API reference has completed its page-level editorial and contract audit.
+  The next public reference unit is the Reference Map, followed by a decision
+  on which maintainer-facing technical notes belong on the public site.
 - Source and rendered documentation links are covered locally by
   `test/docs_link_gate.jl` and `test/docs_html_link_gate.jl`, and both are wired
   into `.github/workflows/ci.yml`. Remote CI execution still needs to be

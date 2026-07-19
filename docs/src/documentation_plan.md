@@ -51,7 +51,12 @@ has now completed the same pass: it starts from the
 sampling model, adds numerical intuition for covariance and goodness of fit,
 derives every supported likelihood family, separates local covariance from
 profile coverage, and states the limits of p-values and information criteria.
-The next editorial unit is the API reference.
+The API reference has also completed its contract audit. It maps every
+observation model to the correct entry point, specifies allocating and in-place
+model signatures, documents uncertainty and parameter controls, states solver
+and failure behavior, defines result fields, and separates Makie-free analysis
+from optional plotting. The next editorial unit is the Reference Map, followed
+by a decision on which engineering notes should remain public.
 
 ## Core Narrative
 

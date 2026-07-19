@@ -1,11 +1,12 @@
 """
     LikelihoodFitProblem(objective, gof, p0; nobs, cost_name, kwargs...)
 
-Internal problem representation for likelihood and custom-objective fits.
-`objective(p)` is minimized directly, while optional `gof(p)` supplies a
+Low-level public problem representation for likelihood and custom-objective
+fits. `objective(p)` is minimized directly, while optional `gof(p)` supplies a
 chi-square-like goodness-of-fit statistic for reduced statistics and p-values.
-Most users create this through `fit_poisson_model`, `fit_histogram_model`,
-`fit_unbinned_model`, `fit_extended_unbinned_model`, or `fit_custom`.
+Most users should prefer `fit_poisson_model`, `fit_histogram_model`,
+`fit_unbinned_model`, `fit_extended_unbinned_model`, or `fit_custom`; construct
+this type directly when the objective must be stored, inspected, or refitted.
 """
 struct LikelihoodFitProblem{TF, TG}
     objective::TF
@@ -195,11 +196,23 @@ function _build_likelihood_result(
     return LikelihoodFitResult(problem, options, :optimization, converged, iterations, message, params, stderr, cov, corr, stats, diagnostics)
 end
 
+"""
+    fit(problem::LikelihoodFitProblem; maxiters=1000, tol=1e-10,
+        initial_guesses=nothing, multistart=1)
+
+Minimize a normalized likelihood or custom objective problem and return a
+`LikelihoodFitResult`. Bounds, fixed parameters, Gaussian parameter terms, and
+nonlinear constraints are already stored in `problem`.
+
+`initial_guesses` may contain additional complete parameter vectors.
+`multistart > 1` adds deterministic bounded candidates when finite bounds are
+available. JuFitter returns the converged candidate with the lowest finite cost;
+if no candidate produces a finite result, the last underlying error is raised.
+"""
 function fit(
     problem::LikelihoodFitProblem;
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -208,7 +221,6 @@ function fit(
         cost=problem.cost_name,
         maxiters=maxiters,
         tol=Float64(tol),
-        ci_level=Float64(ci_level),
         scale_covariance=:never,
         multistart=multistart,
     )
@@ -251,7 +263,18 @@ end
 
 Fit a user-defined scalar objective. `objective(p)` is minimized directly.
 If `gof(p)` is supplied it is used for reduced goodness-of-fit statistics and
-p-values; otherwise these fields are `NaN`.
+p-values; otherwise these fields are `NaN`. `nobs` controls degrees of freedom
+and the BIC sample-size term, and must represent the number of statistically
+independent observations used by the objective.
+
+JuFitter computes local covariance as `2 * inv(H)`, where `H` is the objective
+Hessian. AIC, BIC, and that covariance therefore have their standard
+interpretation only when `objective` is a normalized `-2log(L)` cost (Gaussian
+chi-square is on the same scale). For an arbitrary loss, the optimizer result
+remains usable but those inferential fields are only arithmetic summaries.
+
+Returns `LikelihoodFitResult`. Common parameter-control and solver keywords are
+the same as for the other likelihood wrappers.
 """
 function fit_custom(
     objective;
@@ -267,7 +290,6 @@ function fit_custom(
     parameter_names=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -284,7 +306,7 @@ function fit_custom(
         cost_name=cost_name,
         parameter_names=parameter_names,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
 
 function _assert_finite_observations(name::AbstractString, values::AbstractVector)
@@ -349,7 +371,6 @@ function fit_poisson_model(
     parameter_names=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -374,7 +395,7 @@ function fit_poisson_model(
         cost_name=:poisson_nll,
         parameter_names=parameter_names,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
 
 """
@@ -397,7 +418,6 @@ function fit_histogram_model(
     parameter_names=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -423,15 +443,16 @@ function fit_histogram_model(
         cost_name=:histogram_poisson_nll,
         parameter_names=parameter_names,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
 
 """
     fit_histogram_density(pdf, edges, counts; p0, total_count=sum(counts), kwargs...)
 
 Fit binned counts from a probability density. Expected bin counts are computed
-with adaptive Gauss-Kronrod quadrature. `total_count` and `rtol` must be finite
-and positive.
+with adaptive Gauss-Kronrod quadrature. `pdf(x, p)` must be normalized on its
+intended physical domain; JuFitter does not renormalize it over the supplied
+bins. `total_count` and `rtol` must be finite and positive.
 """
 function fit_histogram_density(
     pdf,
@@ -448,7 +469,6 @@ function fit_histogram_density(
     parameter_names=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -477,7 +497,6 @@ function fit_histogram_density(
         parameter_names=parameter_names,
         maxiters=maxiters,
         tol=tol,
-        ci_level=ci_level,
         initial_guesses=initial_guesses,
         multistart=multistart,
     )
@@ -487,7 +506,8 @@ end
     fit_unbinned_model(pdf, data; p0, kwargs...)
 
 Fit independent unbinned observations with a normalized positive density
-`pdf(x, p)`. Observations must be finite.
+`pdf(x, p)`. JuFitter checks positivity at the observations but cannot infer or
+verify the normalization domain. Observations must be finite.
 """
 function fit_unbinned_model(
     pdf,
@@ -501,7 +521,6 @@ function fit_unbinned_model(
     parameter_names=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -529,7 +548,7 @@ function fit_unbinned_model(
         cost_name=:unbinned_nll,
         parameter_names=parameter_names,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
 
 """
@@ -554,7 +573,6 @@ function fit_extended_unbinned_model(
     parameter_names=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -591,7 +609,7 @@ function fit_extended_unbinned_model(
         cost_name=:extended_unbinned_nll,
         parameter_names=parameter_names,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
 
 function _gaussian_chi2_from_residual(residual::AbstractVector, sigma_y, cov_y)
@@ -655,6 +673,10 @@ Fit observations addressed by arbitrary indices. `model(indices, p)` must return
 one model value per index. This is useful when the independent variable is not a
 numeric 1D x-axis. Optional `sigma_y` entries must be finite and positive;
 optional `cov_y` must be a finite symmetric positive-definite covariance matrix.
+
+The minimized objective is chi-square without additive Gaussian normalization
+constants. AIC/BIC may compare models fit to the same observations and the same
+uncertainty model, but not different uncertainty scales or datasets.
 """
 function fit_indexed_model(
     model,
@@ -671,7 +693,6 @@ function fit_indexed_model(
     parameter_names=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -700,7 +721,7 @@ function fit_indexed_model(
         cost_name=:indexed_chi2,
         parameter_names=parameter_names,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
 
 """
@@ -711,6 +732,10 @@ By default each `models[i](xs[i], p)` receives the full parameter vector `p`.
 With `parameter_map`, model `i` receives `p[parameter_map[i]]` instead.
 Per-dataset `sigma_y` entries are treated as physical standard deviations and
 must be finite and positive.
+
+The minimized objective is the summed chi-square without additive Gaussian
+normalization constants. AIC/BIC may compare models fit to the same datasets
+and uncertainty model, but not different uncertainty scales or datasets.
 """
 function fit_multi_model(
     models::AbstractVector,
@@ -727,7 +752,6 @@ function fit_multi_model(
     parameter_map=nothing,
     maxiters::Int=1000,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -781,5 +805,5 @@ function fit_multi_model(
         cost_name=:multi_chi2,
         parameter_names=parameter_names,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, ci_level=ci_level, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end

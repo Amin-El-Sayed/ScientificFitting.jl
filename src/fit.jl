@@ -238,7 +238,7 @@ function _build_fit_result(
 end
 
 """
-    fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500, tol=1e-10, ci_level=0.6827, scale_covariance=:auto, initial_guesses=nothing, multistart=1)
+    fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500, tol=1e-10, scale_covariance=:auto, initial_guesses=nothing, multistart=1)
 
 Run a fit and return a `FitResult`.
 
@@ -266,7 +266,6 @@ function fit(
     cost::Symbol=:auto,
     maxiters::Int=500,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
@@ -276,7 +275,6 @@ function fit(
         cost=_resolve_cost(problem, cost),
         maxiters=maxiters,
         tol=Float64(tol),
-        ci_level=Float64(ci_level),
         scale_covariance=_normalize_scale_covariance(scale_covariance),
         multistart=multistart,
     )
@@ -375,7 +373,6 @@ function fit_model(
     cost::Symbol=:auto,
     maxiters::Int=500,
     tol::Real=1e-10,
-    ci_level::Real=0.6827,
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
@@ -407,7 +404,6 @@ function fit_model(
         cost=cost,
         maxiters=maxiters,
         tol=tol,
-        ci_level=ci_level,
         scale_covariance=scale_covariance,
         initial_guesses=initial_guesses,
         multistart=multistart,

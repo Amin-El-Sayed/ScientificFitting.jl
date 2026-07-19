@@ -37,4 +37,50 @@ end
     api_text = _api_page_text()
     undocumented_on_page = Symbol[name for name in exports if !occursin(string(name), api_text)]
     @test undocumented_on_page == Symbol[]
+
+    @testset "Reference page states the public contracts" begin
+        required_sections = [
+            "## Choose An Entry Point",
+            "## Common Conventions",
+            "## Gaussian Fits",
+            "## Likelihood And Count Fits",
+            "## Results",
+            "## Profiles And Contours",
+            "## Diagnostics And Reports",
+            "## Plotting",
+        ]
+        @test all(section -> occursin(section, api_text), required_sections)
+
+        required_contracts = [
+            "one-based indices",
+            "inplace=true",
+            "`whitening` is intentionally exclusive",
+            "converged == false",
+            "normalized ``-2\\log L``",
+            "different uncertainty scales",
+            "on_failure=:throw",
+            "do not require Makie",
+        ]
+        @test all(contract -> occursin(contract, api_text), required_contracts)
+        @test !occursin("ci_level", api_text)
+    end
+
+    @testset "Optional plotting boundary matches real methods" begin
+        @test occursin("(result::FitResult, figure::Figure)", _doc_text(:fitplot))
+        @test !occursin("plot_fit(model, x, y", _doc_text(:plot_fit))
+        @test occursin("fit_axis(figure; index=1)", _doc_text(:fit_axis))
+        @test occursin("plot_info_panel!(cell;", _doc_text(:plot_info_panel!))
+    end
+
+    @testset "Custom objectives state their inferential convention" begin
+        custom_doc = _doc_text(:fit_custom)
+        @test occursin("normalized `-2log(L)` cost", custom_doc)
+        @test occursin("only arithmetic summaries", custom_doc)
+        @test occursin("nobs", custom_doc)
+    end
+
+    @testset "Fit options expose only effective controls" begin
+        @test !hasfield(FitOptions, :ci_level)
+        @test !occursin("ci_level", _doc_text(:FitOptions))
+    end
 end

@@ -98,12 +98,12 @@ ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=
 
 """
     FitOptions(; backend=:auto, cost=:auto, maxiters=500, tol=1e-10,
-                ci_level=0.6827, scale_covariance=:auto, multistart=1)
+                scale_covariance=:auto, multistart=1)
 
 Normalized solver and reporting options stored in a `FitResult`. User-facing
 fit functions expose these as keyword arguments; constructing `FitOptions`
 directly is mainly useful for lower-level workflows and tests. Invalid backend,
-iteration, tolerance, confidence-level, covariance-scaling, and multistart
+iteration, tolerance, covariance-scaling, and multistart
 settings fail during construction rather than inside a solver.
 """
 Base.@kwdef struct FitOptions
@@ -111,7 +111,6 @@ Base.@kwdef struct FitOptions
     cost::Symbol = :auto
     maxiters::Int = 500
     tol::Float64 = 1e-10
-    ci_level::Float64 = 0.6827
     scale_covariance::Symbol = :auto
     multistart::Int = 1
 
@@ -120,13 +119,11 @@ Base.@kwdef struct FitOptions
         cost::Symbol,
         maxiters::Integer,
         tol::Real,
-        ci_level::Real,
         scale_covariance::Symbol,
         multistart::Integer,
     )
         maxiters_value = Int(maxiters)
         tol_value = Float64(tol)
-        ci_level_value = Float64(ci_level)
         multistart_value = Int(multistart)
         backend in (:auto, :lsqfit, :optimization) || throw(ArgumentError(
             "backend must be :auto, :lsqfit, or :optimization",
@@ -138,16 +135,12 @@ Base.@kwdef struct FitOptions
         isfinite(tol_value) && tol_value > 0 || throw(ArgumentError(
             "tol must be finite and > 0",
         ))
-        isfinite(ci_level_value) && 0 < ci_level_value < 1 || throw(ArgumentError(
-            "ci_level must be finite and strictly between 0 and 1",
-        ))
         multistart_value > 0 || throw(ArgumentError("multistart must be >= 1"))
         return new(
             backend,
             cost,
             maxiters_value,
             tol_value,
-            ci_level_value,
             scale_covariance,
             multistart_value,
         )

@@ -12,12 +12,9 @@ using Test
         @test_throws ArgumentError FitOptions(maxiters=0)
         @test_throws ArgumentError FitOptions(tol=NaN)
         @test_throws ArgumentError FitOptions(tol=0.0)
-        @test_throws ArgumentError FitOptions(ci_level=0.0)
-        @test_throws ArgumentError FitOptions(ci_level=1.0)
         @test_throws ArgumentError FitOptions(scale_covariance=:invalid)
         @test_throws ArgumentError FitOptions(multistart=0)
         @test FitOptions(tol=1).tol === 1.0
-        @test FitOptions(ci_level=1 // 2).ci_level === 0.5
 
         sigma = fill(0.1, length(x))
         @test fit_model(

@@ -1,10 +1,10 @@
 """
     plot_fit(result; kwargs...)
-    plot_fit(model, x, y; p0, kwargs...)
 
-Create a Makie fit figure from an existing `FitResult` or directly from data and
-a model. The default layout shows data, fitted model, uncertainty band, and an
-optional right-side report without requiring manual margin tuning.
+Create and return a Makie `Figure` from an existing `FitResult`. The default
+layout shows data, fitted model, uncertainty band, and an optional right-side
+report without requiring manual margin tuning. Use `fitplot(model, x, y; ...)`
+when fitting and plotting should happen in one call.
 
 The default `fit_range=:axis` draws the fitted model over the padded axis range.
 Use `fit_range=:data` or pass `xgrid` when the curve should stop at a specific
@@ -22,8 +22,9 @@ function plot_fit end
     fitplot(result; kwargs...)
 
 Convenience entry point for the common notebook workflow: fit data and return a
-plot object in one call. The returned object contains the `FitResult`, Makie
-figure, axis, and generated plot handles when CairoMakie is loaded.
+plot in one call. Every method returns the named tuple
+`(result::FitResult, figure::Figure)`. Obtain the primary axis with
+`fit_axis(output.figure)` when adding custom Makie content.
 
 Use `report=:plot`, `:console`, `:both`, or `:none` to choose where fit
 statistics are shown.
@@ -31,11 +32,12 @@ statistics are shown.
 function fitplot end
 
 """
-    fit_axis(plot_or_axis)
+    fit_axis(figure; index=1)
 
-Return the primary Makie `Axis` from a JuFitter plot object or pass an existing
-axis through unchanged. This is the stable hook for adding custom Makie content
-after `plot_fit` without rebuilding the fit.
+Return axis number `index` from a Makie `Figure`. The default returns the first
+axis, which is the primary data axis of a standard JuFitter fit figure. Invalid
+indices raise `ArgumentError`. This is the stable hook for adding custom Makie
+content after `plot_fit` without rebuilding the fit.
 """
 function fit_axis end
 
@@ -109,10 +111,15 @@ or user-selected plot style.
 function plot_palette end
 
 """
-    plot_info_panel!(figure_or_grid, result; kwargs...)
+    plot_info_panel!(cell; legend_source=nothing, legend_plots=nothing,
+                     legend_labels=nothing, model_label=nothing,
+                     parameter_lines=Any[], statistic_lines=Any[], kwargs...)
 
-Add a compact right-side information panel with model, parameters, and fit
-statistics. The panel is the reusable report component used by `plot_fit`.
+Add a compact, left-aligned information panel to a Makie layout `cell` and
+return its `GridLayout`. Supply either `legend_source` or matching
+`legend_plots`/`legend_labels`, plus already formatted model, parameter, and
+statistic lines. This low-level helper lets compound figures follow JuFitter's
+information hierarchy without coupling the panel to one `FitResult`.
 """
 function plot_info_panel! end
 
