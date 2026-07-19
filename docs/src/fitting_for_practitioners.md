@@ -1,254 +1,413 @@
 # Fitting for Practitioners
 
-This page is the practical entry point before the full statistical reference.
-It is written for engineers, physicists, and applied scientists who want to know
-which model and uncertainty options to use without starting from likelihood
-theory.
+Use this page when you have measurements in front of you and need to decide
+what to fit, which uncertainty model belongs to the experiment, and whether the
+result is trustworthy. It is a decision guide, not a substitute for the
+[mathematical derivations](statistical_foundations.md) or the complete
+[API reference](api.md).
 
-## What a Fit Actually Does
+The central rule is simple: choose the probability model before choosing an
+optimizer. A solver can locate a minimum. It cannot make an inappropriate cost
+function scientifically meaningful.
 
-A fit chooses parameters ``p`` so that a model ``f(x, p)`` describes measured
-data ``(x_i, y_i)`` as well as possible. The important question is not only
-where the best curve lies, but also how strongly the data constrain the
-parameters.
+## 1. Identify What Was Observed
 
-For independent Gaussian y uncertainties, the standard cost is
+Start from the measurement process, not from the curve shape.
+
+- **Continuous y values with known, independent standard uncertainties:** use
+  Gaussian residuals with `fit_model(...; sigma_y=...)`. Verify that the quoted
+  values are standard deviations and the points are genuinely independent.
+- **Continuous x and y values with small measurement uncertainties:** use
+  locally propagated Gaussian uncertainty with
+  `fit_model(...; sigma_x=..., sigma_y=...)`. Verify that the model is smooth
+  and approximately linear across each x uncertainty.
+- **A Gaussian data vector with shared noise:** use `cov_y=...` or a structured
+  `WhiteningOperator(...)`. The covariance must represent the actual shared
+  readout, baseline, or calibration mechanism.
+- **Counts at known x positions:** use `fit_poisson_model(...)`. The model must
+  predict strictly positive expected counts at every fitted point.
+- **Counts collected into bins:** use `fit_histogram_model(...)` or
+  `fit_histogram_density(...)`. Integrate the model over each bin instead of
+  sampling only at its center.
+- **Individual samples from a distribution:** use `fit_unbinned_model(...)` and
+  verify that the density is normalized on the fitted domain.
+- **Individual samples when the total event yield also carries information:**
+  use `fit_extended_unbinned_model(...)`. The model must describe both shape
+  and expected event count.
+
+If the row is unclear, write the measurement equation first. For a Gaussian
+experiment it is often
 
 ```math
-\chi^2(p) = \sum_i \left(\frac{y_i - f(x_i, p)}{\sigma_{y,i}}\right)^2.
+y_i = f(x_i,p) + \epsilon_i,
+\qquad
+\epsilon \sim \mathcal{N}(0,V).
 ```
 
-Use this when each point has its own standard uncertainty and the points are not
-correlated.
+That one line states the model prediction, the random quantity, and the
+covariance that defines which residual patterns are plausible.
 
-## Which Uncertainty Input Should I Use?
+## 2. Build The Uncertainty Model
 
-Use `sigma_y` when every point has an independent vertical uncertainty. This is
-the right default for most lab measurements, calibrations, and sensor curves.
+### Independent y uncertainty
 
-Use `sigma_x` when the x coordinate is measured with relevant uncertainty. For
-smooth models, JuFitter propagates this through the local slope of the model.
-This is useful for calibration curves, threshold fits, and steep resonances.
-
-Use `cov_y` when y uncertainties are correlated. This is required when several
-points share a calibration constant, a baseline correction, a normalization, or
-any other systematic effect.
-
-Separate three cases mentally before choosing the input:
-
-- independent scatter: each point gets its own ``\sigma_i`` and the noise does
-  not know about neighboring points;
-- correlated scatter: several points move together, so the covariance matrix
-  must contain off-diagonal entries;
-- external systematic effects: a calibration scale, alignment, or reference
-  value affects the final result and is often better represented as a nuisance
-  parameter, prior, or separate propagated contribution.
-
-A tiny covariance sketch helps: if two adjacent points share half of their
-readout noise, their normalized covariance might look like
+When ``V`` is diagonal, each residual is divided by its own standard
+uncertainty:
 
 ```math
+\chi^2(p)
+=
+\sum_i
+\left(
+\frac{y_i-f(x_i,p)}{\sigma_{y,i}}
+\right)^2.
+```
+
+The uncertainty scale changes the scientific interpretation even when the
+points and curve are unchanged. Two residuals of ``+0.2`` and ``-0.2``
+contribute ``\chi^2=8`` when ``\sigma=0.1``, but only ``\chi^2=2`` when
+``\sigma=0.2``. An uncertainty is therefore not a plotting decoration. It is
+part of the model being fitted.
+
+Use `sigma_y` only when the entries are standard uncertainties and the
+off-diagonal covariances are negligible. Heteroskedastic values are expected:
+every point may have a different uncertainty.
+
+### Correlated uncertainty
+
+For correlated Gaussian measurements, JuFitter evaluates
+
+```math
+\chi^2(p)=r(p)^T V^{-1}r(p),
+\qquad
+r(p)=y-f(x,p).
+```
+
+Consider two measurements with standard uncertainty ``0.1`` and correlation
+``\rho=0.5``:
+
+```math
+V = 0.1^2
 \begin{pmatrix}
-1 & 0.5 \\
+1 & 0.5\\
 0.5 & 1
 \end{pmatrix}.
 ```
 
-Treating that as the identity matrix would count the same shared fluctuation
-twice as independent evidence.
+A common residual ``r=(0.1,0.1)`` then gives ``\chi^2=4/3``. The opposing
+pattern ``r=(0.1,-0.1)`` gives ``\chi^2=4``. Positive correlation says that two
+points moving together is more plausible than the same points moving in
+opposite directions. Replacing this matrix by its diagonal would assign
+``\chi^2=2`` to both patterns and erase that experimental information.
 
-Use likelihood fits for counts, histograms, and unbinned samples. Least squares
-is not the right statistical object for small Poisson counts or distribution
-fits.
+Use `cov_y` for a moderate dense covariance. JuFitter factorizes the matrix and
+solves linear systems; it does not form ``V^{-1}`` explicitly. Dense covariance
+still requires roughly ``O(n^2)`` memory and ``O(n^3)`` factorization. For a
+large time series or detector vector with known structure, use a verified
+`WhiteningOperator` rather than materializing a dense matrix.
+Verify a custom whitening operation and its covariance log-determinant against
+a small dense reference before applying it to a large dataset.
 
-## What the Plot Band Means
+### External systematic uncertainty
 
-`band=:confidence` shows uncertainty of the fitted mean curve from parameter
-covariance. It answers: where could the true model curve plausibly be?
+Not every systematic effect belongs in `cov_y`. Suppose all measurements use a
+gain ``g=1.000\pm0.015``. If the model can contain ``g`` explicitly, fit it as a
+nuisance parameter with a Gaussian `ParameterPrior`. The fit then propagates
+the shared gain uncertainty into every parameter that depends on it.
 
-`band=:prediction` combines parameter uncertainty with observation uncertainty.
-It answers: where would a new measurement plausibly land, given the fitted model
-and the measurement errors?
+Use a `FixedParameter` without uncertainty only for a quantity that is treated
+as exact in the stated analysis. Fixing an uncertain calibration constant hides
+its contribution instead of propagating it. Likewise, do not reuse information
+from the fitted dataset as a prior; that would count the same evidence twice.
 
-For dense and precise data, confidence bands can be visually very narrow. That
-is not a plotting bug; it means the parameters are strongly constrained. If the
-data still scatter outside the band, inspect residuals and goodness-of-fit
-statistics instead of increasing the band for visual comfort.
+### X uncertainty
 
-## First Diagnostics
-
-The first number to inspect is not the fitted parameter, but the normalized
-residual
-
-```math
-r_i=\frac{y_i-f(x_i,p)}{\sigma_i}.
-```
-
-For an appropriate model and correctly estimated independent Gaussian
-uncertainties, these residuals should look like random draws with width about
-one. The chi-square is the sum of their squares:
+For a smooth one-dimensional model and small x uncertainty, JuFitter uses the
+first-order effective variance
 
 ```math
-\chi^2=\sum_i r_i^2.
+\sigma_{\mathrm{eff},i}^2(p)
+=
+\sigma_{y,i}^2
++
+\left(
+\frac{\partial f(x_i,p)}{\partial x}
+\right)^2
+\sigma_{x,i}^2.
 ```
 
-The number of degrees of freedom is approximately
+Because this covariance depends on the fitted parameters, `cost=:auto` uses the
+full Gaussian negative log-likelihood, including its log-determinant term. This
+is more than replacing an error bar after the fit.
 
-```math
-\mathrm{ndf}=N_\mathrm{data}-N_\mathrm{free\ parameters}.
-```
+The approximation is appropriate when the model is locally smooth and nearly
+linear over each x-error interval. Large x errors, a sharp threshold, or a
+strongly curved model may require an explicit errors-in-variables or latent-x
+model instead. A small `sigma_x` keyword cannot make the linearization exact.
 
-If the model and uncertainties are right, ``\chi^2`` should fluctuate around
-``\mathrm{ndf}`` with a natural width of about ``\sqrt{2\,\mathrm{ndf}}``.
-That is why ``\chi^2/\mathrm{ndf}`` should usually be near one.
+## 3. Fit Once, Then Inspect One Result
 
-Practical rules of thumb:
-
-- ``\chi^2/\mathrm{ndf}\approx 1``: statistically plausible if the residuals
-  also look structureless.
-- ``0.5 \lesssim \chi^2/\mathrm{ndf} \lesssim 1.5``: often acceptable for
-  moderate or large datasets, but still inspect residuals.
-- ``\chi^2/\mathrm{ndf} \gg 1``: missing physics, underestimated errors,
-  outliers, wrong correlations, or a failed optimizer are likely.
-- ``\chi^2/\mathrm{ndf} \ll 1``: uncertainties may be overestimated, points may
-  be strongly correlated but treated as independent, or the data may be
-  over-smoothed.
-- ``P(\chi^2)<0.01``: the result is statistically suspicious under the stated
-  assumptions.
-- ``P(\chi^2)>0.99``: also suspicious; the data are too good for the assigned
-  errors.
-
-The p-value is not the probability that the model is true. It is the
-probability, assuming the model and uncertainty model are true, to observe a
-chi-square at least as extreme as the measured one. With correct assumptions,
-p-values are uniformly distributed across repeated experiments.
-
-Always inspect:
-
-- parameter values and standard errors,
-- ``\chi^2/\mathrm{ndf}`` and ``P(\chi^2)`` when the Gaussian assumptions are
-  valid,
-- residual or pull plots,
-- active bounds or failed optimizer convergence,
-- whether a covariance matrix is ill-conditioned.
-
-A beautiful curve is not enough. A good fit has interpretable parameters,
-credible uncertainties, and residuals that do not show obvious missing physics.
-
-## Quick Diagnosis In The Lab
-
-When a fit looks wrong, start with:
+The explicit problem API makes the statistical inputs reviewable:
 
 ```julia
-result = fit_model(model, x, y; p0, sigma_y)
-diagnose(result)
+problem = FitProblem(
+    model,
+    x,
+    y;
+    p0=[1.0, 0.0],
+    sigma_y=sigma_y,
+)
+
+result = fit(problem)
 ```
 
-`diagnose` returns a structured `DiagnosticReport`. In the REPL or a notebook it
-prints findings with:
-
-- severity: `INFO`, `WARNING`, or `CRITICAL`,
-- evidence: the number that triggered the finding,
-- action: the next thing to inspect or change.
-
-The current checks cover:
-
-- optimizer non-convergence,
-- non-positive degrees of freedom,
-- unavailable goodness-of-fit statistics,
-- ill-conditioned covariance or Hessian matrices,
-- strong parameter correlations,
-- active parameter bounds,
-- very large or very small ``\chi^2/\mathrm{ndf}``,
-- suspiciously small or large ``P(\chi^2)``,
-- large pulls and extreme pulls,
-- structured residual signs,
-- long same-sign pull intervals with point and x ranges,
-- lag-1 autocorrelation in pulls.
-
-The intent is not to replace scientific judgment. The intent is to make the
-first troubleshooting step fast: if the fit is statistically implausible,
-overconstrained, bounded, locally degenerate, or visibly structured, JuFitter
-should say that directly and suggest what to try next.
-
-For a shorter lab-facing summary, use:
+`fit_model(model, x, y; ...)` is the shorter wrapper around the same
+construction. Both return one result object that feeds reports, diagnostics,
+profiles, contours, and optional Makie plots:
 
 ```julia
+println(report_text(result))
+println(diagnostic_dashboard_text(result))
+
+# Plotting remains optional for headless or server-side work.
+using CairoMakie
+fig = plot_fit(result; xlabel="x", ylabel="y")
+```
+
+Do not refit merely to change a label, add a threshold, or switch the side
+panel. Plot extensions operate on the existing `FitResult`; see
+[Plotting Design](plotting_design.md).
+
+## 4. Read The Fit In A Defensible Order
+
+Read a result in this order:
+
+1. **Validity:** did the optimizer converge, are the parameters finite, and is
+   the fitted point a minimum with usable local curvature?
+2. **Residual structure:** are discrepancies random, or do they form runs,
+   trends, oscillations, or isolated extreme points?
+3. **Goodness of fit:** is the observed cost plausible under the stated
+   probability model?
+4. **Parameter geometry:** are parameters strongly correlated, at bounds, or
+   described poorly by a local quadratic approximation?
+5. **Scientific interpretation:** are the fitted values physically meaningful,
+   and does the uncertainty include every relevant source?
+
+A smooth curve only answers part of item 2. It does not establish the other
+four.
+
+### Chi-square depends on ndf
+
+For a regular Gaussian fit with ``N`` independent observations and ``k`` free
+parameters,
+
+```math
+\mathrm{ndf} \approx N-k.
+```
+
+Independent Gaussian priors or correlated parameter constraints add genuine
+external observations to this count. Fixed parameters are not free parameters.
+When the assumptions are valid,
+
+```math
+E[\chi^2]=\mathrm{ndf},
+\qquad
+\operatorname{sd}(\chi^2)=\sqrt{2\,\mathrm{ndf}}.
+```
+
+This is why there is no universal acceptable interval such as
+``0.5<\chi^2/\mathrm{ndf}<1.5``. At ``\mathrm{ndf}=10``, the natural standard
+deviation of the ratio is about ``0.45``. At ``\mathrm{ndf}=1000``, it is only
+about ``0.045``. The same ratio can therefore be ordinary in a small fit and
+decisive evidence of mismatch in a large one.
+
+JuFitter reports the upper-tail probability
+
+```math
+p = P\!\left(\chi^2_{\nu}\geq\chi^2_{\mathrm{observed}}\right).
+```
+
+A very small value means that residuals this large would be rare if the model
+and uncertainty assumptions were correct. A value very close to one can signal
+overestimated uncertainties, ignored correlations, smoothing, or selection.
+The p-value is not the probability that the model is true, and it should not be
+used as a pass/fail switch without inspecting residuals and the measurement
+process.
+
+For non-Gaussian likelihoods, an asymptotic chi-square interpretation may be
+unavailable or inappropriate. Use likelihood-specific diagnostics, simulation,
+or a parametric bootstrap rather than forcing a Gaussian p-value onto the
+problem.
+
+### Residuals and pulls locate the failure
+
+For independent Gaussian data, a pull is
+
+```math
+u_i=\frac{y_i-f(x_i,\hat p)}{\sigma_i}.
+```
+
+Plausible pulls fluctuate around zero with a scale near one. With correlated
+data, JuFitter uses whitened residuals so the covariance is accounted for.
+Inspect the original residuals as well: whitening tests statistical scale,
+while the data-space residuals show where a physical pattern occurs.
+
+Runs of one sign, large neighboring correlations, or a sinusoidal residual
+pattern are often more informative than the largest single pull. They point to
+missing physics, a time-dependent baseline, an omitted resonance, or an
+incorrect covariance model.
+
+## 5. Use Diagnostics As Triage
+
+Starting from an existing result:
+
+```julia
+details = diagnose(result)
 dashboard = diagnostic_dashboard(result)
 ```
 
-The dashboard turns the same findings into a reader-facing status:
+`diagnose` returns structured findings. Each finding carries a severity,
+numeric evidence, and a recommended action. `diagnostic_dashboard` summarizes
+the same findings; it does not invent a second set of statistical rules.
 
-- `ok - no immediate issue`: no current diagnostic warnings,
-- `review - inspect diagnostics`: warnings exist; inspect before using the
-  result,
-- `critical - fix before use`: at least one critical issue exists and must be
-  fixed before the result is used for conclusions.
+- **Optimizer did not converge:** the reported point is not established as a
+  minimum. First rescale parameters, improve starting values, simplify the
+  model, or use multistart.
+- **Non-positive ndf:** reduced chi-square and its p-value do not test fit
+  quality. Add independent observations or reduce the number of free
+  parameters.
+- **Large pulls or a long same-sign run:** a data region disagrees coherently
+  with the model. Inspect the reported point/x interval and the raw measurement
+  there.
+- **Large chi-square or small p-value:** model, uncertainty, correlation, or
+  optimizer assumptions conflict with the data. Inspect residual structure
+  before inflating uncertainties.
+- **Unusually small chi-square or p-value near one:** the data are less variable
+  than the uncertainty model predicts. Check smoothing, averaging, duplicated
+  information, and ignored correlations.
+- **Strong parameter correlation:** the data constrain a combination better
+  than individual parameters. Reparameterize or inspect a two-parameter
+  contour.
+- **Ill-conditioned covariance or Hessian:** local symmetric errors are
+  numerically or statistically fragile. Rescale and inspect profiles/contours
+  before reporting intervals.
+- **Active bound:** the local Gaussian approximation is truncated. Decide
+  whether the bound is physical, then use a profile interval.
 
-It also lists the highest-priority next actions, deduplicated across findings.
+The dashboard status is deliberately operational:
 
-## Why Profile and Contour Diagnostics Matter
+- `ok - no immediate issue`: none of the current checks produced a warning or
+  critical finding;
+- `review - inspect diagnostics`: at least one warning needs interpretation;
+- `critical - fix before use`: a critical defect must be corrected before the
+  result is used for conclusions.
 
-The parameter covariance matrix is a local approximation. Near the minimum it
-assumes the cost function is quadratic:
+`ok` does not certify the model. No finite checklist can detect missing physics
+that leaves the tested residuals apparently benign.
+
+## 6. Replace Local Errors When The Cost Is Not Parabolic
+
+The reported parameter covariance is a local curvature approximation. In one
+parameter it assumes
 
 ```math
-\Delta \chi^2(\theta_i) \approx
-\left(\frac{\theta_i-\hat{\theta}_i}{\sigma_i}\right)^2 .
+\Delta C(p_i)
+\approx
+\left(
+\frac{p_i-\hat p_i}{\sigma_i}
+\right)^2,
 ```
 
-That approximation is convenient because it gives symmetric one-number standard
-errors. It can fail when the model is nonlinear, parameters are constrained,
-parameters are strongly correlated, the data are weak, or the likelihood is
-asymmetric.
+where JuFitter uses a cost convention compatible with ``-2\log L``. This gives
+compact symmetric errors, but it can fail near bounds, with weak data, in a
+nonlinear model, or for asymmetric likelihoods.
 
-A profile scan checks one parameter at a time. JuFitter fixes that parameter,
-refits all remaining free parameters, and plots the actual increase in cost. If
-the profile follows the local parabola, the local standard error is plausible.
-If it is skewed or non-parabolic, use profile intervals instead of symmetric
-errors.
+### One parameter: profile interval
+
+A profile fixes one parameter and refits every remaining nuisance parameter:
 
 ```julia
-prof = profile(result, 1)
-diagnose(prof; local_sigma=result.param_stderr[1])
+interval = profile_interval(result, 1; threshold=1.0)
+prof = interval.profile_result
+println(diagnose(prof; local_sigma=result.param_stderr[1]))
 ```
 
-This reports when the scan range is too narrow to bracket the chosen threshold
-or when the actual profile disagrees with the local parabolic approximation.
-For interval work, the default `profile_interval` path uses adaptive refinement
-near threshold crossings. You can request the same behavior explicitly:
+Under regular one-parameter likelihood assumptions, ``\Delta C=1`` corresponds
+approximately to a 68.3% interval. Read the profile shape, not only the
+crossings:
+
+- a symmetric parabola supports the local standard error;
+- different left and right crossings require an asymmetric interval;
+- one missing crossing means the scan range is too narrow or the parameter is
+  not bounded on that side;
+- clipping at a physical bound calls for a one-sided interpretation;
+- a second minimum means the local covariance describes only one basin.
+
+Adaptive refinement is already enabled by default in `profile_interval`. A
+manual scan can request the same threshold-focused refinement:
 
 ```julia
 prof = profile(result, 1; adaptive=true, threshold=1.0)
 ```
 
-Adaptive refinement keeps the broad scan range coarse, then adds points where
-the profile crosses the selected ``\Delta C`` threshold. That is usually a
-better use of refits than making the entire grid dense.
+### Two parameters: contour geometry
 
-A contour scan checks pairs of parameters. JuFitter fixes two parameters on a
-grid, refits the rest, and plots contours of constant ``\Delta\chi^2``. If the
-actual contour follows the local covariance ellipse, the correlation estimate is
-locally trustworthy. If the contour bends, clips against a bound, or becomes
-banana-shaped, the parameters are not well described by a local Gaussian
-approximation.
+A contour fixes two parameters on a grid and refits all remaining nuisance
+parameters:
 
 ```julia
-cont = contour(result, 1, 2)
-diagnose(cont; local_covariance=result.param_covariance,
-              local_center=result.params[[1, 2]])
+cont = contour(
+    result,
+    1,
+    2;
+    adaptive=true,
+    levels=[2.30, 6.18],
+)
+
+println(diagnose(
+    cont;
+    local_covariance=result.param_covariance,
+    local_center=result.params[[1, 2]],
+))
 ```
 
-This reports when requested contour levels are outside the scan range or when
-the profiled contour disagrees with the local covariance ellipse.
+For two parameters under regular likelihood assumptions, ``\Delta C=2.30`` and
+``6.18`` are the approximate 68.3% and 95.4% joint-confidence thresholds. The
+filled regions show the profiled cost; the line overlay shows the local
+parabolic covariance approximation.
 
-For expensive contour scans, use:
+Use the geometry as a decision tool:
 
-```julia
-cont = contour(result, 1, 2; adaptive=true, levels=[2.30, 6.18])
-```
+- matching ellipses support the local covariance approximation;
+- a tilted ellipse shows correlation but can still be locally Gaussian;
+- a curved or banana-shaped region means symmetric marginal errors hide the
+  joint geometry;
+- a contour cut by a bound requires bounded or one-sided intervals;
+- an open contour means the scan or the data do not close the confidence
+  region.
 
-The adaptive contour pass refines grid cells whose corner values bracket a
-requested contour level. It does not make the result magically exact; it makes
-the expensive refits concentrate near the contour geometry that will actually
-be interpreted.
+Adaptive contour refinement concentrates expensive refits near requested
+thresholds. It improves resolution but does not repair an inadequate scan
+range, failed refits, or an unidentifiable model.
+
+## 7. Report What The Analysis Actually Supports
+
+Before reporting a fit, record:
+
+- the measured quantities and units;
+- the model formula and meaning of every fitted parameter;
+- the uncertainty or likelihood model, including correlations and external
+  constraints;
+- the cost convention and number of free parameters;
+- convergence and diagnostic status;
+- residual or pull evidence;
+- local symmetric errors or profile-based asymmetric intervals, as justified;
+- important bounds, assumptions, and known limitations.
+
+For complete worked examples, follow the gallery progression from
+[Linear Calibration](gallery/linear_calibration.md) through
+[XY Uncertainties](gallery/xy_uncertainties.md),
+[Full Covariance](gallery/full_covariance.md), and
+[Constraints and Profiles](gallery/constraints_profiles.md). The
+[Statistical Foundations](statistical_foundations.md) page derives the cost
+functions and uncertainty conventions used here.

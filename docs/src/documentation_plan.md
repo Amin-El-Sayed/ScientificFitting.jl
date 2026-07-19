@@ -33,15 +33,18 @@ The Gallery comes before Guides because many scientists learn fitting by
 recognizing a workflow close to their own experiment. Guides explain general
 rules after the reader has seen concrete examples.
 
-Current first-user status: the landing page, installation page, quickstart, and
-`How JuFitter Works` have completed this page-level pass. They present the
+Current first-user status: the landing page, installation page, quickstart,
+`How JuFitter Works`, and `Fitting for Practitioners` have completed this
+page-level pass. They present the
 pre-release installation state honestly, show a real plot immediately, use
 visible explicit arrays as the only numerical source, and keep every displayed
 report synchronized with the executable snapshot gate. The architecture page
 now follows the actual typed-problem, validation, objective, solver, result, and
 post-fit flow without implying that bounds are additive penalties or that
-profile scans are the primary solver. The next editorial unit is `Fitting for
-Practitioners`, followed by the remaining public guides, mathematics, and API
+profile scans are the primary solver. The practitioner guide now starts from
+the measurement process, uses ndf-dependent goodness-of-fit reasoning, and
+turns profile/contour geometry into concrete reporting decisions. The next
+editorial unit is `Plotting Design`, followed by mathematics and the API
 reference.
 
 ## Core Narrative

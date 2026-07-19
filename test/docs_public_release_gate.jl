@@ -71,6 +71,10 @@ function home_page_text()
     return public_file_text(joinpath(DOCS_SRC, "index.md"))
 end
 
+function practitioner_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "fitting_for_practitioners.md"))
+end
+
 function markdown_image_alt_texts(text::AbstractString)
     return [match.captures[1] for match in eachmatch(r"!\[([^\]]*)\]\([^)]+\)", text)]
 end
@@ -142,5 +146,18 @@ end
         @test !occursin("println(report_text", quickstart)
         @test !occursin("Pkg.test()", install)
         @test !occursin("canonical=", documenter_make_text())
+    end
+
+    @testset "Practitioner guidance follows statistical scale" begin
+        guide = practitioner_page_text()
+
+        @test occursin("there is no universal acceptable interval", guide)
+        @test occursin("\\sqrt{2\\,\\mathrm{ndf}}", guide)
+        @test occursin("r=(0.1,-0.1)", guide)
+        @test occursin("WhiteningOperator", guide)
+        @test occursin("cost=:auto", guide)
+        @test occursin("profile_interval", guide)
+        @test occursin("interval.profile_result", guide)
+        @test !occursin("0.5 \\lesssim", guide)
     end
 end

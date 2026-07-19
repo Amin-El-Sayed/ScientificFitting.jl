@@ -43,7 +43,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The plotting release slice passes locally with 77 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
-  2212 checks against links, assets, and the responsive architecture flow in
+  2228 checks against links, assets, and the responsive architecture flow in
   the rendered HTML.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
@@ -116,7 +116,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 506 checks. The gate first verifies that every page in the public
+  with 514 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -140,11 +140,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 365 local Markdown links, HTML links, and image sources
+  The gate validates 381 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2212 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2228 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown. It also guards the bounded, top-to-bottom architecture flow
@@ -345,6 +345,19 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   fitting from profile/contour refits. Desktop, narrow mobile, and dark-mode
   browser checks show no horizontal overflow; the same mobile check caught and
   fixed an overflowing documentation toolbar.
+- `Fitting for Practitioners` now begins with the measurement process and maps
+  continuous observations, correlated Gaussian vectors, counts, histograms,
+  and unbinned samples to the corresponding statistical interfaces. It uses
+  explicit numerical examples to show why uncertainty scale and covariance
+  change the cost, states the limits of first-order x-error propagation, and
+  replaces the ndf-independent reduced-chi-square rule with the correct
+  `sqrt(2 * ndf)` scale. Profile and contour guidance uses the implemented
+  `ProfileInterval.profile_result` field and explains what asymmetric, clipped,
+  open, or non-elliptic regions require in practice. Desktop light/dark browser
+  checks caught and removed unreadable wide tables instead of masking them with
+  page-specific CSS. A focused linear-fit run executes the documented
+  `profile_interval`, profile diagnosis, contour, and contour-diagnosis access
+  patterns successfully.
 - Technical maintenance pages remain in the rendered documentation, but they
   are nested under `Reference > Technical Notes` rather than appearing as a
   top-level user path. The public documentation hygiene gate now prevents a
