@@ -282,6 +282,23 @@ using Test
     )
     @test matrix_fig !== nothing
     @test isfile(matrix_out)
+    precomputed_matrix = profile_matrix(
+        quick.result;
+        parameters=[1, 2],
+        parameter_names=["m", "b"],
+        npoints_profile=5,
+        npoints_contour=3,
+        nsigma=1,
+        contour_levels=[2.30],
+    )
+    precomputed_matrix_out = joinpath(mktempdir(), "precomputed_profile_matrix.png")
+    @test plot_profile_matrix(
+        precomputed_matrix;
+        filename=precomputed_matrix_out,
+        format=:png,
+        theme=:modern,
+    ) !== nothing
+    @test isfile(precomputed_matrix_out)
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=Int[])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 1])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 3])

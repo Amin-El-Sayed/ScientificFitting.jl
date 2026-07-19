@@ -142,6 +142,10 @@ using Test
         @test matrix isa ProfileMatrixResult
         @test matrix.parameters == [1, 2]
         @test matrix.parameter_names == ["slope", "offset"]
+        @test matrix.best_values == result.params[[1, 2]]
+        @test matrix.local_stderr == result.param_stderr[[1, 2]]
+        @test matrix.local_covariance == result.param_covariance[[1, 2], [1, 2]]
+        @test matrix.local_correlation == result.param_correlation[[1, 2], [1, 2]]
         @test Set(keys(matrix.profiles)) == Set([1, 2])
         @test Set(keys(matrix.contours)) == Set([(1, 2)])
         @test Set(keys(matrix.profile_diagnostics)) == Set([1, 2])
@@ -193,6 +197,10 @@ using Test
         synthetic_matrix = ProfileMatrixResult(
             [1, 2],
             ["p1", "p2"],
+            [0.0, 0.0],
+            [1.0, 1.0],
+            Matrix{Float64}(I, 2, 2),
+            Matrix{Float64}(I, 2, 2),
             Dict(1 => warped_profile, 2 => warped_profile_2),
             Dict((1, 2) => warped_contour),
             Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),

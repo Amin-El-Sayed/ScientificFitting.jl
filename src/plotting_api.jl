@@ -151,11 +151,15 @@ strong parameter correlations.
 function plot_contour end
 
 """
-    plot_profile_matrix(result, parameters; kwargs...)
+    plot_profile_matrix(result; parameters=nothing, kwargs...)
+    plot_profile_matrix(matrix_result::ProfileMatrixResult; kwargs...)
 
 Create a kafe2/Minuit-style overview matrix: profile scans on the diagonal and
 pairwise contours below the diagonal. This is the quick diagnostic view for
 correlation, non-parabolicity, active bounds, and failed refits.
+
+Pass a precomputed `ProfileMatrixResult` to render an existing Makie-free
+diagnostic object without repeating its profile and contour refits.
 """
 function plot_profile_matrix end
 

@@ -75,6 +75,10 @@ function practitioner_page_text()
     return public_file_text(joinpath(DOCS_SRC, "fitting_for_practitioners.md"))
 end
 
+function plotting_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "plotting_design.md"))
+end
+
 function markdown_image_alt_texts(text::AbstractString)
     return [match.captures[1] for match in eachmatch(r"!\[([^\]]*)\]\([^)]+\)", text)]
 end
@@ -159,5 +163,18 @@ end
         @test occursin("profile_interval", guide)
         @test occursin("interval.profile_result", guide)
         @test !occursin("0.5 \\lesssim", guide)
+    end
+
+    @testset "Plotting guide follows the public extension contract" begin
+        guide = plotting_page_text()
+
+        @test occursin("(result, figure)", guide)
+        @test occursin("report=:plot", guide)
+        @test occursin("show_stats=true", guide)
+        @test occursin("appearance=:auto` currently resolves to the light", guide)
+        @test occursin("plot_profile_matrix(matrix", guide)
+        @test occursin("does not rerun the optimizer", guide)
+        @test !occursin("being migrated", guide)
+        @test !occursin("## Acceptance Tests", guide)
     end
 end

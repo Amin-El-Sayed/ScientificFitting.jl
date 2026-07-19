@@ -54,14 +54,19 @@ end
 
 Makie-free diagnostic overview for several fitted parameters. It stores the
 one-parameter profiles, lower-triangle pairwise contours, per-panel diagnostic
-reports, and a combined diagnostic report. Plotting is intentionally separate:
-`plot_profile_matrix(...)` is a rendering layer over this object.
+reports, the selected local fit geometry, and a combined diagnostic report.
+Plotting is intentionally separate: `plot_profile_matrix(matrix_result)`
+renders this object without repeating any profile or contour refits.
 `panel_status` maps diagonal `(i, i)` and lower-triangle `(i, j)` panels to
 `:ok`, `:review`, or `:stop`.
 """
 struct ProfileMatrixResult
     parameters::Vector{Int}
     parameter_names::Vector{String}
+    best_values::Vector{Float64}
+    local_stderr::Vector{Float64}
+    local_covariance::Matrix{Float64}
+    local_correlation::Matrix{Float64}
     profiles::Dict{Int, ProfileResult}
     contours::Dict{Tuple{Int, Int}, ContourResult}
     profile_diagnostics::Dict{Int, DiagnosticReport}
@@ -567,6 +572,10 @@ function profile_matrix(
     return ProfileMatrixResult(
         selected,
         names,
+        Float64.(result.params[selected]),
+        Float64.(result.param_stderr[selected]),
+        Matrix{Float64}(result.param_covariance[selected, selected]),
+        Matrix{Float64}(result.param_correlation[selected, selected]),
         profiles,
         contours,
         profile_diagnostics,

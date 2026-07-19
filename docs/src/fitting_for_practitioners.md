@@ -176,7 +176,7 @@ fig = plot_fit(result; xlabel="x", ylabel="y")
 
 Do not refit merely to change a label, add a threshold, or switch the side
 panel. Plot extensions operate on the existing `FitResult`; see
-[Plotting Design](plotting_design.md).
+[Plotting and Customization](plotting_design.md).
 
 ## 4. Read The Fit In A Defensible Order
 

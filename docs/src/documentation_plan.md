@@ -44,8 +44,10 @@ post-fit flow without implying that bounds are additive penalties or that
 profile scans are the primary solver. The practitioner guide now starts from
 the measurement process, uses ndf-dependent goodness-of-fit reasoning, and
 turns profile/contour geometry into concrete reporting decisions. The next
-editorial unit is `Plotting Design`, followed by mathematics and the API
-reference.
+plotting guide now documents the actual optional-Makie boundary, layout and
+report controls, style precedence, post-fit composition helpers, uncertainty
+bands, and the compute-once profile-matrix workflow. The next editorial unit is
+`Statistical Foundations`, followed by the API reference.
 
 ## Core Narrative
 

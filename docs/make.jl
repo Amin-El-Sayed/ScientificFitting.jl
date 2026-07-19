@@ -41,7 +41,7 @@ makedocs(;
         ],
         "Guides" => [
             "Fitting for Practitioners" => "fitting_for_practitioners.md",
-            "Plotting Design" => "plotting_design.md",
+            "Plotting and Customization" => "plotting_design.md",
         ],
         "Mathematics and Statistics" => [
             "Statistical Foundations" => "statistical_foundations.md",

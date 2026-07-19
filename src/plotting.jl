@@ -1822,6 +1822,7 @@ end
 
 """
     plot_profile_matrix(result; parameters=nothing, parameter_names=nothing, ...)
+    plot_profile_matrix(matrix_result::ProfileMatrixResult; ...)
 
 Create a kafe2-inspired profile/contour overview for several fitted
 parameters.
@@ -1836,7 +1837,8 @@ statement.
 
 `panel_status_mode=:issues` marks only panels with warnings or critical
 findings. Use `:all` to label every panel or `:none` for a purely graphical
-matrix.
+matrix. Passing a precomputed `ProfileMatrixResult` renders the stored scans
+without repeating the profile and contour refits.
 """
 function plot_profile_matrix(
     result;
@@ -1873,13 +1875,56 @@ function plot_profile_matrix(
         max_refinements=max_refinements,
         max_points=max_points,
     )
+    return plot_profile_matrix(
+        matrix;
+        filename=filename,
+        format=format,
+        theme=theme,
+        appearance=appearance,
+        theme_override=theme_override,
+        panel_status_mode=panel_status_mode,
+        delta_max=delta_max,
+        figure_size=figure_size,
+    )
+end
+
+function plot_profile_matrix(
+    matrix::ProfileMatrixResult;
+    filename::Union{Nothing, AbstractString}=nothing,
+    format::Symbol=:pdf,
+    theme::Symbol=:article,
+    appearance::Symbol=:auto,
+    theme_override::Theme=Theme(),
+    panel_status_mode::Symbol=:issues,
+    delta_max::Union{Nothing, Real}=nothing,
+    figure_size=nothing,
+)
+    _validate_panel_status_mode(panel_status_mode)
     selected = matrix.parameters
     names = matrix.parameter_names
+    n = length(selected)
+    length(matrix.best_values) == n || throw(ArgumentError(
+        "profile matrix best_values do not match selected parameters",
+    ))
+    length(matrix.local_stderr) == n || throw(ArgumentError(
+        "profile matrix local_stderr do not match selected parameters",
+    ))
+    size(matrix.local_covariance) == (n, n) || throw(ArgumentError(
+        "profile matrix local_covariance has incompatible dimensions",
+    ))
+    size(matrix.local_correlation) == (n, n) || throw(ArgumentError(
+        "profile matrix local_correlation has incompatible dimensions",
+    ))
+
+    matrix_levels = Float64[]
+    for cont in values(matrix.contours)
+        append!(matrix_levels, cont.levels)
+    end
+    sort!(unique!(matrix_levels))
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     style = _style_preset(resolved_style, resolved_appearance)
     diagnostic_colors = _diagnostic_colors(resolved_style, resolved_appearance)
-    n = length(selected)
     cell = n <= 3 ? 285 : 235
     fig_size = figure_size === nothing ? (cell * n + 80, cell * n + 70) :
         (Int(round(figure_size[1])), Int(round(figure_size[2])))
@@ -1890,8 +1935,6 @@ function plot_profile_matrix(
 
     profile_color = style.fit_color
     local_color = diagnostic_colors.local_color
-    level_colors = collect(diagnostic_colors.levels)
-    isempty(level_colors) && (level_colors = [style.fit_color])
     region_colors = collect(diagnostic_colors.regions)
     isempty(region_colors) && (region_colors = [(style.fit_color, 0.20)])
     corr_color = style.stats_muted_color
@@ -1908,14 +1951,14 @@ function plot_profile_matrix(
             index = selected[row]
             prof = matrix.profiles[index]
             lines!(ax, prof.values, prof.delta_cost; color=profile_color, linewidth=2.2)
-            sigma = result.param_stderr[index]
+            sigma = matrix.local_stderr[row]
             if isfinite(sigma) && sigma > 0
-                local_delta = @. abs2((prof.values - result.params[index]) / sigma)
+                local_delta = @. abs2((prof.values - matrix.best_values[row]) / sigma)
                 lines!(ax, prof.values, local_delta; color=local_color, linewidth=1.8, linestyle=:dash)
             end
-            hlines!(ax, [Float64(profile_threshold)]; color=style.stats_color, linestyle=:dot)
+            hlines!(ax, [prof.threshold]; color=style.stats_color, linestyle=:dot)
             ylimit = delta_max === nothing ?
-                max(4.0 * Float64(profile_threshold), maximum(Float64.(contour_levels); init=0.0)) :
+                max(4.0 * prof.threshold, maximum(matrix_levels; init=0.0)) :
                 Float64(delta_max)
             isfinite(ylimit) && ylimit > 0 && ylims!(ax, 0, ylimit)
             _draw_panel_status!(ax, matrix.panel_status[(index, index)], resolved_appearance; mode=panel_status_mode)
@@ -1931,9 +1974,14 @@ function plot_profile_matrix(
                 levels=vcat(0.0, sort(unique(cont.levels))),
                 colormap=region_colors,
             )
-            local_cov = result.param_covariance[[xindex, yindex], [xindex, yindex]]
+            local_cov = matrix.local_covariance[[col, row], [col, row]]
             if all(isfinite, local_cov)
-                local_delta = _local_contour_delta(local_cov, result.params[[xindex, yindex]], cont.x_values, cont.y_values)
+                local_delta = _local_contour_delta(
+                    local_cov,
+                    matrix.best_values[[col, row]],
+                    cont.x_values,
+                    cont.y_values,
+                )
                 for level in cont.levels
                     contour!(
                         ax,
@@ -1947,12 +1995,20 @@ function plot_profile_matrix(
                     )
                 end
             end
-            scatter!(ax, [result.params[xindex]], [result.params[yindex]]; marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color)
+            scatter!(
+                ax,
+                [matrix.best_values[col]],
+                [matrix.best_values[row]];
+                marker=:cross,
+                markersize=12,
+                strokewidth=2.5,
+                color=style.stats_color,
+            )
             _draw_panel_status!(ax, matrix.panel_status[(xindex, yindex)], resolved_appearance; mode=panel_status_mode)
         else
             hidedecorations!(ax)
             hidespines!(ax)
-            corr = result.param_correlation[selected[row], selected[col]]
+            corr = matrix.local_correlation[row, col]
             label = isfinite(corr) ? "ρ = $(_fmt_value(corr; sigdigits=3))" : "ρ unavailable"
             text!(ax, 0.5, 0.5; text=label, space=:relative, align=(:center, :center), color=corr_color, fontsize=15)
         end
@@ -1963,7 +2019,7 @@ function plot_profile_matrix(
 
     handles = Any[LineElement(color=profile_color, linewidth=2.2)]
     labels = ["profile Δcost scan"]
-    for (index, level) in enumerate(sort(unique(Float64.(contour_levels))))
+    for (index, level) in enumerate(matrix_levels)
         region_name =
             isapprox(level, 2.30; atol=0.015) ? "1σ profile region" :
             isapprox(level, 6.18; atol=0.015) ? "2σ profile region" :

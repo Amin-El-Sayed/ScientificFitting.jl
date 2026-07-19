@@ -40,7 +40,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   unavailable count, and text reports render `iterations = unavailable` instead
   of substituting the configured iteration limit. The focused public-API
   regression covers the LsqFit path.
-- The plotting release slice passes locally with 77 focused API/layout tests,
+- The plotting release slice passes locally with 79 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
   2228 checks against links, assets, and the responsive architecture flow in
@@ -69,7 +69,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   statistical terms or constraints, and unsupported likelihood-fit keywords no
   longer disappear silently.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 81 profile/contour reference checks, including validation of
+  passes with 85 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds, finite positive profile
   thresholds, default scan controls, explicit finite distinct scan grids, and
   the Makie-free `profile_matrix` diagnostic object that combines profile,
@@ -103,7 +103,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Its roughly one-hour runtime is too slow for the default developer loop and
   remains a release/CI gate; focused reference and torture suites provide the
   edit-test loop.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 77
+- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 79
   focused plot-regression checks locally, including structured-whitening error
   bars, prediction-band semantics, and the no-marginals failure path.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
@@ -116,7 +116,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 514 checks. The gate first verifies that every page in the public
+  with 522 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -375,7 +375,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   CairoMakie extension boundary. This prevents `@autodocs` from exposing bare
   placeholder functions for `plot_fit`, `fitplot`, annotation helpers, style
   helpers, and profile/contour plotting entry points.
-- Focused plot regression tests pass with 77 checks after the plot-style
+- Focused plot regression tests pass with 79 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
@@ -390,6 +390,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   non-finite annotation inputs and too-short curves. Residual, pull, and ratio
   diagnostic plots now reject non-finite displayed values, and ratio
   diagnostics fail clearly when a model prediction is zero.
+- `ProfileMatrixResult` now retains the selected best-fit values and local
+  covariance geometry together with its profile and contour scans.
+  `plot_profile_matrix(matrix_result)` therefore renders a previously computed
+  diagnostic without repeating any profile refits; the convenience method for
+  a fit result computes once and delegates to the same renderer.
 - The damped-oscillator compound figure now uses the public shared theme,
   palette, and information-panel APIs instead of a private one-off layout.
 - Documentation plots expand rightward from the article column rather than
