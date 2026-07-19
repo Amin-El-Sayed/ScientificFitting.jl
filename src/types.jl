@@ -22,7 +22,9 @@ has_constraints(spec::ConstraintSpec) = !(spec.ineq === nothing && spec.eq === n
 
 Gaussian prior term for one fitted parameter. The prior contributes a
 chi-square-like penalty centered at `mean`; asymmetric uncertainties use
-`sigma_minus` below the mean and `sigma_plus` above the mean.
+`sigma_minus` below the mean and `sigma_plus` above the mean. In the normalized
+Gaussian-NLL path, asymmetric scales define a continuous split-normal density
+with one shared normalization across both sides of `mean`.
 """
 struct ParameterPrior
     index::Int

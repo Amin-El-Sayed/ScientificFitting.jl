@@ -57,7 +57,11 @@ function _prior_nll(problem, p::AbstractVector)
     @inbounds for prior in problem.parameter_priors
         sigma = _asymmetric_sigma(p[prior.index], prior.mean, prior.sigma_minus, prior.sigma_plus)
         z = (p[prior.index] - prior.mean) / sigma
-        total += LOG2PI + log(abs2(sigma)) + abs2(z)
+        # The split-normal density has one shared normalization on both sides.
+        # A side-dependent Gaussian normalization would make the cost jump at
+        # the prior mean whenever sigma_minus != sigma_plus.
+        log_norm = log(pi / 2) + 2 * log(prior.sigma_minus + prior.sigma_plus)
+        total += log_norm + abs2(z)
     end
     return total
 end

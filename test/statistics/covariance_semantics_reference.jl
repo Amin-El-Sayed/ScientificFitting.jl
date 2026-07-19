@@ -48,6 +48,55 @@ function _finite_difference_hessian(f, p; h=2e-5)
 end
 
 @testset "Covariance and constraint semantics" begin
+    @testset "Asymmetric prior NLL is a continuous split normal" begin
+        model(x, p) = fill(p[1], length(x))
+        mean = 0.3
+        sigma_minus = 0.2
+        sigma_plus = 0.5
+        problem = FitProblem(
+            model,
+            [0.0],
+            [0.0];
+            p0=[mean],
+            sigma_y=[1.0],
+            parameter_priors=(;
+                index=1,
+                mean,
+                sigma_minus,
+                sigma_plus,
+            ),
+        )
+        expected_norm = log(pi / 2) + 2 * log(sigma_minus + sigma_plus)
+
+        @test isapprox(JuFitter._prior_nll(problem, [mean]), expected_norm; atol=1e-14)
+        @test isapprox(
+            JuFitter._prior_nll(problem, [mean - sigma_minus]),
+            JuFitter._prior_nll(problem, [mean + sigma_plus]);
+            atol=1e-14,
+        )
+
+        epsilon = 1e-10
+        @test isapprox(
+            JuFitter._prior_nll(problem, [mean - epsilon]),
+            JuFitter._prior_nll(problem, [mean + epsilon]);
+            atol=1e-9,
+        )
+
+        symmetric = FitProblem(
+            model,
+            [0.0],
+            [0.0];
+            p0=[mean],
+            sigma_y=[1.0],
+            parameter_priors=(index=1, mean=mean, sigma=0.4),
+        )
+        @test isapprox(
+            JuFitter._prior_nll(symmetric, [mean]),
+            log(2pi * 0.4^2);
+            atol=1e-14,
+        )
+    end
+
     @testset "Covariance scaling policy matches residual variance estimate" begin
         x = collect(range(-1.0, 2.0; length=18))
         y = @. 0.9 * x + 0.2 + 0.05 * cos(2.1 * x)

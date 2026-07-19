@@ -43,7 +43,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The plotting release slice passes locally with 79 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
-  2228 checks against links, assets, and the responsive architecture flow in
+  2262 checks against links, assets, and the responsive architecture flow in
   the rendered HTML.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
@@ -85,10 +85,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   passes with 49 likelihood reference checks after the Poisson-and-histogram
   workflow rewrite.
 - `julia --project=. -e 'using Test; include("test/statistics/covariance_semantics_reference.jl")'`
-  passes with 23 covariance and constraint reference checks. This includes a
+  passes with 27 covariance and constraint reference checks. This includes a
   finite-difference reference for value, gradient, and Hessian of a Gaussian NLL
   with full `cov_x` propagation, where the effective dense covariance depends on
-  the fitted model parameter.
+  the fitted model parameter. It also verifies that asymmetric Gaussian
+  parameter information uses a continuous, normalized split-normal NLL rather
+  than a side-dependent normalization that jumps at the central value.
+- `julia --project=. --startup-file=no test/statistics/runtests.jl` passes with
+  247 analytic and numerical reference checks after the split-normal
+  correction.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
   passes with 56 diagnostic reference checks in about 46s, including the
   local-covariance warning that recommends profile/contour intervals when
@@ -116,7 +121,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 522 checks. The gate first verifies that every page in the public
+  with 532 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -140,11 +145,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 381 local Markdown links, HTML links, and image sources
+  The gate validates 389 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2228 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2262 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown. It also guards the bounded, top-to-bottom architecture flow
@@ -409,6 +414,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The scoped v0 core is locally through its focused numerical gates. Friendly
   examples and smoke tests are not accepted as evidence; package, CI, and
   documentation gates below remain mandatory before publication.
+- `Statistical Foundations` now forms a complete method chapter rather than a
+  formula inventory. It derives Gaussian, correlated, x-error, Poisson,
+  histogram, unbinned, and extended likelihood models; distinguishes local
+  covariance from profile coverage; states Wilks and p-value limits; and
+  constrains AIC/BIC comparisons to compatible normalized likelihoods. Light-
+  and dark-mode browser checks confirm that equations and threshold tables
+  render correctly.
 
 ## Release Blockers
 

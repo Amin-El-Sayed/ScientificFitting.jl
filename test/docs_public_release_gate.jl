@@ -79,6 +79,10 @@ function plotting_page_text()
     return public_file_text(joinpath(DOCS_SRC, "plotting_design.md"))
 end
 
+function statistical_foundations_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "statistical_foundations.md"))
+end
+
 function markdown_image_alt_texts(text::AbstractString)
     return [match.captures[1] for match in eachmatch(r"!\[([^\]]*)\]\([^)]+\)", text)]
 end
@@ -176,5 +180,20 @@ end
         @test occursin("does not rerun the optimizer", guide)
         @test !occursin("being migrated", guide)
         @test !occursin("## Acceptance Tests", guide)
+    end
+
+    @testset "Statistical foundations states assumptions and limits" begin
+        foundations = statistical_foundations_page_text()
+
+        @test occursin("C(\\theta) = -2\\log L(\\theta)", foundations)
+        @test occursin("\\chi^2_\\mathrm{common}=\\frac{2}{1+\\rho}=1.11", foundations)
+        @test occursin("\\chi^2_\\mathrm{opposite}=\\frac{2}{1-\\rho}=10", foundations)
+        @test occursin("normalized split-normal cost", foundations)
+        @test occursin("fit_histogram_density", foundations)
+        @test occursin("JuFitter therefore returns `NaN`", foundations)
+        @test occursin("Wilks thresholds are asymptotic", foundations)
+        @test occursin("same observations and event-selection domain", foundations)
+        @test occursin("scale_covariance=:auto | :never | :always", foundations)
+        @test !occursin("credible intervals", foundations)
     end
 end

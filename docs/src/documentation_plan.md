@@ -43,11 +43,15 @@ now follows the actual typed-problem, validation, objective, solver, result, and
 post-fit flow without implying that bounds are additive penalties or that
 profile scans are the primary solver. The practitioner guide now starts from
 the measurement process, uses ndf-dependent goodness-of-fit reasoning, and
-turns profile/contour geometry into concrete reporting decisions. The next
-plotting guide now documents the actual optional-Makie boundary, layout and
+turns profile/contour geometry into concrete reporting decisions. The plotting
+guide now documents the actual optional-Makie boundary, layout and
 report controls, style precedence, post-fit composition helpers, uncertainty
-bands, and the compute-once profile-matrix workflow. The next editorial unit is
-`Statistical Foundations`, followed by the API reference.
+bands, and the compute-once profile-matrix workflow. `Statistical Foundations`
+has now completed the same pass: it starts from the
+sampling model, adds numerical intuition for covariance and goodness of fit,
+derives every supported likelihood family, separates local covariance from
+profile coverage, and states the limits of p-values and information criteria.
+The next editorial unit is the API reference.
 
 ## Core Narrative
 
