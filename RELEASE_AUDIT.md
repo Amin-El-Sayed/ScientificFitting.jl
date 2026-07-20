@@ -119,7 +119,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  232 checks. The gate enforces the current release standard for every public
+  244 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
@@ -155,9 +155,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 401 local Markdown links, HTML links, and image sources
-  under `docs/src`, including `.html` links that should resolve to source
-  `.md` pages before Documenter renders them.
+  The gate validates 403 local Markdown links, HTML links, image sources, and
+  the static-route contract under `docs/src`. Documentation now uses the same
+  flat `.html` routes locally and on static hosts; CI no longer switches raw
+  gallery-card links to an incompatible pretty-URL layout.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
   after `docs/make.jl` with 2020 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
@@ -172,6 +173,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   plot on the page, prints one real report plus one real diagnostic dashboard,
   and explains the prediction-band and `report` switches. Its documented output
   is checked by the executable snapshot gate.
+- The Gallery overview now follows the same eight-step progression as the
+  Documenter navigation: weighted Gaussian fitting, x uncertainty, correlated
+  observations, nonlinear model criticism, derived quantities, count
+  likelihoods, nonlinear profile geometry, and shared-parameter hypotheses.
+  The gallery gate checks card and navigation order plus every named learning
+  step.
 - `julia --project=. --startup-file=no test/docs_visual_asset_gate.jl` passes
   locally with 1201 checks. The gate validates documentation PNG headers,
   minimum dimensions, non-empty alt text, complete style/appearance coverage,

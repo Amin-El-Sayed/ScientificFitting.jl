@@ -36,11 +36,13 @@ style contracts change.
 ```@raw html
 <div class="jufitter-flow">
   <div class="jufitter-flow-step"><strong>First fit</strong><span>Linear calibration teaches the default data-model-diagnosis loop.</span></div>
-  <div class="jufitter-flow-step"><strong>Uncertainty structure</strong><span>XY errors and full covariance explain when error bars are not independent decoration.</span></div>
-  <div class="jufitter-flow-step"><strong>Real experiment</strong><span>Damped oscillation shows nonlinear parameters, units, and imperfect residuals.</span></div>
-  <div class="jufitter-flow-step"><strong>Derived quantities</strong><span>Photoelectric threshold extraction adds regime choice and propagated intersections.</span></div>
-  <div class="jufitter-flow-step"><strong>Likelihoods</strong><span>Poisson and histogram examples switch from least squares to count statistics.</span></div>
-  <div class="jufitter-flow-step"><strong>Trust check</strong><span>Profiles, contours, and diagnostics test whether local symmetric errors are credible.</span></div>
+  <div class="jufitter-flow-step"><strong>Measured x</strong><span>XY uncertainties show when horizontal error bars must enter the cost.</span></div>
+  <div class="jufitter-flow-step"><strong>Shared noise</strong><span>Full covariance replaces independent errors when observations move together.</span></div>
+  <div class="jufitter-flow-step"><strong>Model criticism</strong><span>Damped oscillation uses pull structure to expose missing nonlinear physics.</span></div>
+  <div class="jufitter-flow-step"><strong>Derived quantity</strong><span>Photoelectric threshold extraction propagates two fits into one physical result.</span></div>
+  <div class="jufitter-flow-step"><strong>Count data</strong><span>Poisson and histogram examples replace Gaussian residuals with count likelihoods.</span></div>
+  <div class="jufitter-flow-step"><strong>Nonlinear uncertainty</strong><span>Profiles and contours test whether local symmetric errors remain credible.</span></div>
+  <div class="jufitter-flow-step"><strong>Shared hypotheses</strong><span>A multi-dataset fit tests which parameters may be common across experiments.</span></div>
 </div>
 ```
 
@@ -120,20 +122,6 @@ style contracts change.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="lab" src="assets/gallery/constraints_priors_lab_light.png" alt="Constrained fit in lab style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="lab" src="assets/gallery/constraints_priors_lab_dark.png" alt="Constrained fit in lab dark style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="modern" src="assets/gallery/constraints_priors_modern_light.png" alt="Constrained fit in modern style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="modern" src="assets/gallery/constraints_priors_modern_dark.png" alt="Constrained fit in modern dark style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="article" src="assets/gallery/constraints_priors_article_light.png" alt="Constrained fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="article" src="assets/gallery/constraints_priors_article_dark.png" alt="Constrained fit in article dark style">
-<div>
-<span class="jufitter-tag">constraints</span>
-<span class="jufitter-tag">profiles</span>
-<h3><a href="gallery/constraints_profiles.html">Constraints and profiles</a></h3>
-<p>An early saturation measurement leaves amplitude and time constant nonlinearly coupled. Profiles and two-parameter regions show exactly why the local covariance summary fails.</p>
-</div>
-</div>
-<div class="jufitter-gallery-item">
 <img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="lab" src="assets/gallery/poisson_counts_lab_light.png" alt="Poisson count fit in lab style">
 <img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="lab" src="assets/gallery/poisson_counts_lab_dark.png" alt="Poisson count fit in lab dark style">
 <img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="modern" src="assets/gallery/poisson_counts_modern_light.png" alt="Poisson count fit in modern style">
@@ -145,6 +133,20 @@ style contracts change.
 <span class="jufitter-tag">counts</span>
 <h3><a href="gallery/poisson_histogram.html">Poisson and histograms</a></h3>
 <p>Extract a radioactive half-life and a detector peak from sparse counts. Exact count semantics, integrated unequal bins, empty bins, and deviance residuals replace invented Gaussian error bars.</p>
+</div>
+</div>
+<div class="jufitter-gallery-item">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="lab" src="assets/gallery/constraints_priors_lab_light.png" alt="Constrained fit in lab style">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="lab" src="assets/gallery/constraints_priors_lab_dark.png" alt="Constrained fit in lab dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="modern" src="assets/gallery/constraints_priors_modern_light.png" alt="Constrained fit in modern style">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="modern" src="assets/gallery/constraints_priors_modern_dark.png" alt="Constrained fit in modern dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="article" src="assets/gallery/constraints_priors_article_light.png" alt="Constrained fit in article style">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="article" src="assets/gallery/constraints_priors_article_dark.png" alt="Constrained fit in article dark style">
+<div>
+<span class="jufitter-tag">constraints</span>
+<span class="jufitter-tag">profiles</span>
+<h3><a href="gallery/constraints_profiles.html">Constraints and profiles</a></h3>
+<p>An early saturation measurement leaves amplitude and time constant nonlinearly coupled. Profiles and two-parameter regions show exactly why the local covariance summary fails.</p>
 </div>
 </div>
 <div class="jufitter-gallery-item">
@@ -174,8 +176,8 @@ style contracts change.
 | Full covariance | repeated readout with shared noise | whitening with dense covariance | correlation effect on uncertainty and p-value |
 | Damped oscillator | mechanical decay or resonance envelope | nonlinear least squares with correlated parameters | phase/frequency coupling, residual periodicity, profile asymmetry |
 | Photoelectric work function | threshold from two fitted regimes | x/y uncertainty and derived quantity propagation | regime choice, intersection uncertainty, model range |
-| Constraints and profiles | early saturation measurement | bounds, prior information, profile intervals, non-elliptic contours | unseen plateau and amplitude-timescale degeneracy |
 | Poisson and histograms | counts, rates, binned events | Poisson deviance and likelihood fits | low-count bins, deviance residuals, empty-bin behavior |
+| Constraints and profiles | early saturation measurement | bounds, prior information, profile intervals, non-elliptic contours | unseen plateau and amplitude-timescale degeneracy |
 | Multi-dataset fit | shared physics across runs | parameter mapping and joint costs | per-dataset residuals and shared-parameter tension |
 
 ## Executable Scripts

@@ -91,4 +91,48 @@ end
     @test !occursin("remaining documentation passes", overview)
     @test !occursin("not all of them are finished", overview)
     @test !occursin("toy-like synthetic examples", overview)
+
+    expected_path = [
+        "Linear calibration",
+        "XY uncertainties",
+        "Full covariance",
+        "Damped oscillator",
+        "Photoelectric work function",
+        "Poisson and histograms",
+        "Constraints and profiles",
+        "Multi-dataset fit",
+    ]
+    card_positions = [findfirst(">$(title)</a></h3>", overview) for title in expected_path]
+    @test all(!isnothing, card_positions)
+    @test issorted(first.(card_positions))
+
+    make_source = read(joinpath(ROOT, "docs", "make.jl"), String)
+    navigation_pages = [
+        "linear_calibration",
+        "xy_uncertainties",
+        "full_covariance",
+        "resonance_decay",
+        "photoelectric_threshold",
+        "poisson_histogram",
+        "constraints_profiles",
+        "multi_dataset",
+    ]
+    navigation_positions = [
+        findfirst("gallery/$(page).md", make_source) for page in navigation_pages
+    ]
+    @test all(!isnothing, navigation_positions)
+    @test issorted(first.(navigation_positions))
+
+    for step in (
+        "First fit",
+        "Measured x",
+        "Shared noise",
+        "Model criticism",
+        "Derived quantity",
+        "Count data",
+        "Nonlinear uncertainty",
+        "Shared hypotheses",
+    )
+        @test occursin("<strong>$(step)</strong>", overview)
+    end
 end

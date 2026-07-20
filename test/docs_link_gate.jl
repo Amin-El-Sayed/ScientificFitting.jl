@@ -2,6 +2,7 @@ using Test
 
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCS_SRC = joinpath(ROOT, "docs", "src")
+const DOCS_MAKE = joinpath(ROOT, "docs", "make.jl")
 
 function docs_markdown_files()
     files = String[]
@@ -55,6 +56,12 @@ function markdown_targets(text::AbstractString)
 end
 
 @testset "Documentation local links" begin
+    @testset "Portable static routes" begin
+        make_source = read(DOCS_MAKE, String)
+        @test occursin(r"prettyurls\s*=\s*false", make_source)
+        @test !occursin(r"prettyurls\s*=\s*get\(ENV", make_source)
+    end
+
     for page in docs_markdown_files()
         text = read(page, String)
 

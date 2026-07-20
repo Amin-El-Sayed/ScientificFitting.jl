@@ -16,7 +16,8 @@ makedocs(;
     modules=[JuFitter],
     sitename="JuFitter",
     format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
+        # Keep raw gallery-card links identical for local and hosted static builds.
+        prettyurls=false,
         edit_link=nothing,
         repolink=nothing,
         assets=["assets/jufitter.css", "assets/jufitter.js"],
@@ -35,8 +36,8 @@ makedocs(;
             "Full Covariance" => "gallery/full_covariance.md",
             "Damped Oscillator" => "gallery/resonance_decay.md",
             "Photoelectric Work Function" => "gallery/photoelectric_threshold.md",
-            "Constraints and Profiles" => "gallery/constraints_profiles.md",
             "Poisson and Histograms" => "gallery/poisson_histogram.md",
+            "Constraints and Profiles" => "gallery/constraints_profiles.md",
             "Multi-Dataset Fit" => "gallery/multi_dataset.md",
         ],
         "Guides" => [
