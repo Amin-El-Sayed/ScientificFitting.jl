@@ -83,6 +83,10 @@ function statistical_foundations_page_text()
     return public_file_text(joinpath(DOCS_SRC, "statistical_foundations.md"))
 end
 
+function reference_map_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "overview.md"))
+end
+
 function markdown_image_alt_texts(text::AbstractString)
     return [match.captures[1] for match in eachmatch(r"!\[([^\]]*)\]\([^)]+\)", text)]
 end
@@ -195,5 +199,20 @@ end
         @test occursin("same observations and event-selection domain", foundations)
         @test occursin("scale_covariance=:auto | :never | :always", foundations)
         @test !occursin("credible intervals", foundations)
+    end
+
+    @testset "Reference map preserves the public workflow boundaries" begin
+        reference = reference_map_page_text()
+
+        @test occursin("The data-generating process determines the objective", reference)
+        @test occursin("named tuple `(result, figure)`", reference)
+        @test occursin("actual additive covariance contributions", reference)
+        @test occursin("A `WhiteningOperator` is the complete", reference)
+        @test occursin("it does not propagate through the fit", reference)
+        @test occursin("`plot_fit` does not accept `LikelihoodFitResult`", reference)
+        @test occursin("profile_matrix_triage(matrix)", reference)
+        @test occursin("does not rerun the", reference)
+        @test occursin(r"do\s+not require Makie", reference)
+        @test occursin("report=:plot | :console |", reference)
     end
 end

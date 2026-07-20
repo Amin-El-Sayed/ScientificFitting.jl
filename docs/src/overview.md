@@ -1,117 +1,208 @@
 # Reference Map
 
-This page is the short map of JuFitter's public surface. Use it when you know
-what kind of task you have and need the right entry point. For signatures and
-field names, use the [API Reference](api.md).
+Use this page when the scientific model is clear but the JuFitter entry point
+is not. It maps a measurement workflow to the relevant fit, uncertainty,
+diagnostic, and output APIs. Exact signatures and defaults are in the
+[API Reference](api.md); statistical assumptions are derived in
+[Statistical Foundations](statistical_foundations.md).
 
-## Start With The Workflow
+## Choose The Fit From The Sampling Process
 
-Most analyses follow one of these paths:
+The data-generating process determines the objective. Plot style and optimizer
+choice do not.
 
-| task | entry point | result |
-| --- | --- | --- |
-| quick x-y fit with plot | `fitplot(...)` | fit result plus Makie figure |
-| fit first, plot later | `fit_model(...)` | `FitResult` |
-| explicit reusable problem | `FitProblem(...)` then `fit(...)` | `FitResult` |
-| counts or distributions | likelihood helpers | `LikelihoodFitResult` |
-| custom objective | `fit_custom(...)` | `LikelihoodFitResult` |
+| Observation model | Entry point | Result |
+|---|---|---|
+| Numeric ``x`` and ``y`` with Gaussian measurement uncertainty | `fit_model` | `FitResult` |
+| The same Gaussian x-y workflow, fitted and plotted in one call | `fitplot` | named tuple `(result, figure)` |
+| Independent integer counts with one expected count per observation | `fit_poisson_model` | `LikelihoodFitResult` |
+| Histogram counts with a model that returns expected bin counts | `fit_histogram_model` | `LikelihoodFitResult` |
+| Histogram counts with a normalized density integrated over each bin | `fit_histogram_density` | `LikelihoodFitResult` |
+| Unbinned independent events from a normalized density | `fit_unbinned_model` | `LikelihoodFitResult` |
+| Unbinned events whose total expected rate also depends on the parameters | `fit_extended_unbinned_model` | `LikelihoodFitResult` |
+| Gaussian observations addressed by labels or other non-numeric indices | `fit_indexed_model` | `LikelihoodFitResult` |
+| Several datasets sharing some or all parameters | `fit_multi_model` | `LikelihoodFitResult` |
+| A scalar objective with an application-specific interpretation | `fit_custom` | `LikelihoodFitResult` |
 
-The object to keep is the result object. It stores the parameters, local
-covariance, residual information where available, goodness-of-fit statistics,
-diagnostics, and enough metadata to regenerate reports or plots without
-rewriting the fit.
+For a reusable low-level object, construct `FitProblem` or
+`LikelihoodFitProblem` and call `fit(problem)`. Start with a high-level entry
+point unless the problem itself must be stored, modified, or repeatedly
+refitted.
 
-## Describe The Uncertainty Model
+## Describe Measurement Uncertainty Once
 
-Choose the simplest uncertainty representation that is scientifically honest:
+Each physical uncertainty source should enter the model exactly once. Use the
+simplest representation that preserves the correlations present in the
+measurement.
 
-- `sigma_y` for independent vertical standard uncertainties,
-- `sigma_x` for relevant x uncertainty propagated through the model slope,
-- `cov_y` or `cov_x` when measured points are correlated,
-- `ErrorComponent` when named uncertainty contributions should remain visible,
-- `ParameterPrior`, `ParameterConstraint`, and `FixedParameter` for external
-  information about parameters.
+| Measurement situation | Representation |
+|---|---|
+| Independent y uncertainties | `sigma_y` |
+| Complete correlated y uncertainty | `cov_y` |
+| Independent x uncertainties propagated through ``\partial f/\partial x`` | `sigma_x` |
+| Complete correlated x uncertainty | `cov_x` |
+| Several named contributions, such as readout noise and gain uncertainty | `ErrorComponent` |
+| A complete static covariance with exploitable structure | `WhiteningOperator` |
 
-Dense covariance is exact but expensive. It is appropriate for small and
-medium correlated datasets, not for every long time series, image, spectrum, or
-detector array. For a known complete static covariance with exploitable
-structure, `WhiteningOperator` provides a matrix-free residual/Jacobian
-whitening contract. Convenient built-in Toeplitz, banded, low-rank, and sparse-
-precision constructors remain future work.
+`sigma_y` and `cov_y` are alternatives, as are `sigma_x` and `cov_x`.
+`ErrorComponent`s are actual additive covariance contributions: their names
+make sources auditable, and `active=false` excludes a source from a particular
+fit without deleting its definition. A `WhiteningOperator` is the complete
+observation covariance model, not one more contribution, so it is exclusive
+with `sigma_*`, `cov_*`, and `error_components`.
 
-## Read The Result Before Plotting
+Dense covariance requires approximately ``O(n^2)`` storage and ``O(n^3)``
+factorization. For a long series with known structure, represent the complete
+static whitening operation directly instead of materializing a dense matrix.
+JuFitter can validate the operator interface and finite output; the scientist
+remains responsible for the identity ``W^\mathsf{T}W=C^{-1}`` and the supplied
+``\log\det C``.
 
-For terminal or notebook output, use:
+## Separate Parameter Knowledge From Data Uncertainty
+
+Observation uncertainty describes the measured data. Parameter controls encode
+physical domains or external information about model parameters.
+
+| Intent | Control | Statistical effect |
+|---|---|---|
+| Parameter is known exactly for this fit | `FixedParameter` | Removed from the optimizer. |
+| Independent external measurement of one parameter | `ParameterPrior` | Adds a Gaussian or split-normal likelihood term. |
+| Correlated external measurements of several parameters | `ParameterConstraint` | Adds one multivariate Gaussian term. |
+| Parameter is physically restricted to an interval | `bounds` | Restricts the search domain; it is not extra data. |
+| Parameters obey a general relation | `ConstraintSpec` | Enforces nonlinear equality or inequality constraints. |
+
+An uncertainty stored in `FixedParameter(index, value, sigma)` is report
+metadata; it does not propagate through the fit or make the parameter free.
+Use a prior or correlated parameter constraint when external uncertainty must
+affect the fitted result.
+
+## Know Which Result You Have
+
+Both result types expose fitted parameters, local covariance, solver status,
+fit statistics, and diagnostics:
+
+```julia
+result.params
+result.param_stderr
+result.param_covariance
+result.stats
+result.diagnostics
+result.converged
+```
+
+`FitResult` additionally stores the validated x-y problem, fitted model values,
+residuals, weighted residuals, and Jacobian. That information makes
+`plot_fit(result)` and residual plots reproducible without fitting again.
+
+`LikelihoodFitResult` deliberately has no universal curve representation. A
+Poisson count model, an unbinned density, and a custom objective need different
+visualizations, so `plot_fit` does not accept `LikelihoodFitResult`. Use the
+fitted parameters in a workflow-specific Makie figure; the Poisson and
+multi-dataset gallery pages show this pattern.
+
+## Inspect Before Reporting
+
+Given a result returned by one of the entry points above, the shortest
+Makie-free inspection path is:
 
 ```julia
 println(report_text(result))
 println(diagnostic_dashboard_text(result))
 ```
 
-The main fields are:
+The report records numerical values. The dashboard converts structured
+findings into a status and concrete next actions. Inspect at least these
+questions in order:
 
-- `result.params`: best-fit parameter values,
-- `result.param_covariance`: local parameter covariance matrix,
-- `result.param_stderr`: local symmetric parameter errors,
-- `result.stats`: chi-square, likelihood, p-value, AIC, and BIC summary,
-- `result.diagnostics`: numerical and statistical warnings.
+1. Did the optimizer converge to a finite result?
+2. Is the goodness-of-fit statistic defined for this sampling model?
+3. Do residuals or pulls contain location-dependent structure?
+4. Are bounds active or the local covariance poorly conditioned?
+5. Are symmetric local errors adequate for the conclusion being reported?
 
-Local covariance is a quadratic approximation around the minimum. It is fast
-and useful, but it can be misleading for nonlinear models, weak data, active
-bounds, strong correlations, or asymmetric likelihoods.
+`diagnose(result)` returns the full machine-readable findings.
+`diagnostic_dashboard(result)` provides the condensed status, severity counts,
+and deduplicated actions used by the text dashboard.
 
-## Diagnose Before Trusting
+## Escalate From Local Errors To Profiles
 
-Use `diagnose(result)` or `diagnostic_dashboard(result)` when a fit looks wrong
-or when it matters scientifically. The diagnostics check convergence, degrees
-of freedom, p-values, covariance/Hessian conditioning, active bounds, strong
-correlations, large pulls, and residual structure.
+`param_covariance` is a local quadratic approximation around the fitted
+minimum. It is efficient and often sufficient, but active bounds, strong
+correlations, weak data, nonlinear response, or an asymmetric likelihood can
+make symmetric errors misleading.
 
-If local covariance looks suspicious, compute profile or contour diagnostics:
+Use a one-parameter profile for an asymmetric interval:
 
 ```julia
-prof = profile(result, 1; adaptive=true)
 interval = profile_interval(result, 1; adaptive=true)
-
-cont = contour(result, 1, 2; adaptive=true)
+diagnose(interval.profile_result)
 ```
 
-Then inspect them visually:
+Use a profile matrix when several parameters interact:
 
 ```julia
-plot_profile(prof; local_sigma=result.param_stderr[1])
-plot_contour(
-    cont;
-    local_covariance=result.param_covariance,
-    local_center=result.params[[1, 2]],
+matrix = profile_matrix(result; parameters=[1, 2, 3], adaptive=true)
+profile_matrix_triage(matrix)
+```
+
+The diagonal scans test the local parabolic approximation. Pairwise contours
+test whether the local covariance ellipses describe the actual refitted cost
+surface. Default profile and contour thresholds are Wilks-based asymptotic
+regions, not exact finite-sample coverage guarantees.
+
+Load CairoMakie only when a figure is needed:
+
+```julia
+using CairoMakie
+
+plot_profile_matrix(matrix)
+```
+
+Passing the precomputed matrix renders the stored scans and does not rerun the
+profile fits.
+
+## Choose The Output Surface
+
+Fitting, text reports, diagnostics, profiles, and profile-matrix computation do
+not require Makie. Plotting is an optional CairoMakie extension.
+
+For a Gaussian x-y result:
+
+```julia
+using CairoMakie
+
+fig = plot_fit(
+    result;
+    theme=:lab,
+    report=:plot,
+    show_legend=true,
 )
-plot_profile_matrix(result; parameters=[1, 2, 3])
 ```
 
-Profiles and contours answer a different question than the main fit plot: they
-show whether the uncertainty geometry near the minimum is close enough to a
-local Gaussian approximation.
+`theme=:lab`, `:modern`, and `:article` select the output context;
+`appearance=:light` or `:dark` selects the color scheme independently. Explicit
+Makie keyword arguments override the style only for the supplied element.
 
-## Plot Without Re-Fitting
-
-`plot_fit(result; ...)` creates a Makie figure from an existing result. It does
-not change the numerical fit. This is the intended pattern for article
-publication-quality figures: fit once, then add annotations on top.
+Add scientific annotations without reconstructing or refitting the model:
 
 ```julia
-fig = plot_fit(result; report=:plot, show_legend=true)
 ax = fit_axis(fig)
 add_vline!(ax, threshold; label="threshold")
 add_curve!(ax, reference_model; xspan=(0, 10), label="reference")
 ```
 
-Use `plot_theme` and `plot_palette` when building custom Makie layouts that
-should follow JuFitter's `:lab`, `:modern`, or `:article` styles.
+For a one-call Gaussian workflow, `fitplot(...; report=:plot | :console |
+:both | :none)` controls whether statistics appear in the figure, terminal,
+both, or neither.
 
-## When To Leave This Page
+## Continue From Here
 
-- First fit: [Quickstart](quickstart.md).
-- Full examples: [Gallery](gallery.md).
-- Statistical meaning: [Statistical Foundations](statistical_foundations.md).
-- Exact signatures: [API Reference](api.md).
-- Implementation structure: [Backend Design](backend_design.md).
+| Need | Page |
+|---|---|
+| First successful fit and plot | [Quickstart](quickstart.md) |
+| Complete scientific workflows | [Gallery](gallery.md) |
+| A suspicious fit and a practical next action | [Fitting for Practitioners](fitting_for_practitioners.md) |
+| Plot styles, panels, and custom Makie composition | [Plotting and Customization](plotting_design.md) |
+| Statistical assumptions and derivations | [Statistical Foundations](statistical_foundations.md) |
+| Every keyword, field, default, and failure mode | [API Reference](api.md) |
+| Internal validation, solver, and result flow | [Backend Design](backend_design.md) |

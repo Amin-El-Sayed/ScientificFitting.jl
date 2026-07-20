@@ -128,7 +128,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 532 checks. The gate first verifies that every page in the public
+  with 542 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -138,7 +138,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   first-user checks additionally require a real rendered landing-page hero,
   visible style-switchable plot assets, an explicit CairoMakie import in the
   plotting quickstart, a single report emission, and no undeployed canonical
-  URL.
+  URL. The Reference Map checks additionally preserve the distinction between
+  fit result types, additive and complete covariance descriptions, parameter
+  metadata and propagated information, profile computation, and the optional
+  plotting boundary.
 - `julia --project=. --startup-file=no test/docs_api_reference_gate.jl` passes
   with 15 checks. The gate verifies that every exported public binding except the
   module name has a REPL/Documenter-visible docstring, preventing `@autodocs`
@@ -154,11 +157,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 393 local Markdown links, HTML links, and image sources
+  The gate validates 399 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2344 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2350 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown. It also guards the bounded, top-to-bottom architecture flow
@@ -449,9 +452,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   documentation source, the main technical concept pages are now in polished
   English, and the public reference overview has been rewritten as a workflow
   map with current API names.
-- The API reference has completed its page-level editorial and contract audit.
-  The next public reference unit is the Reference Map, followed by a decision
-  on which maintainer-facing technical notes belong on the public site.
+- The API reference and Reference Map have completed their page-level editorial
+  and contract audits. The Reference Map now follows the actual public
+  boundaries between observation models, additive and complete covariance
+  descriptions, parameter information, `FitResult` and
+  `LikelihoodFitResult`, local and profile uncertainty, and optional Makie
+  output. The next public reference unit is the decision on which
+  maintainer-facing technical notes belong on the public site.
 - Source and rendered documentation links are covered locally by
   `test/docs_link_gate.jl` and `test/docs_html_link_gate.jl`, and both are wired
   into `.github/workflows/ci.yml`. Remote CI execution still needs to be

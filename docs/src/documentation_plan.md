@@ -55,8 +55,11 @@ The API reference has also completed its contract audit. It maps every
 observation model to the correct entry point, specifies allocating and in-place
 model signatures, documents uncertainty and parameter controls, states solver
 and failure behavior, defines result fields, and separates Makie-free analysis
-from optional plotting. The next editorial unit is the Reference Map, followed
-by a decision on which engineering notes should remain public.
+from optional plotting. The Reference Map has completed the same pass. It is now
+a task-oriented decision path that separates sampling models, observation
+uncertainty, parameter information, result types, local versus profile
+uncertainty, and Makie-free versus plotted output. The next editorial unit is a
+decision on which engineering notes should remain public.
 
 ## Core Narrative
 
