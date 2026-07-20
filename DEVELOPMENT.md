@@ -30,7 +30,7 @@ must progress in parallel without mixing files.
 3. Implement one milestone or one coherent sub-block.
 4. Run focused tests while iterating.
 5. Run the broader gate before commit.
-6. Update docs or maintenance notes.
+6. Update public docs, `MAINTAINERS.md`, or release notes as appropriate.
 7. Commit with a clear message.
 8. Merge to `main` only after the gate is green.
 
@@ -43,7 +43,7 @@ The safe loop is:
 2. Let Codex work on one scoped `codex/` branch or worktree at a time.
 3. Ask for a concrete outcome, for example "finish adaptive contours" or
    "harden dense covariance errors".
-4. Require tests, maintenance notes, and a clean diff before a commit.
+4. Require tests, relevant documentation, and a clean diff before a commit.
 5. Merge to `main` only from a reviewed, green branch.
 
 Heartbeats and automations are useful for continuing the loop when nobody is
@@ -95,7 +95,8 @@ Do not merge to `main` unless:
 
 - The relevant focused tests pass.
 - The core or full gate passes, depending on risk.
-- Documentation or maintenance notes are updated.
+- Public documentation, `MAINTAINERS.md`, or release notes are updated when the
+  corresponding contract changes.
 - Generated artifacts and debug outputs are absent.
 - The diff is reviewed for accidental unrelated changes.
 

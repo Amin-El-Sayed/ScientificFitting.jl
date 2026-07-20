@@ -113,8 +113,12 @@ The documentation is the main entry point:
 - `docs/src/statistical_foundations.md` for the statistical assumptions and
   formulas.
 - `docs/src/api.md` for the generated API reference.
-- `docs/src/maintenance.md` for extension points, bottlenecks, and release
-  rules.
+- `docs/src/backend_design.md` and `docs/src/performance.md` for technical
+  architecture and scaling behavior.
+
+Contributors should additionally read `AGENTS.md`, `DEVELOPMENT.md`, and
+`MAINTAINERS.md`. Release evidence and commands live in `RELEASE_AUDIT.md` and
+`RELEASE_CHECKLIST.md`, respectively.
 
 Build the local documentation from the repository root with:
 

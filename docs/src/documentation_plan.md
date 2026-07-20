@@ -58,8 +58,12 @@ and failure behavior, defines result fields, and separates Makie-free analysis
 from optional plotting. The Reference Map has completed the same pass. It is now
 a task-oriented decision path that separates sampling models, observation
 uncertainty, parameter information, result types, local versus profile
-uncertainty, and Makie-free versus plotted output. The next editorial unit is a
-decision on which engineering notes should remain public.
+uncertainty, and Makie-free versus plotted output. The technical-note boundary
+is now explicit: `Backend Design` and `Performance` remain public for advanced
+users and contributors, while durable maintenance invariants live in the
+root-level `MAINTAINERS.md` instead of a redundant public website chapter. The
+next editorial unit is removal or relocation of non-public planning material
+from `docs/src`.
 
 ## Core Narrative
 

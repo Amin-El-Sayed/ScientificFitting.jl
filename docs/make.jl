@@ -52,7 +52,6 @@ makedocs(;
             "Technical Notes" => [
                 "Backend Design" => "backend_design.md",
                 "Performance" => "performance.md",
-                "Maintenance Notes" => "maintenance.md",
             ],
         ],
     ],

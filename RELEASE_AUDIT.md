@@ -128,7 +128,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 542 checks. The gate first verifies that every page in the public
+  with 537 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -157,11 +157,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 399 local Markdown links, HTML links, and image sources
+  The gate validates 401 local Markdown links, HTML links, and image sources
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2350 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2230 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown. It also guards the bounded, top-to-bottom architecture flow
@@ -457,8 +457,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   boundaries between observation models, additive and complete covariance
   descriptions, parameter information, `FitResult` and
   `LikelihoodFitResult`, local and profile uncertainty, and optional Makie
-  output. The next public reference unit is the decision on which
-  maintainer-facing technical notes belong on the public site.
+  output. The technical-note scope is also resolved: architecture and
+  performance remain public, while the redundant public maintenance page was
+  replaced by a compact root-level `MAINTAINERS.md` contract. Planning,
+  evidence, release commands, and durable invariants now each have one
+  authoritative home.
 - Source and rendered documentation links are covered locally by
   `test/docs_link_gate.jl` and `test/docs_html_link_gate.jl`, and both are wired
   into `.github/workflows/ci.yml`. Remote CI execution still needs to be
@@ -597,8 +600,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The math section now starts with a beginner path, model-choice table, and
   minimal mental model before the formal likelihood/covariance reference. It
   still needs human subject-matter review before broad promotion.
-- Technical maintenance notes remain accessible under `Reference > Technical
-  Notes`; they no longer dominate the top-level user navigation.
+- Public technical notes are limited to architecture and performance under
+  `Reference > Technical Notes`. Durable contributor invariants live in
+  `MAINTAINERS.md`; release status and commands remain in `RELEASE_AUDIT.md` and
+  `RELEASE_CHECKLIST.md` rather than leaking a changing maintenance log into the
+  user website.
 - Private/local dataset language is now covered by the public documentation
   hygiene gate; keep extending that gate when new release-language risks are
   identified.

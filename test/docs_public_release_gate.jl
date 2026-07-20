@@ -3,6 +3,7 @@ using Test
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCS_SRC = joinpath(ROOT, "docs", "src")
 const DOCS_MAKE = joinpath(ROOT, "docs", "make.jl")
+const MAINTAINERS = joinpath(ROOT, "MAINTAINERS.md")
 
 const PUBLIC_DOC_PAGES = [
     "index.md",
@@ -25,7 +26,6 @@ const PUBLIC_DOC_PAGES = [
     "overview.md",
     "backend_design.md",
     "performance.md",
-    "maintenance.md",
 ]
 
 const PUBLIC_TEXT_FILES = vcat(joinpath.(DOCS_SRC, PUBLIC_DOC_PAGES), [joinpath(ROOT, "README.md")])
@@ -105,6 +105,12 @@ end
         @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
         @test !occursin(r"(?m)^\s{8}\"Engineering Notes\"\s*=>", documenter_make_text())
         @test occursin(r"(?m)^\s{12}\"Technical Notes\"\s*=>", documenter_make_text())
+        @test !occursin("Maintenance Notes", documenter_make_text())
+        @test !isfile(joinpath(DOCS_SRC, "maintenance.md"))
+        @test isfile(MAINTAINERS)
+        maintainers = read(MAINTAINERS, String)
+        @test occursin("## Numerical Invariants", maintainers)
+        @test occursin("## Plotting Invariants", maintainers)
     end
 
     @testset "Configured public files exist" begin

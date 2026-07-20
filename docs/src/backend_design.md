@@ -1,7 +1,9 @@
 # Backend Design
 
-This page is for maintainers. It records the numerical structure that must stay
-clear as JuFitter grows.
+This page is for contributors and advanced users who need to audit how a fit is
+constructed. It records the numerical structure that must stay clear as
+JuFitter grows; public signatures and defaults remain in the
+[API Reference](api.md).
 
 ```@raw html
 <div class="jufitter-flow">
@@ -31,6 +33,13 @@ optimizer only solves the numerical minimization problem.
 
 The low-level `fit(problem)` methods extend `StatsAPI.fit`; JuFitter does not
 create a competing generic with the same ecosystem-wide name.
+
+Plotting is a package extension, not a numerical backend dependency.
+`plotting_api.jl` defines the public plotting functions and informative
+fallbacks, while `ext/JuFitterCairoMakieExt.jl` loads the CairoMakie
+implementation from `plotting.jl`. Consequently `using JuFitter` keeps fitting,
+reports, diagnostics, profiles, and profile-matrix computation Makie-free;
+`using CairoMakie` activates rendering methods without changing a fit result.
 
 ## Cost Functions
 
@@ -140,7 +149,7 @@ Important cases that must stay visible:
 - active bounds,
 - strong parameter correlations,
 - suspicious residual structure,
-- failed profile or contour refits.
+- failed profile or contour refits,
 - non-finite or non-positive-semidefinite local parameter covariance.
 
 ## Scaling Limits

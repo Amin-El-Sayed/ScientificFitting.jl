@@ -8,7 +8,7 @@ convenience.
 - `main` must stay clean, coherent, and releasable.
 - Do not implement directly on `main`.
 - Do not merge work into `main` unless the relevant tests pass and user-facing
-  documentation or maintenance notes are updated.
+  documentation, `MAINTAINERS.md`, or release notes are updated as appropriate.
 - Do not leave generated plots, debug output, scratch files, or obsolete
   experiments in the repository.
 
@@ -29,8 +29,8 @@ A code block is not done until:
 - Numerical semantics are covered by focused tests.
 - The broader relevant test gate passes.
 - `git diff --check` is clean.
-- Documentation, maintenance notes, or release audit notes are updated whenever
-  behavior, API, limitations, or workflow changes.
+- Public documentation, `MAINTAINERS.md`, or release audit notes are updated
+  whenever behavior, API, limitations, or workflow changes.
 
 ## Scientific Quality
 
