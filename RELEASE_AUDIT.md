@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-07-19
+Status: 2026-07-20
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -25,16 +25,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   observed remotely after the branch is pushed.
 - The last completed
   `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` release gate
-  passed on the documentation-finalization branch with 590 checks in about
-  40m55s after
-  package-test precompilation. `test/runtests.jl` now delegates to the single
+  passed on the documentation-finalization branch with 597 checks in 41m55.7s
+  after package-test precompilation. `test/runtests.jl` delegates to the single
   authoritative Makie-free core inventory before adding CairoMakie tests. This
   corrected a real gate defect: the previous 509-check package runner omitted
   the structured-whitening and in-place reference files even though their
-  focused suites passed separately. The full gate must be repeated after the
-  remaining documentation review; the current API-reference unit is covered by
-  the focused public-API, likelihood, torture, plotting, and documentation
-  gates listed below.
+  focused suites passed separately. The current full run followed the public
+  documentation source cleanup and the focused API, likelihood, torture,
+  plotting, gallery, output-snapshot, and documentation gates listed below.
 - JuFitter's low-level methods extend `StatsAPI.fit` rather than creating a
   competing generic. A local namespace check with `JuFitter`, `Distributions`,
   and `StatsAPI` loaded together confirms the shared binding and executes a
@@ -47,7 +45,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The plotting release slice passes locally with 79 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
-  2344 checks against links, assets, and the responsive architecture flow in
+  2020 checks against links, assets, and the responsive architecture flow in
   the rendered HTML.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
@@ -111,8 +109,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   negative local curvature now produces a critical finding, dashboard status
   `:stop`, and `NaN` uncertainty/correlation values rather than fabricated zero
   errors.
-- The complete core inventory is exercised by the 590-check package gate above.
-  Its roughly one-hour runtime is too slow for the default developer loop and
+- The complete core inventory is exercised by the 597-check package gate above.
+  Its roughly 42-minute runtime is too slow for the default developer loop and
   remains a release/CI gate; focused reference and torture suites provide the
   edit-test loop.
 - `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 79
