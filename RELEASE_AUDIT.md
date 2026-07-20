@@ -128,7 +128,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 537 checks. The gate first verifies that every page in the public
+  with 538 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -161,7 +161,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   under `docs/src`, including `.html` links that should resolve to source
   `.md` pages before Documenter renders them.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2230 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2020 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown. It also guards the bounded, top-to-bottom architecture flow
@@ -446,12 +446,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
-- Public documentation outside the gated gallery still needs a page-by-page
-  editorial pass before broad promotion. The legacy German mathematical audit
-  was removed from the public
-  documentation source, the main technical concept pages are now in polished
-  English, and the public reference overview has been rewritten as a workflow
-  map with current API names.
+- Every page in the configured public navigation has completed a page-level
+  source and contract pass. This is not a substitute for final human visual and
+  subject-matter review, but private planning pages, the stale hosted roadmap,
+  and the generic research-landscape draft no longer leak into the generated
+  site.
 - The API reference and Reference Map have completed their page-level editorial
   and contract audits. The Reference Map now follows the actual public
   boundaries between observation models, additive and complete covariance
@@ -462,6 +461,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   replaced by a compact root-level `MAINTAINERS.md` contract. Planning,
   evidence, release commands, and durable invariants now each have one
   authoritative home.
+- `docs/src` now contains only Markdown pages listed in the public Documenter
+  navigation. The durable editorial contract moved to root-level
+  `DOCUMENTATION.md`; the root `ROADMAP.md` remains the only roadmap, and the
+  redundant hidden research-landscape page was removed. The public hygiene gate
+  enforces this one-to-one source/navigation boundary.
 - Source and rendered documentation links are covered locally by
   `test/docs_link_gate.jl` and `test/docs_html_link_gate.jl`, and both are wired
   into `.github/workflows/ci.yml`. Remote CI execution still needs to be

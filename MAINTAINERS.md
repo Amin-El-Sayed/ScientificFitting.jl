@@ -3,7 +3,8 @@
 This file records invariants that should survive individual implementations.
 Current release evidence belongs in `RELEASE_AUDIT.md`, future work in
 `ROADMAP.md`, commands in `RELEASE_CHECKLIST.md`, and contributor workflow in
-`DEVELOPMENT.md`. Do not duplicate those documents here.
+`DEVELOPMENT.md`. The public editorial standard lives in `DOCUMENTATION.md`.
+Do not duplicate those documents here.
 
 ## Source Boundaries
 

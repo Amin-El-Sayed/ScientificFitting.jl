@@ -55,6 +55,17 @@ function documenter_navigation_pages()
     return sort(unique(pages))
 end
 
+function docs_source_markdown_pages()
+    pages = String[]
+    for (directory, _, filenames) in walkdir(DOCS_SRC)
+        for filename in filenames
+            endswith(filename, ".md") || continue
+            push!(pages, relpath(joinpath(directory, filename), DOCS_SRC))
+        end
+    end
+    return sort(pages)
+end
+
 function documenter_make_text()
     return read(DOCS_MAKE, String)
 end
@@ -103,6 +114,7 @@ end
 @testset "Public documentation release hygiene" begin
     @testset "Documenter navigation coverage" begin
         @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
+        @test docs_source_markdown_pages() == sort(PUBLIC_DOC_PAGES)
         @test !occursin(r"(?m)^\s{8}\"Engineering Notes\"\s*=>", documenter_make_text())
         @test occursin(r"(?m)^\s{12}\"Technical Notes\"\s*=>", documenter_make_text())
         @test !occursin("Maintenance Notes", documenter_make_text())

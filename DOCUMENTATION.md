@@ -1,23 +1,21 @@
-# Documentation Strategy
+# Documentation Contract
 
-This page is the working contract for the documentation rewrite. It exists to
-prevent the site from becoming a loose collection of examples, API fragments,
-and generated-looking explanations.
+This document defines the durable editorial contract for JuFitter. Current
+page-level evidence belongs in `RELEASE_AUDIT.md`; this file should not become a
+second progress report.
 
 ## Reader Paths
 
-The documentation must serve four different readers without forcing them
+The documentation must serve five different readers without forcing them
 through the same path.
 
-```@raw html
-<div class="jufitter-flow">
-  <div class="jufitter-flow-step"><strong>New User</strong><span>Install, quickstart, first plot, first diagnosis.</span></div>
-  <div class="jufitter-flow-step"><strong>Example-Driven Scientist</strong><span>Start from a realistic workflow and adapt it.</span></div>
-  <div class="jufitter-flow-step"><strong>Practitioner</strong><span>Decide what to do when a fit looks suspicious.</span></div>
-  <div class="jufitter-flow-step"><strong>Statistics Reader</strong><span>Understand and justify the mathematical method.</span></div>
-  <div class="jufitter-flow-step"><strong>API User</strong><span>Find every argument, default, return value, and failure mode.</span></div>
-</div>
-```
+| Reader | First need |
+|---|---|
+| New user | Install, quickstart, first plot, first diagnosis. |
+| Example-driven scientist | Start from a realistic workflow and adapt it. |
+| Practitioner | Decide what to do when a fit looks suspicious. |
+| Statistics reader | Understand and justify the mathematical method. |
+| API user | Find every argument, default, return value, and failure mode. |
 
 The site order follows that priority:
 
@@ -26,44 +24,12 @@ The site order follows that priority:
    diagnostics and multi-dataset workflows.
 3. Guides.
 4. Mathematics and Statistics.
-5. Reference.
-6. Engineering Notes for maintainers and contributors.
+5. Reference: API and task-oriented lookup.
+6. Technical Notes: architecture and performance for advanced readers.
 
 The Gallery comes before Guides because many scientists learn fitting by
 recognizing a workflow close to their own experiment. Guides explain general
 rules after the reader has seen concrete examples.
-
-Current first-user status: the landing page, installation page, quickstart,
-`How JuFitter Works`, and `Fitting for Practitioners` have completed this
-page-level pass. They present the
-pre-release installation state honestly, show a real plot immediately, use
-visible explicit arrays as the only numerical source, and keep every displayed
-report synchronized with the executable snapshot gate. The architecture page
-now follows the actual typed-problem, validation, objective, solver, result, and
-post-fit flow without implying that bounds are additive penalties or that
-profile scans are the primary solver. The practitioner guide now starts from
-the measurement process, uses ndf-dependent goodness-of-fit reasoning, and
-turns profile/contour geometry into concrete reporting decisions. The plotting
-guide now documents the actual optional-Makie boundary, layout and
-report controls, style precedence, post-fit composition helpers, uncertainty
-bands, and the compute-once profile-matrix workflow. `Statistical Foundations`
-has now completed the same pass: it starts from the
-sampling model, adds numerical intuition for covariance and goodness of fit,
-derives every supported likelihood family, separates local covariance from
-profile coverage, and states the limits of p-values and information criteria.
-The API reference has also completed its contract audit. It maps every
-observation model to the correct entry point, specifies allocating and in-place
-model signatures, documents uncertainty and parameter controls, states solver
-and failure behavior, defines result fields, and separates Makie-free analysis
-from optional plotting. The Reference Map has completed the same pass. It is now
-a task-oriented decision path that separates sampling models, observation
-uncertainty, parameter information, result types, local versus profile
-uncertainty, and Makie-free versus plotted output. The technical-note boundary
-is now explicit: `Backend Design` and `Performance` remain public for advanced
-users and contributors, while durable maintenance invariants live in the
-root-level `MAINTAINERS.md` instead of a redundant public website chapter. The
-next editorial unit is removal or relocation of non-public planning material
-from `docs/src`.
 
 ## Core Narrative
 
@@ -111,22 +77,12 @@ derived-quantity propagation. Individual pages should use the uncertainty model
 that belongs to their scientific question rather than adding complexity only to
 tick a coverage box.
 
-Current coverage and remaining gaps:
-
-| Workflow | Uncertainty semantics | Status |
-| --- | --- | --- |
-| Linear calibration | heteroskedastic absolute y errors; 1-sigma prediction band | covered |
-| Photoelectric threshold | heteroskedastic x/y errors; two 1-sigma fit bands; propagated line intersection | covered |
-| Damped oscillator | x/y errors in a nonlinear model | covered |
-| Full-covariance decay | dense correlated y covariance | covered |
-| XY calibration | effective-variance x/y propagation | covered |
-| Constraints and profiles | data uncertainty, prior information, local covariance versus profile regions | covered |
-| Poisson and histogram fits | likelihood-defined count uncertainty rather than Gaussian error bars | covered |
-| Multi-dataset fit | dataset-specific absolute y errors with shared parameters | covered |
-| Relative uncertainty components | instrument scale or gain error | missing gallery workflow |
-| Correlated x uncertainty | shared calibration uncertainty on the independent variable | missing gallery workflow |
-
-This table is a coverage audit, not a reason to make every figure visually busy.
+The gallery as a whole should cover heteroskedastic absolute uncertainty,
+relative components, x and y uncertainty, correlated covariance, confidence and
+prediction bands, count likelihoods, parameter constraints, profile regions,
+derived-quantity propagation, and shared-parameter multi-dataset fits. Coverage
+belongs where it is scientifically natural; it is not a reason to make every
+figure visually busy.
 
 Visible tutorial code should look like a real notebook. Prefer explicit curated
 arrays or small CSV reads. Synthetic or controlled data generation belongs in
