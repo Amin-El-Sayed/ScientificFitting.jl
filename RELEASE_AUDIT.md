@@ -126,7 +126,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 538 checks. The gate first verifies that every page in the public
+  with 539 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -173,6 +173,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   plot on the page, prints one real report plus one real diagnostic dashboard,
   and explains the prediction-band and `report` switches. Its documented output
   is checked by the executable snapshot gate.
+- The landing page distinguishes least-squares `FitResult` from likelihood
+  `LikelihoodFitResult` and no longer implies that goodness-of-fit information
+  exists for every statistical cost.
 - The Gallery overview now follows the same eight-step progression as the
   Documenter navigation: weighted Gaussian fitting, x uncertainty, correlated
   observations, nonlinear model criticism, derived quantities, count

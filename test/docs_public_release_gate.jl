@@ -169,6 +169,7 @@ end
 
         @test occursin("```@raw html\n<section class=\"jufitter-hero\">", home)
         @test occursin("data-jufitter-plot-group=\"home-first-fit\"", home)
+        @test occursin("<code>FitResult</code> or <code>LikelihoodFitResult</code>", home)
         @test !occursin("collect(range", home)
         @test occursin("using CairoMakie", quickstart)
         @test !occursin("collect(range", quickstart)

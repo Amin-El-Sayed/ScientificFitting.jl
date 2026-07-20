@@ -31,7 +31,7 @@
 <div class="jufitter-card-grid">
   <div class="jufitter-card">
     <h3>Numerical result</h3>
-    <p><code>FitResult</code> keeps parameters, local covariance, residuals, cost, goodness of fit, solver status, and the normalized problem.</p>
+    <p><code>FitResult</code> or <code>LikelihoodFitResult</code> keeps parameters, local covariance, residuals, cost, goodness-of-fit information when defined, solver status, and the normalized problem.</p>
   </div>
   <div class="jufitter-card">
     <h3>Actionable diagnosis</h3>
