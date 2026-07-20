@@ -188,7 +188,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   validation, and executable output snapshots. This still needs confirmation on
   GitHub Actions after the branch is pushed.
 - `julia --project=. --startup-file=no test/docs_output_snapshots.jl` passes
-  with 33 checks in about 2m02s. The gate executes the documented
+  with 33 checks. The gate executes the documented
   quickstart/gallery example scripts with snapshot markers and verifies that
   every documented `Real output` block is an ordered subset of real script
   output. This caught and fixed stale rounded numbers, missing statistic fields,
@@ -287,10 +287,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   --save=/tmp/jufitter-startup-probe.toml` passed locally. The fresh-process
   output included `loaded_plot_modules=` and `core_without_makie=true`, then the
   temporary TOML artifact was removed.
-- `test/startup_probe_gate.jl` now executes the startup probe with a temporary
-  TOML output file, verifies the fresh-process `core_without_makie=true`
-  output, checks the saved metadata, and removes the temporary artifact. The
-  gate is wired into CI and the pre-release checklist.
+- `julia --project=. --startup-file=no test/startup_probe_gate.jl` passes with
+  12 checks. It executes the startup probe with a temporary TOML output file,
+  verifies the fresh-process `core_without_makie=true` output, checks the saved
+  metadata, and removes the temporary artifact. The gate is wired into CI and
+  the pre-release checklist.
 - `julia --project=. examples/gallery/10_multi_dataset_calibration.jl` prints
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page
