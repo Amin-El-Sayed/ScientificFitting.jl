@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-07-20
+Status: 2026-07-22
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -25,14 +25,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   observed remotely after the branch is pushed.
 - The last completed
   `julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'` release gate
-  passed on the documentation-finalization branch with 597 checks in 41m55.7s
-  after package-test precompilation. `test/runtests.jl` delegates to the single
-  authoritative Makie-free core inventory before adding CairoMakie tests. This
-  corrected a real gate defect: the previous 509-check package runner omitted
-  the structured-whitening and in-place reference files even though their
-  focused suites passed separately. The current full run followed the public
-  documentation source cleanup and the focused API, likelihood, torture,
-  plotting, gallery, output-snapshot, and documentation gates listed below.
+  passed on the documentation-finalization branch with 597 checks in 53m52.3s
+  after the likelihood-scale API correction. `test/runtests.jl` delegates to
+  the single authoritative Makie-free core inventory before adding CairoMakie
+  tests. This corrected a real gate defect: the previous 509-check package
+  runner omitted the structured-whitening and in-place reference files even
+  though their focused suites passed separately. The current full run followed
+  the public documentation source cleanup and the focused API, likelihood,
+  torture, plotting, gallery, output-snapshot, and documentation gates listed
+  below.
 - JuFitter's low-level methods extend `StatsAPI.fit` rather than creating a
   competing generic. A local namespace check with `JuFitter`, `Distributions`,
   and `StatsAPI` loaded together confirms the shared binding and executes a
@@ -42,6 +43,18 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   unavailable count, and text reports render `iterations = unavailable` instead
   of substituting the configured iteration limit. The focused public-API
   regression covers the LsqFit path.
+- Likelihood objectives and reports now use one explicit ``-2\log L``
+  convention. The former `nll_min` field and `*_nll` cost symbols were
+  misleading because the implementation, covariance Hessian factor, profile
+  thresholds, AIC, and BIC already used the twice-negative-log-likelihood
+  scale. They are now named `minus2loglik_min` and `*_likelihood`; numerical
+  values and inferential thresholds are unchanged. Analytic Gaussian,
+  likelihood, parameter-dependent-covariance, and structured-whitening
+  references pass with 141 checks, the public API regression passes with 139
+  checks, and the complete statistical suite passes with 247 checks. The
+  public documentation gate rejects the retired identifiers, while the
+  33-check executable-output gate verifies the new report labels against real
+  example runs.
 - The plotting release slice passes locally with 79 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
@@ -91,11 +104,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   workflow rewrite.
 - `julia --project=. -e 'using Test; include("test/statistics/covariance_semantics_reference.jl")'`
   passes with 27 covariance and constraint reference checks. This includes a
-  finite-difference reference for value, gradient, and Hessian of a Gaussian NLL
-  with full `cov_x` propagation, where the effective dense covariance depends on
-  the fitted model parameter. It also verifies that asymmetric Gaussian
-  parameter information uses a continuous, normalized split-normal NLL rather
-  than a side-dependent normalization that jumps at the central value.
+  finite-difference reference for value, gradient, and Hessian of Gaussian
+  ``-2\log L`` with full `cov_x` propagation, where the effective dense
+  covariance depends on the fitted model parameter. It also verifies that
+  asymmetric Gaussian parameter information uses a continuous, normalized
+  split-normal likelihood term rather than a side-dependent normalization that
+  jumps at the central value.
 - `julia --project=. --startup-file=no test/statistics/runtests.jl` passes with
   247 analytic and numerical reference checks after the split-normal
   correction.
@@ -126,13 +140,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 539 checks. The gate first verifies that every page in the public
+  with 562 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
-  identifiers such as `profile_curve` and `contour_grid`, draft/tutorial residue
-  phrases, public image tags without non-empty alt text, and the ungrouped TeX
-  operator subscripts that previously caused browser-side KaTeX failures. The
+  identifiers such as `profile_curve`, `contour_grid`, `nll_min`, and
+  `gaussian_nll`, draft/tutorial residue phrases, public image tags without
+  non-empty alt text, and the ungrouped TeX operator subscripts that previously
+  caused browser-side KaTeX failures. The
   first-user checks additionally require a real rendered landing-page hero,
   visible style-switchable plot assets, an explicit CairoMakie import in the
   plotting quickstart, a single report emission, and no undeployed canonical
@@ -229,8 +244,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   covariance through `whiten!(out, residual)`, an explicit covariance log
   determinant, and optional marginal standard deviations for plotting. Dense
   AR(1) references verify fitted parameters, parameter covariance, weighted
-  residuals, chi-square, normalized NLL, AIC/BIC, bounded Gaussian-NLL AD,
-  in-place model/Jacobian evaluation, and profile refits. Invalid signatures,
+  residuals, chi-square, normalized ``-2\log L``, AIC/BIC, bounded
+  Gaussian-likelihood AD, in-place model/Jacobian evaluation, and profile
+  refits. Invalid signatures,
   incomplete or non-finite output, Vector-only methods, inconsistent marginal
   dimensions, and attempts to combine independent covariance descriptions fail
   before solver dispatch.
@@ -523,10 +539,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   backend. Validation and whitening use sparse CHOLMOD factors without
   materializing a dense covariance, and the benchmark runner includes
   `fit/sparse_covariance_5000`. Sparse covariance in constrained or
-  Gaussian-NLL optimizer paths remains a documented limitation because CHOLMOD
+  Gaussian-likelihood optimizer paths remains a documented limitation because CHOLMOD
   solves do not propagate `ForwardDiff` dual numbers.
 - `WhiteningOperator` supplies matrix-free static residual and Jacobian
-  whitening plus the covariance log determinant required for normalized NLL and
+  whitening plus the covariance log determinant required for normalized ``-2\log L`` and
   information criteria. It is deliberately a low-level scientific contract:
   JuFitter can validate its interface and finite output, but cannot prove that
   a custom operator satisfies `W'W = inv(C)` or that its determinant is correct.
@@ -542,10 +558,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   defect: Cholesky validation stripped `ForwardDiff` dual information before
   factorization. Validation now strips duals only for finite/symmetry checks,
   while the factorization itself preserves AD values. A focused finite-
-  difference regression test covers Gaussian-NLL value, gradient, and Hessian
-  for dense `cov_x` propagation. This is not a substitute for future structured
-  covariance operators, broader `cov_x` AD audits, or large-scale performance
-  work.
+  difference regression test covers Gaussian ``-2\log L`` value, gradient, and
+  Hessian for dense `cov_x` propagation. This is not a substitute for future
+  structured covariance operators, broader `cov_x` AD audits, or large-scale
+  performance work.
 - Full parameter-dependent dense `cov_x` remains an audit-sensitive path.
   Simple diagonal `sigma_x` propagation has clearer AD semantics; dense
   effective covariance can lose derivative information if future validation,

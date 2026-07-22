@@ -72,7 +72,7 @@ end
         p0=[1.0, 0.0],
         cov_y=covariance,
         bounds=([-3.0, -3.0], [3.0, 3.0]),
-        cost=:gaussian_nll,
+        cost=:gaussian_likelihood,
         scale_covariance=:never,
     )
     bounded_structured = fit_model(
@@ -82,7 +82,7 @@ end
         p0=[1.0, 0.0],
         whitening,
         bounds=([-3.0, -3.0], [3.0, 3.0]),
-        cost=:gaussian_nll,
+        cost=:gaussian_likelihood,
         scale_covariance=:never,
     )
     scan = profile(structured, 1; npoints=7, nsigma=1.5, adaptive=false)
@@ -99,12 +99,17 @@ end
     @test isapprox(mutating.param_covariance, dense.param_covariance; rtol=1e-9, atol=1e-11)
     @test isapprox(structured.weighted_residuals, dense.weighted_residuals; rtol=1e-10, atol=1e-11)
     @test isapprox(structured.stats.chi2, dense.stats.chi2; rtol=1e-10, atol=1e-11)
-    @test isapprox(structured.stats.nll_min, dense.stats.nll_min; rtol=1e-10, atol=1e-10)
+    @test isapprox(structured.stats.minus2loglik_min, dense.stats.minus2loglik_min; rtol=1e-10, atol=1e-10)
     @test isapprox(structured.stats.aic, dense.stats.aic; rtol=1e-10, atol=1e-10)
     @test isapprox(structured.stats.bic, dense.stats.bic; rtol=1e-10, atol=1e-10)
     @test isapprox(bounded_structured.params, bounded_dense.params; rtol=1e-9, atol=1e-10)
     @test isapprox(bounded_structured.param_covariance, bounded_dense.param_covariance; rtol=1e-8, atol=1e-10)
-    @test isapprox(bounded_structured.stats.nll_min, bounded_dense.stats.nll_min; rtol=1e-10, atol=1e-10)
+    @test isapprox(
+        bounded_structured.stats.minus2loglik_min,
+        bounded_dense.stats.minus2loglik_min;
+        rtol=1e-10,
+        atol=1e-10,
+    )
     @test scan isa ProfileResult
     @test all(isfinite, scan.delta_cost)
 

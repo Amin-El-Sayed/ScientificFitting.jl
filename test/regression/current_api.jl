@@ -72,7 +72,7 @@ using Test
         result = fit_model(model, x_obs, y; p0=[0.8, 0.0], sigma_y=sigma_y, sigma_x=sigma_x)
 
         @test result.backend == :optimization
-        @test result.stats.cost == :gaussian_nll
+        @test result.stats.cost == :gaussian_likelihood
         @test result.converged
         @test isfinite(result.stats.chi2)
         @test isfinite(result.stats.cost_min)
@@ -115,7 +115,7 @@ using Test
         @test result.converged
         @test derivative_calls[] > 0
         @test scalar_model_calls[] == 0
-        @test isfinite(result.stats.nll_min)
+        @test isfinite(result.stats.minus2loglik_min)
     end
 
     @testset "Invalid x derivative fails clearly" begin
@@ -148,20 +148,20 @@ using Test
         )
     end
 
-    @testset "Gaussian NLL for static diagonal covariance" begin
+    @testset "Gaussian -2log(L) for static diagonal covariance" begin
         x = collect(range(0.0, 2.0; length=60))
         model(x, p) = @. p[1] * x + p[2]
         sigma_y = fill(0.2, length(x))
         y = model(x, [1.1, 0.3]) .+ sigma_y .* sin.(x)
 
-        result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y, cost=:gaussian_nll)
-        expected_nll = result.stats.chi2 + length(x) * log(2 * pi) + sum(log.(sigma_y .^ 2))
+        result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y, cost=:gaussian_likelihood)
+        expected_minus2loglik = result.stats.chi2 + length(x) * log(2 * pi) + sum(log.(sigma_y .^ 2))
 
         @test result.backend == :optimization
-        @test result.stats.cost == :gaussian_nll
-        @test isapprox(result.stats.nll_min, expected_nll; atol=1e-8)
-        @test isapprox(result.stats.cost_min, result.stats.nll_min; atol=1e-8)
-        @test isapprox(result.stats.aic, result.stats.nll_min + 2 * length(result.params); atol=1e-8)
+        @test result.stats.cost == :gaussian_likelihood
+        @test isapprox(result.stats.minus2loglik_min, expected_minus2loglik; atol=1e-8)
+        @test isapprox(result.stats.cost_min, result.stats.minus2loglik_min; atol=1e-8)
+        @test isapprox(result.stats.aic, result.stats.minus2loglik_min + 2 * length(result.params); atol=1e-8)
     end
 
     @testset "Analytic Jacobian is used by LsqFit backend" begin
@@ -336,7 +336,7 @@ using Test
         )
 
         @test poisson_result.converged
-        @test poisson_result.stats.cost == :poisson_nll
+        @test poisson_result.stats.cost == :poisson_likelihood
         @test isfinite(poisson_result.stats.chi2)
         @test poisson_result.stats.ndf == length(counts) - 2
 
@@ -352,7 +352,7 @@ using Test
         )
 
         @test hist_result.converged
-        @test hist_result.stats.cost == :histogram_poisson_nll
+        @test hist_result.stats.cost == :histogram_poisson_likelihood
         @test hist_result.stats.ndf == length(hist_counts) - 2
 
         data = [-1.1, -0.2, 0.1, 0.3, 0.9, 1.2]
@@ -365,7 +365,7 @@ using Test
         )
 
         @test unbinned_result.converged
-        @test unbinned_result.stats.cost == :unbinned_nll
+        @test unbinned_result.stats.cost == :unbinned_likelihood
         @test isapprox(unbinned_result.params[1], sum(data) / length(data); atol=1e-6)
         @test isnan(unbinned_result.stats.pvalue)
 
@@ -426,7 +426,7 @@ using Test
         rate(x, p) = exp(p[1])
         extended = fit_extended_unbinned_model(rate, [0.1, 0.2, 0.8, 0.9], (0.0, 1.0); p0=[0.0])
         @test extended.converged
-        @test extended.stats.cost == :extended_unbinned_nll
+        @test extended.stats.cost == :extended_unbinned_likelihood
         @test isapprox(exp(extended.params[1]), 4.0; atol=1e-6)
 
         x = collect(0.0:1.0:3.0)
@@ -539,7 +539,7 @@ using Test
         )
 
         @test model_relative.converged
-        @test model_relative.stats.cost == :gaussian_nll
+        @test model_relative.stats.cost == :gaussian_likelihood
     end
 
     @testset "Fit report" begin

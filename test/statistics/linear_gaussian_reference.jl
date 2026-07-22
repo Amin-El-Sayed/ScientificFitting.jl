@@ -60,7 +60,7 @@ end
         @test isapprox(result.stats.pvalue, ccdf(Chisq(ndf), ref.chi2); atol=2e-11, rtol=2e-11)
     end
 
-    @testset "Full covariance Gaussian NLL matches generalized least squares" begin
+    @testset "Full covariance Gaussian -2log(L) matches generalized least squares" begin
         x = collect(range(-1.5, 2.5; length=12))
         sigma = @. 0.08 + 0.01 * (x + 1.5)
         rho = 0.42
@@ -69,21 +69,26 @@ end
         model(x, p) = @. p[1] * x + p[2]
 
         ref = _generalized_linear_reference(x, y, cov_y)
-        result = fit_model(model, x, y; p0=[0.0, 0.0], cov_y=cov_y, cost=:gaussian_nll, scale_covariance=:never)
+        result = fit_model(model, x, y; p0=[0.0, 0.0], cov_y=cov_y, cost=:gaussian_likelihood, scale_covariance=:never)
         ndf = length(x) - 2
-        expected_nll = length(x) * log(2pi) + ref.logdet + ref.chi2
+        expected_minus2loglik = length(x) * log(2pi) + ref.logdet + ref.chi2
 
         @test result.backend == :optimization
-        @test result.stats.cost == :gaussian_nll
+        @test result.stats.cost == :gaussian_likelihood
         @test isapprox(result.params, ref.params; atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_covariance, ref.cov; atol=2e-7, rtol=2e-7)
         @test isapprox(result.stats.chi2, ref.chi2; atol=2e-8, rtol=2e-8)
-        @test isapprox(result.stats.nll_min, expected_nll; atol=2e-8, rtol=2e-8)
-        @test isapprox(result.stats.cost_min, expected_nll; atol=2e-8, rtol=2e-8)
+        @test isapprox(result.stats.minus2loglik_min, expected_minus2loglik; atol=2e-8, rtol=2e-8)
+        @test isapprox(result.stats.cost_min, expected_minus2loglik; atol=2e-8, rtol=2e-8)
         @test result.stats.ndf == ndf
         @test isapprox(result.stats.pvalue, ccdf(Chisq(ndf), ref.chi2); atol=2e-8, rtol=2e-8)
-        @test isapprox(result.stats.aic, expected_nll + 2 * length(result.params); atol=2e-8, rtol=2e-8)
-        @test isapprox(result.stats.bic, expected_nll + log(length(x)) * length(result.params); atol=2e-8, rtol=2e-8)
+        @test isapprox(result.stats.aic, expected_minus2loglik + 2 * length(result.params); atol=2e-8, rtol=2e-8)
+        @test isapprox(
+            result.stats.bic,
+            expected_minus2loglik + log(length(x)) * length(result.params);
+            atol=2e-8,
+            rtol=2e-8,
+        )
     end
 
     @testset "Sparse covariance keeps the static whitening path sparse" begin

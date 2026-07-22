@@ -112,7 +112,7 @@ function fit_report(
     statistics = (
         cost=result.stats.cost,
         cost_min=result.stats.cost_min,
-        nll_min=result.stats.nll_min,
+        minus2loglik_min=result.stats.minus2loglik_min,
         chi2=result.stats.chi2,
         chi2_ndf=result.stats.chi2_ndf,
         ndf=result.stats.ndf,
@@ -171,7 +171,7 @@ function _report_lines(report::FitReport; sigdigits::Int=6)
     push!(lines, "Statistics:")
     push!(lines, "  cost = $(report.statistics.cost)")
     push!(lines, "  cost_min = $(_fmt_value(report.statistics.cost_min; sigdigits=sigdigits))")
-    push!(lines, "  nll_min = $(_fmt_value(report.statistics.nll_min; sigdigits=sigdigits))")
+    push!(lines, "  minus2loglik_min = $(_fmt_value(report.statistics.minus2loglik_min; sigdigits=sigdigits))")
     push!(lines, "  chi2 = $(_fmt_value(report.statistics.chi2; sigdigits=sigdigits))")
     push!(lines, "  ndf = $(report.statistics.ndf)")
     push!(lines, "  chi2/ndf = $(_fmt_value(report.statistics.chi2_ndf; sigdigits=sigdigits))")

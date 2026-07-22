@@ -46,11 +46,11 @@ reports, diagnostics, profiles, and profile-matrix computation Makie-free;
 For Gaussian XY fits, JuFitter currently distinguishes:
 
 - `:chi2`: quadratic residual cost for static Gaussian uncertainties.
-- `:gaussian_nll`: full Gaussian negative log-likelihood, including
-  normalization and log determinant terms.
+- `:gaussian_likelihood`: full Gaussian likelihood cost on the ``-2\log L``
+  scale, including normalization and log-determinant terms.
 
-`cost=:auto` chooses `:gaussian_nll` when the effective covariance depends on
-the parameters, especially for x uncertainties or model-relative y
+`cost=:auto` chooses `:gaussian_likelihood` when the effective covariance
+depends on the parameters, especially for x uncertainties or model-relative y
 uncertainties. Otherwise it uses `:chi2`.
 
 For residuals
@@ -65,10 +65,10 @@ and covariance ``V``, the chi-square cost is
 \chi^2(\theta)=r(\theta)^T V^{-1}r(\theta).
 ```
 
-For the full Gaussian NLL in JuFitter's ``-2\log L`` convention:
+For the full Gaussian likelihood cost:
 
 ```math
-\mathrm{NLL}(\theta)
+-2\log L(\theta)
 =
 n\log(2\pi)
 +
@@ -110,9 +110,9 @@ matrix.
 `WhiteningOperator` is the matrix-free static path. Its user function applies a
 complete operator ``W`` with ``W^T W=V^{-1}``; JuFitter applies the same
 operation to residuals and Jacobian columns. The supplied log determinant keeps
-the normalized Gaussian NLL and information criteria consistent. The operator
-is exclusive with other observation-uncertainty inputs, so the cache never
-silently combines covariance models with unknown semantics.
+the normalized Gaussian ``-2\log L`` value and information criteria consistent.
+The operator is exclusive with other observation-uncertainty inputs, so the
+cache never silently combines covariance models with unknown semantics.
 
 Parameter-dependent covariance remains dynamic by design. Recomputing the
 effective covariance for x uncertainties or model-relative uncertainty is part

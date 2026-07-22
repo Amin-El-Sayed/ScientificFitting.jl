@@ -48,7 +48,7 @@ function _finite_difference_hessian(f, p; h=2e-5)
 end
 
 @testset "Covariance and constraint semantics" begin
-    @testset "Asymmetric prior NLL is a continuous split normal" begin
+    @testset "Asymmetric prior -2log(L) is a continuous split normal" begin
         model(x, p) = fill(p[1], length(x))
         mean = 0.3
         sigma_minus = 0.2
@@ -68,17 +68,17 @@ end
         )
         expected_norm = log(pi / 2) + 2 * log(sigma_minus + sigma_plus)
 
-        @test isapprox(JuFitter._prior_nll(problem, [mean]), expected_norm; atol=1e-14)
+        @test isapprox(JuFitter._prior_minus2loglik(problem, [mean]), expected_norm; atol=1e-14)
         @test isapprox(
-            JuFitter._prior_nll(problem, [mean - sigma_minus]),
-            JuFitter._prior_nll(problem, [mean + sigma_plus]);
+            JuFitter._prior_minus2loglik(problem, [mean - sigma_minus]),
+            JuFitter._prior_minus2loglik(problem, [mean + sigma_plus]);
             atol=1e-14,
         )
 
         epsilon = 1e-10
         @test isapprox(
-            JuFitter._prior_nll(problem, [mean - epsilon]),
-            JuFitter._prior_nll(problem, [mean + epsilon]);
+            JuFitter._prior_minus2loglik(problem, [mean - epsilon]),
+            JuFitter._prior_minus2loglik(problem, [mean + epsilon]);
             atol=1e-9,
         )
 
@@ -91,7 +91,7 @@ end
             parameter_priors=(index=1, mean=mean, sigma=0.4),
         )
         @test isapprox(
-            JuFitter._prior_nll(symmetric, [mean]),
+            JuFitter._prior_minus2loglik(symmetric, [mean]),
             log(2pi * 0.4^2);
             atol=1e-14,
         )
@@ -195,8 +195,8 @@ end
             rtol=2e-12,
         )
         @test isapprox(
-            JuFitter._gaussian_nll(cache, result.params),
-            JuFitter._gaussian_nll(result.problem, result.params);
+            JuFitter._gaussian_minus2loglik(cache, result.params),
+            JuFitter._gaussian_minus2loglik(result.problem, result.params);
             atol=2e-12,
             rtol=2e-12,
         )
@@ -216,9 +216,9 @@ end
 
         problem = JuFitter.FitProblem(model, x, y; p0=p, sigma_y=sigma_y, cov_x=cov_x)
         cache = JuFitter._prepare_fit_cache(problem)
-        nll = q -> JuFitter._gaussian_nll(cache, q)
+        minus2loglik = q -> JuFitter._gaussian_minus2loglik(cache, q)
 
-        function reference_nll(q)
+        function reference_minus2loglik(q)
             dydx = fill(q[1], length(x))
             covariance = Diagonal(sigma_y .^ 2) + Diagonal(dydx) * cov_x * Diagonal(dydx)
             residual = y .- model(x, q)
@@ -226,16 +226,16 @@ end
             return length(x) * log(2pi) + 2sum(log, diag(factor.L)) + sum(abs2, factor.L \ residual)
         end
 
-        @test isapprox(nll(p), reference_nll(p); atol=2e-12, rtol=2e-12)
+        @test isapprox(minus2loglik(p), reference_minus2loglik(p); atol=2e-12, rtol=2e-12)
         @test isapprox(
-            ForwardDiff.gradient(nll, p),
-            _finite_difference_gradient(reference_nll, p);
+            ForwardDiff.gradient(minus2loglik, p),
+            _finite_difference_gradient(reference_minus2loglik, p);
             atol=2e-5,
             rtol=2e-5,
         )
         @test isapprox(
-            ForwardDiff.hessian(nll, p),
-            _finite_difference_hessian(reference_nll, p);
+            ForwardDiff.hessian(minus2loglik, p),
+            _finite_difference_hessian(reference_minus2loglik, p);
             atol=5e-3,
             rtol=5e-3,
         )

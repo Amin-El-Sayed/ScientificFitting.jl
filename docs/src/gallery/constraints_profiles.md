@@ -99,7 +99,7 @@ s_i^2(p)
 ```
 
 Because this effective variance depends on the fitted parameters, `cost=:auto`
-selects the full Gaussian negative log-likelihood:
+selects the full Gaussian likelihood cost on the ``-2\log L`` scale:
 
 ```math
 C(p) =

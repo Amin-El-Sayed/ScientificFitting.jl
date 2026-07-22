@@ -203,7 +203,7 @@ Parameters:
 Statistics:
   cost = multi_chi2
   cost_min = 52.9085
-  nll_min = 52.9085
+  minus2loglik_min = 52.9085
   chi2 = 52.9085
   ndf = 26
   chi2/ndf = 2.03494
@@ -228,7 +228,7 @@ Parameters:
 Statistics:
   cost = multi_chi2
   cost_min = 21.7427
-  nll_min = 21.7427
+  minus2loglik_min = 21.7427
   chi2 = 21.7427
   ndf = 25
   chi2/ndf = 0.869706

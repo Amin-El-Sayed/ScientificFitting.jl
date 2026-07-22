@@ -199,7 +199,7 @@ result = fit_model(
 
 JuFitter validates that `x_derivative(x, p)` has the same length as `x` and
 contains finite values. The derivative may depend on `p`; AD information is
-preserved when the Gaussian NLL needs gradients or Hessians.
+preserved when the Gaussian likelihood cost needs gradients or Hessians.
 
 ## Matrix-Free Structured Whitening
 
@@ -249,10 +249,10 @@ result = fit_model(model, x, y; p0=p0, whitening)
 ```
 
 `logdet_covariance` is required even for a chi-square fit because JuFitter also
-reports the normalized Gaussian NLL, AIC, and BIC. `marginal_sigma` is optional
-and affects only pointwise error bars and prediction bands; it does not enter
-the cost. Without it, use `band=:confidence` rather than claiming a prediction
-band whose observation variance is unknown.
+reports the normalized Gaussian ``-2\log L`` value, AIC, and BIC.
+`marginal_sigma` is optional and affects only pointwise error bars and prediction
+bands; it does not enter the cost. Without it, use `band=:confidence` rather
+than claiming a prediction band whose observation variance is unknown.
 
 The operator represents the **complete static observation covariance**. Do not
 also pass `sigma_y`, `cov_y`, x uncertainties, or active error components.

@@ -137,8 +137,8 @@ first-order effective variance
 ```
 
 Because this covariance depends on the fitted parameters, `cost=:auto` uses the
-full Gaussian negative log-likelihood, including its log-determinant term. This
-is more than replacing an error bar after the fit.
+full Gaussian likelihood cost on the ``-2\log L`` scale, including its
+log-determinant term. This is more than replacing an error bar after the fit.
 
 The approximation is appropriate when the model is locally smooth and nearly
 linear over each x-error interval. Large x errors, a sharp threshold, or a

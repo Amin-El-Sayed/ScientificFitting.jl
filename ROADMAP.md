@@ -69,7 +69,7 @@ Goal: every number in `FitResult` has an explicit statistical interpretation.
 
 Key deliverables:
 
-- Audited convention for chi-square, negative log-likelihood, deviance, AIC,
+- Audited convention for chi-square, ``-2\log L``, deviance, AIC,
   BIC, p-values, and degrees of freedom.
 - Analytic reference tests for linear Gaussian models.
 - Reference tests for Poisson, histogram, unbinned, extended-unbinned, and
@@ -164,9 +164,9 @@ Current evidence:
 - The generic `Optimization.jl` path receives cached objective data, so static
   covariance factorizations and log determinants are not recomputed by AD.
 - Dense parameter-dependent `cov_x` propagation is covered by a finite-
-  difference reference test for Gaussian-NLL value, gradient, and Hessian. The
-  Cholesky path now keeps AD information in the actual factorization and strips
-  duals only for finite-value and symmetry validation.
+  difference reference test for Gaussian ``-2\log L`` value, gradient, and
+  Hessian. The Cholesky path keeps AD information in the actual factorization
+  and strips duals only for finite-value and symmetry validation.
 - X-uncertainty propagation now accepts a vectorized `x_derivative=(x, p) ->
   dy_dx` hook, so large datasets can avoid the default pointwise AD derivative
   when the model derivative is known.
@@ -181,9 +181,9 @@ Current evidence:
 - `WhiteningOperator` supplies a complete static covariance through a
   matrix-free `whiten!(out, residual)` contract and an explicit covariance log
   determinant. Dense AR(1) references verify parameters, parameter covariance,
-  weighted residuals, chi-square, normalized NLL, AIC/BIC, bounded AD paths,
-  in-place models/Jacobians, and profile refits. A 100k-point benchmark and
-  10k-to-50k allocation gate cover the linear-scaling path.
+  weighted residuals, chi-square, normalized ``-2\log L``, AIC/BIC, bounded AD
+  paths, in-place models/Jacobians, and profile refits. A 100k-point benchmark
+  and 10k-to-50k allocation gate cover the linear-scaling path.
 - Dense covariance remains intentionally documented as an expensive `O(n^2)`
   memory and `O(n^3)` factorization path; large correlated datasets should use
   sparse static covariance or a validated application-specific whitening

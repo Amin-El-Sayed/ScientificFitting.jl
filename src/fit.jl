@@ -113,7 +113,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
             throw(ArgumentError(
                 "sparse covariance currently supports the unbounded least-squares backend; " *
                 "use a dense covariance or an AD-compatible WhiteningOperator for " *
-                "constrained or Gaussian-NLL fits",
+                "constrained or Gaussian-likelihood fits",
             ))
         end
     end
@@ -180,7 +180,7 @@ function _build_fit_result(
     weighted_residuals = _weighted_residual(cache, params)
     chi2 = _chi2_cost(cache, params)
     cost_min = Float64(_cost_value(cache, params, options.cost))
-    nll_min = Float64(_gaussian_nll(cache, params))
+    minus2loglik_min = Float64(_gaussian_minus2loglik(cache, params))
 
     nconstraint_obs = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
     nobs = length(problem.y) + length(problem.parameter_priors) + nconstraint_obs
@@ -188,8 +188,8 @@ function _build_fit_result(
     ndf = nobs - npar
     chi2_ndf = ndf > 0 ? chi2 / ndf : NaN
     pvalue = ndf > 0 ? ccdf(Chisq(ndf), chi2) : NaN
-    aic = nll_min + 2.0 * npar
-    bic = nll_min + log(nobs) * npar
+    aic = minus2loglik_min + 2.0 * npar
+    bic = minus2loglik_min + log(nobs) * npar
 
     Jw = if backend_jacobian === nothing
         _weighted_jacobian(cache, params)
@@ -199,7 +199,7 @@ function _build_fit_result(
     free_idx = _free_indices(problem)
     cov = if isempty(free_idx)
         _embed_free_covariance(problem, zeros(Float64, 0, 0))
-    elseif _resolve_cost(problem, options.cost) == :gaussian_nll
+    elseif _resolve_cost(problem, options.cost) == :gaussian_likelihood
         _covariance_from_cost_hessian(cache, params, options.cost)
     else
         scale = _should_scale_covariance(problem, options.scale_covariance)
@@ -209,8 +209,18 @@ function _build_fit_result(
     stderr = _standard_errors_from_covariance(cov)
     corr = _correlation_from_covariance(cov)
 
-    stats = FitStatistics(_resolve_cost(problem, options.cost), cost_min, nll_min, chi2, chi2_ndf, ndf, pvalue, aic, bic)
-    hessian = if _resolve_cost(problem, options.cost) == :gaussian_nll && !isempty(free_idx)
+    stats = FitStatistics(
+        _resolve_cost(problem, options.cost),
+        cost_min,
+        minus2loglik_min,
+        chi2,
+        chi2_ndf,
+        ndf,
+        pvalue,
+        aic,
+        bic,
+    )
+    hessian = if _resolve_cost(problem, options.cost) == :gaussian_likelihood && !isempty(free_idx)
         ForwardDiff.hessian(q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost), params[free_idx])
     else
         nothing
@@ -243,9 +253,10 @@ end
 Run a fit and return a `FitResult`.
 
 `cost` accepts:
-- `:auto`: choose `:gaussian_nll` for parameter-dependent covariance, otherwise `:chi2`
+- `:auto`: choose `:gaussian_likelihood` for parameter-dependent covariance, otherwise `:chi2`
 - `:chi2`: weighted least-squares cost
-- `:gaussian_nll`: full Gaussian negative log-likelihood, including log-det terms
+- `:gaussian_likelihood`: full Gaussian cost on the `-2 log(L)` scale,
+  including log-determinant terms
 
 `scale_covariance` controls post-fit parameter covariance scaling:
 - `:auto`: scale only when no data uncertainties were provided

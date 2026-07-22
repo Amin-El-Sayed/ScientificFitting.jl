@@ -120,7 +120,7 @@ Parameters:
 Statistics:
   cost = chi2
   cost_min = 11.0224
-  nll_min = -10.881
+  minus2loglik_min = -10.881
   chi2 = 11.0224
   ndf = 22
   chi2/ndf = 0.501018

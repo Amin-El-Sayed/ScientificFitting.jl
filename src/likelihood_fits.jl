@@ -4,6 +4,8 @@
 Low-level public problem representation for likelihood and custom-objective
 fits. `objective(p)` is minimized directly, while optional `gof(p)` supplies a
 chi-square-like goodness-of-fit statistic for reduced statistics and p-values.
+For covariance, profile thresholds, and information criteria to have their
+documented interpretation, `objective` must use the `-2 log(L)` scale.
 Most users should prefer `fit_poisson_model`, `fit_histogram_model`,
 `fit_unbinned_model`, `fit_extended_unbinned_model`, or `fit_custom`; construct
 this type directly when the objective must be stored, inspected, or refitted.
@@ -100,7 +102,7 @@ function _with_p0(problem::LikelihoodFitProblem, p0::AbstractVector)
 end
 
 function _likelihood_cost(problem::LikelihoodFitProblem, p::AbstractVector)
-    return problem.objective(p) + _prior_nll(problem, p) + _parameter_constraint_nll(problem, p)
+    return problem.objective(p) + _prior_minus2loglik(problem, p) + _parameter_constraint_minus2loglik(problem, p)
 end
 
 struct LikelihoodEvaluationCache{TP, TC}
@@ -114,7 +116,9 @@ end
 
 function _likelihood_cost(cache::LikelihoodEvaluationCache, p::AbstractVector)
     problem = cache.problem
-    return problem.objective(p) + _prior_nll(problem, p) + _parameter_constraint_nll(cache.parameter_constraints, p)
+    return problem.objective(p) +
+           _prior_minus2loglik(problem, p) +
+           _parameter_constraint_minus2loglik(cache.parameter_constraints, p)
 end
 
 function _likelihood_gof(problem::LikelihoodFitProblem, p::AbstractVector)
@@ -329,7 +333,7 @@ function _positive_expectation(mu, n::Int)
     return values
 end
 
-function _poisson_nll_terms(counts::Vector{Float64}, mu::AbstractVector)
+function _poisson_minus2loglik_terms(counts::Vector{Float64}, mu::AbstractVector)
     total = zero(eltype(mu))
     @inbounds for i in eachindex(counts)
         n = counts[i]
@@ -380,7 +384,7 @@ function fit_poisson_model(
     _assert_finite_observations("x", x_vec)
     _assert_count_observations("counts", counts_vec)
 
-    objective = p -> _poisson_nll_terms(counts_vec, _positive_expectation(model(x_vec, p), length(counts_vec)))
+    objective = p -> _poisson_minus2loglik_terms(counts_vec, _positive_expectation(model(x_vec, p), length(counts_vec)))
     gof = p -> _poisson_deviance(counts_vec, _positive_expectation(model(x_vec, p), length(counts_vec)))
     problem = LikelihoodFitProblem(
         objective,
@@ -392,7 +396,7 @@ function fit_poisson_model(
         parameter_constraints=parameter_constraints,
         fixed_parameters=fixed_parameters,
         nobs=length(counts_vec),
-        cost_name=:poisson_nll,
+        cost_name=:poisson_likelihood,
         parameter_names=parameter_names,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
@@ -428,7 +432,10 @@ function fit_histogram_model(
     _assert_count_observations("counts", counts_vec)
     any(diff(edges_vec) .<= 0) && throw(ArgumentError("histogram edges must be strictly increasing"))
 
-    objective = p -> _poisson_nll_terms(counts_vec, _positive_expectation(expected_counts(edges_vec, p), length(counts_vec)))
+    objective = p -> _poisson_minus2loglik_terms(
+        counts_vec,
+        _positive_expectation(expected_counts(edges_vec, p), length(counts_vec)),
+    )
     gof = p -> _poisson_deviance(counts_vec, _positive_expectation(expected_counts(edges_vec, p), length(counts_vec)))
     problem = LikelihoodFitProblem(
         objective,
@@ -440,7 +447,7 @@ function fit_histogram_model(
         parameter_constraints=parameter_constraints,
         fixed_parameters=fixed_parameters,
         nobs=length(counts_vec),
-        cost_name=:histogram_poisson_nll,
+        cost_name=:histogram_poisson_likelihood,
         parameter_names=parameter_names,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
@@ -545,7 +552,7 @@ function fit_unbinned_model(
         parameter_constraints=parameter_constraints,
         fixed_parameters=fixed_parameters,
         nobs=length(data_vec),
-        cost_name=:unbinned_nll,
+        cost_name=:unbinned_likelihood,
         parameter_names=parameter_names,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
@@ -606,7 +613,7 @@ function fit_extended_unbinned_model(
         parameter_constraints=parameter_constraints,
         fixed_parameters=fixed_parameters,
         nobs=length(data_vec),
-        cost_name=:extended_unbinned_nll,
+        cost_name=:extended_unbinned_likelihood,
         parameter_names=parameter_names,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)

@@ -5,7 +5,7 @@ using SpecialFunctions
 using Statistics
 using Test
 
-function _poisson_twice_nll(counts, mu)
+function _poisson_minus2loglik(counts, mu)
     return 2.0 * sum(n -> mu - n * log(mu) + loggamma(n + 1.0), counts)
 end
 
@@ -25,17 +25,17 @@ end
 
         result = fit_poisson_model(model, x, counts; p0=[3.0], bounds=([1e-9], [100.0]))
         muhat = mean(counts)
-        expected_cost = _poisson_twice_nll(counts, muhat)
+        expected_cost = _poisson_minus2loglik(counts, muhat)
         expected_gof = _poisson_deviance_reference(counts, muhat)
         ndf = length(counts) - 1
 
         @test result.converged
-        @test result.stats.cost == :poisson_nll
+        @test result.stats.cost == :poisson_likelihood
         @test isapprox(result.params[1], muhat; atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_covariance[1, 1], muhat / length(counts); atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_stderr[1], sqrt(muhat / length(counts)); atol=2e-8, rtol=2e-8)
         @test isapprox(result.stats.cost_min, expected_cost; atol=2e-8, rtol=2e-8)
-        @test isapprox(result.stats.nll_min, expected_cost; atol=2e-8, rtol=2e-8)
+        @test isapprox(result.stats.minus2loglik_min, expected_cost; atol=2e-8, rtol=2e-8)
         @test isapprox(result.stats.chi2, expected_gof; atol=2e-8, rtol=2e-8)
         @test result.stats.ndf == ndf
         @test isapprox(result.stats.chi2_ndf, expected_gof / ndf; atol=2e-8, rtol=2e-8)
@@ -55,12 +55,12 @@ end
         expected_cov = sigma^2 / length(data)
 
         @test result.converged
-        @test result.stats.cost == :unbinned_nll
+        @test result.stats.cost == :unbinned_likelihood
         @test isapprox(result.params[1], muhat; atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_covariance[1, 1], expected_cov; atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_stderr[1], sqrt(expected_cov); atol=2e-8, rtol=2e-8)
         @test isapprox(result.stats.cost_min, expected_cost; atol=2e-8, rtol=2e-8)
-        @test isapprox(result.stats.nll_min, expected_cost; atol=2e-8, rtol=2e-8)
+        @test isapprox(result.stats.minus2loglik_min, expected_cost; atol=2e-8, rtol=2e-8)
         @test isnan(result.stats.chi2)
         @test isnan(result.stats.chi2_ndf)
         @test isnan(result.stats.pvalue)
@@ -75,12 +75,12 @@ end
 
         result = fit_histogram_model(expected_counts, edges, counts; p0=[4.0], bounds=([1e-9], [100.0]))
         muhat = mean(counts)
-        expected_cost = _poisson_twice_nll(counts, muhat)
+        expected_cost = _poisson_minus2loglik(counts, muhat)
         expected_gof = _poisson_deviance_reference(counts, muhat)
         ndf = length(counts) - 1
 
         @test result.converged
-        @test result.stats.cost == :histogram_poisson_nll
+        @test result.stats.cost == :histogram_poisson_likelihood
         @test isapprox(result.params[1], muhat; atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_covariance[1, 1], muhat / length(counts); atol=2e-8, rtol=2e-8)
         @test isapprox(result.stats.cost_min, expected_cost; atol=2e-8, rtol=2e-8)
@@ -103,7 +103,7 @@ end
         expected_cov = 1.0 / n
 
         @test result.converged
-        @test result.stats.cost == :extended_unbinned_nll
+        @test result.stats.cost == :extended_unbinned_likelihood
         @test isapprox(result.params[1], expected_param; atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_covariance[1, 1], expected_cov; atol=2e-8, rtol=2e-8)
         @test isapprox(result.stats.cost_min, expected_cost; atol=2e-8, rtol=2e-8)

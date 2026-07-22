@@ -149,9 +149,9 @@ Parameters:
   lambda = 0.00348387 +/- 1.639e-5
 
 Statistics:
-  cost = gaussian_nll
+  cost = gaussian_likelihood
   cost_min = -885.658
-  nll_min = -885.658
+  minus2loglik_min = -885.658
   chi2 = 1659.13
   ndf = 296
   chi2/ndf = 5.60516
@@ -268,9 +268,9 @@ Parameters:
   beta = 8.32827e-5 +/- 2.23515e-6
 
 Statistics:
-  cost = gaussian_nll
+  cost = gaussian_likelihood
   cost_min = -2274.67
-  nll_min = -2274.67
+  minus2loglik_min = -2274.67
   chi2 = 270.124
   ndf = 295
   chi2/ndf = 0.915675

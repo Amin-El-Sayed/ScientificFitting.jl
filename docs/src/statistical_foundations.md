@@ -208,8 +208,9 @@ n\log(2\pi)
 ```
 
 If ``V`` is independent of ``\theta``, the first two terms are constant in the
-optimization. Gaussian NLL and chi-square therefore have the same minimizer,
-although the normalized NLL is needed for AIC/BIC.
+optimization. The full Gaussian ``-2\log L`` cost and chi-square therefore have
+the same minimizer, although the normalized likelihood value is needed for
+AIC/BIC.
 
 ### Parameter-Dependent Covariance
 
@@ -219,9 +220,9 @@ specified as a fraction of its prediction: increasing the prediction increases
 both the residual scale and ``\det V``. Keeping only the quadratic residual
 term would reward arbitrarily inflated uncertainties.
 
-JuFitter selects `cost=:gaussian_nll` for parameter-dependent covariance when
-`cost=:auto`. This occurs for effective x-uncertainty propagation and active
-model-relative uncertainty components.
+JuFitter selects `cost=:gaussian_likelihood` for parameter-dependent covariance
+when `cost=:auto`. This occurs for effective x-uncertainty propagation and
+active model-relative uncertainty components.
 
 ## Uncertainty In X
 
@@ -259,7 +260,7 @@ alone contributes ``0.6`` in y units and
 ```
 
 Because the slope can depend on fitted parameters, so can
-``V_\mathrm{eff}``. The full Gaussian NLL is then required.
+``V_\mathrm{eff}``. The full Gaussian likelihood cost is then required.
 
 This method is a local linearization, not a general errors-in-variables model.
 It is appropriate for small x errors and smooth, single-valued models. Large x
@@ -652,7 +653,7 @@ The result fields follow these conventions:
 | field | meaning |
 | --- | --- |
 | `stats.cost_min` | minimized selected cost |
-| `stats.nll_min` | normalized Gaussian NLL for x-y fits; selected NLL for likelihood fits |
+| `stats.minus2loglik_min` | normalized Gaussian or selected likelihood cost on the ``-2\log L`` scale |
 | `stats.chi2` | Gaussian chi-square or Poisson deviance; `NaN` when no generic statistic exists |
 | `stats.chi2_ndf` | chi-square-like statistic divided by positive ndf |
 | `stats.pvalue` | upper-tail chi-square approximation where defined |

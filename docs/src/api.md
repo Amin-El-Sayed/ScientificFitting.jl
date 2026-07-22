@@ -90,7 +90,7 @@ fit, use a `ParameterPrior` or `ParameterConstraint` instead.
 | Keyword | Default | Contract |
 |---|---:|---|
 | `backend` | `:auto` | `:auto`, `:lsqfit`, or `:optimization`. |
-| `cost` | `:auto` | `:chi2` or full `:gaussian_nll`; `:auto` selects the latter for parameter-dependent covariance. |
+| `cost` | `:auto` | `:chi2` or full `:gaussian_likelihood` on the ``-2\log L`` scale; `:auto` uses the latter for parameter-dependent covariance. |
 | `scale_covariance` | `:auto` | `:auto`, `:always`, or `:never`; see [Parameter Covariance](@ref parameter-covariance-reference). |
 | `jacobian` | `nothing` | Analytic model Jacobian, allocating or in-place according to `inplace`. |
 | `x_derivative` | `nothing` | Vector ``\partial f/\partial x`` for efficient x-uncertainty propagation. |
@@ -236,7 +236,7 @@ coordinates.
 |---|---|
 | `cost` | Symbol identifying the minimized cost. |
 | `cost_min` | Minimized cost including parameter terms. |
-| `nll_min` | Full Gaussian or likelihood cost on the ``-2\log L`` scale; equal to chi-square for indexed/multi wrappers. |
+| `minus2loglik_min` | Gaussian or likelihood cost on the ``-2\log L`` scale; equal to chi-square for indexed/multi wrappers. |
 | `chi2` | Chi-square or deviance goodness-of-fit statistic, otherwise `NaN`. |
 | `chi2_ndf` | `chi2 / ndf` when defined. |
 | `ndf` | Independent observations and Gaussian constraint dimensions minus free parameters. |

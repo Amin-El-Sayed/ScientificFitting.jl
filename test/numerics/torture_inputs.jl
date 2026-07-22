@@ -49,7 +49,7 @@ using Test
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
-            cost=:gaussian_nll,
+            cost=:gaussian_likelihood,
             backend=:lsqfit,
         )
         @test_throws ArgumentError fit_model(

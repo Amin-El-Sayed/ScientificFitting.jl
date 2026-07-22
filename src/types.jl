@@ -23,8 +23,8 @@ has_constraints(spec::ConstraintSpec) = !(spec.ineq === nothing && spec.eq === n
 Gaussian prior term for one fitted parameter. The prior contributes a
 chi-square-like penalty centered at `mean`; asymmetric uncertainties use
 `sigma_minus` below the mean and `sigma_plus` above the mean. In the normalized
-Gaussian-NLL path, asymmetric scales define a continuous split-normal density
-with one shared normalization across both sides of `mean`.
+Gaussian-likelihood path, asymmetric scales define a continuous split-normal
+density with one shared normalization across both sides of `mean`.
 """
 struct ParameterPrior
     index::Int
@@ -156,7 +156,7 @@ Represent a complete static data covariance without materializing it.
 `whiten!(out, residual)` must apply a linear operator `W` satisfying
 `W'W = inv(C)`, where `C` is the observation covariance. The required
 `logdet_covariance` is `log(det(C))`; JuFitter uses it for the normalized
-Gaussian likelihood, AIC, and BIC.
+Gaussian `-2 log(L)` cost, AIC, and BIC.
 
 `marginal_sigma` is optional scalar or pointwise marginal standard deviation.
 It does not change the fit; plotting uses it for data error bars and pointwise
@@ -327,14 +327,14 @@ end
     FitStatistics
 
 Goodness-of-fit and information-criterion summary for a fit. The fields include
-the minimized objective, negative log-likelihood convention, chi-square-like
-goodness of fit, degrees of freedom, p-value, AIC, and BIC. Fields that are not
-meaningful for a given likelihood are set to `NaN`.
+the minimized objective, normalized `-2 log(L)` value, chi-square-like goodness
+of fit, degrees of freedom, p-value, AIC, and BIC. Fields that are not meaningful
+for a given likelihood are set to `NaN`.
 """
 struct FitStatistics
     cost::Symbol
     cost_min::Float64
-    nll_min::Float64
+    minus2loglik_min::Float64
     chi2::Float64
     chi2_ndf::Float64
     ndf::Int

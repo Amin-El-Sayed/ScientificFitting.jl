@@ -38,6 +38,8 @@ const FORBIDDEN_PUBLIC_PATTERNS = Pair{String, Regex}[
     "private author handle in public prose" => r"(?i)\bAmin_El_Sayed\b",
     "course-internal wording" => r"(?i)\b(course[- ]internal|lab-course-internal|private dataset)\b",
     "stale public API identifier" => r"\b(profile_curve|contour_grid)\b",
+    "stale likelihood-scale identifier" =>
+        r"\b(nll_min|gaussian_nll|poisson_nll|histogram_poisson_nll|unbinned_nll|extended_unbinned_nll)\b",
     "ungrouped TeX operator subscript" => r"_(\\min|\\max)\b",
 ]
 
@@ -212,6 +214,8 @@ end
         @test occursin("\\chi^2_\\mathrm{common}=\\frac{2}{1+\\rho}=1.11", foundations)
         @test occursin("\\chi^2_\\mathrm{opposite}=\\frac{2}{1-\\rho}=10", foundations)
         @test occursin("normalized split-normal cost", foundations)
+        @test occursin("cost=:gaussian_likelihood", foundations)
+        @test occursin("stats.minus2loglik_min", foundations)
         @test occursin("fit_histogram_density", foundations)
         @test occursin("JuFitter therefore returns `NaN`", foundations)
         @test occursin("Wilks thresholds are asymptotic", foundations)
