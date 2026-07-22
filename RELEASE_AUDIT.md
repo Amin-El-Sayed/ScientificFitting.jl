@@ -64,6 +64,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than
   leaking into the scientific handbook.
+- The public architecture walkthrough now describes likelihood objectives and
+  stored minima on the same explicit ``-2\log L`` scale as the implementation,
+  Hessian covariance, profile thresholds, and information criteria.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
   `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do

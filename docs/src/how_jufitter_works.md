@@ -154,9 +154,11 @@ For large structured covariance, a `WhiteningOperator` supplies the equivalent
 ``L^{-1}`` action without storing the dense matrix. The statistical cost is the
 same; only the representation and asymptotic scaling change.
 
-For likelihood fits, JuFitter minimizes the appropriate negative
-log-likelihood or deviance. Poisson and histogram workflows do not invent
-Gaussian error bars for low counts.
+For likelihood fits, JuFitter minimizes the appropriate ``-2\log L`` objective
+or deviance. This common scale makes likelihood-ratio thresholds, Hessian
+covariance, and information criteria use one convention throughout the
+package. Poisson and histogram workflows do not invent Gaussian error bars for
+low counts.
 
 After validation and objective construction, the backend is selected by the
 problem:
@@ -178,8 +180,8 @@ statistical interpretation:
 
 - best-fit parameters and local covariance,
 - fitted model values and residuals,
-- chi-square, likelihood, p-value, AIC, BIC, and degrees of freedom where
-  meaningful,
+- chi-square, the ``-2\log L`` minimum, p-value, AIC, BIC, and degrees of
+  freedom where meaningful,
 - optimizer status and diagnostics,
 - enough problem metadata for plots, reports, profiles, contours, and
   downstream analysis.

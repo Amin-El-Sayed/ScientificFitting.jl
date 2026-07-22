@@ -88,6 +88,10 @@ function gallery_page_text()
     return public_file_text(joinpath(DOCS_SRC, "gallery.md"))
 end
 
+function architecture_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "how_jufitter_works.md"))
+end
+
 function practitioner_page_text()
     return public_file_text(joinpath(DOCS_SRC, "fitting_for_practitioners.md"))
 end
@@ -193,6 +197,13 @@ end
         @test !occursin("docs_gallery_gate.jl", gallery)
         @test !occursin("docs_output_snapshots.jl", gallery)
         @test !occursin("09_docs_gallery_suite.jl", gallery)
+    end
+
+    @testset "Architecture page uses the package likelihood scale" begin
+        architecture = architecture_page_text()
+        @test occursin("appropriate ``-2\\log L`` objective", architecture)
+        @test occursin("the ``-2\\log L`` minimum", architecture)
+        @test !occursin("appropriate negative\nlog-likelihood", architecture)
     end
 
     @testset "Practitioner guidance follows statistical scale" begin
