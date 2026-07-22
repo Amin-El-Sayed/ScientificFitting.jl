@@ -6,7 +6,7 @@ nonlinear models, likelihoods, profiles, and multi-dataset hypotheses. Start
 near the top, run the complete script, and treat each page as a worked
 scientific analysis rather than a syntax sample.
 
-Every finished gallery page follows the same pattern:
+Every gallery page follows the same pattern:
 
 1. a concrete question,
 2. measured quantities with units and uncertainties,
@@ -21,15 +21,16 @@ If you only want the shortest path from two arrays to a polished fit, start with
 [Fitting for Practitioners](@ref). If you need to justify the method in a
 report, read [Statistical Foundations](@ref).
 
-The complete scripts can be run from the project root:
+Each page contains the complete code used for its analysis and figure. From a
+source checkout, the corresponding script can also be run from the project
+root:
 
 ```bash
 julia --project=docs examples/gallery/01_quickstart_linear.jl
 ```
 
-Generated figures are written to `examples/output/`. Documentation assets under
-`docs/src/assets/gallery/` are regenerated only when the public examples or plot
-style contracts change.
+The script writes its figure to `examples/output/` and prints the same fit
+summary and diagnostic messages shown on the page.
 
 ## Recommended Path
 
@@ -46,7 +47,7 @@ style contracts change.
 </div>
 ```
 
-## Current Gallery
+## Examples
 
 ```@raw html
 <div class="jufitter-gallery-grid">
@@ -180,52 +181,19 @@ style contracts change.
 | Constraints and profiles | early saturation measurement | bounds, prior information, profile intervals, non-elliptic contours | unseen plateau and amplitude-timescale degeneracy |
 | Multi-dataset fit | shared physics across runs | parameter mapping and joint costs | per-dataset residuals and shared-parameter tension |
 
-## Executable Scripts
+## Run An Example
 
-The pages are written for reading; the scripts under `examples/gallery/` are
-written for running. They use the same models, uncertainty assumptions, and
-diagnostics, but keep the surrounding explanation out of the source file.
+The page code is arranged in execution order: load the measurements, define the
+model, fit, inspect diagnostics, and construct the figure. It can be copied into
+a Julia script or a Pluto notebook without depending on hidden setup cells.
 
-- `01_quickstart_linear.jl`: minimal weighted Gaussian fit with visible
-  uncertainty semantics.
-- `02_xy_uncertainties_photoelectric.jl`: photoelectric threshold fit with x/y
-  uncertainties, two fitted regimes, and propagated intersection uncertainty.
-- `03_plot_customization.jl`: themes, units, reports, sigma bands, export, and
-  Makie keyword passthrough.
-- `04_covariance_and_effective_variance.jl`: dense y covariance and
-  effective-variance x uncertainty.
-- `05_constraints_priors_profiles.jl`: bounds, inequality constraints, Gaussian
-  priors, profile intervals, and contours.
-- `06_likelihood_workflows.jl`: radioactive decay counts, an integrated
-  detector spectrum, unbinned, extended-unbinned, indexed, custom, and
-  multi-dataset likelihood fits.
-- `07_plot_styles.jl`: controlled comparison of the `:lab`,
-  `:modern`, and `:article` contracts using identical scientific
-  content.
-- `08_damped_oscillator_decay.jl`: real mechanical oscillator decay with x/y
-  uncertainties and light/dark documentation exports.
-- `09_docs_gallery_suite.jl`: reproducible documentation asset generator.
-- `10_multi_dataset_calibration.jl`: full versus partial parameter sharing,
-  per-dataset pulls, and joint-covariance propagation.
-
-## Editorial Standard
-
-A release-ready gallery page must let a reader copy the full code, reproduce
-the plot, understand the statistical assumptions, and decide whether the fit
-should be trusted. The repository enforces the structural part of that standard
-with a gallery gate:
+If you are working from the JuFitter source tree, the matching scripts live in
+`examples/gallery/`. For example:
 
 ```bash
-julia --project=. test/docs_gallery_gate.jl
-julia --project=. test/docs_output_snapshots.jl
+julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
 ```
 
-The gate checks that every public gallery page has a scientific question, data,
-model or cost description, executable code, real output, diagnostics,
-interpretation, failure modes, complete light/dark plot assets, and all three
-public plot-style variants. Visual taste still requires human review, but the
-site should no longer regress into missing pages, absent output blocks, broken
-assets, or incomplete tutorial fragments. The output-snapshot gate is slower:
-it executes the documented example scripts and verifies that notebook-style
-`Real output` blocks are copied from real script output rather than edited by
-hand.
+The scripts use the same data files and statistical assumptions as the pages.
+They are useful when you want to modify an analysis end to end; the code blocks
+inside each page are better when you want to understand one step at a time.

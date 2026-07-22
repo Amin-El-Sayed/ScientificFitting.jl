@@ -84,6 +84,10 @@ function home_page_text()
     return public_file_text(joinpath(DOCS_SRC, "index.md"))
 end
 
+function gallery_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "gallery.md"))
+end
+
 function practitioner_page_text()
     return public_file_text(joinpath(DOCS_SRC, "fitting_for_practitioners.md"))
 end
@@ -179,6 +183,16 @@ end
         @test !occursin("println(report_text", quickstart)
         @test !occursin("Pkg.test()", install)
         @test !occursin("canonical=", documenter_make_text())
+    end
+
+    @testset "Gallery overview is user-facing" begin
+        gallery = gallery_page_text()
+        @test occursin("Every gallery page follows the same pattern", gallery)
+        @test occursin("## Run An Example", gallery)
+        @test !occursin("## Editorial Standard", gallery)
+        @test !occursin("docs_gallery_gate.jl", gallery)
+        @test !occursin("docs_output_snapshots.jl", gallery)
+        @test !occursin("09_docs_gallery_suite.jl", gallery)
     end
 
     @testset "Practitioner guidance follows statistical scale" begin
