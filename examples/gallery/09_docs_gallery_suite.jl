@@ -728,41 +728,48 @@ style_variant_plot(
 
 # 4. Effective-variance fit with x and y uncertainties.
 line_model(x, p) = @. p[1] * x + p[2]
-x_obs = [0.1600, 0.3743, 0.5522, 0.7087, 0.8645, 1.0403, 1.2519,
-         1.5053, 1.7958, 2.1091, 2.4246, 2.7213, 2.9831, 3.2032,
-         3.3854, 3.5437, 3.6982, 3.8702]
-y_obs = [1.3916, 1.6286, 1.7960, 1.9189, 2.0226, 2.1280, 2.2593,
-         2.4549, 2.7506, 3.1234, 3.4764, 3.7327, 3.9024, 4.0345,
-         4.1591, 4.2893, 4.4392, 4.6294]
-sigma_x = fill(0.16, length(x_obs))
-sigma_y_xy = fill(0.10, length(x_obs))
-xy_result = fit_model(line_model, x_obs, y_obs; p0=[0.5, 0.5], sigma_y=sigma_y_xy, sigma_x=sigma_x)
+x_obs = [0.2240, 0.3698, 0.6835, 0.8413, 0.9811, 1.2948,
+         1.4586, 1.7364, 1.8641, 2.0579, 2.3356, 2.5954,
+         2.7172, 2.9949, 3.1047, 3.3885, 3.6362, 3.7640]
+y_obs = [1.450, 1.694, 1.838, 1.978, 2.218, 2.366,
+         2.502, 2.746, 2.946, 3.066, 3.274, 3.490,
+         3.618, 3.774, 4.014, 4.218, 4.322, 4.530]
+sigma_x = fill(0.050, length(x_obs))
+sigma_y_xy = fill(0.033, length(x_obs))
+xy_result = fit_model(
+    line_model,
+    x_obs,
+    y_obs;
+    p0=[0.8, 1.2],
+    sigma_y=sigma_y_xy,
+    sigma_x=sigma_x,
+)
 emit_doc_output_snapshot("xy_uncertainties") do
-    slope, intercept = xy_result.params
-    sigma_slope, sigma_intercept = xy_result.param_stderr
-
-    println("m = ", slope, " +/- ", sigma_slope)
-    println("b = ", intercept, " +/- ", sigma_intercept)
+    println(report_text(xy_result; parameter_names=["m", "b"]))
     println(diagnostic_dashboard_text(xy_result))
 end
 style_variant_plot(
     xy_result,
     "xy_uncertainties";
     plain=(
-        title="XY uncertainty propagation",
-        model_label="y = m x + b",
-        xlabel="x_meas",
-        ylabel="y_meas",
+        title="Calibration with x and y uncertainty",
+        model_label="U(x) = m x + b",
+        xlabel="measured position",
+        xunit="mm",
+        ylabel="measured voltage",
+        yunit="V",
         parameter_names=["m", "b"],
         latex_labels=false,
         latex_stats=false,
         band_label="1σ prediction band",
     ),
     latex=(
-        title=L"\mathrm{XY\ uncertainty\ propagation}",
-        model_label=L"y=m x+b",
+        title=L"\mathrm{Calibration\ with\ x\ and\ y\ uncertainty}",
+        model_label=L"U(x)=m x+b",
         xlabel=L"x_\mathrm{meas}",
-        ylabel=L"y_\mathrm{meas}",
+        xunit=L"\mathrm{mm}",
+        ylabel=L"U_\mathrm{meas}",
+        yunit=L"\mathrm{V}",
         parameter_names=[L"m", L"b"],
         latex_labels=true,
         latex_stats=true,

@@ -70,6 +70,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Linear Calibration now identifies its controlled, deliberately imperfect
   dataset, saves directly from the complete page code, reports parameter units,
   and no longer exposes the internal gallery asset generator.
+- XY Uncertainties now uses an explicit dimensioned record whose x-resolution
+  contribution is scientifically relevant without overwhelming the residual
+  model. Its real fit has ``\chi^2/\mathrm{ndf}=0.954`` and an `ok` diagnostic,
+  and the page includes the complete saved plot rather than referring to hidden
+  asset-generation code.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
   `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do

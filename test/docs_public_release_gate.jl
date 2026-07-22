@@ -207,6 +207,16 @@ end
         @test !occursin("09_docs_gallery_suite.jl", calibration)
     end
 
+    @testset "XY uncertainty tutorial isolates its statistical lesson" begin
+        xy = public_file_text(joinpath(DOCS_SRC, "gallery", "xy_uncertainties.md"))
+        @test occursin("sigma_x = fill(0.050", xy)
+        @test occursin("sigma_U = fill(0.033", xy)
+        @test occursin("filename=\"xy_uncertainties.pdf\"", xy)
+        @test occursin("status = ok - no immediate issue", xy)
+        @test occursin("\\mathrm{V\\,mm^{-1}}", xy)
+        @test !occursin("asset generator", lowercase(xy))
+    end
+
     @testset "Architecture page uses the package likelihood scale" begin
         architecture = architecture_page_text()
         @test occursin("appropriate ``-2\\log L`` objective", architecture)
