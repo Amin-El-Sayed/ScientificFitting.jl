@@ -1,9 +1,9 @@
 # Full Covariance
 
-This workflow fits an exponential decay when neighboring measurements share
+This workflow fits a detector-voltage transient when neighboring samples share
 readout noise. The essential point is that correlated uncertainty changes the
-statistical problem. A dense covariance matrix is not a prettier way to draw
-error bars; it tells the fit which residual patterns are plausible together.
+statistical problem. A covariance matrix is not a prettier way to draw error
+bars; it tells the fit which residual patterns are plausible together.
 
 ```@raw html
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="lab" src="../assets/gallery/full_covariance_decay_lab_light.png" alt="Full covariance exponential fit in lab style">
@@ -16,16 +16,18 @@ error bars; it tells the fit which residual patterns are plausible together.
 
 ## Question
 
-A decaying signal is sampled repeatedly with the same readout chain. Neighboring
+A decaying voltage is sampled repeatedly with the same readout chain. Neighboring
 points are not independent because baseline drift, electronics, or smoothing in
 the acquisition system affects several samples at once. The scientific question
 is:
 
 ```math
-y(t) = A e^{-\lambda t} + C,
+U(t) = A e^{-\lambda t} + C,
 ```
 
-with parameter uncertainties that account for correlated residuals.
+where ``A`` and ``C`` are voltages and the positive decay rate ``\lambda`` has
+units ``\mathrm{s^{-1}}``. The parameter uncertainties must account for the
+correlated residuals.
 
 If the correlations are ignored, the fit can look artificially precise. Many
 small residuals in the same direction do not provide as much independent
@@ -33,8 +35,8 @@ information as the same number of uncorrelated residuals.
 
 ## Data and Covariance
 
-The documentation example uses a controlled decay dataset with a known
-correlation length. Think of each point as containing two kinds of uncertainty:
+The record below is controlled and deliberately imperfect, with a known
+correlation time. Each point contains two distinct kinds of uncertainty:
 
 - a local statistical part, such as readout noise that changes independently
   from sample to sample,
@@ -43,16 +45,30 @@ correlation length. Think of each point as containing two kinds of uncertainty:
 
 If two points are close in acquisition order, they see more of the same shared
 disturbance. If they are far apart, the shared disturbance has mostly changed.
-The compact model used here is
+The compact model used here keeps those contributions separate:
 
 ```math
-V_{ij} = \sigma^2 \exp\!\left(-\frac{|i-j|}{\ell}\right).
+V_{ij}
+= \sigma_\mathrm{stat}^2\,\delta_{ij}
++ \sigma_\mathrm{corr}^2
+  \exp\!\left(-\frac{|t_i-t_j|}{\tau_\mathrm{corr}}\right).
 ```
 
-The parameter ``\ell`` is a correlation length in sample-index units. At
-``|i-j|=0`` the covariance is the variance ``\sigma^2``. At separations much
-larger than ``\ell``, the covariance becomes small and the points behave nearly
-independently.
+The Kronecker delta ``\delta_{ij}`` puts the local variance only on the diagonal.
+The exponential term represents the disturbance shared by nearby samples. In
+this record,
+
+```math
+\sigma_\mathrm{stat}=0.018\,\mathrm{V},\qquad
+\sigma_\mathrm{corr}=0.035\,\mathrm{V},\qquad
+\tau_\mathrm{corr}=0.28\,\mathrm{s}.
+```
+
+The marginal uncertainty of one point is therefore
+``\sqrt{\sigma_\mathrm{stat}^2+\sigma_\mathrm{corr}^2}=0.0394\,\mathrm{V}``,
+but adjacent points have correlation coefficient ``\rho\approx0.52``. Two
+neighboring residuals with the same sign are consequently less surprising than
+they would be for independent ``0.0394\,\mathrm{V}`` errors.
 
 This is a useful first model when the acquisition chain has a finite memory:
 baseline estimates, smoothing filters, thermal drift, or slowly varying
@@ -62,14 +78,17 @@ for example, is a systematic effect that should usually be propagated to the
 final result or represented by a separate nuisance parameter, not hidden inside
 this short-range covariance matrix.
 
-A quick sketch of the idea is:
+A three-sample sketch shows what the two terms do:
 
 ```math
-\begin{array}{c|cccc}
-|i-j| & 0 & 1 & 2 & \ldots \\
-\hline
-V_{ij}/\sigma^2 & 1 & e^{-1/\ell} & e^{-2/\ell} & \ldots
-\end{array}
+V =
+\underbrace{\sigma_\mathrm{stat}^2
+\begin{pmatrix}1&0&0\\0&1&0\\0&0&1\end{pmatrix}}_{\text{independent readout}}
++
+\underbrace{\sigma_\mathrm{corr}^2
+\begin{pmatrix}1&\rho_1&\rho_2\\\rho_1&1&\rho_1\\\rho_2&\rho_1&1\end{pmatrix}}_{\text{shared disturbance}},
+\qquad
+\rho_k=e^{-\Delta t_k/\tau_\mathrm{corr}}.
 ```
 
 ## Model and Cost
@@ -99,8 +118,8 @@ V = L L^\mathsf{T},
 
 The dense path is appropriate for small and medium datasets where the full
 matrix is meaningful and affordable. It has ``O(n^2)`` memory cost and an
-``O(n^3)`` factorization cost, so huge correlated datasets should eventually use
-structured covariance or custom whitening operators rather than dense matrices.
+``O(n^3)`` factorization cost, so huge correlated datasets should use a
+structured or problem-specific `WhiteningOperator` rather than a dense matrix.
 
 ## Fit
 
@@ -108,6 +127,7 @@ This is the complete code for the documentation example:
 
 ```julia
 using JuFitter
+using CairoMakie
 using LinearAlgebra
 
 # Measured decay samples. The values are listed explicitly because the fit
@@ -115,71 +135,124 @@ using LinearAlgebra
 t = [0.0, 0.1190, 0.2381, 0.3571, 0.4762, 0.5952, 0.7143, 0.8333,
      0.9524, 1.0714, 1.1905, 1.3095, 1.4286, 1.5476, 1.6667, 1.7857,
      1.9048, 2.0238, 2.1429, 2.2619, 2.3810, 2.5]
-y = [2.25155, 2.00932, 1.79547, 1.60660, 1.44018, 1.29422, 1.16695,
-     1.05651, 0.96079, 0.87740, 0.80381, 0.73758, 0.67658, 0.61929,
-     0.56494, 0.51354, 0.46572, 0.42253, 0.38510, 0.35431, 0.33052,
-     0.31346]
+y = [2.16623, 1.90464, 1.68827, 1.57828, 1.34449, 1.22904, 1.10101,
+     1.05791, 0.97363, 0.88257, 0.81542, 0.74456, 0.67276, 0.60263,
+     0.56175, 0.50169, 0.49266, 0.42593, 0.41237, 0.41891, 0.39254,
+     0.32576]
 
 # Neighboring samples share a readout chain, so the uncertainty model is a
 # covariance matrix instead of independent error bars.
 n = length(t)
-base_sigma = 0.055
-correlation_length = 2.3
+sigma_stat = 0.018
+sigma_corr = 0.035
+correlation_time = 0.28
 
-cov_y = [
-    base_sigma^2 * exp(-abs(i - j) / correlation_length)
+cov_U = [
+    sigma_stat^2 * (i == j) +
+    sigma_corr^2 * exp(-abs(t[i] - t[j]) / correlation_time)
     for i in 1:n, j in 1:n
 ]
 
-decay_model(t, p) = @. p[1] * exp(p[2] * t) + p[3]
+decay_model(t, p) = @. p[1] * exp(-p[2] * t) + p[3]
 
 result = fit_model(
     decay_model,
     t,
     y;
-    p0=[1.5, -0.7, 0.0],
-    cov_y=cov_y,
+    p0=[1.8, 0.8, 0.1],
+    cov_y=cov_U,
 )
 
-amplitude, decay_rate, offset = result.params
-sigma_amplitude, sigma_decay_rate, sigma_offset = result.param_stderr
+# This deliberately incomplete comparison keeps only the diagonal variances.
+diagonal_result = fit_model(
+    decay_model,
+    t,
+    y;
+    p0=[1.8, 0.8, 0.1],
+    sigma_y=sqrt.(diag(cov_U)),
+)
 
-println("A = ", amplitude, " +/- ", sigma_amplitude)
-println("lambda = ", -decay_rate, " +/- ", sigma_decay_rate)
-println("C = ", offset, " +/- ", sigma_offset)
+plot_fit(
+    result;
+    title="Correlated detector decay",
+    model_label="U(t) = A exp(-λ t) + C",
+    xlabel="time",
+    xunit="s",
+    ylabel="detector voltage",
+    yunit="V",
+    parameter_names=["A", "lambda", "C"],
+    band=:prediction,
+    nsigma=1,
+    band_label="1σ prediction band",
+    show_legend=true,
+    stats_position=:right,
+    stats_mode=:full,
+    filename="full_covariance_decay.pdf",
+)
+
+println(report_text(result; parameter_names=["A", "lambda", "C"]))
 println(diagnostic_dashboard_text(result))
+println()
+println("Diagonal-only comparison")
+println("lambda = ", diagonal_result.params[2],
+        " +/- ", diagonal_result.param_stderr[2], " s^-1")
+println("chi2/ndf = ", diagonal_result.stats.chi2_ndf)
+println(diagnostic_dashboard_text(diagonal_result))
 ```
 
 ```@raw html
 <div class="jufitter-cell-output">
 <div class="jufitter-cell-output-label">Real output (abridged)</div>
-<pre>A = 2.0987750476512956 +/- 0.09109589472907365
-lambda = 0.9956123089992535 +/- 0.10600822134107704
-C = 0.14759627451357205 +/- 0.08708023506916575
+<pre>Fit report
+backend = lsqfit
+converged = true
+iterations = unavailable
+message = Converged with LsqFit
+
+Parameters:
+  A = 1.93938 +/- 0.0589119
+  lambda = 1.03103 +/- 0.0791039
+  C = 0.209571 +/- 0.0562024
+
+Statistics:
+  cost = chi2
+  cost_min = 14.2868
+  minus2loglik_min = -94.3457
+  chi2 = 14.2868
+  ndf = 19
+  chi2/ndf = 0.751937
+  pvalue = 0.766723
+  AIC = -88.3457
+  BIC = -85.0725
 
 Fit diagnostic dashboard
+status = ok - no immediate issue
+critical = 0, warning = 0, info = 0
+No major diagnostic issues detected by the current checks.
+No next action required by the current diagnostic checks.
+
+Diagonal-only comparison
+lambda = 1.003076358513358 +/- 0.05572527436830675 s^-1
+chi2/ndf = 0.5297614781491077
+Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 5, info = 0
-5 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 1, info = 0
+1 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
-  2. The uncertainties may be too large, correlations may be ignored, or the data may not be independent.
-  3. Inspect this acquisition interval for drift, missing model structure, a calibration offset, or correlated uncertainty.
-  4. Look for missing curvature, drift, hysteresis, time dependence, or an incorrect independent variable transformation.
-  5. Uncertainties may be overestimated, correlations may be ignored, or the data may have been smoothed/averaged.</pre>
+  1. Inspect this acquisition interval for drift, missing model structure, a calibration offset, or correlated uncertainty.</pre>
 </div>
 ```
 
-The gallery figure is generated from the same result. It shows a 1-sigma
-prediction band, not only the model uncertainty. The side report lists the
-parameters and goodness-of-fit values computed from the full covariance model.
+The visible 1σ prediction band combines parameter uncertainty with the
+marginal observation uncertainty. The side report lists the parameters and
+goodness-of-fit values computed from the full covariance model.
 
 ## Diagnostics
 
 For a full-covariance fit, inspect more than the parameter table:
 
-- Verify that `cov_y` is symmetric and positive definite. Invalid covariance
+- Verify that `cov_U` is symmetric and positive definite. Invalid covariance
   matrices are scientific input errors, not style warnings.
 - Compare the fitted parameters with a diagonal-error fit only as a diagnostic.
   Agreement in central values does not mean the uncertainties are equivalent.
@@ -190,33 +263,36 @@ For a full-covariance fit, inspect more than the parameter table:
   acquisition process. A mathematically valid matrix is not automatically a
   physically valid uncertainty model.
 
-The diagnostic dashboard should be treated as a first pass. If it reports a
-review condition, inspect the residual structure and the covariance assumptions
-before publishing the fit.
+The full-covariance dashboard reports `ok`; the diagonal-only comparison reports
+`review` because its supposedly independent residuals retain a long same-sign
+run. The dashboard is still only a first pass. Instrument knowledge must justify
+the covariance model before the fitted uncertainties are publishable.
 
 ## Interpretation
 
-The fitted amplitude ``A`` and offset ``C`` describe the scale and baseline of
-the signal. The decay rate is reported as ``\lambda = -p_2`` because the model
-uses ``A\exp(p_2 t)+C`` with a negative fitted exponent.
+The fitted amplitude ``A`` and offset ``C`` describe the voltage scale and
+baseline. The model uses a positive physical decay rate directly as
+``A\exp(-\lambda t)+C``; no sign conversion is hidden in the report or plot.
 
 For the dataset shown here, the fit gives approximately
 
 ```math
-A = 2.10 \pm 0.09,\qquad
-\lambda = 1.00 \pm 0.11,\qquad
-C = 0.15 \pm 0.09.
+A = (1.939 \pm 0.059)\,\mathrm{V},\qquad
+\lambda = (1.031 \pm 0.079)\,\mathrm{s^{-1}},\qquad
+C = (0.210 \pm 0.056)\,\mathrm{V}.
 ```
 
-The parameter covariance now includes the assumed point-to-point correlation.
-That does not make the uncertainty automatically larger in every parameter, but
-it changes which residual patterns count as independent evidence. This is the
-main reason to use the full matrix instead of independent error bars.
+The full-covariance result has ``\chi^2/\mathrm{ndf}=0.752`` and
+``P(\chi^2)=0.767``. Its local uncertainty on the decay rate is
+``0.079\,\mathrm{s^{-1}}``. Keeping the same marginal error bars but discarding
+their off-diagonal covariance gives ``0.056\,\mathrm{s^{-1}}`` and a structured
+residual warning. In this record, the diagonal approximation therefore
+understates the decay-rate uncertainty by about 30%.
 
-For the controlled dataset shown here, the dashboard usually asks for review
-because the residual pattern is smooth. That is scientifically useful: a
-covariance matrix can account for known correlation, but it does not prove that
-the exponential model captures every systematic feature of the data.
+That direction and size are not universal. Correlations can affect different
+parameter combinations differently. The invariant point is that off-diagonal
+terms determine how much independent evidence a residual pattern contains; they
+cannot be reconstructed from error-bar lengths after the fit.
 
 ## What Can Go Wrong
 

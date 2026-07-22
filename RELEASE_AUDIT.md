@@ -75,6 +75,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   model. Its real fit has ``\chi^2/\mathrm{ndf}=0.954`` and an `ok` diagnostic,
   and the page includes the complete saved plot rather than referring to hidden
   asset-generation code.
+- Full Covariance now separates local readout variance from a finite-time
+  correlated component, uses a positive physical decay-rate parameter
+  consistently in code, report, and plot, and compares the full matrix with a
+  deliberately incomplete diagonal treatment. The displayed output and six
+  style assets come from the same fit; the full model has
+  ``\chi^2/\mathrm{ndf}=0.752`` and an `ok` diagnostic, while the diagonal
+  approximation visibly understates the local parameter errors.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
   `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do
@@ -148,14 +155,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  244 checks. The gate enforces the current release standard for every public
+  249 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 562 checks. The gate first verifies that every page in the public
+  with 581 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API

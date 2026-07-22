@@ -135,4 +135,11 @@ end
     )
         @test occursin("<strong>$(step)</strong>", overview)
     end
+
+    full_covariance = read(joinpath(GALLERY_SRC, "full_covariance.md"), String)
+    @test occursin("exp(-p[2] * t)", full_covariance)
+    @test !occursin("exp(p[2] * t)", full_covariance)
+    @test occursin("sigma_stat^2 * (i == j)", full_covariance)
+    @test occursin("sigma_corr^2 * exp", full_covariance)
+    @test occursin("filename=\"full_covariance_decay.pdf\"", full_covariance)
 end

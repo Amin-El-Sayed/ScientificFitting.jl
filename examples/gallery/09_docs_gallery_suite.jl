@@ -672,45 +672,60 @@ end
 x_cov = [0.0, 0.1190, 0.2381, 0.3571, 0.4762, 0.5952, 0.7143, 0.8333,
          0.9524, 1.0714, 1.1905, 1.3095, 1.4286, 1.5476, 1.6667, 1.7857,
          1.9048, 2.0238, 2.1429, 2.2619, 2.3810, 2.5]
-y_cov = [2.25155, 2.00932, 1.79547, 1.60660, 1.44018, 1.29422, 1.16695,
-         1.05651, 0.96079, 0.87740, 0.80381, 0.73758, 0.67658, 0.61929,
-         0.56494, 0.51354, 0.46572, 0.42253, 0.38510, 0.35431, 0.33052,
-         0.31346]
-decay_model(x, p) = @. p[1] * exp(p[2] * x) + p[3]
+y_cov = [2.16623, 1.90464, 1.68827, 1.57828, 1.34449, 1.22904, 1.10101,
+         1.05791, 0.97363, 0.88257, 0.81542, 0.74456, 0.67276, 0.60263,
+         0.56175, 0.50169, 0.49266, 0.42593, 0.41237, 0.41891, 0.39254,
+         0.32576]
+decay_model(x, p) = @. p[1] * exp(-p[2] * x) + p[3]
 n = length(x_cov)
-base_sigma = 0.055
-corr_len = 2.3
-cov_y = [base_sigma^2 * exp(-abs(i - j) / corr_len) for i in 1:n, j in 1:n]
-cov_result = fit_model(decay_model, x_cov, y_cov; p0=[1.5, -0.7, 0.0], cov_y=cov_y)
+sigma_stat = 0.018
+sigma_corr = 0.035
+correlation_time = 0.28
+cov_y = [
+    sigma_stat^2 * (i == j) +
+    sigma_corr^2 * exp(-abs(x_cov[i] - x_cov[j]) / correlation_time)
+    for i in 1:n, j in 1:n
+]
+cov_result = fit_model(decay_model, x_cov, y_cov; p0=[1.8, 0.8, 0.1], cov_y=cov_y)
+diagonal_cov_result = fit_model(
+    decay_model,
+    x_cov,
+    y_cov;
+    p0=[1.8, 0.8, 0.1],
+    sigma_y=sqrt.(diag(cov_y)),
+)
 emit_doc_output_snapshot("full_covariance") do
-    amplitude, decay_rate, offset = cov_result.params
-    sigma_amplitude, sigma_decay_rate, sigma_offset = cov_result.param_stderr
-
-    println("A = ", amplitude, " +/- ", sigma_amplitude)
-    println("lambda = ", -decay_rate, " +/- ", sigma_decay_rate)
-    println("C = ", offset, " +/- ", sigma_offset)
+    println(report_text(cov_result; parameter_names=["A", "lambda", "C"]))
     println(diagnostic_dashboard_text(cov_result))
+    println()
+    println("Diagonal-only comparison")
+    println("lambda = ", diagonal_cov_result.params[2],
+            " +/- ", diagonal_cov_result.param_stderr[2], " s^-1")
+    println("chi2/ndf = ", diagonal_cov_result.stats.chi2_ndf)
+    println(diagnostic_dashboard_text(diagonal_cov_result))
 end
 style_variant_plot(
     cov_result,
     "full_covariance_decay";
     plain=(
-        title="Correlated decay data",
-        model_label="y(t) = A exp(-λ t) + C",
-        xlabel="t",
+        title="Correlated detector decay",
+        model_label="U(t) = A exp(-λ t) + C",
+        xlabel="time",
         xunit="s",
-        ylabel="signal",
+        ylabel="detector voltage",
+        yunit="V",
         parameter_names=["A", "λ", "C"],
         latex_labels=false,
         latex_stats=false,
         band_label="1σ prediction band",
     ),
     latex=(
-        title=L"\mathrm{Correlated\ decay\ data}",
-        model_label=L"y(t)=A e^{-\lambda t}+C",
+        title=L"\mathrm{Correlated\ detector\ decay}",
+        model_label=L"U(t)=A e^{-\lambda t}+C",
         xlabel=L"t",
         xunit=L"\mathrm{s}",
-        ylabel=L"signal",
+        ylabel=L"U",
+        yunit=L"\mathrm{V}",
         parameter_names=[L"A", L"\lambda", L"C"],
         latex_labels=true,
         latex_stats=true,
