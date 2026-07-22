@@ -199,6 +199,14 @@ end
         @test !occursin("09_docs_gallery_suite.jl", gallery)
     end
 
+    @testset "Linear calibration is self-contained and dimensioned" begin
+        calibration = public_file_text(joinpath(DOCS_SRC, "gallery", "linear_calibration.md"))
+        @test occursin("controlled calibration record", calibration)
+        @test occursin("filename=\"linear_calibration.pdf\"", calibration)
+        @test occursin("\\mathrm{V\\,mm^{-1}}", calibration)
+        @test !occursin("09_docs_gallery_suite.jl", calibration)
+    end
+
     @testset "Architecture page uses the package likelihood scale" begin
         architecture = architecture_page_text()
         @test occursin("appropriate ``-2\\log L`` objective", architecture)

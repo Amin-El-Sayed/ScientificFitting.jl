@@ -1,6 +1,6 @@
 # Linear Calibration
 
-This is the smallest useful JuFitter workflow: measured calibration points,
+This is the smallest useful JuFitter workflow: explicit calibration points,
 point-by-point uncertainties, a weighted fit, and a plot that states exactly
 what its uncertainty band means.
 
@@ -29,14 +29,12 @@ diagnostics, and a plot whose band has a defined statistical meaning.
 
 ## Data
 
-The arrays below are written explicitly, as they would be in a small lab
-notebook after reading a CSV or typing values from an instrument log. The
-uncertainties are one-standard-deviation voltage uncertainties. They grow
-slightly with position because the measurement range and readout scatter grow
-with the signal.
-
-The example intentionally does not hide a data generator in the code cell. A
-reader should see exactly which observations are fitted.
+This controlled calibration record is designed to be realistic rather than
+perfect: it contains heteroscedastic uncertainty and a weak smooth residual
+pattern. The observations are written explicitly, as they would be after
+reading a small instrument log. The quoted uncertainties are
+one-standard-deviation voltage uncertainties; they grow slightly with position
+because the readout scatter grows with the signal.
 
 ## Model and Cost
 
@@ -100,6 +98,7 @@ plot_fit(
     show_legend=true,
     stats_position=:right,
     stats_mode=:full,
+    filename="linear_calibration.pdf",
 )
 
 println(report_text(result; parameter_names=["m", "b"]))
@@ -142,12 +141,6 @@ Next actions:
 </div>
 ```
 
-## Run It
-
-```bash
-julia --project=docs examples/gallery/09_docs_gallery_suite.jl
-```
-
 ## Diagnostics
 
 The fit converges and the goodness-of-fit is not suspicious:
@@ -175,11 +168,18 @@ without hiding the fitted numbers.
 
 ## Interpretation
 
-For this dataset the calibration law is approximately
+For this dataset, the fitted sensitivity and offset are
 
 ```math
-U(x) = (1.7039 \pm 0.0097)\,x + (0.8905 \pm 0.0449).
+m = (1.7039 \pm 0.0097)\,\mathrm{V\,mm^{-1}},
+\qquad
+b = (0.8905 \pm 0.0449)\,\mathrm{V}.
 ```
+
+Thus the calibrated relation is ``U(x)=m x+b`` with ``x`` in millimetres. The
+quoted uncertainties are local 1σ parameter uncertainties from the weighted
+linear model; they do not include an unmodelled common gain or offset
+systematic.
 
 The plotted 1-sigma prediction band answers: where would a new observation be
 expected under the fitted model and stated voltage uncertainty? It is wider

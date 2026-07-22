@@ -67,6 +67,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The public architecture walkthrough now describes likelihood objectives and
   stored minima on the same explicit ``-2\log L`` scale as the implementation,
   Hessian covariance, profile thresholds, and information criteria.
+- Linear Calibration now identifies its controlled, deliberately imperfect
+  dataset, saves directly from the complete page code, reports parameter units,
+  and no longer exposes the internal gallery asset generator.
 - Compound gallery figures for Poisson counts, histogram likelihoods, damped
   oscillation, and multi-dataset fits now use the same natural-width
   `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do
