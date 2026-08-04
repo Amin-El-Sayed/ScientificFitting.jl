@@ -483,6 +483,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `CairoMakie.contour`/`JuFitter.contour` export ambiguity by qualifying the
   documented call. The full docs build, public-hygiene, source-link, and
   rendered-link gates pass.
+- The `Statistical Foundations` audit found and corrected a joint
+  goodness-of-fit inconsistency for constrained likelihood fits. Poisson,
+  histogram, and custom likelihood results now add Gaussian parameter-prior and
+  correlated-constraint residuals to the supplied data goodness statistic,
+  matching the auxiliary observations already counted in `ndf`. Analytic
+  Poisson-plus-calibration reference cases cover scalar and correlated
+  auxiliary data, `chi2`, `chi2/ndf`, and the resulting p-value. The page also
+  states the static-covariance contract of
+  `WhiteningOperator`, the diagonal pointwise x-error linearization, and the
+  conditional interpretation of custom objectives as normalized `-2 log L`.
 - Technical maintenance pages remain in the rendered documentation, but they
   are nested under `Reference > Technical Notes` rather than appearing as a
   top-level user path. The public documentation hygiene gate now prevents a

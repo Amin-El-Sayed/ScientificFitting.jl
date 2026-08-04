@@ -186,6 +186,9 @@ The operation is ``O(n)`` although the equivalent dense matrix contains
 `WhiteningOperator` accepts the whitening operation and ``\log\det V``. The
 log determinant does not change a static chi-square minimum, but it is required
 for a normalized Gaussian likelihood and comparable information criteria.
+The operator represents one complete, static observation covariance. A
+parameter-dependent covariance needs a parameter-dependent likelihood path;
+one fixed whitening operation and one fixed log determinant cannot describe it.
 Before using a custom operator at scale, verify ``\lVert Wr\rVert^2`` and
 ``\log\det V`` against a small dense reference problem.
 
@@ -251,6 +254,11 @@ x and y errors,
 \left(\frac{\partial f}{\partial x}\right)^2
 \sigma_{x,i}^2.
 ```
+
+JuFitter's pointwise propagation uses the diagonal matrix
+``J_x=\operatorname{diag}(\partial f(x_i,\theta)/\partial x_i)``. Correlations
+within ``V_x`` are retained, but cross-covariance between measured x and y is
+not represented by this approximation.
 
 For a local slope of ``3``, ``\sigma_x=0.2``, and ``\sigma_y=0.4``, the x error
 alone contributes ``0.6`` in y units and
@@ -349,6 +357,11 @@ parameter terms as one auxiliary observation and a correlated constraint on
 when those terms represent independent calibration measurements. If they are
 subjective priors, interpreting the resulting `ndf` as a frequentist degree of
 freedom is not justified.
+
+For likelihood fits with an explicit goodness-of-fit statistic, Gaussian
+auxiliary terms contribute both their quadratic residuals to that statistic and
+their dimensions to `ndf`. Counting the calibration observation without its
+discrepancy, or vice versa, would produce an internally inconsistent p-value.
 
 When ``\mathrm{ndf}\le 0``, reduced statistics and chi-square p-values are not
 meaningful. JuFitter returns `NaN` for them and reports the problem rather than
@@ -653,7 +666,7 @@ The result fields follow these conventions:
 | field | meaning |
 | --- | --- |
 | `stats.cost_min` | minimized selected cost |
-| `stats.minus2loglik_min` | normalized Gaussian or selected likelihood cost on the ``-2\log L`` scale |
+| `stats.minus2loglik_min` | selected objective value; a normalized ``-2\log L`` only when the wrapper or custom objective supplies that convention |
 | `stats.chi2` | Gaussian chi-square or Poisson deviance; `NaN` when no generic statistic exists |
 | `stats.chi2_ndf` | chi-square-like statistic divided by positive ndf |
 | `stats.pvalue` | upper-tail chi-square approximation where defined |

@@ -3,7 +3,10 @@
 
 Low-level public problem representation for likelihood and custom-objective
 fits. `objective(p)` is minimized directly, while optional `gof(p)` supplies a
-chi-square-like goodness-of-fit statistic for reduced statistics and p-values.
+chi-square-like data goodness-of-fit statistic for reduced statistics and
+p-values. JuFitter adds the chi-square contributions from Gaussian parameter
+terms to that statistic, matching their treatment as auxiliary observations in
+the degrees of freedom.
 For covariance, profile thresholds, and information criteria to have their
 documented interpretation, `objective` must use the `-2 log(L)` scale.
 Most users should prefer `fit_poisson_model`, `fit_histogram_model`,
@@ -121,8 +124,14 @@ function _likelihood_cost(cache::LikelihoodEvaluationCache, p::AbstractVector)
            _parameter_constraint_minus2loglik(cache.parameter_constraints, p)
 end
 
-function _likelihood_gof(problem::LikelihoodFitProblem, p::AbstractVector)
-    return problem.gof === nothing ? NaN : Float64(problem.gof(p))
+function _likelihood_gof(cache::LikelihoodEvaluationCache, p::AbstractVector)
+    problem = cache.problem
+    problem.gof === nothing && return NaN
+    return Float64(
+        problem.gof(p) +
+        _prior_chi2(problem, p) +
+        _parameter_constraint_chi2(cache.parameter_constraints, p),
+    )
 end
 
 function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOptions)
@@ -180,7 +189,7 @@ function _build_likelihood_result(
 )
     cache = _prepare_likelihood_cache(problem)
     cost_min = Float64(_likelihood_cost(cache, params))
-    gof = _likelihood_gof(problem, params)
+    gof = _likelihood_gof(cache, params)
     nconstraint_obs = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
     nobs = problem.nobs + length(problem.parameter_priors) + nconstraint_obs
     npar = length(_free_indices(problem))
