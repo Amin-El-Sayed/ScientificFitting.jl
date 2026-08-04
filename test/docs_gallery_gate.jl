@@ -174,4 +174,23 @@ end
         gallery_generator,
     )
     @test !occursin("h_fit = emission_slope *", gallery_generator)
+    @test occursin("JUFITTER_RENDER_DOC_ASSETS", gallery_generator)
+    @test occursin("JUFITTER_DOC_ASSET_GROUP", gallery_generator)
+    @test occursin("observed_density = counts ./ widths", gallery_generator)
+    @test occursin("expected_density = expected ./ widths", gallery_generator)
+    @test !occursin("background = result.params[4] .* widths", gallery_generator)
+
+    for script_name in (
+        "05_constraints_priors_profiles.jl",
+        "06_likelihood_workflows.jl",
+    )
+        script = read(joinpath(ROOT, "examples", "gallery", script_name), String)
+        @test occursin("using CairoMakie", script)
+    end
+
+    constraints_script = read(
+        joinpath(ROOT, "examples", "gallery", "05_constraints_priors_profiles.jl"),
+        String,
+    )
+    @test occursin("JuFitter.contour(", constraints_script)
 end

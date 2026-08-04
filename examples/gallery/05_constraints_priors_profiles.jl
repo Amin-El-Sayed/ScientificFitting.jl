@@ -1,3 +1,4 @@
+using CairoMakie
 using JuFitter
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
@@ -32,7 +33,7 @@ fit = fitplot(
 result = fit.result
 prof = profile(result, 1; npoints=61, nsigma=4)
 interval = profile_interval(result, 1; npoints=81, nsigma=4)
-cont = contour(result, 1, 2; npoints=121, nsigma=4)
+cont = JuFitter.contour(result, 1, 2; npoints=121, nsigma=4)
 
 plot_profile(
     prof;

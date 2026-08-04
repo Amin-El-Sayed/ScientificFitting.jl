@@ -7,9 +7,9 @@ windows and a pulse-height spectrum collected in unequal bins.
 
 ## Question One: What Is The Half-Life?
 
-A detector records the number of events in a 10-second acquisition window once
-per minute. The source activity decays, but the detector also sees an
-approximately constant background:
+The first controlled record represents a detector that counts events in a
+10-second acquisition window once per minute. The source activity decays, but
+the detector also sees an approximately constant background:
 
 ```math
 \mu(t) = S_0 e^{-\lambda t} + B.
@@ -42,10 +42,12 @@ parameter uncertainty.
 
 ## Data
 
-The count arrays are listed explicitly in the fit sections. The first dataset is
-a short radioactive-decay count series with a low-count tail. The second is an
-unequally binned pulse-height spectrum with one empty bin. Both features are
-intentional: they are exactly where Gaussian error-bar shortcuts become
+The count arrays are listed explicitly in the fit sections. They are controlled
+teaching records, not measurements attributed to a particular isotope or
+detector campaign. No hidden random generator is involved: the listed integers
+are the complete input. The first series has a low-count tail; the second is an
+unequally binned pulse-height spectrum with one empty bin. Those features are
+intentional because they expose where Gaussian error-bar shortcuts become
 misleading.
 
 A one-bin sanity check shows why this matters. If the model predicts
@@ -66,6 +68,12 @@ For independent counts,
 ```math
 n_i \sim \operatorname{Poisson}(\mu_i).
 ```
+
+This statement carries experimental assumptions. Acquisition windows must be
+disjoint, events independent, exposure and efficiency known, and the background
+stable. Substantial dead time, pile-up, clustering, or an unmodelled exposure
+change breaks the model. If exposure differs between windows, that exposure
+belongs inside each ``\mu_i`` rather than in an after-the-fact rescaling.
 
 `fit_poisson_model` minimizes twice the negative log-likelihood:
 
@@ -119,6 +127,7 @@ experiment.
 
 ```julia
 using JuFitter
+using Printf
 
 time_min = collect(0.0:1.0:18.0)
 counts = [
@@ -147,18 +156,21 @@ sigma_lambda = decay_result.param_stderr[2]
 half_life = log(2) / lambda
 sigma_half_life = log(2) * sigma_lambda / lambda^2
 
-println("half-life = ", half_life, " +/- ", sigma_half_life, " min")
-println("deviance/ndf = ", decay_result.stats.chi2_ndf)
-println("P(D) = ", decay_result.stats.pvalue)
+@printf("half-life = %.3f +/- %.3f min\n", half_life, sigma_half_life)
+@printf("background = %.3f +/- %.3f counts per 10 s\n",
+        decay_result.params[3], decay_result.param_stderr[3])
+@printf("deviance/ndf = %.3f\n", decay_result.stats.chi2_ndf)
+@printf("P(D) = %.3f\n", decay_result.stats.pvalue)
 println(diagnostic_dashboard_text(decay_result))
 ```
 
 ```@raw html
 <div class="jufitter-cell-output">
 <div class="jufitter-cell-output-label">Real output (abridged)</div>
-<pre>half-life = 4.234427509199143 +/- 0.862970344023104 min
-deviance/ndf = 1.0149737171631132
-P(D) = 0.43636863300559847
+<pre>half-life = 4.234 +/- 0.863 min
+background = 0.792 +/- 2.189 counts per 10 s
+deviance/ndf = 1.015
+P(D) = 0.436
 
 Fit diagnostic dashboard
 status = ok - no immediate issue
@@ -182,12 +194,14 @@ The result is approximately
 T_{1/2} = 4.23 \pm 0.86\ \mathrm{min}.
 ```
 
-The fitted background is weakly constrained because the acquisition ends with
-only a few low-count windows. Its local symmetric error extends below the
-physical positivity bound, so it should not be reported as the final background
-interval. Inspect a profile and report an asymmetric interval or upper limit in
-a critical analysis. A longer background-only acquisition would improve the
-separation between the decaying signal and detector background.
+The fitted background is ``0.792\pm2.189`` counts per window in the local
+quadratic approximation. That symmetric interval extends below the physical
+positivity bound because the acquisition ends with only a few low-count
+windows. It should not be reported as the final background interval. A profile
+scan asks how far the background can move while the signal parameters are
+refitted; if the lower threshold is cut off by zero, report an asymmetric
+interval or a one-sided upper limit. A longer background-only acquisition would
+separate source and detector background more directly.
 
 The half-life uncertainty above is first-order propagation of the local
 ``\lambda`` covariance. Transform a profile interval for ``\lambda`` when the
@@ -233,10 +247,17 @@ Integrating the model is essential when bins have different widths or the
 density changes significantly across a bin. Evaluating only at bin centers can
 bias the peak position, width, and yield.
 
+The likelihood uses the integrated counts ``\mu_i`` exactly as written above.
+For display only, the upper panel divides observed and expected counts by each
+bin width. The resulting bar area still equals the bin count, while a uniform
+background appears flat instead of becoming artificially taller in wider bins.
+The lower-panel deviance residuals continue to use the original integer counts.
+
 ## Complete Histogram Fit
 
 ```julia
 using JuFitter
+using Printf
 using SpecialFunctions
 
 edges = [0.0, 0.4, 0.9, 1.5, 2.2, 3.0, 4.0, 5.2, 6.6, 8.2, 10.0]
@@ -267,19 +288,28 @@ spectrum_result = fit_histogram_model(
     ],
 )
 
-println("centroid = ", spectrum_result.params[2],
-        " +/- ", spectrum_result.param_stderr[2], " V")
-println("deviance/ndf = ", spectrum_result.stats.chi2_ndf)
-println("P(D) = ", spectrum_result.stats.pvalue)
+@printf("peak yield = %.1f +/- %.1f events\n",
+        spectrum_result.params[1], spectrum_result.param_stderr[1])
+@printf("centroid = %.3f +/- %.3f V\n",
+        spectrum_result.params[2], spectrum_result.param_stderr[2])
+@printf("width = %.3f +/- %.3f V\n",
+        spectrum_result.params[3], spectrum_result.param_stderr[3])
+@printf("background density = %.3f +/- %.3f events/V\n",
+        spectrum_result.params[4], spectrum_result.param_stderr[4])
+@printf("deviance/ndf = %.3f\n", spectrum_result.stats.chi2_ndf)
+@printf("P(D) = %.3f\n", spectrum_result.stats.pvalue)
 println(diagnostic_dashboard_text(spectrum_result))
 ```
 
 ```@raw html
 <div class="jufitter-cell-output">
 <div class="jufitter-cell-output-label">Real output (abridged)</div>
-<pre>centroid = 3.5052733326011354 +/- 0.10294632833399764 V
-deviance/ndf = 1.1394503306696233
-P(D) = 0.336213402280547
+<pre>peak yield = 213.9 +/- 17.3 events
+centroid = 3.505 +/- 0.103 V
+width = 1.270 +/- 0.100 V
+background density = 2.572 +/- 1.035 events/V
+deviance/ndf = 1.139
+P(D) = 0.336
 
 Fit diagnostic dashboard
 status = ok - no immediate issue

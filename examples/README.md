@@ -21,7 +21,8 @@ Generated figures are written to `examples/output/`, which is ignored by git.
 - `08_damped_oscillator_decay.jl`: real damped-oscillator data, x/y
   uncertainties, constant-frequency versus frequency-drift model criticism,
   pull diagnostics, and a style-aware compound figure.
-- `09_docs_gallery_suite.jl`: generates the public documentation gallery assets.
+- `09_docs_gallery_suite.jl`: maintainer-only generator for tracked public
+  documentation assets.
 - `10_multi_dataset_calibration.jl`: tests full versus partial parameter
   sharing across three calibration channels with joint covariance propagation
   and per-dataset pull diagnostics.
@@ -37,6 +38,21 @@ documentation variants with:
 ```bash
 JUFITTER_RENDER_DOC_ASSETS=1 \
     julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
+```
+
+Regenerate the remaining tracked gallery assets intentionally with:
+
+```bash
+JUFITTER_RENDER_DOC_ASSETS=1 \
+    julia --project=docs examples/gallery/09_docs_gallery_suite.jl
+```
+
+During a page-level review, restrict rendering to one named group, for example:
+
+```bash
+JUFITTER_RENDER_DOC_ASSETS=1 \
+JUFITTER_DOC_ASSET_GROUP=histogram_likelihood \
+    julia --project=docs examples/gallery/09_docs_gallery_suite.jl
 ```
 
 ## Python Interoperability

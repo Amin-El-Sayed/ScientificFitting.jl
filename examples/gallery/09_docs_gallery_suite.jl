@@ -1,5 +1,14 @@
 const SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
-const RENDER_DOC_ASSETS = !SNAPSHOT_ONLY
+const RENDER_DOC_ASSETS = !SNAPSHOT_ONLY &&
+    get(ENV, "JUFITTER_RENDER_DOC_ASSETS", "0") == "1"
+const DOC_ASSET_GROUP = strip(get(ENV, "JUFITTER_DOC_ASSET_GROUP", ""))
+
+if !SNAPSHOT_ONLY && !RENDER_DOC_ASSETS
+    throw(ArgumentError(
+        "this maintainer script updates tracked documentation assets; " *
+        "set JUFITTER_RENDER_DOC_ASSETS=1 to run it intentionally",
+    ))
+end
 
 if RENDER_DOC_ASSETS
     using CairoMakie
@@ -12,17 +21,19 @@ using LinearAlgebra
 using Printf
 using SpecialFunctions
 
-const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 
 if RENDER_DOC_ASSETS
-    mkpath(OUTPUT_DIR)
     mkpath(DOC_ASSET_DIR)
 end
 
 function gallery_path(name)
     return joinpath(DOC_ASSET_DIR, name)
+end
+
+function render_asset_group(name::AbstractString)
+    return RENDER_DOC_ASSETS && (isempty(DOC_ASSET_GROUP) || DOC_ASSET_GROUP == name)
 end
 
 function emit_doc_output_snapshot(body::Function, id::AbstractString)
@@ -32,10 +43,6 @@ function emit_doc_output_snapshot(body::Function, id::AbstractString)
     body()
     println("=== JUFITTER_DOC_OUTPUT_END ", id, " ===")
     return nothing
-end
-
-function style_asset_suffix(dark, style::Symbol, appearance::Symbol)
-    return dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
 end
 
 fmt_sig(x, digits::Integer=4) = @sprintf("%.*g", digits, x)
@@ -55,7 +62,7 @@ function style_variant_plot(
     latex=plain,
     kwargs...,
 )
-    RENDER_DOC_ASSETS || return nothing
+    render_asset_group(name) || return nothing
 
     for style in styles, appearance in (:light, :dark)
         typography = style == :article ? latex : plain
@@ -84,11 +91,10 @@ function save_poisson_counts(
     counts,
     model,
     name;
-    dark::Union{Nothing, Bool}=nothing,
     style::Symbol=:modern,
-    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+    appearance::Symbol=:light,
 )
-    RENDER_DOC_ASSETS || return nothing
+    render_asset_group(name) || return nothing
 
     dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
@@ -158,7 +164,7 @@ function save_poisson_counts(
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
     colgap!(fig.layout, 24)
-    save(gallery_path("$(name)_$(style_asset_suffix(dark, style, appearance)).png"), fig)
+    save(gallery_path("$(name)_$(style)_$(appearance).png"), fig)
 end
 
 function save_histogram_fit(
@@ -167,11 +173,10 @@ function save_histogram_fit(
     counts,
     expected_counts,
     name;
-    dark::Union{Nothing, Bool}=nothing,
     style::Symbol=:modern,
-    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+    appearance::Symbol=:light,
 )
-    RENDER_DOC_ASSETS || return nothing
+    render_asset_group(name) || return nothing
 
     dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
@@ -189,33 +194,48 @@ function save_histogram_fit(
     fig = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
     end
-    ax = Axis(fig[1, 1]; title="Binned detector spectrum", ylabel="events per bin")
+    article = style == :article
+    ax = Axis(
+        fig[1, 1];
+        title="Binned detector spectrum",
+        ylabel=article ? L"\mathrm{event\ density}\;(\mathrm{V}^{-1})" :
+            "event density (V⁻¹)",
+    )
     centers = [(edges[i] + edges[i + 1]) / 2 for i in 1:(length(edges) - 1)]
     widths = diff(edges)
     expected = expected_counts(edges, result.params)
-    background = result.params[4] .* widths
-    barplot!(ax, centers, background; width=widths, color=background_color, label="fitted background")
+    expected_density = expected ./ widths
+    observed_density = counts ./ widths
+    background_density = fill(result.params[4], length(widths))
     barplot!(
         ax,
         centers,
-        expected;
+        background_density;
+        width=widths,
+        color=background_color,
+        label="fitted background density",
+    )
+    barplot!(
+        ax,
+        centers,
+        expected_density;
         width=widths,
         color=:transparent,
         strokecolor=fit_color,
         strokewidth=3,
-        label="expected bin counts",
+        label="expected average density",
     )
     barplot!(
         ax,
         centers,
-        counts;
+        observed_density;
         width=0.82 .* widths,
         color=observed_color,
         strokecolor=(foreground, 0.65),
         strokewidth=1.3,
-        label="observed bin counts",
+        label="observed count density",
     )
-    scatter!(ax, centers, counts; color=data_color, markersize=palette.data_markersize + 1.4)
+    scatter!(ax, centers, observed_density; color=data_color, markersize=palette.data_markersize + 1.4)
     hidexdecorations!(ax; grid=false)
 
     residuals = poisson_deviance_residuals(counts, expected)
@@ -227,7 +247,6 @@ function save_histogram_fit(
     linkxaxes!(ax, residual_ax)
 
     deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
-    article = style == :article
     parameter_lines = article ? Any[
         LaTeXString("N_{\\mathrm{peak}} = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))"),
         LaTeXString("\\mu = $(fmt_tex(result.params[2], 5)) \\pm $(fmt_tex(result.param_stderr[2], 2))\\;\\mathrm{V}"),
@@ -260,7 +279,7 @@ function save_histogram_fit(
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
     colgap!(fig.layout, 24)
-    save(gallery_path("$(name)_$(style_asset_suffix(dark, style, appearance)).png"), fig)
+    save(gallery_path("$(name)_$(style)_$(appearance).png"), fig)
 end
 
 function line_intersection(emission_result, baseline_result, reference_frequency)
@@ -315,11 +334,10 @@ function save_photoelectric_work_function(
     emission_mask,
     name;
     reference_frequency,
-    dark::Union{Nothing, Bool}=nothing,
     style::Symbol=:modern,
-    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+    appearance::Symbol=:light,
 )
-    RENDER_DOC_ASSETS || return nothing
+    render_asset_group(name) || return nothing
 
     dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
@@ -469,8 +487,7 @@ function save_photoelectric_work_function(
         muted_color=muted,
     )
     colgap!(fig.layout, 18)
-    suffix = dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
-    save(gallery_path("$(name)_$(suffix).png"), fig)
+    save(gallery_path("$(name)_$(style)_$(appearance).png"), fig)
 end
 
 # 0. Quickstart plot matching docs/src/quickstart.md.
@@ -529,7 +546,7 @@ style_variant_plot(
 )
 
 # The same scientific content rendered through every public style preset.
-if RENDER_DOC_ASSETS
+if render_asset_group("plot_style")
     for style in (:lab, :modern, :article)
         typography = if style == :article
             (
@@ -887,7 +904,7 @@ emit_doc_output_snapshot("constraints_profiles") do
     println("amplitude +sigma = ", amplitude_interval.uncertainty_plus)
     println(diagnostic_dashboard_text(saturation_result))
 end
-if RENDER_DOC_ASSETS
+if render_asset_group("constraints_profiles")
     prof = JuFitter.profile(saturation_result, 1; npoints=61, nsigma=4)
     cont = JuFitter.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
     profile_overview_parameters = [1, 2, 3]
@@ -960,9 +977,14 @@ emit_doc_output_snapshot("poisson_decay") do
     half_life = log(2) / lambda
     sigma_half_life = log(2) * sigma_lambda / lambda^2
 
-    println("half-life = ", half_life, " +/- ", sigma_half_life, " min")
-    println("deviance/ndf = ", poisson_result.stats.chi2_ndf)
-    println("P(D) = ", poisson_result.stats.pvalue)
+    @printf("half-life = %.3f +/- %.3f min\n", half_life, sigma_half_life)
+    @printf(
+        "background = %.3f +/- %.3f counts per 10 s\n",
+        poisson_result.params[3],
+        poisson_result.param_stderr[3],
+    )
+    @printf("deviance/ndf = %.3f\n", poisson_result.stats.chi2_ndf)
+    @printf("P(D) = %.3f\n", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
 for style in (:lab, :modern, :article), appearance in (:light, :dark)
@@ -999,15 +1021,16 @@ hist_result = fit_histogram_model(
     initial_guesses=[[210.0, 3.8, 1.0, 1.0], [300.0, 4.2, 1.5, 0.5], [150.0, 3.2, 0.7, 2.0]],
 )
 emit_doc_output_snapshot("histogram_likelihood") do
-    println(
-        "centroid = ",
-        hist_result.params[2],
-        " +/- ",
-        hist_result.param_stderr[2],
-        " V",
+    @printf("peak yield = %.1f +/- %.1f events\n", hist_result.params[1], hist_result.param_stderr[1])
+    @printf("centroid = %.3f +/- %.3f V\n", hist_result.params[2], hist_result.param_stderr[2])
+    @printf("width = %.3f +/- %.3f V\n", hist_result.params[3], hist_result.param_stderr[3])
+    @printf(
+        "background density = %.3f +/- %.3f events/V\n",
+        hist_result.params[4],
+        hist_result.param_stderr[4],
     )
-    println("deviance/ndf = ", hist_result.stats.chi2_ndf)
-    println("P(D) = ", hist_result.stats.pvalue)
+    @printf("deviance/ndf = %.3f\n", hist_result.stats.chi2_ndf)
+    @printf("P(D) = %.3f\n", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
 for style in (:lab, :modern, :article), appearance in (:light, :dark)
@@ -1023,6 +1046,8 @@ for style in (:lab, :modern, :article), appearance in (:light, :dark)
 end
 
 # 7. Multi-dataset model criticism and partial parameter sharing.
-include(joinpath(@__DIR__, "10_multi_dataset_calibration.jl"))
+if SNAPSHOT_ONLY || render_asset_group("multi_dataset")
+    include(joinpath(@__DIR__, "10_multi_dataset_calibration.jl"))
+end
 
 RENDER_DOC_ASSETS && println("Generated documentation gallery assets in ", DOC_ASSET_DIR)

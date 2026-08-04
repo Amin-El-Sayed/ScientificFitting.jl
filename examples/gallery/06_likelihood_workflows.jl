@@ -1,3 +1,4 @@
+using CairoMakie
 using JuFitter
 using SpecialFunctions
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))

@@ -103,6 +103,19 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `plot_info_panel!` layout contract as ordinary fit plots. Ordinary layouts do
   not guess fixed side-panel widths or resize the figure around compact report
   content; explicit fixed widths remain an opt-in export control.
+- The Poisson-and-histogram gallery now identifies both arrays as controlled
+  teaching records rather than implying undocumented experimental provenance.
+  It states the independence, exposure, efficiency, background, dead-time, and
+  pile-up assumptions behind the Poisson model. Unequal histogram bins are fit
+  with integrated expected counts but displayed as count density, so bar area
+  still represents counts and a uniform fitted background remains visually
+  flat. The real terminal output is compact and snapshot-checked. The public
+  likelihood example now loads CairoMakie before calling `plot_profile` and
+  executes to completion. The constraints example does the same and qualifies
+  `JuFitter.contour` to avoid the Makie export collision; its fit, profile,
+  interval, contour matrix, and both plot exports execute to completion.
+  Tracked gallery regeneration requires the explicit maintainer flag and can be
+  limited to one asset group instead of recomputing unrelated profile matrices.
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
   passes with 79 torture checks in about 1m38s on the local machine. Three
@@ -171,7 +184,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  265 checks. The gate enforces the current release standard for every public
+  273 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
