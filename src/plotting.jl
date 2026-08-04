@@ -1418,28 +1418,26 @@ end
     add_vband!(axis, xmin, xmax; label=nothing, kwargs...)
 
 Add a vertical uncertainty/reference band to an existing axis. The band spans
-the currently visible y-range, so it remains a simple annotation layer rather
-than a new data model.
+the full axis height without contributing artificial y values to automatic
+limits, so it remains an annotation layer rather than a new data model.
 """
 function add_vband!(axis::Axis, xmin::Real, xmax::Real; label=nothing, kwargs...)
     isfinite(xmin) && isfinite(xmax) || throw(ArgumentError("xmin and xmax must be finite"))
     xmin <= xmax || throw(ArgumentError("xmin must be <= xmax"))
-    _, (ymin, ymax) = _axis_limits(axis)
-    return band!(axis, [Float64(xmin), Float64(xmax)], [ymin, ymin], [ymax, ymax]; label=label, kwargs...)
+    return vspan!(axis, Float64(xmin), Float64(xmax); label=label, kwargs...)
 end
 
 """
     add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
 
 Add a horizontal uncertainty/reference band to an existing axis. The band spans
-the currently visible x-range, so it remains a simple annotation layer rather
-than a new data model.
+the full axis width without contributing artificial x values to automatic
+limits, so it remains an annotation layer rather than a new data model.
 """
 function add_hband!(axis::Axis, ymin::Real, ymax::Real; label=nothing, kwargs...)
     isfinite(ymin) && isfinite(ymax) || throw(ArgumentError("ymin and ymax must be finite"))
     ymin <= ymax || throw(ArgumentError("ymin must be <= ymax"))
-    (xmin, xmax), _ = _axis_limits(axis)
-    return band!(axis, [xmin, xmax], [Float64(ymin), Float64(ymin)], [Float64(ymax), Float64(ymax)]; label=label, kwargs...)
+    return hspan!(axis, Float64(ymin), Float64(ymax); label=label, kwargs...)
 end
 
 function _diagnostic_colors(style::Symbol, appearance::Symbol)

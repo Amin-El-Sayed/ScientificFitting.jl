@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-07-22
+Status: 2026-08-04
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -9,6 +9,13 @@ sufficient.
 Publication policy: do not push, publish, register, deploy documentation, or
 make the repository public without explicit manual approval from Amin_El_Sayed.
 Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
+
+- A documentation-driven plotting audit found that `add_vband!` and
+  `add_hband!` materialized Makie's provisional pre-render axis limits as data
+  coordinates. An annotation added before the first render could therefore
+  expand the orthogonal axis to the default `0:10` range. Both helpers now use
+  Makie's axis-relative `vspan!`/`hspan!` primitives, and a focused plot
+  regression verifies that pre-render spans leave automatic data limits intact.
 
 ## Current Verification
 
@@ -149,18 +156,22 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Its roughly 42-minute runtime is too slow for the default developer loop and
   remains a release/CI gate; focused reference and torture suites provide the
   edit-test loop.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 79
+- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 83
   focused plot-regression checks locally, including structured-whitening error
   bars, prediction-band semantics, and the no-marginals failure path.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  249 checks. The gate enforces the current release standard for every public
+  257 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
   one-sigma semantics, valid image assets, and complete
   `:lab`/`:modern`/`:article` light/dark plot-style coverage.
+  The Photoelectric Work Function checks additionally require the centered
+  line parametrization and the baseline-corrected physical slope
+  `m_emit - m_base` for both Planck's constant and the work function; the same
+  contract is checked in the executable asset generator.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
   with 581 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for

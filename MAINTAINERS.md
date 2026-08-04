@@ -81,7 +81,9 @@ list as an ownership map, not a second architecture chapter.
    combinations of those concerns.
 6. Annotation helpers validate coordinates, return Makie plot objects, and do
    not trigger a fit. Non-finite residual, pull, ratio, curve, line, or band
-   coordinates fail clearly instead of disappearing in a renderer.
+   coordinates fail clearly instead of disappearing in a renderer. Full-axis
+   reference spans use Makie's axis-relative primitives; they must not turn
+   provisional pre-render limits into data coordinates.
 7. Documentation style switching uses real light/dark Makie assets. It never
    recolors or inverts one raster image with CSS.
 

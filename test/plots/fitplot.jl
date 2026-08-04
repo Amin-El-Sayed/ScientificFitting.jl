@@ -1,5 +1,5 @@
 using JuFitter
-using CairoMakie: Label, save
+using CairoMakie: Axis, Figure, Label, save, scatter!
 using Test
 
 @testset "fitplot convenience API" begin
@@ -84,6 +84,22 @@ using Test
     @test_throws ArgumentError add_vband!(ax, NaN, 1.0)
     @test_throws ArgumentError add_hband!(ax, 2.0, 1.0)
     @test_throws ArgumentError add_hband!(ax, 0.0, Inf)
+
+    # Axis-relative spans must not turn Makie's provisional 0:10 limits into
+    # data limits when annotations are added before the first render.
+    span_figure = Figure()
+    span_axis = Axis(span_figure[1, 1])
+    scatter!(span_axis, [0.0, 1.0], [2.0, 3.0])
+    add_vband!(span_axis, 0.25, 0.5; color=(:gray70, 0.18))
+    add_hband!(span_axis, 2.3, 2.7; color=(:gray70, 0.12))
+    save(joinpath(mktempdir(), "axis_relative_spans.png"), span_figure)
+    span_rect = span_axis.finallimits[]
+    span_xlimits = (span_rect.origin[1], span_rect.origin[1] + span_rect.widths[1])
+    span_ylimits = (span_rect.origin[2], span_rect.origin[2] + span_rect.widths[2])
+    @test span_xlimits[1] < 0.0 < 1.0 < span_xlimits[2]
+    @test span_ylimits[1] < 2.0 < 3.0 < span_ylimits[2]
+    @test span_xlimits[2] - span_xlimits[1] < 1.5
+    @test span_ylimits[2] - span_ylimits[1] < 1.5
 
     model(x, p) = @. p[1] * exp(-p[2] * x) + p[3]
     y2 = model(x, [2.0, 0.7, 0.1]) .+ sigma_y .* cos.(1.4 .* x)

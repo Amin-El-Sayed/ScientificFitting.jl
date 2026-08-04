@@ -232,10 +232,11 @@ axislegend(ax; position=:rt)
 ```
 
 `add_curve!` samples a function on an explicit `xgrid`, an `xspan`, or the
-axis's current x limits. `add_vband!` and `add_hband!` use the current limits in
-the other direction, so add them after the final axis limits are established.
-All helpers return the created Makie plot object and accept ordinary Makie
-attributes.
+axis's current x limits. `add_vband!` and `add_hband!` use Makie's axis-relative
+span primitives: they cover the full orthogonal axis but do not enlarge its
+automatic data limits. They can therefore be added before or after the first
+render. All helpers return the created Makie plot object and accept ordinary
+Makie attributes.
 
 A right-side legend created by `plot_fit` reflects the plot objects that exist
 at construction time. For layers added later, either create an in-axis

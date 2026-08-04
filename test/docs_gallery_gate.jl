@@ -142,4 +142,22 @@ end
     @test occursin("sigma_stat^2 * (i == j)", full_covariance)
     @test occursin("sigma_corr^2 * exp", full_covariance)
     @test occursin("filename=\"full_covariance_decay.pdf\"", full_covariance)
+
+    photoelectric = read(joinpath(GALLERY_SRC, "photoelectric_threshold.md"), String)
+    @test occursin("photoelectric_slope = me - mb", photoelectric)
+    @test occursin("(nu_THz - reference_frequency_THz)", photoelectric)
+    @test occursin("h_fit = photoelectric_slope * elementary_charge", photoelectric)
+    @test occursin("work_function_eV = photoelectric_slope * threshold_THz", photoelectric)
+    @test !occursin("h_fit = me *", photoelectric)
+    @test !occursin("examples/gallery/09_docs_gallery_suite.jl", photoelectric)
+
+    gallery_generator = read(
+        joinpath(ROOT, "examples", "gallery", "09_docs_gallery_suite.jl"),
+        String,
+    )
+    @test occursin(
+        "photoelectric_slope = emission_slope - baseline_slope",
+        gallery_generator,
+    )
+    @test !occursin("h_fit = emission_slope *", gallery_generator)
 end

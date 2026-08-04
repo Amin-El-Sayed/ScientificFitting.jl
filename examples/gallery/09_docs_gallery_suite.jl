@@ -263,29 +263,41 @@ function save_histogram_fit(
     save(gallery_path("$(name)_$(style_asset_suffix(dark, style, appearance)).png"), fig)
 end
 
-function line_intersection(emission_result, baseline_result)
+function line_intersection(emission_result, baseline_result, reference_frequency)
     emission_slope, emission_intercept = emission_result.params
     baseline_slope, baseline_intercept = baseline_result.params
-    denominator = emission_slope - baseline_slope
-    threshold = (baseline_intercept - emission_intercept) / denominator
+    photoelectric_slope = emission_slope - baseline_slope
+    threshold_offset =
+        (baseline_intercept - emission_intercept) / photoelectric_slope
+    threshold = reference_frequency + threshold_offset
 
-    threshold_gradient_emission = [-threshold / denominator, -1 / denominator]
-    threshold_gradient_baseline = [threshold / denominator, 1 / denominator]
+    threshold_gradient_emission = [
+        -threshold_offset / photoelectric_slope,
+        -1 / photoelectric_slope,
+    ]
+    threshold_gradient_baseline = [
+        threshold_offset / photoelectric_slope,
+        1 / photoelectric_slope,
+    ]
     threshold_variance =
         dot(threshold_gradient_emission, emission_result.param_covariance * threshold_gradient_emission) +
         dot(threshold_gradient_baseline, baseline_result.param_covariance * threshold_gradient_baseline)
 
-    work_function_eV = emission_slope * threshold
-    work_gradient_emission = [
-        threshold + emission_slope * threshold_gradient_emission[1],
-        emission_slope * threshold_gradient_emission[2],
-    ]
-    work_gradient_baseline = emission_slope .* threshold_gradient_baseline
+    # In eV, Phi = (m_emit - m_base) * nu_0. These compact gradients retain
+    # each line's slope-intercept covariance exactly.
+    work_function_eV = photoelectric_slope * threshold
+    work_gradient_emission = [reference_frequency, -1.0]
+    work_gradient_baseline = [-reference_frequency, 1.0]
     work_variance =
         dot(work_gradient_emission, emission_result.param_covariance * work_gradient_emission) +
         dot(work_gradient_baseline, baseline_result.param_covariance * work_gradient_baseline)
 
+    photoelectric_slope_variance =
+        emission_result.param_covariance[1, 1] + baseline_result.param_covariance[1, 1]
+
     return (
+        photoelectric_slope=photoelectric_slope,
+        sigma_photoelectric_slope=sqrt(max(photoelectric_slope_variance, 0.0)),
         threshold=threshold,
         sigma_threshold=sqrt(max(threshold_variance, 0.0)),
         work_function_eV=work_function_eV,
@@ -302,6 +314,7 @@ function save_photoelectric_work_function(
     sigma_voltage,
     emission_mask,
     name;
+    reference_frequency,
     dark::Union{Nothing, Bool}=nothing,
     style::Symbol=:modern,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
@@ -313,17 +326,21 @@ function save_photoelectric_work_function(
     color = palette.data_color
     muted = palette.stats_muted_color
     emission_color = palette.fit_color
-    baseline_color = style == :article ? (dark_mode ? "#d7d7d7" : "#555555") :
-        (dark_mode ? "#b7c8dc" : "#52606f")
-    threshold_color = style == :article ? (dark_mode ? "#edf2f4" : "#111111") :
-        (dark_mode ? "#cbd5e1" : "#374151")
+    baseline_color = palette.stats_muted_color
+    threshold_color = palette.stats_color
     emission_band = (palette.band_color, max(palette.band_alpha, 0.16))
     baseline_band = (baseline_color, style == :article ? 0.09 : 0.18)
     error_whiskerwidth = palette.error_whiskerwidth
     fit_linewidth = palette.fit_linewidth
     article = style == :article
 
-    derived = line_intersection(emission_result, baseline_result)
+    derived = line_intersection(
+        emission_result,
+        baseline_result,
+        reference_frequency,
+    )
+    photoelectric_slope = derived.photoelectric_slope
+    sigma_photoelectric_slope = derived.sigma_photoelectric_slope
     threshold = derived.threshold
     sigma_threshold = derived.sigma_threshold
     work_function_eV = derived.work_function_eV
@@ -363,9 +380,10 @@ function save_photoelectric_work_function(
 
     xmin, xmax = extrema(frequency)
     xg = collect(range(xmin - 15, xmax + 15; length=500))
-    emission_y = @. emission_slope * xg + emission_intercept
-    baseline_y = @. baseline_slope * xg + baseline_intercept
-    J = hcat(xg, ones(length(xg)))
+    centered_xg = xg .- reference_frequency
+    emission_y = @. emission_slope * centered_xg + emission_intercept
+    baseline_y = @. baseline_slope * centered_xg + baseline_intercept
+    J = hcat(centered_xg, ones(length(xg)))
     emission_sigma = sqrt.(clamp.(vec(sum((J * emission_result.param_covariance) .* J; dims=2)), 0.0, Inf))
     baseline_sigma = sqrt.(clamp.(vec(sum((J * baseline_result.param_covariance) .* J; dims=2)), 0.0, Inf))
     band!(
@@ -395,7 +413,8 @@ function save_photoelectric_work_function(
         label=article ? L"\mathrm{intersection\ }1\sigma\mathrm{\ interval}" : "intersection 1σ interval",
     )
     vlines!(ax, [threshold]; color=(threshold_color, 0.85), linestyle=:dash, linewidth=max(1.8, fit_linewidth - 0.2))
-    threshold_y = emission_slope * threshold + emission_intercept
+    threshold_y =
+        emission_slope * (threshold - reference_frequency) + emission_intercept
     scatter!(
         ax,
         [threshold],
@@ -407,11 +426,11 @@ function save_photoelectric_work_function(
     )
     limits!(ax, xmin - 20, xmax + 20, minimum(voltage .- sigma_voltage) - 0.16, maximum(voltage .+ sigma_voltage) + 0.25)
 
-    h_fit = emission_slope * 1.602176634e-19 / 1e12
-    sigma_h = sqrt(max(emission_result.param_covariance[1, 1], 0.0)) * 1.602176634e-19 / 1e12
+    h_fit = photoelectric_slope * 1.602176634e-19 / 1e12
+    sigma_h = sigma_photoelectric_slope * 1.602176634e-19 / 1e12
     parameter_lines = if article
         [
-            LaTeXString("m_{\\mathrm{emit}} = $(fmt_tex(emission_slope, 5))\\;\\mathrm{V/THz}"),
+            LaTeXString("m_{\\gamma} = $(fmt_tex(photoelectric_slope, 5))\\;\\mathrm{V/THz}"),
             LaTeXString("h = $(fmt_tex(h_fit, 4)) \\pm $(fmt_tex(sigma_h, 2))\\;\\mathrm{J\\,s}"),
             LaTeXString("m_{\\mathrm{base}} = $(fmt_tex(baseline_slope, 4))\\;\\mathrm{V/THz}"),
             LaTeXString("\\nu_0 = $(fmt_tex(threshold, 5)) \\pm $(fmt_tex(sigma_threshold, 2))\\;\\mathrm{THz}"),
@@ -419,9 +438,9 @@ function save_photoelectric_work_function(
         ]
     else
         [
-            "mₑ = $(fmt_sig(emission_slope, 5)) V/THz",
+            "photoelectric slope = $(fmt_sig(photoelectric_slope, 5)) V/THz",
             "h = $(fmt_sig(h_fit, 4)) ± $(fmt_sig(sigma_h, 2)) J s",
-            "mᵦ = $(fmt_sig(baseline_slope, 4)) V/THz",
+            "baseline slope = $(fmt_sig(baseline_slope, 4)) V/THz",
             "ν₀ = $(fmt_sig(threshold, 5)) ± $(fmt_sig(sigma_threshold, 2)) THz",
             "Φ = $(fmt_sig(work_function_eV, 5)) ± $(fmt_sig(sigma_work_function_eV, 2)) eV",
         ]
@@ -433,14 +452,16 @@ function save_photoelectric_work_function(
         ]
     else
         [
-            "χ²ₑ/ndf = $(fmt_sig(emission_result.stats.chi2_ndf, 4))",
-            "χ²ᵦ/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
+            "emission χ²/ndf = $(fmt_sig(emission_result.stats.chi2_ndf, 4))",
+            "baseline χ²/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
         ]
     end
     plot_info_panel!(
         fig[1, 2];
         legend_source=ax,
-        model_label=article ? L"U_0(\nu)=m_r\nu+b_r" : "U₀(ν) = mᵣν + bᵣ",
+        model_label=article ?
+            L"U_{\mathrm{emit}}-U_{\mathrm{base}}=m_{\gamma}(\nu-\nu_0)" :
+            "ΔU(ν) = mγ (ν - ν₀)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
         color=palette.stats_color,
@@ -609,21 +630,16 @@ sigma_voltage = [0.038, 0.040, 0.041, 0.043, 0.045, 0.047, 0.050, 0.052,
                  0.048, 0.050, 0.052, 0.054, 0.057, 0.060, 0.064, 0.068, 0.073, 0.080]
 baseline_mask = frequency_THz .<= 532.0
 emission_mask = .!baseline_mask
-photo_model(f, p) = @. p[1] * f + p[2]
-baseline_truth = [0.00012, -0.045]
-emission_truth = [0.00413, -2.247]
-baseline_offsets = [0.9, -1.1, 0.35, 1.2, -0.85, 0.65, -0.45, 0.75]
-emission_offsets = [0.8, -1.2, 0.45, 1.0, -0.75, 1.15, -0.55, 0.7, -1.0, 0.35]
-voltage = similar(frequency_THz)
-voltage[baseline_mask] = photo_model(frequency_THz[baseline_mask], baseline_truth) .+
-                         sigma_voltage[baseline_mask] .* baseline_offsets
-voltage[emission_mask] = photo_model(frequency_THz[emission_mask], emission_truth) .+
-                         sigma_voltage[emission_mask] .* emission_offsets
+reference_frequency_THz = 550.0
+photo_model(f, p) = @. p[1] * (f - reference_frequency_THz) + p[2]
+voltage = [0.0312, -0.0434, 0.01855, 0.0594, -0.02685, 0.04495, -0.0057,
+           0.05784, 0.12324, 0.13123, 0.34230, 0.52185, 0.57404, 0.85602,
+           0.94333, 1.23891, 1.35237, 1.70871]
 baseline_result = fit_model(
     photo_model,
     frequency_THz[baseline_mask],
     voltage[baseline_mask];
-    p0=[0.0, 0.0],
+    p0=[0.0, 0.02],
     sigma_y=sigma_voltage[baseline_mask],
     sigma_x=sigma_frequency_THz[baseline_mask],
 )
@@ -631,18 +647,20 @@ emission_result = fit_model(
     photo_model,
     frequency_THz[emission_mask],
     voltage[emission_mask];
-    p0=[0.004, -2.2],
+    p0=[0.0042, 0.02],
     sigma_y=sigma_voltage[emission_mask],
     sigma_x=sigma_frequency_THz[emission_mask],
-    bounds=([0.0, -20.0], [0.02, 5.0]),
-    initial_guesses=[[0.004, -2.2], [0.0042, -2.6], [0.0038, -1.8]],
+    bounds=([0.0, -5.0], [0.02, 5.0]),
 )
 emit_doc_output_snapshot("photoelectric_threshold") do
-    derived = line_intersection(emission_result, baseline_result)
+    derived = line_intersection(
+        emission_result,
+        baseline_result,
+        reference_frequency_THz,
+    )
     elementary_charge = 1.602176634e-19
-    emission_slope = emission_result.params[1]
-    h_fit = emission_slope * elementary_charge / 1e12
-    sigma_h = sqrt(emission_result.param_covariance[1, 1]) * elementary_charge / 1e12
+    h_fit = derived.photoelectric_slope * elementary_charge / 1e12
+    sigma_h = derived.sigma_photoelectric_slope * elementary_charge / 1e12
 
     println("h = ", h_fit, " +/- ", sigma_h, " J s")
     println("Phi = ", derived.work_function_eV, " +/- ", derived.sigma_work_function_eV, " eV")
@@ -663,6 +681,7 @@ for style in (:lab, :modern, :article), appearance in (:light, :dark)
         sigma_voltage,
         emission_mask,
         "photoelectric_threshold";
+        reference_frequency=reference_frequency_THz,
         style=style,
         appearance=appearance,
     )
@@ -1006,4 +1025,4 @@ end
 # 7. Multi-dataset model criticism and partial parameter sharing.
 include(joinpath(@__DIR__, "10_multi_dataset_calibration.jl"))
 
-println("Generated documentation gallery assets in ", DOC_ASSET_DIR)
+RENDER_DOC_ASSETS && println("Generated documentation gallery assets in ", DOC_ASSET_DIR)
