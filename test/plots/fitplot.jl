@@ -1,5 +1,5 @@
 using JuFitter
-using CairoMakie: Axis, Figure, Label, save, scatter!
+using CairoMakie: Axis, Figure, Label, save, scatter!, with_theme
 using LaTeXStrings
 using Test
 
@@ -237,10 +237,41 @@ using Test
     @test isfile(modern_out)
     @test isfile(article_out)
     @test plot_theme(:modern; appearance=:dark) !== nothing
-    @test plot_palette(:lab).fit_color != plot_palette(:modern).fit_color
-    @test plot_palette(:lab).data_color != plot_palette(:modern).data_color
-    @test !contains(string(plot_palette(:modern).data_color), "b05a36")
-    @test plot_palette(:article).fit_color == "#0072B2"
+    lab_style = plot_palette(:lab)
+    modern_style = plot_palette(:modern)
+    article_style = plot_palette(:article)
+    @test lab_style.data_marker == :cross
+    @test modern_style.data_marker == :circle
+    @test lab_style.xgridvisible && lab_style.ygridvisible
+    @test !modern_style.xgridvisible && modern_style.ygridvisible
+    @test !article_style.xgridvisible && !article_style.ygridvisible
+    @test article_style.topspinevisible && article_style.rightspinevisible
+    @test modern_style.titlesize > lab_style.titlesize > article_style.xlabelsize
+    @test minimum(style.ticklabelsize for style in (lab_style, modern_style, article_style)) >= 19
+    @test minimum(style.stats_fontsize for style in (lab_style, modern_style, article_style)) >= 20
+    @test maximum(style.error_whiskerwidth for style in (lab_style, modern_style, article_style)) <= 6
+    @test all(length(unique(style.series_colors)) == length(style.series_colors) for
+        style in (lab_style, modern_style, article_style))
+    @test modern_style.fit_color == "#1e88e5"
+    @test article_style.fit_color == "#0072b2"
+
+    lab_axis = fit_axis(plot_fit(quick.result; theme=:lab, show_stats=false))
+    modern_axis = fit_axis(plot_fit(quick.result; theme=:modern, show_stats=false))
+    article_axis = fit_axis(plot_fit(quick.result; theme=:article, show_stats=false))
+    @test lab_axis.xgridvisible[] && lab_axis.ygridvisible[]
+    @test !modern_axis.xgridvisible[] && modern_axis.ygridvisible[]
+    @test article_axis.topspinevisible[] && article_axis.rightspinevisible[]
+
+    panel_figure = with_theme(plot_theme(:modern)) do
+        Figure(size=(720, 420))
+    end
+    @test plot_info_panel!(
+        panel_figure[1, 1];
+        theme=:modern,
+        model_label="y = m x + b",
+        parameter_lines=["m = 1.0 +/- 0.1"],
+        statistic_lines=["chi2/ndf = 1.0"],
+    ) !== nothing
     latex_figure = plot_fit(
         quick.result;
         theme=:article,
@@ -287,6 +318,7 @@ using Test
         appearance=:dark,
         local_sigma=1.0,
         delta_max=4.0,
+        threshold_kwargs=(linewidth=2.5,),
     ) !== nothing
     @test_throws ArgumentError plot_profile(profile_result; delta_max=0.0)
     failed_delta = copy(contour_delta)
@@ -326,11 +358,13 @@ using Test
     precomputed_matrix_out = joinpath(mktempdir(), "precomputed_profile_matrix.png")
     @test plot_profile_matrix(
         precomputed_matrix;
+        parameter_names=[L"m", L"b"],
         filename=precomputed_matrix_out,
         format=:png,
         theme=:modern,
     ) !== nothing
     @test isfile(precomputed_matrix_out)
+    @test_throws ArgumentError plot_profile_matrix(precomputed_matrix; parameter_names=["m"])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=Int[])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 1])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 3])
@@ -351,6 +385,25 @@ using Test
         format=:png,
         theme=:lab,
         appearance=:dark,
+    ) !== nothing
+    @test plot_residuals(
+        quick.result;
+        theme=:lab,
+        marker=:rect,
+        markersize=12,
+        error_whiskerwidth=4,
+        scatter_kwargs=(color=:red,),
+        errorbars_kwargs=(whiskerwidth=2,),
+    ) !== nothing
+    @test plot_diagnostics(
+        quick.result;
+        theme=:modern,
+        marker=:diamond,
+        markersize=10,
+        error_whiskerwidth=4,
+        scatter_kwargs=(color=:red,),
+        errorbars_kwargs=(whiskerwidth=2,),
+        reference_line_kwargs=(linewidth=2.0,),
     ) !== nothing
     @test isfile(residual_out)
     @test isfile(diagnostics_out)

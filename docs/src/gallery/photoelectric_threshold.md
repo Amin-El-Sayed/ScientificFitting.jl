@@ -256,8 +256,8 @@ using JuFitter
 style = :modern
 appearance = :light
 palette = plot_palette(style; appearance=appearance)
-baseline_color = palette.stats_muted_color
-threshold_color = palette.stats_color
+baseline_color = palette.secondary_color
+threshold_color = palette.reference_color
 
 fig = with_theme(plot_theme(style; appearance=appearance)) do
     Figure(size=(1120, 700))
@@ -324,8 +324,8 @@ plot_info_panel!(
         "emission χ²/ndf = $(round(emission.stats.chi2_ndf; sigdigits=4))",
         "baseline χ²/ndf = $(round(baseline.stats.chi2_ndf; sigdigits=4))",
     ],
-    color=palette.stats_color,
-    muted_color=palette.stats_muted_color,
+    theme=style,
+    appearance=appearance,
 )
 
 save("photoelectric_threshold.pdf", fig)

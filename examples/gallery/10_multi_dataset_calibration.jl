@@ -119,28 +119,19 @@ function save_multi_dataset_calibration(
 )
     MULTI_RENDER_PLOTS || return nothing
 
-    dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
     foreground = palette.stats_color
-    muted = palette.stats_muted_color
-    background = dark_mode ? "#111318" : (style == :modern ? "#fbfcfd" : "#ffffff")
-    colors = if style == :article
-        dark_mode ? ["#edf2f4", "#b8c1ca", "#8d96a3"] : ["#101216", "#606874", "#8a929c"]
-    elseif style == :modern
-        dark_mode ? [palette.fit_color, "#b7c8dc", "#c4a7e7"] : [palette.fit_color, "#52606f", "#6d5fa8"]
-    else
-        dark_mode ? [palette.fit_color, "#b7c8dc", "#c4a7e7"] : [palette.fit_color, "#52606f", "#6d5fa8"]
-    end
-    bands = [(colors[i], style == :article ? 0.10 : (dark_mode ? 0.14 : 0.24)) for i in eachindex(colors)]
-    pull_1sigma = (palette.band_color, dark_mode ? 0.13 : 0.24)
-    pull_2sigma = (palette.band_color, dark_mode ? 0.06 : 0.12)
+    colors = collect(palette.series_colors[1:3])
+    bands = [(color, max(0.10, 0.70 * palette.band_alpha)) for color in colors]
+    pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
+    pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
     markers = [:circle, :rect, :diamond]
     labels = ["channel A", "channel B", "channel C"]
     partial_maps = [[1, 2], [1, 3], [4, 5]]
     all_shared_maps = [[1, 2], [1, 3], [1, 4]]
 
     figure = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1680, 1040), backgroundcolor=background)
+        Figure(size=(1560, 1040), backgroundcolor=palette.background_color)
     end
     fit_axis = Axis(
         figure[1, 1];
@@ -151,18 +142,14 @@ function save_multi_dataset_calibration(
         figure[2, 1];
         title="Pulls: all channels forced to share one gain",
         titlealign=:left,
-        titlesize=19,
         ylabel="pull rᵢ",
-        ylabelsize=22,
     )
     partial_pull_axis = Axis(
         figure[3, 1];
         title="Pulls: channels A/B share a gain; C is independent",
         titlealign=:left,
-        titlesize=19,
         xlabel="reference input x",
         ylabel="pull rᵢ",
-        ylabelsize=22,
     )
 
     x_grid = collect(range(0.0, 10.0; length=300))
@@ -237,7 +224,7 @@ function save_multi_dataset_calibration(
         [
             LineElement(color=foreground, linewidth=palette.fit_linewidth),
             LineElement(color=(foreground, 0.55), linestyle=:dash, linewidth=max(1.5, palette.fit_linewidth - 0.5)),
-            PolyElement(color=(palette.band_color, dark_mode ? 0.18 : 0.28)),
+            PolyElement(color=(palette.band_color, max(0.12, palette.band_alpha))),
         ],
     )
     plot_info_panel!(
@@ -249,7 +236,7 @@ function save_multi_dataset_calibration(
             "all-shared-gain hypothesis",
             "local 1σ fit band",
         ],
-        legend_kwargs=(nbanks=2, labelsize=palette.stats_fontsize + 1),
+        legend_kwargs=(nbanks=2,),
         title="Partial-sharing result",
         parameter_lines=[
             "gain A/B = $(fmt(partial_shared_result.params[1], 6)) ± $(fmt(partial_shared_result.param_stderr[1], 2))",
@@ -266,9 +253,8 @@ function save_multi_dataset_calibration(
             "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))",
             "Do not transfer channel C's gain.",
         ],
-        color=foreground,
-        muted_color=muted,
-        fontsize=palette.stats_fontsize + 2,
+        theme=style,
+        appearance=appearance,
     )
 
     rowsize!(figure.layout, 1, Relative(0.58))

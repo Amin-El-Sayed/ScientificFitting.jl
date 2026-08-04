@@ -71,11 +71,22 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The plotting release slice passes locally with 87 focused API/layout tests,
-  232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
+- The plotting release slice passes locally with 103 focused API/layout tests,
+  289 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
   2020 checks against links, assets, and the responsive architecture flow in
   the rendered HTML.
+- The plot-style audit now defines exactly three central output contracts rather
+  than loosely related color variants: `:lab` uses cross markers, strong axes,
+  and a full coordinate grid; `:modern` uses larger screen typography, round
+  markers, and horizontal guides; `:article` uses Makie's LaTeX font theme, a
+  complete frame, inward ticks, and no grid. Fit plots, residuals, diagnostics,
+  profiles, contours, profile matrices, information panels, and compound
+  gallery figures consume the same preset tokens. Explicit Makie keyword
+  overrides remain authoritative. All 83 light/dark gallery assets were
+  regenerated from real fits and reviewed at both native image size and normal
+  documentation scale; the latter check caught and corrected unreadably small
+  text in wide figures.
 - The public gallery overview now contains only reader-facing learning paths,
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than

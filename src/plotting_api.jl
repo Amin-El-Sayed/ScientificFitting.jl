@@ -104,19 +104,22 @@ function plot_theme end
 """
     plot_palette(style=:lab; appearance=:auto)
 
-Return the color and marker defaults used by JuFitter's plot helpers. Use this
-when building compound Makie figures that should respond to the documentation
-or user-selected plot style.
+Return the visual tokens used by JuFitter's plot helpers, including color-safe
+series colors, markers, line weights, typography, and layout defaults. Use this
+when building compound Makie figures that should respond to a selected style.
 """
 function plot_palette end
 
 """
-    plot_info_panel!(cell; legend_source=nothing, legend_plots=nothing,
+    plot_info_panel!(cell; theme=:lab, appearance=:auto,
+                     legend_source=nothing, legend_plots=nothing,
                      legend_labels=nothing, model_label=nothing,
                      parameter_lines=Any[], statistic_lines=Any[], kwargs...)
 
 Add a compact, left-aligned information panel to a Makie layout `cell` and
-return its `GridLayout`. Supply either `legend_source` or matching
+return its `GridLayout`. `theme` and `appearance` use the same readable panel
+defaults as `plot_fit`; explicit keywords override them. Supply either
+`legend_source` or matching
 `legend_plots`/`legend_labels`, plus already formatted model, parameter, and
 statistic lines. This low-level helper lets compound figures follow JuFitter's
 information hierarchy without coupling the panel to one `FitResult`.
@@ -124,19 +127,21 @@ information hierarchy without coupling the panel to one `FitResult`.
 function plot_info_panel! end
 
 """
-    plot_residuals(result; kwargs...)
+    plot_residuals(result; kind=:pull, theme=:article, kwargs...)
 
-Plot residuals or pulls for a fitted model. Use this when the main fit plot
-looks plausible but the noise model or model structure needs inspection.
+Plot residuals, pulls, or data/fit ratios for a fitted model. Use this when the
+main fit plot looks plausible but the noise model or model structure needs
+inspection. Marker and error-bar defaults follow the selected plot style;
+explicit Makie keyword containers override them.
 """
 function plot_residuals end
 
 """
     plot_diagnostics(result; kwargs...)
 
-Create a diagnostic figure from structured JuFitter findings. The visual
-diagnostic layer is meant to point to the next inspection step, not only to draw
-residuals.
+Create a residual, pull, and ratio diagnostic figure. All panels inherit the
+selected JuFitter style; `scatter_kwargs`, `errorbars_kwargs`, and
+`reference_line_kwargs` provide explicit Makie overrides.
 """
 function plot_diagnostics end
 
@@ -145,6 +150,8 @@ function plot_diagnostics end
 
 Plot a one-parameter profile scan, including the fitted minimum, local
 parabolic approximation when available, and configured threshold levels.
+Profile, approximation, and threshold line styles can be overridden
+independently without rebuilding the scan.
 """
 function plot_profile end
 
@@ -166,7 +173,9 @@ pairwise contours below the diagonal. This is the quick diagnostic view for
 correlation, non-parabolicity, active bounds, and failed refits.
 
 Pass a precomputed `ProfileMatrixResult` to render an existing Makie-free
-diagnostic object without repeating its profile and contour refits.
+diagnostic object without repeating its profile and contour refits. The render
+method accepts `parameter_names` to replace display labels without recomputing
+the matrix.
 """
 function plot_profile_matrix end
 

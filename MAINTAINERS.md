@@ -78,7 +78,10 @@ list as an ownership map, not a second architecture chapter.
    shared composition hooks for compound figures.
 5. Plot styles are `:lab`, `:modern`, and `:article`; light/dark appearance and
    explicit element overrides are independent. Do not multiply style names for
-   combinations of those concerns.
+   combinations of those concerns. Their typography, markers, axes, grid,
+   colors, bands, legends, and report panels come from one central preset;
+   compound figures must consume those tokens rather than branch on style or
+   appearance locally.
 6. Annotation helpers validate coordinates, return Makie plot objects, and do
    not trigger a fit. Non-finite residual, pull, ratio, curve, line, or band
    coordinates fail clearly instead of disappearing in a renderer. Full-axis
@@ -86,6 +89,10 @@ list as an ownership map, not a second architecture chapter.
    provisional pre-render limits into data coordinates.
 7. Documentation style switching uses real light/dark Makie assets. It never
    recolors or inverts one raster image with CSS.
+8. Text sizes are part of the plotting contract. Validate them in the rendered
+   documentation at normal browser scale, not only in full-resolution PNGs;
+   wide multi-panel figures otherwise hide unreadable labels behind apparently
+   successful image generation.
 
 ## Documentation Truth
 

@@ -96,18 +96,15 @@ function save_poisson_counts(
 )
     render_asset_group(name) || return nothing
 
-    dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
     foreground = palette.stats_color
-    muted = palette.stats_muted_color
     data_color = palette.data_color
     fit_color = palette.fit_color
     band_color = (palette.band_color, max(palette.band_alpha, 0.16))
     residual_positive = fit_color
-    residual_negative = style == :article ? (dark_mode ? "#d7d7d7" : "#5f6873") :
-                        (dark_mode ? "#b7c8dc" : "#52606f")
+    residual_negative = palette.reference_color
     fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
+        Figure(size=(1460, 850), backgroundcolor=palette.background_color)
     end
     ax = Axis(fig[1, 1]; title="Radioactive decay with detector background", ylabel="counts per 10 s")
     xg = collect(range(minimum(x), maximum(x); length=300))
@@ -115,7 +112,7 @@ function save_poisson_counts(
     lower = [quantile(Poisson(mu), 0.16) for mu in yg]
     upper = [quantile(Poisson(mu), 0.84) for mu in yg]
     band!(ax, xg, lower, upper; color=band_color, label="central 68% count interval")
-    lines!(ax, xg, yg; color=fit_color, linewidth=3, label="expected counts")
+    lines!(ax, xg, yg; color=fit_color, linewidth=palette.fit_linewidth, label="expected counts")
     scatter!(ax, x, counts; color=data_color, markersize=palette.data_markersize + 2.0, label="observed counts")
     hidexdecorations!(ax; grid=false)
 
@@ -157,9 +154,8 @@ function save_poisson_counts(
         model_label=article ? L"\mu(t)=S_0 e^{-\lambda t}+B" : "μ(t) = S₀ exp(−λt) + B",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
-        color=foreground,
-        muted_color=muted,
-        fontsize=palette.stats_fontsize + 2,
+        theme=style,
+        appearance=appearance,
     )
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
@@ -178,21 +174,16 @@ function save_histogram_fit(
 )
     render_asset_group(name) || return nothing
 
-    dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
     foreground = palette.stats_color
-    muted = palette.stats_muted_color
     data_color = palette.data_color
     fit_color = palette.fit_color
-    observed_color = style == :article ? (foreground, dark_mode ? 0.20 : 0.14) :
-                     (palette.fit_color, dark_mode ? 0.20 : 0.22)
-    background_base = style == :article ? foreground : (dark_mode ? "#b7c8dc" : "#52606f")
-    background_color = (background_base, style == :article ? 0.10 : 0.20)
+    observed_color = (palette.fit_color, max(0.14, palette.band_alpha))
+    background_color = (palette.reference_color, 0.12)
     residual_positive = fit_color
-    residual_negative = style == :article ? (dark_mode ? "#d7d7d7" : "#5f6873") :
-                        (dark_mode ? "#b7c8dc" : "#52606f")
+    residual_negative = palette.reference_color
     fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1460, 850), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
+        Figure(size=(1460, 850), backgroundcolor=palette.background_color)
     end
     article = style == :article
     ax = Axis(
@@ -222,7 +213,7 @@ function save_histogram_fit(
         width=widths,
         color=:transparent,
         strokecolor=fit_color,
-        strokewidth=3,
+        strokewidth=palette.fit_linewidth,
         label="expected average density",
     )
     barplot!(
@@ -272,9 +263,8 @@ function save_histogram_fit(
         model_label=article ? L"n_i \sim \mathrm{Poisson}(\mu_i)" : "nᵢ ~ Poisson(μᵢ)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
-        color=foreground,
-        muted_color=muted,
-        fontsize=palette.stats_fontsize + 2,
+        theme=style,
+        appearance=appearance,
     )
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
@@ -339,15 +329,13 @@ function save_photoelectric_work_function(
 )
     render_asset_group(name) || return nothing
 
-    dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
     color = palette.data_color
-    muted = palette.stats_muted_color
     emission_color = palette.fit_color
-    baseline_color = palette.stats_muted_color
-    threshold_color = palette.stats_color
+    baseline_color = palette.secondary_color
+    threshold_color = palette.reference_color
     emission_band = (palette.band_color, max(palette.band_alpha, 0.16))
-    baseline_band = (baseline_color, style == :article ? 0.09 : 0.18)
+    baseline_band = (baseline_color, max(0.10, 0.70 * palette.band_alpha))
     error_whiskerwidth = palette.error_whiskerwidth
     fit_linewidth = palette.fit_linewidth
     article = style == :article
@@ -367,7 +355,7 @@ function save_photoelectric_work_function(
     baseline_slope, baseline_intercept = baseline_result.params
 
     fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1360, 800), backgroundcolor=dark_mode ? "#111318" : "#ffffff")
+        Figure(size=(1360, 800), backgroundcolor=palette.background_color)
     end
     ax = Axis(
         fig[1, 1];
@@ -376,8 +364,8 @@ function save_photoelectric_work_function(
         ylabel=article ? L"U_0\;(\mathrm{V})" : "stopping voltage U₀ (V)",
     )
 
-    errorbars!(ax, frequency, voltage, sigma_voltage; color=(muted, 0.44), whiskerwidth=error_whiskerwidth)
-    errorbars!(ax, frequency, voltage, sigma_frequency; direction=:x, color=(muted, 0.30), whiskerwidth=error_whiskerwidth)
+    errorbars!(ax, frequency, voltage, sigma_voltage; color=palette.yerr_color, whiskerwidth=error_whiskerwidth)
+    errorbars!(ax, frequency, voltage, sigma_frequency; direction=:x, color=palette.xerr_color, whiskerwidth=error_whiskerwidth)
     scatter!(
         ax,
         frequency[emission_mask],
@@ -482,9 +470,8 @@ function save_photoelectric_work_function(
             "ΔU(ν) = mγ (ν - ν₀)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
-        color=palette.stats_color,
-        fontsize=palette.stats_fontsize + 5,
-        muted_color=muted,
+        theme=style,
+        appearance=appearance,
     )
     colgap!(fig.layout, 18)
     save(gallery_path("$(name)_$(style)_$(appearance).png"), fig)
@@ -541,7 +528,6 @@ style_variant_plot(
     show_legend=true,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=20,
     figure_size=(1200, 760),
 )
 
@@ -634,7 +620,6 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=20,
     figure_size=(1200, 760),
 )
 
@@ -773,7 +758,6 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=20,
     figure_size=(1200, 760),
 )
 
@@ -832,7 +816,6 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=20,
     figure_size=(1200, 760),
 )
 
@@ -903,7 +886,6 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    stats_fontsize=20,
     figure_size=(1200, 760),
 )
 amplitude_interval = profile_interval(saturation_result, 1; npoints=81, nsigma=4)
@@ -967,8 +949,11 @@ if render_asset_group("constraints_profiles")
         )
     end
     for style in (:lab, :modern, :article), appearance in (:light, :dark)
+        matrix_parameter_names = style == :article ? [L"A", L"\tau", L"c"] :
+            profile_overview_names
         plot_profile_matrix(
             profile_overview;
+            parameter_names=matrix_parameter_names,
             panel_status_mode=:issues,
             theme=style,
             appearance=appearance,

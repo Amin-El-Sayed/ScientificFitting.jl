@@ -127,18 +127,14 @@ function save_model_comparison(
 )
     RENDER_PLOTS || return nothing
 
-    dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
     foreground = palette.stats_color
-    muted = palette.stats_muted_color
-    constant_color = style == :article ? (dark_mode ? "#c8cdd4" : "#505761") :
-                     (style == :modern ? (dark_mode ? "#b7c8dc" : "#52606f") : muted)
+    constant_color = palette.reference_color
     drift_color = palette.fit_color
     measurement_color = palette.data_color
     prediction_color = (palette.band_color, palette.band_alpha)
-    pull_1sigma = (palette.band_color, dark_mode ? 0.15 : 0.24)
-    pull_2sigma = (palette.band_color, dark_mode ? 0.07 : 0.11)
-    background = dark_mode ? "#111318" : (style == :modern ? "#fbfcfd" : "#ffffff")
+    pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
+    pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
     article = style == :article
     fit_title = "Free decay: constant frequency versus frequency drift"
     angle_label = article ? L"\varphi\;(\mathrm{rad})" : "angle φ (rad)"
@@ -146,7 +142,7 @@ function save_model_comparison(
     time_label = article ? L"t\;(\mathrm{s})" : "elapsed time t (s)"
 
     figure = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1440, 960), backgroundcolor=background)
+        Figure(size=(1440, 960), backgroundcolor=palette.background_color)
     end
     fit_axis = Axis(
         figure[1, 1];
@@ -281,9 +277,8 @@ function save_model_comparison(
             "A exp(−λτ) cos(ωᵣτ + βτ²/2 + φ)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
-        color=foreground,
-        muted_color=muted,
-        fontsize=palette.stats_fontsize + 1,
+        theme=style,
+        appearance=appearance,
     )
 
     rowsize!(figure.layout, 1, Relative(0.62))
