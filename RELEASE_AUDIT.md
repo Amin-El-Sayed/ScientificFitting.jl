@@ -510,7 +510,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   CairoMakie extension boundary. This prevents `@autodocs` from exposing bare
   placeholder functions for `plot_fit`, `fitplot`, annotation helpers, style
   helpers, and profile/contour plotting entry points.
-- Focused plot regression tests pass with 79 checks after the plot-style
+- The final plotting-guide audit now states the actual extension boundary:
+  `plot_fit` consumes x-y `FitResult` objects, `fitplot` report modes set
+  overridable panel defaults, matrix-free prediction bands require
+  `marginal_sigma`, mathematical symbols require explicit `LaTeXString` input,
+  and manually widened Makie axes require a matching model `xgrid`. The guide
+  no longer implies broader automatic behavior than the implementation
+  provides. Its documented LaTeX/report combination is execution-checked; an
+  uncovered empty-title conversion was fixed so automatic blank labels remain
+  plain empty strings instead of invalid empty LaTeX expressions.
+- Focused plot regression tests pass with 87 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility

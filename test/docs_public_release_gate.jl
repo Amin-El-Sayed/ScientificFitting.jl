@@ -248,6 +248,11 @@ end
         @test occursin("appearance=:auto` currently resolves to the light", guide)
         @test occursin("plot_profile_matrix(matrix", guide)
         @test occursin("does not rerun the optimizer", guide)
+        @test occursin("an x-y `FitResult`", guide)
+        @test occursin("explicit `show_stats=true` or", guide)
+        @test occursin("must provide `marginal_sigma`", guide)
+        @test occursin(r"Pass a\s+`LaTeXString`", guide)
+        @test occursin("pass a matching `xgrid`", guide)
         @test !occursin("being migrated", guide)
         @test !occursin("## Acceptance Tests", guide)
     end

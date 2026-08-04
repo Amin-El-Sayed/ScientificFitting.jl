@@ -654,6 +654,7 @@ function _as_label_text(value, latex_labels::Bool)
     end
     if value isa AbstractString
         s = _strip_math_delims(value)
+        isempty(s) && return ""
         if occursin("\\", s) || occursin("^", s) || occursin("_", s)
             return LaTeXString(s)
         end

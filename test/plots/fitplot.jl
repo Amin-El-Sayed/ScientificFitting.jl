@@ -1,5 +1,6 @@
 using JuFitter
 using CairoMakie: Axis, Figure, Label, save, scatter!
+using LaTeXStrings
 using Test
 
 @testset "fitplot convenience API" begin
@@ -240,6 +241,16 @@ using Test
     @test plot_palette(:lab).data_color != plot_palette(:modern).data_color
     @test !contains(string(plot_palette(:modern).data_color), "b05a36")
     @test plot_palette(:article).fit_color == "#0072B2"
+    latex_figure = plot_fit(
+        quick.result;
+        theme=:article,
+        latex_labels=true,
+        latex_stats=true,
+        model_label=L"U_0(\nu)=h\nu/e-\Phi/e",
+        xlabel=L"\nu",
+        xunit=L"\mathrm{THz}",
+    )
+    @test latex_figure !== nothing
     plotting_extension = Base.get_extension(JuFitter, :JuFitterCairoMakieExt)
     @test plotting_extension !== nothing
     article_dark_diagnostics = plotting_extension._diagnostic_colors(:article, :dark)

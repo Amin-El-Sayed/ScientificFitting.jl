@@ -35,8 +35,8 @@ All `fitplot` methods return the named tuple `(result, figure)`. The numerical
 result is therefore available for further diagnostics even in the shortest
 workflow.
 
-When a fit already exists, use `plot_fit(result)`. It returns a Makie `Figure`
-and does not rerun the optimizer:
+When an x-y `FitResult` already exists, use `plot_fit(result)`. It returns a
+Makie `Figure` and does not rerun the optimizer:
 
 ```julia
 fig = plot_fit(result; title="Sensor calibration")
@@ -52,10 +52,14 @@ workflow.
 
 The one-call interface separates terminal output from plot content:
 
-- `report=:plot` shows the plot-side result panel;
-- `report=:console` prints `report_text(result)` and omits the panel;
-- `report=:both` does both;
-- `report=:none` produces neither report.
+- `report=:plot` shows the plot-side result panel by default;
+- `report=:console` prints `report_text(result)` and omits the panel by default;
+- `report=:both` enables both outputs;
+- `report=:none` disables both report outputs.
+
+`report` chooses the default for `show_stats`. An explicit `show_stats=true` or
+`false` takes precedence, so a notebook can print to the terminal while keeping
+or removing the visual panel independently.
 
 These four values belong to `fitplot`. Starting from an existing result,
 `plot_fit` exposes the visual controls directly:
@@ -120,15 +124,23 @@ not invert or recolor PNG files in CSS.
 LaTeX conversion is also independent:
 
 ```julia
+using LaTeXStrings
+
 plot_fit(
     result;
     theme=:article,
     latex_labels=true,
     latex_stats=true,
-    xlabel="nu",
-    xunit="THz",
+    model_label=L"U_0(\nu)=h\nu/e-\Phi/e",
+    xlabel=L"\nu",
+    xunit=L"\mathrm{THz}",
 )
 ```
+
+Plain strings remain text, even when rendered with LaTeX typography. Pass a
+`LaTeXString`, such as `L"\nu"`, when a label contains mathematical symbols.
+`latex_stats=true` applies to the structured right-side panel; the compact
+in-axis text box remains plain text.
 
 Use the three current style names in new code. Older style aliases remain
 accepted for compatibility, but they do not define additional visual systems.
@@ -159,6 +171,11 @@ of exact 95% coverage for a nonlinear, bounded, or non-Gaussian fit. When the
 profile is asymmetric or a contour is non-elliptic, report profile-based
 intervals and use the band only as the stated local approximation.
 
+A matrix-free `WhiteningOperator` must provide `marginal_sigma` before
+`band=:prediction` can draw pointwise observation uncertainty. Without those
+marginal standard deviations, use `band=:confidence`; the fit itself remains
+fully defined by the whitening operation.
+
 ## Model Range And Automatic Limits
 
 By default, `fit_range=:axis` draws the fitted model to the padded x limits, not
@@ -175,7 +192,9 @@ With `auto_limits=true`, JuFitter includes data, x/y error bars, the sampled
 model curve, and the selected band when it computes limits. `limit_padding`
 controls the fractional breathing room around that content. Use
 `auto_limits=false` only when supplying limits through Makie axis options or
-when coordinating several panels manually.
+when coordinating several panels manually. If those manual limits extend the
+model domain, pass a matching `xgrid`; the plotting layer does not infer a new
+sampling grid from arbitrary Makie axis attributes.
 
 `plot_aspect` is an explicit geometric constraint, not an automatic default.
 Leave it unset unless equal or prescribed axis geometry carries scientific
