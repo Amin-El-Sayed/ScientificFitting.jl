@@ -38,9 +38,10 @@ The analysis must answer more than "does the curve pass through the points?"
 
 The controlled dataset below mimics an early-time step-response measurement:
 the plateau is not reached, each time point has its own uncertainty, and an
-independent baseline calibration supplies external information. The numerical
-values are reproducible, but the structure is the realistic part: early data
-mostly constrain the initial slope.
+independent baseline calibration supplies external information. It is a
+teaching record rather than a measurement attributed to a particular sensor.
+All four input arrays are printed in the fit cell; no hidden random generator or
+unknown true parameter enters the analysis.
 
 ## Why The Parameters Become Degenerate
 
@@ -69,9 +70,9 @@ and response:
 \sigma_{y,i} = 0.045 + 0.008t_i\ \mathrm{V}.
 ```
 
-The residual pattern is fixed so that the page is reproducible, but it is not a
-perfect model-generated line. An independent zero measurement supplies the
-Gaussian prior
+The observations contain visible scatter and do not sit on a perfect
+model-generated curve. An independent zero measurement supplies the Gaussian
+prior
 
 ```math
 c = 0.10 \pm 0.08\ \mathrm{V}.
@@ -125,38 +126,52 @@ is needed when the first-order approximation is not adequate.
 ## Complete Fit
 
 ```julia
+using CairoMakie
 using JuFitter
+using Printf
 
-t = collect(range(0.15, 2.2; length=18))
-model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
-
-sigma_t = @. 0.010 + 0.004 * t
-sigma_y = @. 0.045 + 0.008 * t
-residual_pattern = [
-    0.50, -0.90, 0.30, 1.10, -0.70, 0.80, -1.00, 0.40, 0.90,
-    -0.60, 0.70, -0.80, 1.00, -0.40, 0.55, -0.75, 0.65, -0.35,
+t = [
+    0.150000, 0.270588, 0.391176, 0.511765, 0.632353, 0.752941,
+    0.873529, 0.994118, 1.114706, 1.235294, 1.355882, 1.476471,
+    1.597059, 1.717647, 1.838235, 1.958824, 2.079412, 2.200000,
 ]
-y = model(t, [4.8, 3.4, 0.12]) .+ sigma_y .* residual_pattern
+response = [
+    0.345641, 0.470693, 0.593535, 0.839840, 0.969673, 1.129630,
+    1.165946, 1.315719, 1.477930, 1.631653, 1.729280, 1.759687,
+    1.878716, 1.988480, 2.172411, 2.176549, 2.346881, 2.447489,
+]
+sigma_t = [
+    0.010600, 0.011082, 0.011565, 0.012047, 0.012529, 0.013012,
+    0.013494, 0.013976, 0.014459, 0.014941, 0.015424, 0.015906,
+    0.016388, 0.016871, 0.017353, 0.017835, 0.018318, 0.018800,
+]
+sigma_response = [
+    0.046200, 0.047165, 0.048129, 0.049094, 0.050059, 0.051024,
+    0.051988, 0.052953, 0.053918, 0.054882, 0.055847, 0.056812,
+    0.057776, 0.058741, 0.059706, 0.060671, 0.061635, 0.062600,
+]
+
+model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
 
 result = fit_model(
     model,
     t,
-    y;
-    p0=[3.0, 2.0, 0.0],
-    sigma_y=sigma_y,
+    response;
+    p0=[4.5, 3.0, 0.1],
+    sigma_y=sigma_response,
     sigma_x=sigma_t,
     bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
     parameter_priors=(index=3, mean=0.10, sigma=0.08),
     initial_guesses=[
-        [3.0, 2.0, 0.0],
-        [8.0, 7.0, 0.1],
-        [2.0, 1.0, 0.2],
+        [6.0, 5.0, 0.1],
+        [3.0, 2.0, 0.1],
     ],
+    maxiters=2000,
 )
 
-amplitude_profile = profile(result, 1; npoints=61, nsigma=4)
 amplitude_interval = profile_interval(result, 1; npoints=81, nsigma=4)
-amplitude_timescale = contour(
+amplitude_profile = amplitude_interval.profile_result
+amplitude_timescale = JuFitter.contour(
     result,
     1,
     2;
@@ -171,6 +186,7 @@ profile_overview = profile_matrix(
     npoints_contour=21,
     nsigma=3,
     adaptive=true,
+    max_refinements=1,
 )
 
 plot_profile(
@@ -188,42 +204,34 @@ plot_contour(
     ylabel="time constant tau",
     title="Profile contours versus local covariance",
 )
-plot_profile_matrix(
-    result;
-    parameters=[1, 2, 3],
-    parameter_names=["A", "tau", "c"],
-    npoints_profile=41,
-    npoints_contour=21,
-    nsigma=3,
-    adaptive=true,
-)
+plot_profile_matrix(profile_overview)
 
-println("amplitude center = ", result.params[1])
-println("amplitude 1sigma lower = ", amplitude_interval.lower)
-println("amplitude 1sigma upper = ", amplitude_interval.upper)
-println("amplitude -sigma = ", amplitude_interval.uncertainty_minus)
-println("amplitude +sigma = ", amplitude_interval.uncertainty_plus)
+@printf("amplitude = %.3f -%.3f +%.3f V\n",
+        result.params[1],
+        amplitude_interval.uncertainty_minus,
+        amplitude_interval.uncertainty_plus)
+@printf("profile interval = [%.3f, %.3f] V\n",
+        amplitude_interval.lower,
+        amplitude_interval.upper)
+@printf("corr(A, tau) = %.4f\n", result.param_correlation[1, 2])
 println(diagnostic_dashboard_text(result))
 ```
 
 ```@raw html
 <div class="jufitter-cell-output">
 <div class="jufitter-cell-output-label">Real output (abridged)</div>
-<pre>amplitude center = 4.5851070904210935
-amplitude 1sigma lower = 4.016607430313673
-amplitude 1sigma upper = 5.480983264573968
-amplitude -sigma = 0.5684996601074204
-amplitude +sigma = 0.8958761741528747
+<pre>amplitude = 4.750 -0.629 +1.018 V
+profile interval = [4.121, 5.768] V
+corr(A, tau) = 0.9928
 
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 3, info = 0
-3 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
-  2. Use profile or contour intervals before treating symmetric covariance errors as final uncertainties.
-  3. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
+  1. Use profile or contour intervals before treating symmetric covariance errors as final uncertainties.
+  2. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
 </div>
 ```
 
@@ -234,15 +242,15 @@ mistaken for the physical minimum.
 The fit returns approximately
 
 ```math
-A = 4.59 \pm 0.70\ \mathrm{V},
+A = 4.75 \pm 0.78\ \mathrm{V},
 \qquad
-\tau = 3.18 \pm 0.70\ \mathrm{s},
+\tau = 3.35 \pm 0.78\ \mathrm{s},
 \qquad
-c = 0.115 \pm 0.041\ \mathrm{V}.
+c = 0.121 \pm 0.041\ \mathrm{V}.
 ```
 
 Those symmetric errors are only the local covariance summary. The fitted
-correlation between ``A`` and ``\tau`` is approximately ``0.9999``. That number
+correlation between ``A`` and ``\tau`` is approximately ``0.9928``. That number
 is already a warning to inspect the cost away from the minimum.
 
 ## Diagnostics: Profile and Contour Checks
@@ -283,10 +291,10 @@ The actual profile rises more slowly toward larger amplitudes. The one-sigma
 profile interval is approximately
 
 ```math
-A = 4.59^{+0.90}_{-0.57}\ \mathrm{V},
+A = 4.75^{+1.02}_{-0.63}\ \mathrm{V},
 ```
 
-not ``4.59 \pm 0.70\ \mathrm{V}``. The asymmetry is scientifically relevant:
+not ``4.75 \pm 0.78\ \mathrm{V}``. The asymmetry is scientifically relevant:
 large amplitudes remain plausible because a longer time constant can hide the
 plateau beyond the measured interval.
 

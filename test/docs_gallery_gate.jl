@@ -165,6 +165,14 @@ end
     @test !occursin("h_fit = me *", photoelectric)
     @test !occursin("examples/gallery/09_docs_gallery_suite.jl", photoelectric)
 
+    constraints = read(joinpath(GALLERY_SRC, "constraints_profiles.md"), String)
+    @test occursin("using CairoMakie", constraints)
+    @test occursin("response = [", constraints)
+    @test occursin("JuFitter.contour(", constraints)
+    @test occursin("plot_profile_matrix(profile_overview)", constraints)
+    @test occursin("amplitude_profile = amplitude_interval.profile_result", constraints)
+    @test !occursin("residual_pattern", constraints)
+
     gallery_generator = read(
         joinpath(ROOT, "examples", "gallery", "09_docs_gallery_suite.jl"),
         String,
@@ -179,6 +187,8 @@ end
     @test occursin("observed_density = counts ./ widths", gallery_generator)
     @test occursin("expected_density = expected ./ widths", gallery_generator)
     @test !occursin("background = result.params[4] .* widths", gallery_generator)
+    @test occursin("profile_overview = profile_matrix(", gallery_generator)
+    @test occursin(r"plot_profile_matrix\(\s*profile_overview;", gallery_generator)
 
     for script_name in (
         "05_constraints_priors_profiles.jl",

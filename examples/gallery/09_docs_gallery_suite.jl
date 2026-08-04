@@ -837,27 +837,38 @@ style_variant_plot(
 )
 
 # 5. Bounds, prior, profile, and a genuinely non-elliptic contour.
-time_saturation = collect(range(0.15, 2.2; length=18))
-saturation_model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
-sigma_time = @. 0.010 + 0.004 * time_saturation
-sigma_response = @. 0.045 + 0.008 * time_saturation
-saturation_residual_pattern = [
-    0.50, -0.90, 0.30, 1.10, -0.70, 0.80, -1.00, 0.40, 0.90,
-    -0.60, 0.70, -0.80, 1.00, -0.40, 0.55, -0.75, 0.65, -0.35,
+time_saturation = [
+    0.150000, 0.270588, 0.391176, 0.511765, 0.632353, 0.752941,
+    0.873529, 0.994118, 1.114706, 1.235294, 1.355882, 1.476471,
+    1.597059, 1.717647, 1.838235, 1.958824, 2.079412, 2.200000,
 ]
-response_saturation =
-    saturation_model(time_saturation, [4.8, 3.4, 0.12]) .+
-    sigma_response .* saturation_residual_pattern
+response_saturation = [
+    0.345641, 0.470693, 0.593535, 0.839840, 0.969673, 1.129630,
+    1.165946, 1.315719, 1.477930, 1.631653, 1.729280, 1.759687,
+    1.878716, 1.988480, 2.172411, 2.176549, 2.346881, 2.447489,
+]
+sigma_time = [
+    0.010600, 0.011082, 0.011565, 0.012047, 0.012529, 0.013012,
+    0.013494, 0.013976, 0.014459, 0.014941, 0.015424, 0.015906,
+    0.016388, 0.016871, 0.017353, 0.017835, 0.018318, 0.018800,
+]
+sigma_response = [
+    0.046200, 0.047165, 0.048129, 0.049094, 0.050059, 0.051024,
+    0.051988, 0.052953, 0.053918, 0.054882, 0.055847, 0.056812,
+    0.057776, 0.058741, 0.059706, 0.060671, 0.061635, 0.062600,
+]
+saturation_model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
 saturation_result = fit_model(
     saturation_model,
     time_saturation,
     response_saturation;
-    p0=[3.0, 2.0, 0.0],
+    p0=[4.5, 3.0, 0.1],
     sigma_y=sigma_response,
     sigma_x=sigma_time,
     bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
     parameter_priors=(index=3, mean=0.10, sigma=0.08),
-    initial_guesses=[[3.0, 2.0, 0.0], [8.0, 7.0, 0.1], [2.0, 1.0, 0.2]],
+    initial_guesses=[[6.0, 5.0, 0.1], [3.0, 2.0, 0.1]],
+    maxiters=2000,
 )
 style_variant_plot(
     saturation_result,
@@ -897,18 +908,35 @@ style_variant_plot(
 )
 amplitude_interval = profile_interval(saturation_result, 1; npoints=81, nsigma=4)
 emit_doc_output_snapshot("constraints_profiles") do
-    println("amplitude center = ", saturation_result.params[1])
-    println("amplitude 1sigma lower = ", amplitude_interval.lower)
-    println("amplitude 1sigma upper = ", amplitude_interval.upper)
-    println("amplitude -sigma = ", amplitude_interval.uncertainty_minus)
-    println("amplitude +sigma = ", amplitude_interval.uncertainty_plus)
+    @printf(
+        "amplitude = %.3f -%.3f +%.3f V\n",
+        saturation_result.params[1],
+        amplitude_interval.uncertainty_minus,
+        amplitude_interval.uncertainty_plus,
+    )
+    @printf(
+        "profile interval = [%.3f, %.3f] V\n",
+        amplitude_interval.lower,
+        amplitude_interval.upper,
+    )
+    @printf("corr(A, tau) = %.4f\n", saturation_result.param_correlation[1, 2])
     println(diagnostic_dashboard_text(saturation_result))
 end
 if render_asset_group("constraints_profiles")
-    prof = JuFitter.profile(saturation_result, 1; npoints=61, nsigma=4)
+    prof = amplitude_interval.profile_result
     cont = JuFitter.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
     profile_overview_parameters = [1, 2, 3]
     profile_overview_names = ["A", "tau", "c"]
+    profile_overview = profile_matrix(
+        saturation_result;
+        parameters=profile_overview_parameters,
+        parameter_names=profile_overview_names,
+        npoints_profile=41,
+        npoints_contour=21,
+        nsigma=3,
+        adaptive=true,
+        max_refinements=1,
+    )
 
     for style in (:lab, :modern, :article), appearance in (:light, :dark)
         plot_profile(
@@ -940,14 +968,7 @@ if render_asset_group("constraints_profiles")
     end
     for style in (:lab, :modern, :article), appearance in (:light, :dark)
         plot_profile_matrix(
-            saturation_result;
-            parameters=profile_overview_parameters,
-            parameter_names=profile_overview_names,
-            npoints_profile=41,
-            npoints_contour=21,
-            nsigma=3,
-            adaptive=true,
-            max_refinements=1,
+            profile_overview;
             panel_status_mode=:issues,
             theme=style,
             appearance=appearance,

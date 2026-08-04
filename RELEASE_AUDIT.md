@@ -116,6 +116,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   interval, contour matrix, and both plot exports execute to completion.
   Tracked gallery regeneration requires the explicit maintainer flag and can be
   limited to one asset group instead of recomputing unrelated profile matrices.
+- Constraints and Profiles now fits four explicit measurement arrays instead
+  of constructing observations from hidden true parameters and an alternating
+  residual pattern. The curated record converges cleanly and leaves only the
+  intended strong-correlation and local-covariance warnings; the former
+  artificial lag-one residual warning is gone. The page's asymmetric interval,
+  correlation, dashboard, and 24 fit/profile/contour/matrix assets come from
+  that same fit. Profile scans and the three-parameter matrix are each computed
+  once and reused by the render layer. Article-dark diagnostic regions and the
+  fit minimum now use visible high-contrast colors rather than black on the
+  dark figure background.
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
   passes with 79 torture checks in about 1m38s on the local machine. Three
@@ -178,13 +188,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Its roughly 42-minute runtime is too slow for the default developer loop and
   remains a release/CI gate; focused reference and torture suites provide the
   edit-test loop.
-- `julia --project=docs --startup-file=no test/plots/fitplot.jl` passes with 83
+- `julia --project=. --startup-file=no test/plots/fitplot.jl` passes with 86
   focused plot-regression checks locally, including structured-whitening error
   bars, prediction-band semantics, and the no-marginals failure path.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  273 checks. The gate enforces the current release standard for every public
+  281 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit

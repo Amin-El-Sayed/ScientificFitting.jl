@@ -1443,6 +1443,13 @@ end
 function _diagnostic_colors(style::Symbol, appearance::Symbol)
     preset = _style_preset(style, appearance)
     if style == :article
+        if appearance == :dark
+            return (
+                levels=(preset.fit_color, _JF_DARK_INK, preset.stats_muted_color),
+                regions=((preset.fit_color, 0.30), (preset.fit_color, 0.18), (preset.fit_color, 0.09)),
+                local_color=preset.stats_muted_color,
+            )
+        end
         return (
             levels=(:black, :gray35, :gray60),
             regions=((:black, 0.18), (:black, 0.10), (:black, 0.06)),

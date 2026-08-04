@@ -240,6 +240,11 @@ using Test
     @test plot_palette(:lab).data_color != plot_palette(:modern).data_color
     @test !contains(string(plot_palette(:modern).data_color), "b05a36")
     @test plot_palette(:article).fit_color == "#0072B2"
+    plotting_extension = Base.get_extension(JuFitter, :JuFitterCairoMakieExt)
+    @test plotting_extension !== nothing
+    article_dark_diagnostics = plotting_extension._diagnostic_colors(:article, :dark)
+    @test article_dark_diagnostics.levels[1] == plot_palette(:article; appearance=:dark).fit_color
+    @test all(color -> first(color) != :black, article_dark_diagnostics.regions)
     @test_throws ArgumentError plot_fit(quick.result; theme=:unknown)
     @test_throws ArgumentError plot_fit(quick.result; theme=:dark, appearance=:light)
     @test_throws ArgumentError plot_fit(quick.result; fit_range=:unknown)
