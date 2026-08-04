@@ -475,7 +475,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   checks caught and removed unreadable wide tables instead of masking them with
   page-specific CSS. A focused linear-fit run executes the documented
   `profile_interval`, profile diagnosis, contour, and contour-diagnosis access
-  patterns successfully.
+  patterns successfully. The final API audit also distinguishes an unbinned
+  density's observation domain from a fit range, documents correlated x-error
+  propagation as `V_eff = V_y + D V_x D'`, states that uncertainty metadata on
+  a `FixedParameter` is not propagated, and includes the actual public profile
+  and contour plotting calls. An execution check caught and fixed the
+  `CairoMakie.contour`/`JuFitter.contour` export ambiguity by qualifying the
+  documented call. The full docs build, public-hygiene, source-link, and
+  rendered-link gates pass.
 - Technical maintenance pages remain in the rendered documentation, but they
   are nested under `Reference > Technical Notes` rather than appearing as a
   top-level user path. The public documentation hygiene gate now prevents a

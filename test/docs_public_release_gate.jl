@@ -234,6 +234,8 @@ end
         @test occursin("cost=:auto", guide)
         @test occursin("profile_interval", guide)
         @test occursin("interval.profile_result", guide)
+        @test occursin("cont = JuFitter.contour(", guide)
+        @test !occursin(r"cont = contour\(", guide)
         @test !occursin("0.5 \\lesssim", guide)
     end
 

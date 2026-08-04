@@ -30,7 +30,8 @@ Start from the measurement process, not from the curve shape.
   `fit_histogram_density(...)`. Integrate the model over each bin instead of
   sampling only at its center.
 - **Individual samples from a distribution:** use `fit_unbinned_model(...)` and
-  verify that the density is normalized on the fitted domain.
+  verify that the density is normalized on the observation domain used by the
+  experiment.
 - **Individual samples when the total event yield also carries information:**
   use `fit_extended_unbinned_model(...)`. The model must describe both shape
   and expected event count.
@@ -119,6 +120,9 @@ Use a `FixedParameter` without uncertainty only for a quantity that is treated
 as exact in the stated analysis. Fixing an uncertain calibration constant hides
 its contribution instead of propagating it. Likewise, do not reuse information
 from the fitted dataset as a prior; that would count the same evidence twice.
+An uncertainty attached to `FixedParameter` is retained for reporting; it does
+not propagate into the fitted covariance. Use a free nuisance parameter with a
+prior when that uncertainty must affect the fit result.
 
 ### X uncertainty
 
@@ -135,6 +139,24 @@ first-order effective variance
 \right)^2
 \sigma_{x,i}^2.
 ```
+
+For correlated x and y measurements, the same linearization is written in
+matrix form:
+
+```math
+V_{\mathrm{eff}}(p)
+=
+V_y + D(p)V_xD(p)^T,
+\qquad
+D_{ij}(p)=\delta_{ij}
+\frac{\partial f(x_i,p)}{\partial x_i}.
+```
+
+This has a direct experimental meaning. A common calibration shift in two x
+values is represented by an off-diagonal entry in ``V_x``; multiplication by
+``D`` converts that shared horizontal displacement into the corresponding
+shared displacement of the model predictions. `cov_x` and `cov_y` supply the
+two matrices. `sigma_x` and `sigma_y` are their diagonal special cases.
 
 Because this covariance depends on the fitted parameters, `cost=:auto` uses the
 full Gaussian likelihood cost on the ``-2\log L`` scale, including its
@@ -330,6 +352,12 @@ A profile fixes one parameter and refits every remaining nuisance parameter:
 interval = profile_interval(result, 1; threshold=1.0)
 prof = interval.profile_result
 println(diagnose(prof; local_sigma=result.param_stderr[1]))
+
+fig = plot_profile(
+    prof;
+    local_sigma=result.param_stderr[1],
+    threshold_label="68.3% profile threshold",
+)
 ```
 
 Under regular one-parameter likelihood assumptions, ``\Delta C=1`` corresponds
@@ -356,7 +384,7 @@ A contour fixes two parameters on a grid and refits all remaining nuisance
 parameters:
 
 ```julia
-cont = contour(
+cont = JuFitter.contour(
     result,
     1,
     2;
@@ -369,12 +397,20 @@ println(diagnose(
     local_covariance=result.param_covariance,
     local_center=result.params[[1, 2]],
 ))
+
+fig = plot_contour(
+    cont;
+    local_covariance=result.param_covariance,
+    local_center=result.params[[1, 2]],
+    xlabel="parameter 1",
+    ylabel="parameter 2",
+)
 ```
 
 For two parameters under regular likelihood assumptions, ``\Delta C=2.30`` and
-``6.18`` are the approximate 68.3% and 95.4% joint-confidence thresholds. The
-filled regions show the profiled cost; the line overlay shows the local
-parabolic covariance approximation.
+``6.18`` are the approximate 68.3% and 95.4% joint-confidence thresholds. In
+the resulting plot, the filled regions show the profiled cost; the dashed line
+overlay shows the local parabolic covariance approximation.
 
 Use the geometry as a decision tool:
 
