@@ -20,7 +20,7 @@ Generated figures are written to `examples/output/`, which is ignored by git.
   `:modern`, and `:article` contracts with identical scientific content.
 - `08_damped_oscillator_decay.jl`: real damped-oscillator data, x/y
   uncertainties, constant-frequency versus frequency-drift model criticism,
-  pull diagnostics, and light/dark docs export.
+  pull diagnostics, and a style-aware compound figure.
 - `09_docs_gallery_suite.jl`: generates the public documentation gallery assets.
 - `10_multi_dataset_calibration.jl`: tests full versus partial parameter
   sharing across three calibration channels with joint covariance propagation
@@ -29,6 +29,15 @@ Generated figures are written to `examples/output/`, which is ignored by git.
 The gallery is intentionally systematic. Avoid adding loose one-off scripts at
 the top level; new examples should either extend an existing gallery file or add
 a numbered workflow with clear scope.
+
+The damped-oscillator script writes its normal user output only to
+`examples/output/`. Maintainers can intentionally regenerate its six tracked
+documentation variants with:
+
+```bash
+JUFITTER_RENDER_DOC_ASSETS=1 \
+    julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
+```
 
 ## Python Interoperability
 

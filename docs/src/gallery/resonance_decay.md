@@ -30,28 +30,47 @@ drift removes most of that structure.
 
 ## The Measurement
 
-The distributed CSV contains 300 angle measurements between approximately
-20 s and 80 s:
+The source acquisition recorded the angular displacement at 50 Hz. The
+distributed CSV keeps every tenth raw sample between 20.18 s and 79.98 s,
+giving 300 points at approximately 5 Hz. The values were neither smoothed nor
+interpolated.
 
 | Column | Meaning | Unit |
 | --- | --- | --- |
 | `time_s` | acquisition timestamp | s |
 | `phi_rad` | measured angular displacement | rad |
-| `sigma_phi_rad` | conservative angle repeatability scale | rad |
+| `sigma_phi_rad` | assigned standard uncertainty of the angle | rad |
 
-The analysis below uses half of the conservative angle repeatability scale as
-the pointwise statistical uncertainty and assigns a 0.5 ms standard timestamp
-uncertainty from the acquisition timing resolution. Both x and y uncertainty
-therefore enter the fit. The scale choice is not hidden in the plotting code:
-it is part of the statistical model and should be changed if repeated
-measurements or instrument specifications justify a different value.
+The angle was reconstructed from a path displacement measured at a radius of
+91.9 mm. The acquisition analysis assigned a 1 mm path-length uncertainty, so
+the angle uncertainty stored in the file is
+
+```math
+\sigma_\phi
+= \frac{1\ \mathrm{mm}}{91.9\ \mathrm{mm}}
+= 0.0108814\ \mathrm{rad}.
+```
+
+This is an instrument-based assignment, not a standard deviation estimated
+from repeated decay records. The analysis keeps it unchanged and assigns a
+0.5 ms standard timestamp uncertainty from the acquisition timing resolution.
+Both x and y uncertainty therefore enter the fit. Whether an independent
+Gaussian model is compatible with those assignments is a result to diagnose,
+not a scale to tune after seeing the residuals.
 
 The record has dense sampling, periodic parameters, a slowly changing envelope,
 and residual structure that a plot of the fitted curve can hide.
 
 ## Model: Start With The Physical Baseline
 
-For an underdamped linear oscillator with constant coefficients,
+For a torsion oscillator with moment of inertia ``\Theta``, damping coefficient
+``b``, and torsional stiffness ``D``, the linear equation of motion is
+
+```math
+\Theta\ddot\phi+b\dot\phi+D\phi=0.
+```
+
+In the underdamped regime its solution can be written as
 
 ```math
 \phi(t)
@@ -66,7 +85,7 @@ The parameters are:
 
 - ``A_\mathrm{ref}``: amplitude at the reference time,
 - ``\lambda``: exponential damping rate,
-- ``\omega_\mathrm{ref}``: angular frequency,
+- ``\omega_\mathrm{ref}``: damped angular frequency,
 - ``\phi_\mathrm{ref}``: phase at the reference time.
 
 The time coordinate is centered at the middle of the record. This is not a
@@ -79,11 +98,34 @@ The damping time is the derived quantity
 \tau_d = \frac{1}{\lambda}.
 ```
 
+For the constant-coefficient model,
+
+```math
+\lambda=\frac{b}{2\Theta},
+\qquad
+\omega_\mathrm{ref}
+=\sqrt{\frac{D}{\Theta}-\lambda^2}.
+```
+
 ## Diagnostics: Fit and Diagnose the Baseline
 
-The fit uses a Gaussian likelihood with supplied angle uncertainty and
+The fit uses a Gaussian likelihood with the assigned angle uncertainty and
 effective-variance propagation of timestamp uncertainty. Multiple initial
 guesses are important because phase-periodic models have repeated local minima.
+
+For this diagonal uncertainty model, the plotted pulls are
+
+```math
+r_i
+=\frac{\phi_i-f(t_i,p)}
+{\sqrt{\sigma_{\phi,i}^2+
+\left(\partial f/\partial t\right)_i^2\sigma_{t,i}^2}}.
+```
+
+Independent standard-normal pulls should fluctuate without long runs and have
+roughly unit width. Coherent waves indicate missing model structure; a much
+narrower cloud indicates conservative uncertainties or correlations between
+samples.
 
 ```julia
 using JuFitter
@@ -103,7 +145,7 @@ data = load_damped_oscillator(
 )
 time = data.time
 angle = data.angle
-sigma_angle = 0.5 .* data.sigma_angle
+sigma_angle = data.sigma_angle
 sigma_time = fill(0.0005, length(time))
 time_reference = (minimum(time) + maximum(time)) / 2
 
@@ -139,36 +181,35 @@ println(diagnostic_dashboard_text(constant_result))
 <pre>Fit report
 backend = optimization
 converged = true
-iterations = 111
+iterations = 84
 message = Success
 
 Parameters:
-  A_ref = 1.60613 +/- 0.000457675
-  omega_ref = 3.26011 +/- 1.7327e-5
-  phi_ref = -0.763199 +/- 0.0003003
-  lambda = 0.00348387 +/- 1.639e-5
+  A_ref = 1.60616 +/- 0.000897684
+  omega_ref = 3.2601 +/- 3.271e-5
+  phi_ref = -0.763197 +/- 0.000567184
+  lambda = 0.00348457 +/- 3.21332e-5
 
 Statistics:
   cost = gaussian_likelihood
-  cost_min = -885.658
-  minus2loglik_min = -885.658
-  chi2 = 1659.13
+  cost_min = -1689.59
+  minus2loglik_min = -1689.59
+  chi2 = 462.933
   ndf = 296
-  chi2/ndf = 5.60516
-  pvalue = 4.3964999999999994e-188
-  AIC = -877.658
-  BIC = -862.843
+  chi2/ndf = 1.56396
+  pvalue = 1.76695e-9
+  AIC = -1681.59
+  BIC = -1666.77
 
 Fit diagnostic dashboard
 status = critical - fix before use
-critical = 3, warning = 1, info = 0
-3 critical issue(s), 1 warning(s). Fix the issue before using this result for conclusions.
+critical = 1, warning = 2, info = 0
+1 critical issue(s), 2 warning(s). Fix the issue before using this result for conclusions.
 
 Next actions:
-  1. Inspect the corresponding data point, uncertainty, units, and possible outlier handling before trusting the fit.
-  2. Under the stated assumptions this fit is statistically implausible. Inspect residuals and the uncertainty model.
-  3. Look for missing physics, underestimated uncertainties, wrong correlations, outliers, or a failed optimizer.
-  4. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+  1. Under the stated assumptions this fit is statistically implausible. Inspect residuals and the uncertainty model.
+  2. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+  3. Inspect residuals near the largest pull. One point may dominate the result or the uncertainty model may be too optimistic.
 </pre>
 </div>
 ```
@@ -179,9 +220,9 @@ only whether the optimizer found a minimum. It does not validate the model.
 For this fit,
 
 ```math
-\frac{\chi^2}{\mathrm{ndf}} = 5.61,
+\frac{\chi^2}{\mathrm{ndf}} = 1.564,
 \qquad
-P(\chi^2) = 4.4\times 10^{-188}.
+P(\chi^2) = 1.77\times 10^{-9}.
 ```
 
 Under the stated independent Gaussian uncertainty model, residuals this
@@ -218,7 +259,9 @@ where
 ```
 
 The new parameter ``\beta`` has units ``\mathrm{rad\,s^{-2}}`` and measures the
-rate of change of angular frequency.
+rate of change of angular frequency. This is a phenomenological test, not yet a
+claim about mechanism: amplitude-dependent stiffness, temperature drift, or a
+small timing-scale error could all produce accumulated phase structure.
 
 ```julia
 frequency_drift_model(t, p) = @. p[1] * exp(-p[4] * (t - time_reference)) *
@@ -257,32 +300,34 @@ println(diagnostic_dashboard_text(drift_result))
 <pre>Fit report
 backend = optimization
 converged = true
-iterations = 80
+iterations = 82
 message = Success
 
 Parameters:
-  A_ref = 1.60605 +/- 0.000457643
-  omega_ref = 3.26016 +/- 1.73882e-5
-  phi_ref = -0.77562 +/- 0.000448643
-  lambda = 0.00348309 +/- 1.63859e-5
-  beta = 8.32827e-5 +/- 2.23515e-6
+  A_ref = 1.60608 +/- 0.000897621
+  omega_ref = 3.26016 +/- 3.28557e-5
+  phi_ref = -0.775608 +/- 0.000846739
+  lambda = 0.00348365 +/- 3.21247e-5
+  beta = 8.32878e-5 +/- 4.21994e-6
 
 Statistics:
   cost = gaussian_likelihood
-  cost_min = -2274.67
-  minus2loglik_min = -2274.67
-  chi2 = 270.124
+  cost_min = -2079.34
+  minus2loglik_min = -2079.34
+  chi2 = 73.1838
   ndf = 295
-  chi2/ndf = 0.915675
-  pvalue = 0.847734
-  AIC = -2264.67
-  BIC = -2246.15
+  chi2/ndf = 0.248081
+  pvalue = 1.0
+  AIC = -2069.34
+  BIC = -2050.82
 
 Fit diagnostic dashboard
-status = ok - no immediate issue
-critical = 0, warning = 0, info = 0
-No major diagnostic issues detected by the current checks.
-No next action required by the current diagnostic checks.</pre>
+status = review - inspect diagnostics
+critical = 0, warning = 1, info = 0
+1 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. The uncertainties may be too large, correlations may be ignored, or the data may not be independent.</pre>
 </div>
 ```
 
@@ -292,43 +337,52 @@ The fitted drift and damping parameters are
 
 ```math
 \beta
-= (8.33 \pm 0.22)\times 10^{-5}\ \mathrm{rad\,s^{-2}},
+= (8.33 \pm 0.42)\times 10^{-5}\ \mathrm{rad\,s^{-2}},
 ```
 
 ```math
 \lambda
-= (3.483 \pm 0.016)\times 10^{-3}\ \mathrm{s^{-1}},
+= (3.484 \pm 0.032)\times 10^{-3}\ \mathrm{s^{-1}},
 \qquad
 \tau_d
-= (287.1 \pm 1.4)\ \mathrm{s}.
+= (287.1 \pm 2.6)\ \mathrm{s}.
 ```
+
+The quoted damping-time uncertainty is the local first-order propagation
+``\sigma_{\tau_d}=\sigma_\lambda/\lambda^2``. It inherits the same local
+covariance and uncertainty-model limitations as the fitted ``\lambda`` error.
 
 Across the recorded interval, the fitted angular frequency changes by
 
 ```math
 \Delta\omega
 = \beta(t_{\max}-t_{\min})
-= (4.98 \pm 0.13)\times 10^{-3}\ \mathrm{rad\,s^{-1}}.
+= (4.98 \pm 0.25)\times 10^{-3}\ \mathrm{rad\,s^{-1}}.
 ```
 
 That change is only about 0.15% of ``\omega_\mathrm{ref}``, yet its phase effect
 accumulates over many cycles and becomes obvious in the pulls.
 
 The two fits use the same observations and likelihood, so their AIC values may
-be compared. The drift model improves AIC by approximately 1387 despite adding
+be compared. The drift model improves AIC by approximately 388 despite adding
 only one parameter. The constant-frequency model is therefore inadequate for
 this record.
 
-The improved model also passes the automatic first-pass diagnostics:
+The drift model removes the coherent phase pattern, but its pulls are now much
+narrower than a unit Gaussian:
 
 ```math
-\frac{\chi^2_\mathrm{drift}}{\mathrm{ndf}}=0.916,
+\frac{\chi^2_\mathrm{drift}}{\mathrm{ndf}}=0.248,
 \qquad
-P(\chi^2_\mathrm{drift})=0.848.
+P(\chi^2_\mathrm{drift})\approx 1.
 ```
 
-That does not prove the model is true, but it means the first residual and
-goodness-of-fit checks no longer reject the stated model and uncertainty scale.
+That is not evidence of an exceptionally perfect experiment. It suggests that
+the assigned angle uncertainty is conservative, that neighboring samples are
+not independent, or both. JuFitter therefore returns `review`, not `ok`. The
+data strongly support an accumulated phase correction, but the local parameter
+errors should not be treated as final until the uncertainty model has been
+validated with instrument specifications or repeated decay records.
 
 ## What The Band Means
 
@@ -353,13 +407,15 @@ correct physical explanation.
 ## Complete Reproducible Figure
 
 The tracked script contains the complete fit, diagnostics, derived quantities,
-prediction-band propagation, and light/dark Makie figure:
+prediction-band propagation, and compound Makie figure:
 
 ```bash
 julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
 ```
 
-It writes the documentation assets and prints both diagnostic dashboards.
+It prints both diagnostic dashboards and writes
+`examples/output/08_damped_oscillator_decay.png`. Running the public example
+does not modify the documentation source tree.
 
 ## What To Do Before Reporting A Physical Result
 
@@ -379,7 +435,7 @@ The correct conclusion from this page is not “the more flexible model wins.”
 It is: **the baseline model fails; frequency drift explains the dominant
 structure; the uncertainty model still requires investigation.**
 
-Next, use [Full Covariance](full_covariance.md) to see how correlated
-measurements change fit interpretation, or
-[Constraints and Profiles](constraints_profiles.md) when local covariance
-errors may be unreliable.
+To model shared sample noise explicitly, revisit
+[Full Covariance](full_covariance.md). Continue with
+[Photoelectric Work Function](photoelectric_threshold.md) for a derived physical
+quantity obtained from two fitted regimes.

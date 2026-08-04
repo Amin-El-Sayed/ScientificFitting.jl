@@ -148,6 +148,20 @@ end
     @test occursin("(nu_THz - reference_frequency_THz)", photoelectric)
     @test occursin("h_fit = photoelectric_slope * elementary_charge", photoelectric)
     @test occursin("work_function_eV = photoelectric_slope * threshold_THz", photoelectric)
+
+    resonance = read(joinpath(GALLERY_SRC, "resonance_decay.md"), String)
+    resonance_script = read(
+        joinpath(ROOT, "examples", "gallery", "08_damped_oscillator_decay.jl"),
+        String,
+    )
+    @test occursin("sigma_angle = data.sigma_angle", resonance)
+    @test occursin("sigma_angle = data.sigma_angle", resonance_script)
+    @test !occursin("0.5 .* data.sigma_angle", resonance)
+    @test !occursin("0.5 .* data.sigma_angle", resonance_script)
+    @test occursin("1\\ \\mathrm{mm}", resonance)
+    @test occursin("chi2/ndf = 0.248081", resonance)
+    @test occursin("status = review - inspect diagnostics", resonance)
+    @test occursin("JUFITTER_RENDER_DOC_ASSETS", resonance_script)
     @test !occursin("h_fit = me *", photoelectric)
     @test !occursin("examples/gallery/09_docs_gallery_suite.jl", photoelectric)
 

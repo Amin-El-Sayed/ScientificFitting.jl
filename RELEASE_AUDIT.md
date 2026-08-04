@@ -16,6 +16,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   expand the orthogonal axis to the default `0:10` range. Both helpers now use
   Makie's axis-relative `vspan!`/`hspan!` primitives, and a focused plot
   regression verifies that pre-render spans leave automatic data limits intact.
+- The damped-oscillator audit removed a post-hoc factor-of-two reduction of the
+  documented angle uncertainty. The curated CSV is now traced to every tenth
+  sample of the source acquisition, with no smoothing or interpolation, and the
+  1 mm path-resolution assignment is converted at the stated 91.9 mm radius.
+  Real executable output now preserves the resulting `critical` baseline and
+  `review` drift diagnostics instead of tuning the uncertainty scale to obtain
+  an attractive p-value. Its public script writes to `examples/output/` by
+  default; regenerating the six tracked documentation assets requires the
+  explicit `JUFITTER_RENDER_DOC_ASSETS=1` maintainer flag.
 
 ## Current Verification
 
@@ -162,7 +171,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  257 checks. The gate enforces the current release standard for every public
+  265 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
@@ -385,10 +394,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `critical - fix before use`. Critical summaries now say to fix the issue
   before using the result for conclusions instead of using publication-specific
   phrasing.
-- The damped-oscillator gallery now uses a stated pointwise statistical
-  uncertainty scale, keeps the constant-frequency model as a rejected
-  model-criticism example, and shows a frequency-drift model whose real
-  diagnostic dashboard reaches `ok`.
+- The damped-oscillator gallery now derives its assigned angle uncertainty from
+  the recorded path-resolution model, keeps the constant-frequency model as a
+  rejected model-criticism example, and reports the frequency-drift model's
+  real `review` diagnostic. The dominant phase structure disappears, but the
+  narrow pull distribution remains visible evidence that the instrument-based
+  uncertainty assignment is conservative or that the samples are correlated.
 - The photoelectric gallery and executable example now present the threshold
   plot as a modular JuFitter/Makie extension: the fit results remain the source
   of truth, while the intersection band, marker, legend, and right-side report

@@ -99,6 +99,9 @@ list as an ownership map, not a second architecture chapter.
   what it represents.
 - Generated site output and gallery scratch output remain ignored. Tracked
   documentation assets must have a reproducible generator and visual review.
+- Gallery scripts must write normal user output only below `examples/output/`.
+  A script may update tracked documentation assets only behind an explicit
+  maintainer environment flag documented beside that script.
 - Public API changes require a docstring, curated API-reference update, local
   and rendered link checks, and a focused contract test.
 

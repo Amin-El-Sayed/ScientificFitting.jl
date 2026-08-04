@@ -1,7 +1,9 @@
 const SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
-const RENDER_DOC_ASSETS = !SNAPSHOT_ONLY
+const RENDER_PLOTS = !SNAPSHOT_ONLY
+const RENDER_DOC_ASSETS = RENDER_PLOTS &&
+    get(ENV, "JUFITTER_RENDER_DOC_ASSETS", "0") == "1"
 
-if RENDER_DOC_ASSETS
+if RENDER_PLOTS
     using CairoMakie
 end
 
@@ -28,7 +30,7 @@ end
 data = load_damped_oscillator(DATA_FILE)
 time = data.time
 angle = data.angle
-sigma_angle = 0.5 .* data.sigma_angle
+sigma_angle = data.sigma_angle
 sigma_time = fill(0.0005, length(time))
 time_reference = (minimum(time) + maximum(time)) / 2
 
@@ -103,10 +105,6 @@ function fmt_tex(x, digits=4)
     return mantissa * "\\times10^{" * string(parse(Int, exponent)) * "}"
 end
 
-function style_asset_suffix(dark, style::Symbol, appearance::Symbol)
-    return dark === nothing ? "$(style)_$(appearance)" : (appearance == :dark ? "dark" : "light")
-end
-
 function emit_doc_output_snapshot(body::Function, id::AbstractString)
     EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
 
@@ -124,11 +122,10 @@ end
 
 function save_model_comparison(
     filename;
-    dark::Union{Nothing, Bool}=nothing,
     style::Symbol=:modern,
-    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+    appearance::Symbol=:light,
 )
-    RENDER_DOC_ASSETS || return nothing
+    RENDER_PLOTS || return nothing
 
     dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
@@ -249,23 +246,23 @@ function save_model_comparison(
     parameter_lines = article ? Any[
         LaTeXString("\\omega_{\\mathrm{ref}} = $(fmt_tex(drift_result.params[2], 6)) \\pm $(fmt_tex(drift_result.param_stderr[2], 2))\\;\\mathrm{rad\\,s^{-1}}"),
         LaTeXString("\\beta = $(fmt_tex(1e3 * beta, 5)) \\pm $(fmt_tex(1e3 * sigma_beta, 2))\\;\\mathrm{mrad\\,s^{-2}}"),
-        LaTeXString("\\Delta\\omega_{60s} = $(fmt_tex(frequency_change, 4)) \\pm $(fmt_tex(sigma_frequency_change, 2))\\;\\mathrm{rad\\,s^{-1}}"),
+        LaTeXString("\\Delta\\omega_{\\mathrm{record}} = $(fmt_tex(frequency_change, 4)) \\pm $(fmt_tex(sigma_frequency_change, 2))\\;\\mathrm{rad\\,s^{-1}}"),
         LaTeXString("\\lambda = $(fmt_tex(drift_result.params[4], 5)) \\pm $(fmt_tex(drift_result.param_stderr[4], 2))\\;\\mathrm{s^{-1}}"),
         LaTeXString("\\tau_d = $(fmt_tex(damping_time, 5)) \\pm $(fmt_tex(sigma_damping_time, 2))\\;\\mathrm{s}"),
     ] : Any[
         "ωᵣ = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹",
         "β = $(fmt(1e3 * beta, 5)) ± $(fmt(1e3 * sigma_beta, 2)) mrad s⁻²",
-        "Δω over 60 s = $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹",
+        "Δω over $(fmt(time_span, 4)) s = $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹",
         "λ = $(fmt(drift_result.params[4], 5)) ± $(fmt(drift_result.param_stderr[4], 2)) s⁻¹",
         "τd = $(fmt(damping_time, 5)) ± $(fmt(sigma_damping_time, 2)) s",
     ]
     statistic_lines = article ? Any[
         LaTeXString("\\chi^2_{\\mathrm{const}}/\\mathrm{ndf} = $(fmt_tex(constant_result.stats.chi2_ndf, 4))"),
         LaTeXString("P_{\\mathrm{const}}(\\chi^2) = $(fmt_tex(constant_result.stats.pvalue, 3))"),
-        "constant diagnostic = $constant_status",
+        LaTeXString("\\mathrm{constant\\ diagnostic} = \\mathrm{$constant_status}"),
         LaTeXString("\\chi^2_{\\mathrm{drift}}/\\mathrm{ndf} = $(fmt_tex(drift_result.stats.chi2_ndf, 4))"),
         LaTeXString("P_{\\mathrm{drift}}(\\chi^2) = $(fmt_tex(drift_result.stats.pvalue, 3))"),
-        "drift diagnostic = $drift_status",
+        LaTeXString("\\mathrm{drift\\ diagnostic} = \\mathrm{$drift_status}"),
         LaTeXString("\\Delta\\mathrm{AIC} = $(fmt_tex(delta_aic, 5))\\;\\mathrm{in\\ favor\\ of\\ drift}"),
     ] : Any[
         "constant model: χ²/ndf = $(fmt(constant_result.stats.chi2_ndf, 4))",
@@ -280,8 +277,8 @@ function save_model_comparison(
         figure[1:3, 2];
         legend_source=fit_axis,
         title="Frequency-drift result",
-        model_label=article ? L"A e^{-\lambda t}\cos(\omega_{\mathrm{ref}}t+\beta t^2/2+\varphi)" :
-            "A exp(−λt) cos(ωᵣt + βt²/2 + φ)",
+        model_label=article ? L"A e^{-\lambda \tau}\cos(\omega_{\mathrm{ref}}\tau+\beta \tau^2/2+\varphi)" :
+            "A exp(−λτ) cos(ωᵣτ + βτ²/2 + φ)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
         color=foreground,
@@ -296,21 +293,21 @@ function save_model_comparison(
     save(filename, figure)
 end
 
-if RENDER_DOC_ASSETS
-    mkpath(OUTPUT_DIR)
-    mkpath(DOC_ASSET_DIR)
-
-    for (dark, suffix) in ((false, "light"), (true, "dark"))
-        save_model_comparison(joinpath(OUTPUT_DIR, "08_damped_oscillator_decay_$(suffix).png"); dark=dark)
-        save_model_comparison(joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(suffix).png"); dark=dark)
-    end
-
-    for style in (:lab, :modern, :article), appearance in (:light, :dark)
-        save_model_comparison(
-            joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style_asset_suffix(nothing, style, appearance)).png");
-            style=style,
-            appearance=appearance,
-        )
+if RENDER_PLOTS
+    if RENDER_DOC_ASSETS
+        mkpath(DOC_ASSET_DIR)
+        for style in (:lab, :modern, :article), appearance in (:light, :dark)
+            save_model_comparison(
+                joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(appearance).png");
+                style=style,
+                appearance=appearance,
+            )
+        end
+    else
+        mkpath(OUTPUT_DIR)
+        output_path = joinpath(OUTPUT_DIR, "08_damped_oscillator_decay.png")
+        save_model_comparison(output_path; style=:modern, appearance=:light)
+        println("Saved figure to ", output_path)
     end
 end
 
