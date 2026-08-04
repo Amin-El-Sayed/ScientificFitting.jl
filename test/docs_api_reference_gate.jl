@@ -53,16 +53,23 @@ end
 
         required_contracts = [
             "one-based indices",
+            "complete parameter vector",
             "inplace=true",
             "`whitening` is intentionally exclusive",
             "converged == false",
             "normalized ``-2\\log L``",
             "different uncertainty scales",
+            "`gof(p)` is the data goodness-of-fit statistic",
             "on_failure=:throw",
+            "A side that is not bracketed is returned as",
+            "max_actions=5",
             "do not require Makie",
         ]
         @test all(contract -> occursin(contract, api_text), required_contracts)
         @test !occursin("ci_level", api_text)
+        @test occursin("`:ok`, `:review`, or `:stop`", api_text)
+        @test occursin("For `plot_fit`, use `show_stats`", api_text)
+        @test occursin("zero fitted", api_text)
     end
 
     @testset "Optional plotting boundary matches real methods" begin
@@ -77,6 +84,16 @@ end
         @test occursin("normalized `-2log(L)` cost", custom_doc)
         @test occursin("only arithmetic summaries", custom_doc)
         @test occursin("nobs", custom_doc)
+    end
+
+    @testset "Constraint and statistic docstrings state their scope" begin
+        @test occursin("complete parameter", _doc_text(:ConstraintSpec))
+        likelihood_problem_doc = _doc_text(:LikelihoodFitProblem)
+        @test occursin("complete", likelihood_problem_doc) &&
+              occursin("fixed parameters", likelihood_problem_doc)
+        @test occursin("custom loss", _doc_text(:FitStatistics))
+        @test occursin(":model_relative", _doc_text(:ErrorComponent))
+        @test occursin("zero fitted", _doc_text(:FixedParameter))
     end
 
     @testset "Fit options expose only effective controls" begin

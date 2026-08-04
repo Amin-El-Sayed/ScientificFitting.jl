@@ -68,13 +68,19 @@ The controls below are accepted by `fit_model` and all likelihood wrappers.
 | `parameter_constraints` | Correlated Gaussian terms on selected parameters. |
 | `constraints` | General nonlinear constraints; `ineq(p) <= 0` and `eq(p) == 0`. |
 
+Constraint callbacks receive the complete parameter vector in `p0` order,
+including fixed entries. JuFitter maps that vector to the optimizer's reduced
+free-parameter coordinates internally.
+
 Likelihood wrappers additionally accept `parameter_names`, which are stored in
 the low-level problem for reports and diagnostics. For a `FitResult`, pass
 reader-facing names to `fit_report`, `report_text`, or the plotting function.
 
-`FixedParameter(..., sigma)` records external uncertainty but does not make the
-parameter free. To propagate an uncertain external measurement through the
-fit, use a `ParameterPrior` or `ParameterConstraint` instead.
+`FixedParameter(..., sigma)` stores that uncertainty in reports and in the
+fixed parameter's diagonal covariance entry, with zero fitted
+cross-covariances. It does not change the objective or propagate uncertainty
+into free fitted parameters. Use a `ParameterPrior` or `ParameterConstraint`
+when an external measurement must participate in the fit and its correlations.
 
 ### Solver Control
 
@@ -188,7 +194,9 @@ For `fit_custom`, `objective` should be a normalized ``-2\log L`` cost if local
 covariance, AIC, and BIC are to retain their standard interpretation. With an
 arbitrarily scaled loss, optimization still works, but these inferential fields
 are only arithmetic summaries. `nobs` must count statistically independent
-observations.
+observations. If supplied, `gof(p)` is the data goodness-of-fit statistic;
+JuFitter adds the quadratic contributions and dimensions of Gaussian parameter
+priors and constraints.
 
 ```@docs
 JuFitter.fit(::JuFitter.LikelihoodFitProblem)
@@ -236,7 +244,7 @@ coordinates.
 |---|---|
 | `cost` | Symbol identifying the minimized cost. |
 | `cost_min` | Minimized cost including parameter terms. |
-| `minus2loglik_min` | Gaussian or likelihood cost on the ``-2\log L`` scale; equal to chi-square for indexed/multi wrappers. |
+| `minus2loglik_min` | Value used for likelihood-derived summaries. It is a normalized ``-2\log L`` only when the objective follows that convention; an arbitrary custom loss has no likelihood interpretation. For indexed/multi wrappers it equals the chi-square objective only when no normalized Gaussian parameter terms are present. |
 | `chi2` | Chi-square or deviance goodness-of-fit statistic, otherwise `NaN`. |
 | `chi2_ndf` | `chi2 / ndf` when defined. |
 | `ndf` | Independent observations and Gaussian constraint dimensions minus free parameters. |
@@ -269,7 +277,8 @@ non-parabolic.
 
 Profiles fix the displayed parameter or parameter pair and re-optimize every
 remaining free parameter. Therefore a scan point is a fit, not merely an
-evaluation of the original model.
+evaluation of the original model. The same profile functions accept both
+`FitResult` and `LikelihoodFitResult`.
 
 For costs on the ``-2\log L`` or chi-square scale, common asymptotic thresholds
 are:
@@ -286,6 +295,22 @@ Wilks-theorem approximations, not universal finite-sample guarantees.
 of making the complete rectangular grid dense. Failed refits become `Inf` by
 default and are surfaced by profile diagnostics; use `on_failure=:throw` when
 the first failed point should stop the scan.
+
+| Scan control | Meaning |
+|---|---|
+| `values`, `xvalues`, `yvalues` | Explicit finite scan coordinates; these replace the automatic range. |
+| `npoints` | Resolution of an automatically generated profile or contour axis. |
+| `nsigma` | Half-width of the automatic range in units of the local standard error. |
+| `threshold`, `levels` | Positive delta-cost thresholds used for intervals or regions. |
+| `adaptive` | Refine only threshold-crossing intervals or cells. |
+| `max_refinements`, `max_points` | Bound adaptive work and total scan size. |
+| `on_failure` | `:inf` records a failed refit for diagnostics; `:throw` stops immediately. |
+
+`profile_interval` uses adaptive refinement by default and linearly
+interpolates threshold crossings. A side that is not bracketed is returned as
+`NaN`, not silently extrapolated. `profile_matrix` accepts `parameters` and
+`parameter_names` to select and label a subset; `profile_tolerance` and
+`contour_tolerance` control comparisons with the local quadratic geometry.
 
 ```@docs
 JuFitter.profile
@@ -311,8 +336,15 @@ JuFitter.ProfileMatrixPanelTriage
 | Structured fit report | [`fit_report`](@ref) | [`FitReport`](@ref) |
 | Console/notebook report | [`report_text`](@ref) | `String` |
 
-Dashboard status is `:ok`, `:review`, or `:critical`. It summarizes implemented
-checks; `:ok` is not proof that the physical model is true.
+Dashboard status is `:ok`, `:review`, or `:stop`. Text output renders `:stop` as
+`critical - fix before use`. The dashboard summarizes implemented checks;
+`:ok` is not proof that the physical model is true.
+
+`diagnostic_dashboard(...; max_actions=5)` limits the deduplicated action list.
+`fit_report(...; errors=:profile)` replaces local symmetric display errors with
+profile intervals and therefore performs additional fits; its
+`profile_threshold`, `profile_npoints`, and `profile_nsigma` keywords control
+those scans. `report_text(...; sigdigits=6)` controls numerical formatting only.
 
 ```@docs
 JuFitter.DiagnosticFinding
@@ -353,8 +385,9 @@ using CairoMakie
 named tuple `(result, figure)`. Use `fit_axis(figure)` as the stable extension
 point for native Makie calls or JuFitter's `add_*!` helpers.
 
-`report=:plot`, `:console`, `:both`, or `:none` controls the information panel
-and terminal output. `fit_range=:axis` extrapolates the fitted curve over the
+For `fitplot`, `report=:plot`, `:console`, `:both`, or `:none` controls the
+information panel and terminal output. For `plot_fit`, use `show_stats` to
+control the panel. `fit_range=:axis` extrapolates the fitted curve over the
 padded visible x range; use `fit_range=:data` or an explicit `xgrid` at a
 physical domain boundary.
 

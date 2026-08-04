@@ -71,10 +71,15 @@ physical domains or external information about model parameters.
 | Parameter is physically restricted to an interval | `bounds` | Restricts the search domain; it is not extra data. |
 | Parameters obey a general relation | `ConstraintSpec` | Enforces nonlinear equality or inequality constraints. |
 
-An uncertainty stored in `FixedParameter(index, value, sigma)` is report
-metadata; it does not propagate through the fit or make the parameter free.
-Use a prior or correlated parameter constraint when external uncertainty must
-affect the fitted result.
+`ConstraintSpec` callbacks receive the complete parameter vector in `p0`
+order, including fixed entries. They therefore express the physical relation
+directly; JuFitter handles reduced optimizer coordinates internally.
+
+An uncertainty stored in `FixedParameter(index, value, sigma)` appears in the
+report and in that parameter's diagonal covariance entry, with zero fitted
+cross-covariances. It does not change the objective, make the parameter free,
+or propagate uncertainty into free fitted parameters. Use a prior or correlated
+parameter constraint when external uncertainty must affect the fitted result.
 
 ## Know Which Result You Have
 
@@ -174,7 +179,7 @@ using CairoMakie
 fig = plot_fit(
     result;
     theme=:lab,
-    report=:plot,
+    show_stats=true,
     show_legend=true,
 )
 ```

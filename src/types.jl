@@ -2,10 +2,11 @@
     ConstraintSpec(; ineq=nothing, eq=nothing)
 
 Container for nonlinear parameter constraints passed to the general
-`Optimization.jl` backend. `ineq` and `eq` are user functions evaluated on the
-free parameter vector and interpreted as inequality and equality constraints.
-Use this only when simple bounds, fixed parameters, or Gaussian parameter
-constraints are not expressive enough.
+`Optimization.jl` backend. `ineq` and `eq` receive the complete parameter
+vector in the order defined by `p0`, including fixed parameters. Their outputs
+are interpreted as `ineq(p) <= 0` and `eq(p) == 0`. Use this only when simple
+bounds, fixed parameters, or Gaussian parameter constraints are not expressive
+enough.
 """
 struct ConstraintSpec{FI, FE}
     ineq::FI
@@ -44,8 +45,11 @@ ParameterPrior(index::Integer, mean::Real, sigma_minus::Real, sigma_plus::Real) 
     FixedParameter(index, value, sigma_minus, sigma_plus)
 
 Fix one parameter to `value` during the fit. Optional uncertainties describe
-the externally known value for reports and downstream uncertainty accounting;
-they do not make the parameter free again.
+the externally known value. JuFitter stores them in reports and in that fixed
+parameter's diagonal covariance entry with zero fitted cross-covariances. They
+do not change the objective, make the parameter free, or propagate uncertainty
+into the fitted parameters; use `ParameterPrior` or `ParameterConstraint` for
+that coupled statistical treatment.
 """
 struct FixedParameter
     index::Int
@@ -81,9 +85,13 @@ end
     ErrorComponent(name, target, mode, values; active=true)
 
 Named uncertainty contribution used by component-based covariance models.
-`target` identifies the affected variable, `mode` describes how `values` are
-interpreted, and `active=false` keeps the component documented but excluded
-from the current fit.
+`target` is `:x` or `:y`. For `mode=:absolute`, `values` are scalar or
+pointwise standard deviations. `:relative` interprets them as fractions of the
+measured absolute x or y values, while y-only `:model_relative` uses the fitted
+model values. For `:covariance`, a vector contains pointwise standard
+deviations and a matrix is the complete covariance contribution. Active
+components add in covariance space; `active=false` keeps a source documented
+but excludes it from the current fit.
 """
 struct ErrorComponent
     name::Symbol
@@ -100,7 +108,7 @@ ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=
     FitOptions(; backend=:auto, cost=:auto, maxiters=500, tol=1e-10,
                 scale_covariance=:auto, multistart=1)
 
-Normalized solver and reporting options stored in a `FitResult`. User-facing
+Normalized solver and covariance options stored in a `FitResult`. User-facing
 fit functions expose these as keyword arguments; constructing `FitOptions`
 directly is mainly useful for lower-level workflows and tests. Invalid backend,
 iteration, tolerance, covariance-scaling, and multistart
@@ -326,10 +334,12 @@ end
 """
     FitStatistics
 
-Goodness-of-fit and information-criterion summary for a fit. The fields include
-the minimized objective, normalized `-2 log(L)` value, chi-square-like goodness
-of fit, degrees of freedom, p-value, AIC, and BIC. Fields that are not meaningful
-for a given likelihood are set to `NaN`.
+Goodness-of-fit and information-criterion summary for a fit. `cost_min` is the
+minimized objective. `minus2loglik_min`, AIC, and BIC have their standard
+likelihood interpretation only when the objective uses a consistently
+normalized `-2 log(L)` convention; a custom loss may provide only arithmetic
+summaries. `chi2`, `chi2_ndf`, and `pvalue` are `NaN` when no chi-square-like
+goodness-of-fit statistic exists.
 """
 struct FitStatistics
     cost::Symbol
@@ -720,6 +730,9 @@ Build a fit problem for 1D `x` and scalar `y` observations.
 `constraints` accepts either `ConstraintSpec` or a NamedTuple with:
 - `ineq = p -> vector` interpreted as `ineq(p) <= 0`
 - `eq = p -> vector` interpreted as `eq(p) == 0`
+
+Both callbacks receive the complete parameter vector in `p0` order, including
+entries removed from optimization by `fixed_parameters`.
 
 `parameter_priors` adds Gaussian penalties in parameter space and accepts a
 single NamedTuple or vector of NamedTuples:

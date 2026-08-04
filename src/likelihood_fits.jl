@@ -7,6 +7,9 @@ chi-square-like data goodness-of-fit statistic for reduced statistics and
 p-values. JuFitter adds the chi-square contributions from Gaussian parameter
 terms to that statistic, matching their treatment as auxiliary observations in
 the degrees of freedom.
+Nonlinear constraint callbacks receive the same complete `p` vector, including
+fixed parameters; JuFitter handles the reduced optimizer coordinates
+internally.
 For covariance, profile thresholds, and information criteria to have their
 documented interpretation, `objective` must use the `-2 log(L)` scale.
 Most users should prefer `fit_poisson_model`, `fit_histogram_model`,
@@ -213,7 +216,7 @@ end
     fit(problem::LikelihoodFitProblem; maxiters=1000, tol=1e-10,
         initial_guesses=nothing, multistart=1)
 
-Minimize a normalized likelihood or custom objective problem and return a
+Minimize a likelihood-scale or custom objective problem and return a
 `LikelihoodFitResult`. Bounds, fixed parameters, Gaussian parameter terms, and
 nonlinear constraints are already stored in `problem`.
 

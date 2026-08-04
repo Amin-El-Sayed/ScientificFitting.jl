@@ -939,8 +939,10 @@ end
 
 Fit and plot in one call. The `model, x, y` method forwards fitting keywords
 such as `sigma_y`, `sigma_x`, `whitening`, `x_derivative`, `bounds`,
-`parameter_priors`, and `backend` to `fit_model`; plotting keywords such as `xlabel`, `ylabel`,
-`theme`, `nsigma`, `report`, and `filename` are forwarded to `plot_fit`.
+`parameter_priors`, and `backend` to `fit_model`; plotting keywords such as
+`xlabel`, `ylabel`, `theme`, `nsigma`, and `filename` are forwarded to
+`plot_fit`. `report` is consumed by `fitplot` to select plot, console, both, or
+neither output surface.
 
 The `x, y` method uses a linear model by default. All methods return a named
 tuple `(result, figure)` so the numerical result is not lost.
@@ -1709,7 +1711,7 @@ function plot_contour(
         level_text = _fmt_value(level; sigdigits=3)
         name = contour_level_name(level)
         name == "Δcost" ? "profile contour Δcost = $level_text" :
-            "profile $name region (2 params, Δχ² = $level_text)"
+            "profile $name region (2 params, Δcost = $level_text)"
     end
     contour_handles = Any[]
     contour_labels = String[]

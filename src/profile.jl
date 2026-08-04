@@ -192,6 +192,11 @@ function _validate_adaptive_controls(max_refinements::Int, max_points::Int)
     return nothing
 end
 
+function _validate_on_failure(on_failure::Symbol)
+    on_failure in (:inf, :throw) || throw(ArgumentError("on_failure must be :inf or :throw"))
+    return nothing
+end
+
 function _validate_profile_controls(npoints::Int, nsigma::Real, threshold::Real; default_grid::Bool)
     if default_grid
         npoints >= 3 || throw(ArgumentError("npoints must be at least 3"))
@@ -281,14 +286,18 @@ function _adaptive_profile(
 end
 
 """
-    profile(result, index; values=nothing, npoints=61, nsigma=3, threshold=1.0, adaptive=false, on_failure=:inf)
+    profile(result, index; values=nothing, npoints=61, nsigma=3,
+            threshold=1.0, adaptive=false, max_refinements=3,
+            max_points=241, on_failure=:inf)
 
 Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
 
 With `adaptive=true`, JuFitter refines grid intervals that bracket the requested
 profile threshold. This improves interval extraction without forcing a dense
-grid over the full scan range.
+grid over the full scan range. `on_failure=:inf` records failed refits as
+infinite cost so diagnostics can expose them; `:throw` stops at the first
+failure.
 """
 function profile(
     result,
@@ -303,6 +312,7 @@ function profile(
     on_failure::Symbol=:inf,
 )
     1 <= index <= length(result.params) || throw(ArgumentError("profile index out of range"))
+    _validate_on_failure(on_failure)
     _validate_profile_controls(npoints, nsigma, threshold; default_grid=values === nothing)
     grid = values === nothing ?
         _validated_scan_values(_default_profile_grid(result, index; npoints=npoints, nsigma=nsigma), "profile values"; min_points=3) :
@@ -367,10 +377,14 @@ function _profile_crossings(profile_result::ProfileResult)
 end
 
 """
-    profile_interval(result, index; threshold=1.0, npoints=121, nsigma=5)
+    profile_interval(result, index; threshold=1.0, npoints=121, nsigma=5,
+                     values=nothing, adaptive=true, max_refinements=3,
+                     max_points=241)
 
 Compute a profile-based asymmetric interval by finding the profile-cost
-crossings at `delta_cost = threshold`.
+crossings at `delta_cost = threshold`. Explicit `values` replace the automatic
+`nsigma` range. A crossing that is not bracketed is returned as `NaN`; inspect
+`diagnose(interval.profile_result)` before reporting the interval.
 """
 function profile_interval(
     result,
@@ -491,7 +505,11 @@ function _profile_matrix_panel_status(profile_diagnostics, contour_diagnostics)
 end
 
 """
-    profile_matrix(result; parameters=nothing, parameter_names=nothing, ...)
+    profile_matrix(result; parameters=nothing, parameter_names=nothing,
+                   npoints_profile=61, npoints_contour=25, nsigma=3,
+                   profile_threshold=1.0, contour_levels=[2.30, 6.18],
+                   adaptive=false, max_refinements=2, max_points=1200,
+                   profile_tolerance=0.25, contour_tolerance=0.5)
 
 Compute a multi-parameter profile/contour diagnostic matrix without loading
 Makie. Diagonal entries are one-parameter profile scans; lower-triangle entries
@@ -764,7 +782,9 @@ function _adaptive_contour(
 end
 
 """
-    contour(result, i, j; xvalues=nothing, yvalues=nothing, npoints=31, nsigma=3, levels=[2.30, 6.18], adaptive=false, on_failure=:inf)
+    contour(result, i, j; xvalues=nothing, yvalues=nothing, npoints=31,
+            nsigma=3, levels=[2.30, 6.18], adaptive=false,
+            max_refinements=2, max_points=2601, on_failure=:inf)
 
 Compute a two-parameter profile-likelihood contour grid. At each grid point,
 parameters `i` and `j` are fixed and all remaining free parameters are
@@ -773,6 +793,8 @@ re-minimized.
 With `adaptive=true`, JuFitter refines grid cells whose corner values bracket a
 requested contour level. This concentrates expensive refits near meaningful
 contour geometry instead of spreading them uniformly across the full rectangle.
+`on_failure=:inf` preserves failed cells for diagnostics; `:throw` stops at the
+first failed refit.
 """
 function contour(
     result,
@@ -791,6 +813,7 @@ function contour(
     i != j || throw(ArgumentError("contour requires two distinct parameter indices"))
     1 <= i <= length(result.params) || throw(ArgumentError("first contour index out of range"))
     1 <= j <= length(result.params) || throw(ArgumentError("second contour index out of range"))
+    _validate_on_failure(on_failure)
     _validate_contour_controls(npoints, nsigma; default_x_grid=xvalues === nothing, default_y_grid=yvalues === nothing)
 
     xs = xvalues === nothing ?

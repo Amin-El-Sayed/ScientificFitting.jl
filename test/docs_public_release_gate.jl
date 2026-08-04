@@ -222,6 +222,7 @@ end
         @test occursin("appropriate ``-2\\log L`` objective", architecture)
         @test occursin("the ``-2\\log L`` minimum", architecture)
         @test !occursin("appropriate negative\nlog-likelihood", architecture)
+        @test !occursin("plot_fit(result; report=", architecture)
     end
 
     @testset "Practitioner guidance follows statistical scale" begin
@@ -284,11 +285,13 @@ end
         @test occursin("named tuple `(result, figure)`", reference)
         @test occursin("actual additive covariance contributions", reference)
         @test occursin("A `WhiteningOperator` is the complete", reference)
-        @test occursin("it does not propagate through the fit", reference)
+        @test occursin("zero fitted", reference)
+        @test occursin("complete parameter vector", reference)
         @test occursin("`plot_fit` does not accept `LikelihoodFitResult`", reference)
         @test occursin("profile_matrix_triage(matrix)", reference)
         @test occursin("does not rerun the", reference)
         @test occursin(r"do\s+not require Makie", reference)
         @test occursin("report=:plot | :console |", reference)
+        @test !occursin("report=:plot,", reference)
     end
 end

@@ -103,6 +103,21 @@ end
         @test isapprox(result.stats.pvalue, ccdf(Chisq(ndf), expected_gof); atol=2e-8, rtol=2e-8)
     end
 
+    @testset "Likelihood constraints receive the complete parameter vector" begin
+        result = fit_custom(
+            p -> abs2(p[1] - 2.0);
+            p0=[0.5, 0.75],
+            nobs=4,
+            fixed_parameters=2 => 0.75,
+            constraints=(ineq=p -> p[1] + p[2] - 1.75,),
+        )
+
+        @test result.converged
+        @test isapprox(result.params[1], 1.0; atol=2e-6, rtol=2e-6)
+        @test result.params[2] == 0.75
+        @test result.params[1] + result.params[2] <= 1.75 + 2e-6
+    end
+
     @testset "Unbinned normal location fit matches analytic MLE" begin
         data = Float64[-1.1, -0.4, 0.2, 0.5, 0.9, 1.4]
         sigma = 0.7

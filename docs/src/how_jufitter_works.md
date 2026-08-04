@@ -215,7 +215,7 @@ fragment that assumes the named physical values and reference function already
 exist:
 
 ```julia
-fig = plot_fit(result; report=:plot, show_legend=true)
+fig = plot_fit(result; show_stats=true, show_legend=true)
 ax = fit_axis(fig)
 
 add_vline!(ax, threshold; color=:gray40, linestyle=:dash, label="threshold")

@@ -71,7 +71,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The plotting release slice passes locally with 79 focused API/layout tests,
+- The plotting release slice passes locally with 87 focused API/layout tests,
   232 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
   2020 checks against links, assets, and the responsive architecture flow in
@@ -156,10 +156,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   construction, incompatible explicit `backend=:lsqfit` requests cannot discard
   statistical terms or constraints, and unsupported likelihood-fit keywords no
   longer disappear silently.
-- `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/profile_contour_reference.jl")'`
-  passes with 85 profile/contour reference checks, including validation of
+- `julia --project=. test/statistics/profile_contour_reference.jl`
+  passes with 87 profile/contour reference checks, including validation of
   finite positive ordered contour thresholds, finite positive profile
-  thresholds, default scan controls, explicit finite distinct scan grids, and
+  thresholds, default scan controls, explicit finite distinct scan grids,
+  immediate rejection of unsupported `on_failure` policies, and
   the Makie-free `profile_matrix` diagnostic object that combines profile,
   contour, per-panel diagnostic reports, and per-panel `:ok`/`:review`/`:stop`
   status before plotting. The gate now also verifies that non-finite,
@@ -169,9 +170,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   comparison. The same gate covers `profile_matrix_triage(...)`, which turns
   a profile-matrix diagnostic object into a severity-ordered list of panels to
   inspect.
-- `julia --project=. -e 'using Test; include("test/statistics/likelihood_reference.jl")'`
-  passes with 49 likelihood reference checks after the Poisson-and-histogram
-  workflow rewrite.
+- `julia --project=. test/statistics/likelihood_reference.jl`
+  passes with 62 likelihood reference checks. The common nonlinear-constraint
+  adapter now accepts both `FitProblem` and `LikelihoodFitProblem`; an analytic
+  custom-objective case verifies that likelihood constraints execute and see
+  the complete parameter vector, including fixed entries.
 - `julia --project=. -e 'using Test; include("test/statistics/covariance_semantics_reference.jl")'`
   passes with 27 covariance and constraint reference checks. This includes a
   finite-difference reference for value, gradient, and Hessian of Gaussian
@@ -229,8 +232,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   fit result types, additive and complete covariance descriptions, parameter
   metadata and propagated information, profile computation, and the optional
   plotting boundary.
-- `julia --project=. --startup-file=no test/docs_api_reference_gate.jl` passes
-  with 15 checks. The gate verifies that every exported public binding except the
+- `julia --project=. test/docs_api_reference_gate.jl` passes
+  with 23 checks. The gate verifies that every exported public binding except the
   module name has a REPL/Documenter-visible docstring, preventing `@autodocs`
   from exposing undocumented public names. It also requires each public export
   to appear on the curated API reference page and protects the entry-point,
@@ -570,6 +573,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `ci_level` fit keyword was removed rather than presenting a scientifically
   inert option; profile and contour coverage remains explicit through
   `threshold` and `levels` where those choices actually affect computation.
+  Its final contract pass now also specifies complete-vector nonlinear
+  constraint callbacks, fixed-parameter diagonal covariance semantics,
+  profile/contour scan controls and failed-refit behavior, profile-report cost,
+  and the separate `fitplot(report=...)` versus `plot_fit(show_stats=...)`
+  interfaces. Two non-executable `plot_fit(...; report=:plot)` fragments on
+  supporting reference pages were corrected and are now rejected by the
+  public documentation gate.
 
 ## Release Blockers
 

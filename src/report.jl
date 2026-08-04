@@ -93,13 +93,16 @@ function _parameter_estimates(
 end
 
 """
-    fit_report(result; parameter_names=nothing, errors=:local)
+    fit_report(result; parameter_names=nothing, errors=:local,
+               profile_threshold=1.0, profile_npoints=121,
+               profile_nsigma=5)
 
 Return an extractable report object for a fit result. Parameters are available as
 `report.parameters[i].value` and `report.parameters[i].uncertainty`.
 
 Use `errors=:profile` to compute profile-based asymmetric uncertainties. This
-re-runs fits and can be expensive.
+re-runs fits and can be expensive. `profile_threshold`, `profile_npoints`, and
+`profile_nsigma` control those scans and are ignored for `errors=:local`.
 """
 function fit_report(
     result;

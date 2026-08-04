@@ -571,7 +571,7 @@ function _constraint_vectors(spec::ConstraintSpec, p::AbstractVector)
     return eq_vals, ineq_vals
 end
 
-function _build_constraint_system(spec::ConstraintSpec, problem::FitProblem)
+function _build_constraint_system(spec::ConstraintSpec, problem)
     eq0, ineq0 = _constraint_vectors(spec, _free_p0(problem))
     neq = length(eq0)
     nineq = length(ineq0)

@@ -56,6 +56,7 @@ using Test
         @test_throws ArgumentError profile(result, 1; nsigma=Inf)
         @test_throws ArgumentError profile(result, 1; threshold=0.0)
         @test_throws ArgumentError profile(result, 1; threshold=NaN)
+        @test_throws ArgumentError profile(result, 1; values=slope_values, on_failure=:ignore)
         @test_throws ArgumentError profile(result, 1; values=[slope_values[1], NaN, slope_values[3]])
         @test_throws ArgumentError profile(result, 1; values=[slope_values[1], slope_values[1], slope_values[3]])
     end
@@ -95,6 +96,7 @@ using Test
         @test contour(result, 1, 2; xvalues=slope_values, yvalues=offset_values, npoints=1).levels == [2.30, 6.18]
         @test_throws ArgumentError contour(result, 1, 2; npoints=1)
         @test_throws ArgumentError contour(result, 1, 2; nsigma=NaN)
+        @test_throws ArgumentError contour(result, 1, 2; xvalues=slope_values, yvalues=offset_values, on_failure=:ignore)
         @test_throws ArgumentError contour(result, 1, 2; xvalues=[slope_values[1], NaN], yvalues=offset_values)
         @test_throws ArgumentError contour(result, 1, 2; xvalues=[slope_values[1]], yvalues=offset_values)
         @test_throws ArgumentError contour(result, 1, 2; xvalues=slope_values, yvalues=[offset_values[1], offset_values[1]])
