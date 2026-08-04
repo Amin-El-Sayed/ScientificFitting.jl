@@ -190,6 +190,21 @@ end
     @test occursin("profile_overview = profile_matrix(", gallery_generator)
     @test occursin(r"plot_profile_matrix\(\s*profile_overview;", gallery_generator)
 
+    multi_dataset = read(joinpath(GALLERY_SRC, "multi_dataset.md"), String)
+    @test occursin("y_a = [", multi_dataset)
+    @test occursin("nested_pvalue = ccdf(Chisq(1), delta_chi2)", multi_dataset)
+    @test occursin("status = review - inspect diagnostics", multi_dataset)
+    @test !occursin("pattern_a", multi_dataset)
+
+    multi_dataset_script = read(
+        joinpath(ROOT, "examples", "gallery", "10_multi_dataset_calibration.jl"),
+        String,
+    )
+    @test occursin("const MULTI_RENDER_DOC_ASSETS", multi_dataset_script)
+    @test occursin("get(ENV, \"JUFITTER_RENDER_DOC_ASSETS\", \"0\") == \"1\"", multi_dataset_script)
+    @test occursin("nested_pvalue = ccdf(Chisq(1), delta_chi2)", multi_dataset_script)
+    @test !occursin("pattern_a", multi_dataset_script)
+
     for script_name in (
         "05_constraints_priors_profiles.jl",
         "06_likelihood_workflows.jl",

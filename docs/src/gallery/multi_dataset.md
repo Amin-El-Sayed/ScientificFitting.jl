@@ -37,14 +37,12 @@ If this assumption is valid, one accurately calibrated gain can be transferred
 between channels after correcting their offsets. If one channel has a different
 gain, that transfer introduces a systematic error that grows with input.
 
-This page uses a controlled, reproducible benchmark dataset designed to expose
-that decision. The three channels have different x sampling, heteroscedastic
-absolute y uncertainties, independent offsets, imperfect scatter, and a
-deliberately incompatible gain for channel C.
-
-The controlled construction is useful here because the correct sharing
-structure is known. It tests whether the analysis finds the hidden gain
-mismatch rather than merely producing three attractive lines.
+This page uses a controlled teaching record designed to expose that decision.
+It is not attributed to a particular instrument. The three explicit data
+tables have different x sampling, heteroscedastic absolute y uncertainties,
+independent offsets, imperfect scatter, and an incompatible gain in channel C.
+Because this is a method check, that incompatibility is known in advance; the
+fit must recover it without using that knowledge as an input.
 
 A useful mental model is three readout channels that share a sensor type but
 not necessarily the whole electronics chain:
@@ -66,9 +64,10 @@ datasets.
 ## Data
 
 The code below uses three explicit calibration channels. Each channel has its
-own x grid, absolute y uncertainty, offset, and deterministic residual pattern.
-The values are controlled so the correct sharing structure is known: channels A
-and B have compatible gain, while channel C has a different gain.
+own x grid and point-by-point absolute y uncertainty. There is no random-number
+generator or hidden model parameter in the analysis cell: the arrays are the
+complete observed record. Channels A and B should support gain transfer;
+channel C is the test of whether the analysis rejects an unjustified transfer.
 
 ## The Multi-Dataset Cost
 
@@ -118,26 +117,37 @@ Channels A and B share ``g_{AB}``; channel C has its own ``g_C``.
 ## Complete Fit Code
 
 ```julia
+using Distributions
 using JuFitter
 using LinearAlgebra
+using Printf
 
 linear_channel(x, p) = @. p[1] * x + p[2]
 
-x_a = collect(0.0:1.0:10.0)
-x_b = collect(0.5:1.0:9.5)
-x_c = collect(0.0:1.25:10.0)
+x_a = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+y_a = [
+    0.744750, 2.444135, 4.420060, 6.098325, 8.141240, 9.763075,
+    11.660295, 13.287080, 15.417610, 17.051490, 19.047875,
+]
+sigma_a = [
+    0.075, 0.083, 0.091, 0.099, 0.107, 0.115,
+    0.123, 0.131, 0.139, 0.147, 0.155,
+]
 
-sigma_a = @. 0.075 + 0.008 * x_a
-sigma_b = @. 0.085 + 0.006 * x_b
-sigma_c = @. 0.080 + 0.009 * x_c
+x_b = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5]
+y_b = [
+    0.391920, 2.378570, 4.007500, 5.927490, 7.877840,
+    9.433180, 11.431380, 13.147100, 15.144640, 16.759710,
+]
+sigma_b = [0.088, 0.094, 0.100, 0.106, 0.112, 0.118, 0.124, 0.130, 0.136, 0.142]
 
-pattern_a = 1.65 .* [0.2, -0.7, 0.4, -0.5, 0.8, -0.3, 0.1, -0.8, 0.6, -0.2, 0.5]
-pattern_b = 1.65 .* [-0.4, 0.7, -0.5, 0.1, 0.8, -0.6, 0.3, -0.2, 0.6, -0.3]
-pattern_c = 1.65 .* [0.3, -0.6, 0.7, -0.4, 0.1, 0.8, -0.5, 0.4, -0.7]
-
-y_a = linear_channel(x_a, [1.82, 0.72]) .+ sigma_a .* pattern_a
-y_b = linear_channel(x_b, [1.82, -0.46]) .+ sigma_b .* pattern_b
-y_c = linear_channel(x_c, [1.91, 0.12]) .+ sigma_c .* pattern_c
+x_c = [0.0, 1.25, 2.5, 3.75, 5.0, 6.25, 7.5, 8.75, 10.0]
+y_c = [
+    0.159600, 2.417162, 5.013387, 7.207425, 9.690625,
+    12.237350, 14.323312, 16.937275, 19.023650,
+]
+sigma_c = [0.08000, 0.09125, 0.10250, 0.11375, 0.12500,
+           0.13625, 0.14750, 0.15875, 0.17000]
 
 models = [linear_channel, linear_channel, linear_channel]
 x_sets = [x_a, x_b, x_c]
@@ -170,13 +180,17 @@ sigma_gain_gap = sqrt(dot(
     gain_gap_gradient,
     partial_shared_result.param_covariance * gain_gap_gradient,
 ))
+delta_chi2 = all_shared_result.stats.chi2 - partial_shared_result.stats.chi2
+nested_pvalue = ccdf(Chisq(1), delta_chi2)
 
 println("All-shared-gain hypothesis")
 println(report_text(all_shared_result))
 println()
 println("Partial-sharing model")
 println(report_text(partial_shared_result))
-println("gain C - gain A/B = ", gain_gap, " +/- ", sigma_gain_gap)
+@printf("gain C - gain A/B = %.5f +/- %.5f\n", gain_gap, sigma_gain_gap)
+@printf("nested test: delta chi2 = %.5f for 1 dof, p = %.4g\n",
+        delta_chi2, nested_pvalue)
 println()
 println("All-shared diagnostic dashboard")
 println(diagnostic_dashboard_text(all_shared_result))
@@ -223,7 +237,7 @@ Parameters:
   offset A = 0.707442 +/- 0.0431124
   offset B = -0.46491 +/- 0.0484239
   gain C = 1.906 +/- 0.0124389
-  offset C = 0.139048 +/- 0.0574583
+  offset C = 0.139047 +/- 0.0574583
 
 Statistics:
   cost = multi_chi2
@@ -231,19 +245,23 @@ Statistics:
   minus2loglik_min = 21.7427
   chi2 = 21.7427
   ndf = 25
-  chi2/ndf = 0.869706
+  chi2/ndf = 0.869707
   pvalue = 0.650557
   AIC = 31.7427
-  BIC = 38.7486
+  BIC = 38.7487
 
-gain C - gain A/B = 0.08279274159345795 +/- 0.01483039808128878
+gain C - gain A/B = 0.08279 +/- 0.01483
+nested test: delta chi2 = 31.16586 for 1 dof, p = 2.369e-08
 
 All-shared diagnostic dashboard
 Fit diagnostic dashboard
-status = ok - no immediate issue
-critical = 0, warning = 0, info = 0
-No major diagnostic issues detected by the current checks.
-No next action required by the current diagnostic checks.
+status = review - inspect diagnostics
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. Check residual structure and uncertainty estimates. If residuals are structured, improve the model before tuning errors.
+  2. Treat the result as suspicious unless you can explain the residual pattern or uncertainty model.
 
 Partial-sharing diagnostic dashboard
 Fit diagnostic dashboard
@@ -254,10 +272,12 @@ No next action required by the current diagnostic checks.</pre>
 </div>
 ```
 
-The automatic dashboard is intentionally not the final decision maker here. It
-checks generic fit pathologies; the scientific question is a model-comparison
-question about parameter sharing. The p-value, per-dataset pulls, gain
-difference, and AIC comparison below are the decisive diagnostics.
+The automatic dashboard correctly marks the all-shared fit for review from its
+large reduced chi-square and small p-value. Those aggregate checks establish
+that the stated model and uncertainties are inconsistent with the data, but
+they cannot identify which sharing assumption failed. The per-dataset pulls do
+that localization; the nested test and propagated gain difference quantify the
+evidence for freeing channel C's gain.
 
 `parameter_map` is the essential part of the interface. The same local function
 `linear_channel(x, p)` is reused for every channel, while the maps define which
@@ -332,7 +352,33 @@ The second pull panel no longer contains a channel-dependent trend. Sharing the
 gain between A and B is supported by this dataset; transferring channel C's
 gain is not.
 
-## Why Compare AIC Here?
+## Decision: Test The Nested Sharing Hypothesis
+
+The partial-sharing model is obtained from the all-shared model by freeing one
+parameter: ``g_C`` no longer has to equal ``g_{AB}``. Under the independent
+Gaussian model with known standard deviations, the cost difference
+
+```math
+\Delta\chi^2
+= \chi^2_\mathrm{all}-\chi^2_\mathrm{partial}
+= 31.166
+```
+
+is compared with a chi-square distribution with one degree of freedom. The
+result is
+
+```math
+P\!\left(\chi^2_1 \geq 31.166\right)
+= 2.37\times10^{-8}.
+```
+
+This is the direct test of the equality constraint ``g_C=g_{AB}``. It agrees
+with the approximately ``5.6\sigma`` gain difference derived from the joint
+covariance. That agreement is expected for this linear Gaussian problem; in a
+nonlinear or bounded problem, profile the difference instead of assuming a
+symmetric Gaussian error.
+
+## AIC As A Cross-Check
 
 The partial-sharing model adds one parameter. A lower ``\chi^2`` is therefore
 expected even if the extra freedom is unnecessary. AIC adds a parameter-count

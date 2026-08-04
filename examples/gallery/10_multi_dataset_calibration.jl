@@ -1,10 +1,13 @@
 const MULTI_SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
-const MULTI_RENDER_DOC_ASSETS = !MULTI_SNAPSHOT_ONLY
+const MULTI_RENDER_PLOTS = !MULTI_SNAPSHOT_ONLY
+const MULTI_RENDER_DOC_ASSETS = MULTI_RENDER_PLOTS &&
+    get(ENV, "JUFITTER_RENDER_DOC_ASSETS", "0") == "1"
 
-if MULTI_RENDER_DOC_ASSETS
+if MULTI_RENDER_PLOTS
     using CairoMakie
 end
 
+using Distributions
 using JuFitter
 using LinearAlgebra
 using Printf
@@ -24,22 +27,31 @@ end
 
 linear_channel(x, p) = @. p[1] * x + p[2]
 
-# Controlled three-channel calibration record with realistic heteroscedastic scatter.
-x_a = collect(0.0:1.0:10.0)
-x_b = collect(0.5:1.0:9.5)
-x_c = collect(0.0:1.25:10.0)
+# Controlled teaching record; the arrays are the complete fit input.
+x_a = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0]
+y_a = [
+    0.744750, 2.444135, 4.420060, 6.098325, 8.141240, 9.763075,
+    11.660295, 13.287080, 15.417610, 17.051490, 19.047875,
+]
+sigma_a = [
+    0.075, 0.083, 0.091, 0.099, 0.107, 0.115,
+    0.123, 0.131, 0.139, 0.147, 0.155,
+]
 
-sigma_a = @. 0.075 + 0.008 * x_a
-sigma_b = @. 0.085 + 0.006 * x_b
-sigma_c = @. 0.080 + 0.009 * x_c
+x_b = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5]
+y_b = [
+    0.391920, 2.378570, 4.007500, 5.927490, 7.877840,
+    9.433180, 11.431380, 13.147100, 15.144640, 16.759710,
+]
+sigma_b = [0.088, 0.094, 0.100, 0.106, 0.112, 0.118, 0.124, 0.130, 0.136, 0.142]
 
-pattern_a = 1.65 .* [0.2, -0.7, 0.4, -0.5, 0.8, -0.3, 0.1, -0.8, 0.6, -0.2, 0.5]
-pattern_b = 1.65 .* [-0.4, 0.7, -0.5, 0.1, 0.8, -0.6, 0.3, -0.2, 0.6, -0.3]
-pattern_c = 1.65 .* [0.3, -0.6, 0.7, -0.4, 0.1, 0.8, -0.5, 0.4, -0.7]
-
-y_a = linear_channel(x_a, [1.82, 0.72]) .+ sigma_a .* pattern_a
-y_b = linear_channel(x_b, [1.82, -0.46]) .+ sigma_b .* pattern_b
-y_c = linear_channel(x_c, [1.91, 0.12]) .+ sigma_c .* pattern_c
+x_c = [0.0, 1.25, 2.5, 3.75, 5.0, 6.25, 7.5, 8.75, 10.0]
+y_c = [
+    0.159600, 2.417162, 5.013387, 7.207425, 9.690625,
+    12.237350, 14.323312, 16.937275, 19.023650,
+]
+sigma_c = [0.08000, 0.09125, 0.10250, 0.11375, 0.12500,
+           0.13625, 0.14750, 0.15875, 0.17000]
 
 models = [linear_channel, linear_channel, linear_channel]
 x_sets = [x_a, x_b, x_c]
@@ -74,6 +86,8 @@ sigma_gain_gap = sqrt(dot(
     gain_gap_gradient,
     partial_shared_result.param_covariance * gain_gap_gradient,
 ))
+delta_chi2 = all_shared_result.stats.chi2 - partial_shared_result.stats.chi2
+nested_pvalue = ccdf(Chisq(1), delta_chi2)
 
 function confidence_band(result, parameter_indices, x)
     local_covariance = result.param_covariance[parameter_indices, parameter_indices]
@@ -103,7 +117,7 @@ function save_multi_dataset_calibration(
     style::Symbol=:modern,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
-    MULTI_RENDER_DOC_ASSETS || return nothing
+    MULTI_RENDER_PLOTS || return nothing
 
     dark_mode = appearance == :dark
     palette = plot_palette(style; appearance=appearance)
@@ -191,7 +205,7 @@ function save_multi_dataset_calibration(
         scatter!(
             fit_axis,
             x_sets[i],
-        y_sets[i];
+            y_sets[i];
             color=colors[i],
             marker=markers[i],
             markersize=palette.data_markersize + 1.2,
@@ -248,6 +262,7 @@ function save_multi_dataset_calibration(
             "all-shared: AIC = $(fmt(all_shared_result.stats.aic, 5))",
             "partial-sharing: χ²/ndf = $(fmt(partial_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(partial_shared_result.stats.pvalue, 4))",
             "partial-sharing: AIC = $(fmt(partial_shared_result.stats.aic, 5))",
+            "nested test: Δχ² = $(fmt(delta_chi2, 5)), p = $(fmt(nested_pvalue, 3))",
             "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))",
             "Do not transfer channel C's gain.",
         ],
@@ -263,9 +278,8 @@ function save_multi_dataset_calibration(
     save(filename, figure)
 end
 
-if MULTI_RENDER_DOC_ASSETS
+if MULTI_RENDER_PLOTS
     mkpath(MULTI_OUTPUT_DIR)
-    mkpath(MULTI_DOC_ASSET_DIR)
 
     for (dark, suffix) in ((false, "light"), (true, "dark"))
         save_multi_dataset_calibration(
@@ -273,7 +287,10 @@ if MULTI_RENDER_DOC_ASSETS
             dark=dark,
         )
     end
+end
 
+if MULTI_RENDER_DOC_ASSETS
+    mkpath(MULTI_DOC_ASSET_DIR)
     for style in (:lab, :modern, :article), appearance in (:light, :dark)
         save_multi_dataset_calibration(
             joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
@@ -288,7 +305,9 @@ println(report_text(all_shared_result))
 println()
 println("Partial-sharing model")
 println(report_text(partial_shared_result))
-println("gain C - gain A/B = ", gain_gap, " +/- ", sigma_gain_gap)
+@printf("gain C - gain A/B = %.5f +/- %.5f\n", gain_gap, sigma_gain_gap)
+@printf("nested test: delta chi2 = %.5f for 1 dof, p = %.4g\n",
+        delta_chi2, nested_pvalue)
 println()
 println("All-shared diagnostic dashboard")
 println(diagnostic_dashboard_text(all_shared_result))
@@ -300,7 +319,9 @@ emit_multi_doc_output_snapshot("multi_dataset") do
     println()
     println("Partial-sharing model")
     println(report_text(partial_shared_result))
-    println("gain C - gain A/B = ", gain_gap, " +/- ", sigma_gain_gap)
+    @printf("gain C - gain A/B = %.5f +/- %.5f\n", gain_gap, sigma_gain_gap)
+    @printf("nested test: delta chi2 = %.5f for 1 dof, p = %.4g\n",
+            delta_chi2, nested_pvalue)
     println()
     println("All-shared diagnostic dashboard")
     println(diagnostic_dashboard_text(all_shared_result))

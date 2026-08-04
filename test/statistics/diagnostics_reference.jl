@@ -107,6 +107,28 @@ using Test
         @test any(f -> f.code == :local_covariance_requires_profile_check, bounded_report.findings)
     end
 
+    @testset "Likelihood results use goodness-of-fit diagnostics" begin
+        x = collect(0.0:1.0:5.0)
+        local_linear(x, p) = @. p[1] * x + p[2]
+        sigma = fill(0.1, length(x))
+        y_a = [1.0, 3.0, 5.0, 7.0, 9.0, 11.0]
+        y_b = [0.0, 2.4, 4.8, 7.2, 9.6, 12.0]
+
+        result = fit_multi_model(
+            [local_linear, local_linear],
+            [x, x],
+            [y_a, y_b];
+            p0=[2.0, 1.0, 0.0],
+            sigma_y=[sigma, sigma],
+            parameter_map=[[1, 2], [1, 3]],
+        )
+
+        @test result.converged
+        @test result.stats.pvalue < 0.01
+        @test any(f -> f.code in (:small_pvalue, :tiny_pvalue), diagnose(result).findings)
+        @test diagnostic_dashboard(result).status != :ok
+    end
+
     @testset "Diagnostic dashboard prioritizes lab next actions" begin
         clean_dashboard = diagnostic_dashboard(DiagnosticReport(DiagnosticFinding[], "Synthetic clean report."))
 

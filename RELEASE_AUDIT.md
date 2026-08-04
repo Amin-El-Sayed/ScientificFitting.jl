@@ -34,7 +34,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   passes its 18-check focused reference, and the structured-whitening slice
   passes its current 35-check reference under Julia 1.10. On the current audit
   branch, a fresh Julia-1.10-resolved temporary environment also passes the
-  82-check torture suite, the 56-check diagnostic suite, and the shared
+  82-check torture suite, the 60-check diagnostic suite, and the shared
   `StatsAPI.fit` binding check. The package
   `[compat]`, core CI matrix, and full-package Linux CI matrix support both
   Julia 1.10 and Julia 1.12; the complete current matrix still needs to be
@@ -126,6 +126,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   once and reused by the render layer. Article-dark diagnostic regions and the
   fit minimum now use visible high-contrast colors rather than black on the
   dark figure background.
+- Multi-Dataset Fit now uses explicit channel arrays instead of rebuilding
+  observations from hidden model parameters and residual patterns. Its two
+  nested sharing hypotheses are evaluated with the direct one-degree-of-freedom
+  delta-chi-square test, the propagated gain difference, AIC, and per-channel
+  pulls. Generic likelihood results now receive the same reduced-chi-square and
+  p-value diagnostics as x-y fit results, so the incompatible all-shared model
+  is marked `review` rather than incorrectly reported as `ok`. A normal example
+  run writes only untracked example output; replacing tracked documentation
+  assets requires the explicit maintainer rendering flag.
 - `git diff --check` passes for the current release-hardening branch.
 - `julia --project=. --startup-file=no -e 'include("test/torture_runtests.jl")'`
   passes with 79 torture checks in about 1m38s on the local machine. Three
@@ -175,7 +184,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   247 analytic and numerical reference checks after the split-normal
   correction.
 - `julia --project=. --startup-file=no -e 'using Test; include("test/statistics/diagnostics_reference.jl")'`
-  passes with 56 diagnostic reference checks in about 46s, including the
+  passes with 60 diagnostic reference checks in about 1m01s, including the
   local-covariance warning that recommends profile/contour intervals when
   active bounds or strong parameter correlations make symmetric errors suspect.
   The same gate now checks that a long same-sign pull run is reported with its
@@ -194,7 +203,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  281 checks. The gate enforces the current release standard for every public
+  289 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit

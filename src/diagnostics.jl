@@ -316,6 +316,86 @@ function _local_covariance_risk_findings(findings::Vector{DiagnosticFinding})
     ]
 end
 
+function _goodness_of_fit_findings(stats::FitStatistics)
+    findings = DiagnosticFinding[]
+
+    if isfinite(stats.chi2_ndf)
+        if stats.chi2_ndf > 5
+            push!(
+                findings,
+                _finding(
+                    :critical,
+                    :very_large_reduced_chi2,
+                    "Fit is very unlikely under the stated uncertainties",
+                    "chi2/ndf = $(_fmt_scientific(stats.chi2_ndf)).",
+                    "Look for missing physics, underestimated uncertainties, wrong correlations, outliers, or a failed optimizer.",
+                ),
+            )
+        elseif stats.chi2_ndf > 2
+            push!(
+                findings,
+                _finding(
+                    :warning,
+                    :large_reduced_chi2,
+                    "Reduced chi-square is high",
+                    "chi2/ndf = $(_fmt_scientific(stats.chi2_ndf)).",
+                    "Check residual structure and uncertainty estimates. If residuals are structured, improve the model before tuning errors.",
+                ),
+            )
+        elseif stats.chi2_ndf < 0.2
+            push!(
+                findings,
+                _finding(
+                    :warning,
+                    :very_small_reduced_chi2,
+                    "Data are too good for the assigned uncertainties",
+                    "chi2/ndf = $(_fmt_scientific(stats.chi2_ndf)).",
+                    "Uncertainties may be overestimated, correlations may be ignored, or the data may have been smoothed/averaged.",
+                ),
+            )
+        end
+    end
+
+    if isfinite(stats.pvalue)
+        if stats.pvalue < 1e-3
+            push!(
+                findings,
+                _finding(
+                    :critical,
+                    :tiny_pvalue,
+                    "Tiny chi-square probability",
+                    "P(chi2) = $(_fmt_scientific(stats.pvalue)).",
+                    "Under the stated assumptions this fit is statistically implausible. Inspect residuals and the uncertainty model.",
+                ),
+            )
+        elseif stats.pvalue < 0.01
+            push!(
+                findings,
+                _finding(
+                    :warning,
+                    :small_pvalue,
+                    "Small chi-square probability",
+                    "P(chi2) = $(_fmt_scientific(stats.pvalue)).",
+                    "Treat the result as suspicious unless you can explain the residual pattern or uncertainty model.",
+                ),
+            )
+        elseif stats.pvalue > 0.99
+            push!(
+                findings,
+                _finding(
+                    :warning,
+                    :huge_pvalue,
+                    "Chi-square probability is suspiciously high",
+                    "P(chi2) = $(_fmt_scientific(stats.pvalue)).",
+                    "The uncertainties may be too large, correlations may be ignored, or the data may not be independent.",
+                ),
+            )
+        end
+    end
+
+    return findings
+end
+
 function _xy_diagnostic_findings(result::FitResult)
     pulls = _data_pull_values(result)
     findings = DiagnosticFinding[]
@@ -347,80 +427,6 @@ function _xy_diagnostic_findings(result::FitResult)
                 "Inspect residuals near the largest pull. One point may dominate the result or the uncertainty model may be too optimistic.",
             ),
         )
-    end
-
-    if isfinite(result.stats.chi2_ndf)
-        if result.stats.chi2_ndf > 5
-            push!(
-                findings,
-                _finding(
-                    :critical,
-                    :very_large_reduced_chi2,
-                    "Fit is very unlikely under the stated uncertainties",
-                    "chi2/ndf = $(_fmt_scientific(result.stats.chi2_ndf)).",
-                    "Look for missing physics, underestimated uncertainties, wrong correlations, outliers, or a failed optimizer.",
-                ),
-            )
-        elseif result.stats.chi2_ndf > 2
-            push!(
-                findings,
-                _finding(
-                    :warning,
-                    :large_reduced_chi2,
-                    "Reduced chi-square is high",
-                    "chi2/ndf = $(_fmt_scientific(result.stats.chi2_ndf)).",
-                    "Check residual structure and uncertainty estimates. If residuals are structured, improve the model before tuning errors.",
-                ),
-            )
-        elseif result.stats.chi2_ndf < 0.2
-            push!(
-                findings,
-                _finding(
-                    :warning,
-                    :very_small_reduced_chi2,
-                    "Data are too good for the assigned uncertainties",
-                    "chi2/ndf = $(_fmt_scientific(result.stats.chi2_ndf)).",
-                    "Uncertainties may be overestimated, correlations may be ignored, or the data may have been smoothed/averaged.",
-                ),
-            )
-        end
-    end
-
-    if isfinite(result.stats.pvalue)
-        if result.stats.pvalue < 1e-3
-            push!(
-                findings,
-                _finding(
-                    :critical,
-                    :tiny_pvalue,
-                    "Tiny chi-square probability",
-                    "P(chi2) = $(_fmt_scientific(result.stats.pvalue)).",
-                    "Under the stated assumptions this fit is statistically implausible. Inspect residuals and the uncertainty model.",
-                ),
-            )
-        elseif result.stats.pvalue < 0.01
-            push!(
-                findings,
-                _finding(
-                    :warning,
-                    :small_pvalue,
-                    "Small chi-square probability",
-                    "P(chi2) = $(_fmt_scientific(result.stats.pvalue)).",
-                    "Treat the result as suspicious unless you can explain the residual pattern or uncertainty model.",
-                ),
-            )
-        elseif result.stats.pvalue > 0.99
-            push!(
-                findings,
-                _finding(
-                    :warning,
-                    :huge_pvalue,
-                    "Chi-square probability is suspiciously high",
-                    "P(chi2) = $(_fmt_scientific(result.stats.pvalue)).",
-                    "The uncertainties may be too large, correlations may be ignored, or the data may not be independent.",
-                ),
-            )
-        end
     end
 
     runs = _run_count(pulls)
@@ -517,6 +523,7 @@ function diagnose(result::FitResult)
     append!(findings, result.diagnostics.findings)
     append!(findings, _parameter_correlation_findings(result))
     append!(findings, _local_covariance_risk_findings(findings))
+    append!(findings, _goodness_of_fit_findings(result.stats))
     append!(findings, _xy_diagnostic_findings(result))
     findings = _sort_findings(_deduplicate_findings(findings))
     return DiagnosticReport(findings, _diagnostic_summary(findings))
@@ -529,6 +536,9 @@ function diagnose(result)
         append!(findings, _parameter_correlation_findings(result))
     end
     append!(findings, _local_covariance_risk_findings(findings))
+    if hasproperty(result, :stats) && result.stats isa FitStatistics
+        append!(findings, _goodness_of_fit_findings(result.stats))
+    end
     findings = _sort_findings(_deduplicate_findings(findings))
     return DiagnosticReport(findings, _diagnostic_summary(findings))
 end
