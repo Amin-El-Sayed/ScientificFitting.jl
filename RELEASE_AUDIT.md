@@ -72,9 +72,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   33-check executable-output gate verifies the new report labels against real
   example runs.
 - The plotting release slice passes locally with 103 focused API/layout tests,
-  289 gallery-structure checks, 1201 visual-asset checks, and 83 intentional
+  289 gallery-structure checks, 1251 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
-  2020 checks against links, assets, and the responsive architecture flow in
+  2034 checks against links, assets, and the responsive architecture flow in
   the rendered HTML.
 - The plot-style audit now defines exactly three central output contracts rather
   than loosely related color variants: `:lab` uses cross markers, strong axes,
@@ -228,7 +228,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `m_emit - m_base` for both Planck's constant and the work function; the same
   contract is checked in the executable asset generator.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 581 checks. The gate first verifies that every page in the public
+  with 619 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -258,12 +258,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `julia --project=docs --startup-file=no`; it produced the PDF output file,
   converged, and returned a diagnostic dashboard with `status = ok`.
 - `julia --project=. --startup-file=no test/docs_link_gate.jl` passes locally.
-  The gate validates 403 local Markdown links, HTML links, image sources, and
+  The gate validates 417 local Markdown links, HTML links, image sources, and
   the static-route contract under `docs/src`. Documentation now uses the same
   flat `.html` routes locally and on static hosts; CI no longer switches raw
   gallery-card links to an incompatible pretty-URL layout.
 - `julia --project=. --startup-file=no test/docs_html_link_gate.jl` passes
-  after `docs/make.jl` with 2020 checks. The gate checks `href` and `src`
+  after `docs/make.jl` with 2034 checks. The gate checks `href` and `src`
   targets in the rendered HTML under `docs/build`, so navigation and asset
   references are validated in the actual static site layout rather than only in
   source Markdown. It also guards the bounded, top-to-bottom architecture flow
@@ -286,7 +286,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   The gallery gate checks card and navigation order plus every named learning
   step.
 - `julia --project=. --startup-file=no test/docs_visual_asset_gate.jl` passes
-  locally with 1201 checks. The gate validates documentation PNG headers,
+  locally with 1251 checks. The gate validates documentation PNG headers,
   minimum dimensions, non-empty alt text, complete style/appearance coverage,
   consistent dimensions within each plot group, and rejects unreferenced
   gallery PNG leftovers. This is a visual-asset sanity gate; it does not
@@ -571,9 +571,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   formula inventory. It derives Gaussian, correlated, x-error, Poisson,
   histogram, unbinned, and extended likelihood models; distinguishes local
   covariance from profile coverage; states Wilks and p-value limits; and
-  constrains AIC/BIC comparisons to compatible normalized likelihoods. Light-
-  and dark-mode browser checks confirm that equations and threshold tables
-  render correctly.
+  constrains AIC/BIC comparisons to compatible normalized likelihoods. Its
+  profile section now includes the real constrained-saturation profile matrix
+  and a fixed reading order for the refitted profiles, filled confidence
+  regions, local covariance approximation, and correlation pointers. Light-
+  and dark-mode browser checks confirm that equations, threshold tables, and
+  the style-switchable matrix render correctly.
 - The API reference now provides an observation-model entry-point table,
   allocating and in-place model contracts, complete uncertainty and
   parameter-control semantics, solver and failure behavior, result-field

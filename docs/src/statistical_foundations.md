@@ -493,6 +493,32 @@ The one-parameter and two-parameter thresholds differ because a joint region
 has two dimensions. Reading the ``\Delta C=1`` crossing from a two-dimensional
 contour would under-cover.
 
+The profile matrix below puts the three local-versus-profile checks in one
+view. It is computed from the same constrained saturation fit used in the
+[Constraints and Profiles](gallery/constraints_profiles.md) analysis; changing
+the selector in the documentation header changes only the rendering style.
+
+```@raw html
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="lab" src="assets/gallery/saturation_profile_matrix_lab_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in lab style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="lab" src="assets/gallery/saturation_profile_matrix_lab_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark lab style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="modern" src="assets/gallery/saturation_profile_matrix_modern_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in modern style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="modern" src="assets/gallery/saturation_profile_matrix_modern_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark modern style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="article" src="assets/gallery/saturation_profile_matrix_article_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in article style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="article" src="assets/gallery/saturation_profile_matrix_article_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark article style">
+<p class="jufitter-figure-note">Diagonal: refitted one-parameter profiles against the local parabolic approximation. Lower triangle: filled one- and two-sigma profiled regions against dashed local covariance ellipses. Upper triangle: local correlation coefficients.</p>
+```
+
+Read it in this order:
+
+1. On the diagonal, compare each refitted profile with its local parabola. A
+   skewed crossing implies asymmetric profile errors.
+2. In the lower triangle, compare the filled profiled region with the dashed
+   covariance ellipse. Bending or a displaced boundary means the local ellipse
+   is not an adequate uncertainty summary at that coverage.
+3. Use the upper-triangle correlation as a pointer, not a verdict. A large
+   correlation identifies a pair worth checking; only the profiled geometry
+   shows how the cost behaves away from the minimum.
+
 Use profile geometry to answer concrete questions:
 
 - Does the profile follow the local parabola near the interval boundary?

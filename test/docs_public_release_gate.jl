@@ -240,6 +240,20 @@ end
         @test !occursin("0.5 \\lesssim", guide)
     end
 
+    @testset "Statistics guide makes profile geometry readable" begin
+        guide = statistical_foundations_page_text()
+
+        @test occursin("data-jufitter-plot-group=\"statistics-profile-matrix\"", guide)
+        for style in ("lab", "modern", "article")
+            @test occursin("data-jufitter-plot-style=\"$(style)\"", guide)
+            @test occursin("saturation_profile_matrix_$(style)_light.png", guide)
+            @test occursin("saturation_profile_matrix_$(style)_dark.png", guide)
+        end
+        @test occursin("filled one- and two-sigma profiled regions", guide)
+        @test occursin("dashed local covariance ellipses", guide)
+        @test occursin("correlation as a pointer, not a verdict", guide)
+    end
+
     @testset "Plotting guide follows the public extension contract" begin
         guide = plotting_page_text()
 
