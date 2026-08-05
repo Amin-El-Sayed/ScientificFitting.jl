@@ -35,16 +35,16 @@ summary and diagnostic messages shown on the page.
 ## Recommended Path
 
 ```@raw html
-<div class="jufitter-flow">
-  <div class="jufitter-flow-step"><strong>First fit</strong><span>Linear calibration teaches the default data-model-diagnosis loop.</span></div>
-  <div class="jufitter-flow-step"><strong>Measured x</strong><span>XY uncertainties show when horizontal error bars must enter the cost.</span></div>
-  <div class="jufitter-flow-step"><strong>Shared noise</strong><span>Full covariance replaces independent errors when observations move together.</span></div>
-  <div class="jufitter-flow-step"><strong>Model criticism</strong><span>Damped oscillation uses pull structure to expose missing nonlinear physics.</span></div>
-  <div class="jufitter-flow-step"><strong>Derived quantity</strong><span>Photoelectric threshold extraction propagates two fits into one physical result.</span></div>
-  <div class="jufitter-flow-step"><strong>Count data</strong><span>Poisson and histogram examples replace Gaussian residuals with count likelihoods.</span></div>
-  <div class="jufitter-flow-step"><strong>Nonlinear uncertainty</strong><span>Profiles and contours test whether local symmetric errors remain credible.</span></div>
-  <div class="jufitter-flow-step"><strong>Shared hypotheses</strong><span>A multi-dataset fit tests which parameters may be common across experiments.</span></div>
-</div>
+<ol class="jufitter-flow">
+  <li class="jufitter-flow-step"><strong>First fit</strong><span>Linear calibration teaches the default data-model-diagnosis loop.</span></li>
+  <li class="jufitter-flow-step"><strong>Measured x</strong><span>XY uncertainties show when horizontal error bars must enter the cost.</span></li>
+  <li class="jufitter-flow-step"><strong>Shared noise</strong><span>Full covariance replaces independent errors when observations move together.</span></li>
+  <li class="jufitter-flow-step"><strong>Model criticism</strong><span>Damped oscillation uses pull structure to expose missing nonlinear physics.</span></li>
+  <li class="jufitter-flow-step"><strong>Derived quantity</strong><span>Photoelectric threshold extraction propagates two fits into one physical result.</span></li>
+  <li class="jufitter-flow-step"><strong>Count data</strong><span>Poisson and histogram examples replace Gaussian residuals with count likelihoods.</span></li>
+  <li class="jufitter-flow-step"><strong>Nonlinear uncertainty</strong><span>Profiles and contours test whether local symmetric errors remain credible.</span></li>
+  <li class="jufitter-flow-step"><strong>Shared hypotheses</strong><span>A multi-dataset fit tests which parameters may be common across experiments.</span></li>
+</ol>
 ```
 
 ## Examples

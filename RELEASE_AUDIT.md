@@ -604,6 +604,25 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   interfaces. Two non-executable `plot_fit(...; report=:plot)` fragments on
   supporting reference pages were corrected and are now rejected by the
   public documentation gate.
+- The final entry-path audit covers Home, Installation, and Quickstart as one
+  reader journey. The Home page has no horizontal overflow at the checked
+  desktop viewport, its theme/style controls select exactly one real rendered
+  asset, and every capability claim maps to a current result, diagnostic, or
+  optional plotting contract. Installation matches the Julia compatibility
+  floor, CI matrix, CairoMakie extension boundary, local-checkout workflow, and
+  experimental JuliaCall gate. The Quickstart's code and abridged terminal
+  output remain executable-snapshot backed; its visible one-sigma band is the
+  implemented `band=:prediction` quantity rather than a mislabeled local mean
+  confidence band. No editorial rewrite was made where the current text
+  already passed the scientific and first-user review.
+- The Gallery overview now presents its eight-example learning path as a
+  semantic ordered sequence with four equal columns at the checked desktop
+  width and explicit two-/one-column breakpoints. This replaces the previous
+  auto-fit layout, which produced five narrow cards followed by an ambiguous
+  three-card remainder. The sequence uses plain panels without decorative
+  gradients or shadows. Browser checks confirm no horizontal overflow, eight
+  visible cards, exactly one rendered image per card, and correct switching
+  between article/dark and modern/light assets.
 
 ## Release Blockers
 
