@@ -259,10 +259,26 @@ using Test
     @test maximum(style.error_whiskerwidth for style in (lab_style, modern_style, article_style)) <= 6
     @test all(length(unique(style.series_colors)) == length(style.series_colors) for
         style in (lab_style, modern_style, article_style))
-    @test modern_style.fit_color == "#2f80ed"
+    @test lab_style.fit_color == "#20242a"
+    @test lab_style.band_color != lab_style.fit_color
+    @test modern_style.fit_color == "#1e7bd8"
     @test modern_style.secondary_color == "#d1495b"
     @test lab_style.fit_color != modern_style.fit_color
     @test article_style.fit_color == "#0072b2"
+    @test article_style.secondary_color == "#d55e00"
+    @test article_style.data_strokecolor == article_style.axis_color
+
+    style_signature(style) = (
+        style.data_marker,
+        style.fit_color,
+        style.xgridvisible,
+        style.ygridvisible,
+        style.topspinevisible,
+        style.rightspinevisible,
+        style.titlealign,
+        style.tickalign,
+    )
+    @test length(unique(style_signature.((lab_style, modern_style, article_style)))) == 3
 
     lab_axis = fit_axis(plot_fit(quick.result; theme=:lab, show_stats=false))
     modern_axis = fit_axis(plot_fit(quick.result; theme=:modern, show_stats=false))

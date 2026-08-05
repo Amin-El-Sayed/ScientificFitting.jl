@@ -92,25 +92,26 @@ The styles are three output contracts, not three color variations. They do not
 change the data, fit, uncertainty band, or reported statistics.
 
 - `theme=:lab` is the working view for live analysis. It uses a left-aligned
-  title, cross markers, strong axes, and a full x/y grid so coordinates and
-  outliers can be read quickly on a laboratory screen.
+  title, cross markers, a neutral fit curve, strong axes, and a full x/y grid.
+  Color is reserved for uncertainty and genuinely distinct series, so dense
+  observations and outliers remain easy to read on a laboratory screen.
 - `theme=:modern` is the screen and documentation view. It uses larger
-  sans-serif typography, round markers, a stronger curve/band hierarchy, and
-  horizontal guides only. The reduced scaffold leaves more attention for the
-  data without removing numerical orientation.
+  sans-serif typography, round markers, a clear blue curve/band hierarchy, and
+  horizontal guides only. It follows the direct Makie visual language used by
+  Beautiful Makie rather than adding a decorative product-design layer.
 - `theme=:article` is the vector-export view. It uses Makie's LaTeX font family,
-  a complete axis frame with inward ticks, no grid, and a color-safe blue that
-  remains useful when a journal accepts color. Its labels and report panel are
-  deliberately not made tiny.
+  a complete axis frame with inward ticks, no grid, and an Okabe-Ito blue/orange
+  pair when multiple curves require color. Its TeX typography is optically
+  scaled to remain as readable as the screen styles.
 
 Every image below contains the same observations, errors, fit, one-sigma
 prediction band, labels, legend, report fields, and output dimensions.
 
 ```@raw html
 <div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="The same calibration fit in the lab plot style"><div><h3>lab</h3><p>Fast coordinate reading: full grid, cross markers, compact working layout.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_modern.png" alt="The same calibration fit in the modern plot style"><div><h3>modern</h3><p>Screen-first hierarchy: larger type, round markers, horizontal guides.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="The same calibration fit in the article plot style"><div><h3>article</h3><p>Vector export: LaTeX fonts, framed axes, inward ticks, no grid.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="The same calibration fit in the lab plot style"><div><h3>lab</h3><p>Working analysis: neutral fit, full grid, cross markers, high contrast.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_modern.png" alt="The same calibration fit in the modern plot style"><div><h3>modern</h3><p>Screen and docs: strong color hierarchy, round markers, horizontal guides.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="The same calibration fit in the article plot style"><div><h3>article</h3><p>Vector export: readable TeX typography, framed axes, inward ticks, no grid.</p></div></div>
 </div>
 ```
 

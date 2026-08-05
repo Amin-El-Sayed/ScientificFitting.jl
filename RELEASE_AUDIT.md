@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-08-04
+Status: 2026-08-05
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -71,22 +71,26 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The plotting release slice passes locally with 103 focused API/layout tests,
+- The plotting release slice passes locally with 119 focused API/layout tests,
   289 gallery-structure checks, 1251 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
   2034 checks against links, assets, and the responsive architecture flow in
   the rendered HTML.
 - The plot-style audit now defines exactly three central output contracts rather
-  than loosely related color variants: `:lab` uses cross markers, strong axes,
-  and a full coordinate grid; `:modern` uses larger screen typography, round
-  markers, and horizontal guides; `:article` uses Makie's LaTeX font theme, a
-  complete frame, inward ticks, and no grid. Fit plots, residuals, diagnostics,
-  profiles, contours, profile matrices, information panels, and compound
-  gallery figures consume the same preset tokens. Explicit Makie keyword
-  overrides remain authoritative. All 83 light/dark gallery assets were
-  regenerated from real fits and reviewed at both native image size and normal
-  documentation scale; the latter check caught and corrected unreadably small
-  text in wide figures.
+  than loosely related color variants: `:lab` reserves color for uncertainty
+  and distinct series while using a neutral fit curve, cross markers, strong
+  axes, and a full coordinate grid; `:modern` uses larger sans-serif screen
+  typography, round markers, a direct blue curve/band hierarchy, and horizontal
+  guides; `:article` uses Makie's LaTeX font theme, a complete frame, inward
+  ticks, no grid, and an Okabe-Ito blue/orange pair when color is useful. Fit
+  plots, residuals, diagnostics, profiles, contours, profile matrices,
+  information panels, and compound gallery figures consume the same preset
+  tokens. Explicit Makie keyword overrides remain authoritative. All 81
+  style-dependent gallery PNGs were regenerated from real fits, and all 83
+  tracked PNG snapshots pass. Native-size and normal-documentation-scale review
+  covered the quickstart, photoelectric, damped-oscillator, profile-matrix,
+  Poisson/histogram, and multi-dataset layouts; the latter check caught and
+  corrected unreadably small report text in wide article figures.
 - The public gallery overview now contains only reader-facing learning paths,
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than
@@ -543,7 +547,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   provides. Its documented LaTeX/report combination is execution-checked; an
   uncovered empty-title conversion was fixed so automatic blank labels remain
   plain empty strings instead of invalid empty LaTeX expressions.
-- Focused plot regression tests pass with 87 checks after the plot-style
+- Focused plot regression tests pass with 119 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
