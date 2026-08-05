@@ -287,9 +287,18 @@ end
         @test occursin("normalized split-normal cost", foundations)
         @test occursin("cost=:gaussian_likelihood", foundations)
         @test occursin("stats.minus2loglik_min", foundations)
+        @test occursin("`stats.cost_min` is the objective that was", foundations)
+        @test occursin("not independent ``\\mathcal N(0,1)`` draws", foundations)
+        @test occursin("plausible but unquantified bias", foundations)
+        @test occursin("an auxiliary calibration ``g=1.00\\pm0.05``", foundations)
+        @test occursin("linear Gaussian model with known, full-rank covariance", foundations)
+        @test occursin("stored observation count `nobs`", foundations)
         @test occursin("complete, static observation covariance", foundations)
         @test occursin(r"Gaussian\s+auxiliary terms contribute both", foundations)
-        @test occursin("custom objective supplies that convention", foundations)
+        @test occursin(
+            "has likelihood meaning only when that objective follows the documented normalization",
+            foundations,
+        )
         @test occursin("fit_histogram_density", foundations)
         @test occursin("JuFitter therefore returns `NaN`", foundations)
         @test occursin("Wilks thresholds are asymptotic", foundations)

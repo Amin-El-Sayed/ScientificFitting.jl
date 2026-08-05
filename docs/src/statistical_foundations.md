@@ -50,6 +50,13 @@ for normalized likelihood costs. With this convention, likelihood-ratio
 differences, Gaussian chi-square, local curvature, and profile thresholds share
 the same scale.
 
+For a static Gaussian covariance, the optimizer may minimize only ``\chi^2``
+because the omitted normalization is constant in the parameters. JuFitter keeps
+the two quantities separate: `stats.cost_min` is the objective that was
+minimized, while `stats.minus2loglik_min` also includes the Gaussian
+normalization ``n\log(2\pi)+\log\det V`` and normalized auxiliary terms. They
+have the same minimizer only while the covariance is parameter-independent.
+
 ## Data, Model, And Residuals
 
 For observations ``d`` and model predictions ``m(\theta)``, the raw residual is
@@ -69,10 +76,13 @@ z_i=\frac{d_i-m_i(\theta)}{\sigma_i}.
 ```
 
 If the model and uncertainties are correct, these pulls should fluctuate around
-zero with a scale near one and no visible structure. A small total cost cannot
-replace this pattern check: alternating residuals, long same-sign runs, or a
-frequency-dependent drift can reveal model failure even when one summary number
-looks acceptable.
+zero with a scale near one and no visible structure. At the fitted parameters
+they are not independent ``\mathcal N(0,1)`` draws: estimating parameters
+projects out fitted directions, and pointwise leverage changes their variance.
+A pull plot is therefore a localization tool, not a second chi-square test. A
+small total cost cannot replace the pattern check: alternating residuals, long
+same-sign runs, or a frequency-dependent drift can reveal model failure even
+when one summary number looks acceptable.
 
 ## Gaussian Least Squares
 
@@ -152,6 +162,22 @@ Typical sources of correlation are shared calibration constants, common
 background subtraction, baseline drift, and finite-memory electronics. A
 global systematic scale uncertainty is often clearer as a nuisance parameter
 or external parameter constraint than as an arbitrary short-range covariance.
+
+The representation should follow the mechanism:
+
+| uncertainty source | useful representation |
+| --- | --- |
+| independent readout scatter | pointwise ``\sigma_i`` |
+| repeated samples sharing noise | covariance matrix or whitening operator |
+| uncertain calibration constant | fitted nuisance parameter with auxiliary information |
+| plausible but unquantified bias | sensitivity analysis, not an invented Gaussian error |
+
+A quantified systematic effect is therefore not automatically an extra number
+to attach after the fit. If it moves several observations coherently, encode
+that mechanism in the joint model before parameter uncertainties and goodness
+of fit are computed. If its size is not probabilistically quantified, vary
+defensible alternatives and report the sensitivity instead of hiding a guessed
+distribution inside the covariance.
 
 JuFitter never forms ``V^{-1}`` explicitly. Dense covariance is factorized and
 applied through triangular solves, which is both more stable and faster than
@@ -298,6 +324,20 @@ to chi-square. In the normalized ``-2\log L`` convention it contributes
 piecewise scale for asymmetric quoted errors. `parameter_constraints`
 implements the correlated multivariate analogue.
 
+For example, an auxiliary calibration ``g=1.00\pm0.05`` contributes
+
+```math
+\left(\frac{1.10-1.00}{0.05}\right)^2=4
+```
+
+when the joint fit proposes ``g=1.10``. The primary data can still move the
+estimate away from the calibration, but they must pay that likelihood cost.
+The ``0.05`` is not appended to the final error afterward: ``g`` is fitted
+jointly, so its correlation with every scientific parameter propagates through
+the fit. If several calibration quantities share a reference, use one
+correlated parameter constraint rather than independent scalar terms that count
+the common information more than once.
+
 For asymmetric scales ``\tau_-`` and ``\tau_+``, JuFitter uses the continuous,
 normalized split-normal cost
 
@@ -344,8 +384,8 @@ unconstrained asymptotic formulas need not remain exact at their boundary.
 
 ## Degrees Of Freedom
 
-For a regular Gaussian fit with ``n`` independent observations and ``k`` free
-parameters,
+For a regular Gaussian fit with ``n`` observations, known full-rank covariance,
+and ``k`` free parameters,
 
 ```math
 \mathrm{ndf}=n-k.
@@ -358,6 +398,12 @@ when those terms represent independent calibration measurements. If they are
 subjective priors, interpreting the resulting `ndf` as a frequentist degree of
 freedom is not justified.
 
+The count ``n-k`` does not by itself prove a chi-square reference distribution.
+For a nonlinear model it is the conventional dimension count; the calibration
+of ``\chi^2_{\min}`` is generally asymptotic. Rank-deficient covariance,
+parameters on boundaries, or a variance model estimated from the same residuals
+require a separate derivation or simulation.
+
 For likelihood fits with an explicit goodness-of-fit statistic, Gaussian
 auxiliary terms contribute both their quadratic residuals to that statistic and
 their dimensions to `ndf`. Counting the calibration observation without its
@@ -369,11 +415,17 @@ inventing a number.
 
 ## Goodness Of Fit
 
-For a regular Gaussian model with known covariance,
+For a linear Gaussian model with known, full-rank covariance,
 
 ```math
 \chi^2_{\min} \sim \chi^2_{\mathrm{ndf}}.
 ```
+
+This result is exact under the linear-model assumptions. For a regular
+nonlinear Gaussian model it is an asymptotic approximation. It need not hold
+when the covariance was tuned from the same residuals, a bound is active, the
+model is weakly identified, or data-dependent filtering changed the sampling
+process.
 
 Its mean and standard deviation are
 
@@ -663,9 +715,16 @@ For ``k`` fitted parameters and maximized normalized likelihood ``L_{\max}``,
 ```
 
 Smaller is preferred within a valid comparison. AIC estimates relative
-out-of-sample predictive information loss. BIC is a large-sample approximation
-with a stronger complexity penalty and additional assumptions. Neither is a
-p-value, proof of a model, or a substitute for residual inspection.
+out-of-sample predictive information loss under its regularity assumptions.
+BIC is a large-sample approximation with a stronger complexity penalty and
+additional assumptions. Neither is a p-value, proof of a model, or a substitute
+for residual inspection.
+
+JuFitter uses its stored observation count `nobs` in the BIC arithmetic;
+Gaussian auxiliary dimensions are included in that count. For strongly
+correlated data there may be no unique iid-like effective sample size, so a BIC
+number can be algebraically defined without having the usual model-selection
+interpretation. State what ``n`` means before using BIC as evidence.
 
 Only compare values when all candidates use:
 
@@ -691,8 +750,8 @@ The result fields follow these conventions:
 
 | field | meaning |
 | --- | --- |
-| `stats.cost_min` | minimized selected cost |
-| `stats.minus2loglik_min` | selected objective value; a normalized ``-2\log L`` only when the wrapper or custom objective supplies that convention |
+| `stats.cost_min` | minimized selected objective: usually ``\chi^2`` for static Gaussian least squares and ``-2\log L`` for likelihood wrappers |
+| `stats.minus2loglik_min` | normalized Gaussian ``-2\log L`` for an x-y `FitResult`; for likelihood/custom results it equals the stored objective and has likelihood meaning only when that objective follows the documented normalization |
 | `stats.chi2` | Gaussian chi-square or Poisson deviance; `NaN` when no generic statistic exists |
 | `stats.chi2_ndf` | chi-square-like statistic divided by positive ndf |
 | `stats.pvalue` | upper-tail chi-square approximation where defined |

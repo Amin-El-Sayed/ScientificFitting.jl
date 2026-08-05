@@ -46,6 +46,7 @@ end
         ref = _weighted_linear_reference(x, y, sigma_y)
         result = fit_model(model, x, y; p0=[0.0, 0.0], sigma_y=sigma_y, scale_covariance=:never)
         ndf = length(x) - 2
+        expected_minus2loglik = length(x) * log(2pi) + 2.0 * sum(log, sigma_y) + ref.chi2
 
         @test result.backend == :lsqfit
         @test result.stats.cost == :chi2
@@ -55,6 +56,16 @@ end
         @test isapprox(result.residuals, ref.residuals; atol=2e-9, rtol=2e-9)
         @test isapprox(result.weighted_residuals, ref.residuals ./ sigma_y; atol=2e-9, rtol=2e-9)
         @test isapprox(result.stats.chi2, ref.chi2; atol=2e-11, rtol=2e-11)
+        @test isapprox(result.stats.cost_min, ref.chi2; atol=2e-11, rtol=2e-11)
+        @test isapprox(result.stats.minus2loglik_min, expected_minus2loglik; atol=2e-11, rtol=2e-11)
+        @test !isapprox(result.stats.cost_min, result.stats.minus2loglik_min; atol=1e-8, rtol=1e-8)
+        @test isapprox(result.stats.aic, expected_minus2loglik + 2 * length(result.params); atol=2e-11, rtol=2e-11)
+        @test isapprox(
+            result.stats.bic,
+            expected_minus2loglik + log(length(x)) * length(result.params);
+            atol=2e-11,
+            rtol=2e-11,
+        )
         @test result.stats.ndf == ndf
         @test isapprox(result.stats.chi2_ndf, ref.chi2 / ndf; atol=2e-11, rtol=2e-11)
         @test isapprox(result.stats.pvalue, ccdf(Chisq(ndf), ref.chi2); atol=2e-11, rtol=2e-11)

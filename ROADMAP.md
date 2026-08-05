@@ -286,9 +286,11 @@ Deferred scientific architecture candidates:
 
 ## Phase 3.5: Diagnostic Plots and Contours
 
-Status: complete for the scoped v0 core and plotting API. Further automatic
-nonlinearity detection and richer combined dashboards remain post-v0 work; the
-current release task is documentation and human visual review.
+Status: the scoped numerical diagnostics and plotting API are complete, but the
+visual preset system is reopened as a v0 release blocker after maintainer
+review. The existing snapshot gates prove deterministic output, not that the
+presets are sufficiently distinct, readable, or useful. Further automatic
+nonlinearity detection and richer combined dashboards remain post-v0 work.
 
 Goal: profile, contour, residual, pull, covariance, and likelihood diagnostics
 must communicate statistical meaning as clearly as kafe2/Minuit-style tools,
@@ -323,6 +325,33 @@ Acceptance criteria:
   showcase examples.
 - Plot objects can be added after `plot_fit` returns without changing the
   exported figure footprint or invalidating the layout.
+
+### Plot-style release gate
+
+The next plotting milestone is a role audit, not another round of isolated
+parameter tuning. Keep Makie's native layout and styling machinery wherever it
+already solves the problem; JuFitter should add only fitting-specific defaults
+and composition.
+
+- Define two to four output roles that correspond to genuinely different work:
+  fast notebook/laboratory inspection, explanatory screen/documentation output,
+  and print/article export. Rename or remove presets that cannot justify a
+  separate role.
+- A preset must be identifiable from an unlabeled side-by-side render. Changing
+  only font size, saturation, or one accent color is not a distinct contract.
+- Establish minimum readable text, tick, line, marker, and error-bar dimensions
+  at the actual target export sizes. Validate ordinary fits, dense data,
+  right-side reports, residual layouts, profile matrices, and custom Makie
+  annotations in both light and dark appearances where supported.
+- Ground the visual choices in a small, named reference set from Beautiful
+  Makie and the proven information hierarchy of kafe2. Do not blend unrelated
+  visual ideas or add decorative styling without a scientific purpose.
+- Keep explicit user overrides local to the overridden element. Unmodified
+  elements must continue to inherit the selected role, including compound
+  gallery figures.
+- Snapshot tests remain a change detector. Release approval additionally
+  requires a maintainer-reviewed comparison board at fixed viewport/export
+  sizes, with no unreadably small labels or unexplained role overlap.
 
 ## Phase 4: Documentation and Gallery
 

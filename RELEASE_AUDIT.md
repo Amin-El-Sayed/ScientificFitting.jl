@@ -241,7 +241,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `m_emit - m_base` for both Planck's constant and the work function; the same
   contract is checked in the executable asset generator.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 624 checks. The gate first verifies that every page in the public
+  with 630 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -536,6 +536,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   states the static-covariance contract of
   `WhiteningOperator`, the diagonal pointwise x-error linearization, and the
   conditional interpretation of custom objectives as normalized `-2 log L`.
+  A subsequent source-to-implementation pass separated the minimized
+  `stats.cost_min` from the normalized Gaussian
+  `stats.minus2loglik_min`, qualified exact linear-Gaussian chi-square results
+  against nonlinear asymptotics, and documented fitted-residual leverage,
+  mechanism-based systematic treatment, auxiliary calibration terms, and the
+  limits of BIC's stored observation count for strongly correlated data. The
+  analytic diagonal linear-Gaussian reference now separately verifies
+  chi-square minimization, normalized `-2 log L`, AIC, and BIC rather than
+  assuming those stored quantities coincide.
 - Technical maintenance pages remain in the rendered documentation, but they
   are nested under `Reference > Technical Notes` rather than appearing as a
   top-level user path. The public documentation hygiene gate now prevents a
@@ -562,7 +571,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   provides. Its documented LaTeX/report combination is execution-checked; an
   uncovered empty-title conversion was fixed so automatic blank labels remain
   plain empty strings instead of invalid empty LaTeX expressions.
-- Focused plot regression tests pass with 119 checks after the plot-style
+- Focused plot regression tests pass with 122 checks after the plot-style
   architecture was reduced to three explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
@@ -645,6 +654,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
+- Maintainer visual review has reopened the plot-style preset system as a v0
+  blocker. The current `:lab`, `:modern`, and `:article` assets are deterministic
+  and technically covered, but remain too similar in purpose and contain text
+  that is too small in some compound figures. The 83-image snapshot gate proves
+  intentional byte-level output only; it is not evidence of design quality.
+  Before release, the preset set must be reduced, renamed, or redesigned around
+  distinct real-world output roles and pass the fixed-size human comparison gate
+  specified in `ROADMAP.md`.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,
