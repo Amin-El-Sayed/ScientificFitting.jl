@@ -16,10 +16,8 @@ an adequate description of the recorded motion, or whether the data require a
 small additional frequency drift.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="lab" src="../assets/gallery/damped_oscillator_decay_lab_light.png" alt="Damped oscillator model comparison in lab style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="lab" src="../assets/gallery/damped_oscillator_decay_lab_dark.png" alt="Damped oscillator model comparison in lab dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="modern" src="../assets/gallery/damped_oscillator_decay_modern_light.png" alt="Damped oscillator model comparison in modern style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="modern" src="../assets/gallery/damped_oscillator_decay_modern_dark.png" alt="Damped oscillator model comparison in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="screen" src="../assets/gallery/damped_oscillator_decay_screen_light.png" alt="Damped oscillator model comparison in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="screen" src="../assets/gallery/damped_oscillator_decay_screen_dark.png" alt="Damped oscillator model comparison in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="article" src="../assets/gallery/damped_oscillator_decay_article_light.png" alt="Damped oscillator model comparison in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="article" src="../assets/gallery/damped_oscillator_decay_article_dark.png" alt="Damped oscillator model comparison in article dark style">
 ```

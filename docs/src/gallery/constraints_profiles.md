@@ -6,10 +6,8 @@ answer is not enough. The fitted curve looks well determined over the measured
 interval, but two physical parameters remain strongly and nonlinearly coupled.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="lab" src="../assets/gallery/constraints_priors_lab_light.png" alt="Constrained saturation fit in lab style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="lab" src="../assets/gallery/constraints_priors_lab_dark.png" alt="Constrained saturation fit in lab dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="modern" src="../assets/gallery/constraints_priors_modern_light.png" alt="Constrained saturation fit in modern style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="modern" src="../assets/gallery/constraints_priors_modern_dark.png" alt="Constrained saturation fit in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="screen" src="../assets/gallery/constraints_priors_screen_light.png" alt="Constrained saturation fit in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="screen" src="../assets/gallery/constraints_priors_screen_dark.png" alt="Constrained saturation fit in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="article" src="../assets/gallery/constraints_priors_article_light.png" alt="Constrained saturation fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="article" src="../assets/gallery/constraints_priors_article_dark.png" alt="Constrained saturation fit in article dark style">
 ```
@@ -262,10 +260,8 @@ approximation near the minimum.
 ## Profile: Is The One-Parameter Error Symmetric?
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="lab" src="../assets/gallery/saturation_profile_lab_light.png" alt="Saturation amplitude profile in lab style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="lab" src="../assets/gallery/saturation_profile_lab_dark.png" alt="Saturation amplitude profile in lab dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="modern" src="../assets/gallery/saturation_profile_modern_light.png" alt="Saturation amplitude profile in modern style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="modern" src="../assets/gallery/saturation_profile_modern_dark.png" alt="Saturation amplitude profile in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="screen" src="../assets/gallery/saturation_profile_screen_light.png" alt="Saturation amplitude profile in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="screen" src="../assets/gallery/saturation_profile_screen_dark.png" alt="Saturation amplitude profile in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="article" src="../assets/gallery/saturation_profile_article_light.png" alt="Saturation amplitude profile in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="article" src="../assets/gallery/saturation_profile_article_dark.png" alt="Saturation amplitude profile in article dark style">
 ```
@@ -306,10 +302,8 @@ interval construction rather than a qualitative curve inspection.
 ## Contour: Which Parameter Combinations Survive?
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="lab" src="../assets/gallery/amplitude_timescale_contour_lab_light.png" alt="Amplitude-timescale contour in lab style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="lab" src="../assets/gallery/amplitude_timescale_contour_lab_dark.png" alt="Amplitude-timescale contour in lab dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="modern" src="../assets/gallery/amplitude_timescale_contour_modern_light.png" alt="Amplitude-timescale contour in modern style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="modern" src="../assets/gallery/amplitude_timescale_contour_modern_dark.png" alt="Amplitude-timescale contour in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="screen" src="../assets/gallery/amplitude_timescale_contour_screen_light.png" alt="Amplitude-timescale contour in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="screen" src="../assets/gallery/amplitude_timescale_contour_screen_dark.png" alt="Amplitude-timescale contour in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="article" src="../assets/gallery/amplitude_timescale_contour_article_light.png" alt="Amplitude-timescale contour in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="article" src="../assets/gallery/amplitude_timescale_contour_article_dark.png" alt="Amplitude-timescale contour in article dark style">
 ```
@@ -347,10 +341,8 @@ codes, and the first recommended action. That is the text-first route when you
 want a run to fail or warn before anyone opens the figure.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="lab" src="../assets/gallery/saturation_profile_matrix_lab_light.png" alt="Saturation profile matrix in lab style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="lab" src="../assets/gallery/saturation_profile_matrix_lab_dark.png" alt="Saturation profile matrix in lab dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="modern" src="../assets/gallery/saturation_profile_matrix_modern_light.png" alt="Saturation profile matrix in modern style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="modern" src="../assets/gallery/saturation_profile_matrix_modern_dark.png" alt="Saturation profile matrix in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="screen" src="../assets/gallery/saturation_profile_matrix_screen_light.png" alt="Saturation profile matrix in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="screen" src="../assets/gallery/saturation_profile_matrix_screen_dark.png" alt="Saturation profile matrix in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="article" src="../assets/gallery/saturation_profile_matrix_article_light.png" alt="Saturation profile matrix in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="article" src="../assets/gallery/saturation_profile_matrix_article_dark.png" alt="Saturation profile matrix in article dark style">
 ```

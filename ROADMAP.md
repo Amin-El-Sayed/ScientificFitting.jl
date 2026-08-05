@@ -286,11 +286,11 @@ Deferred scientific architecture candidates:
 
 ## Phase 3.5: Diagnostic Plots and Contours
 
-Status: the scoped numerical diagnostics and plotting API are complete, but the
-visual preset system is reopened as a v0 release blocker after maintainer
-review. The existing snapshot gates prove deterministic output, not that the
-presets are sufficiently distinct, readable, or useful. Further automatic
-nonlinearity detection and richer combined dashboards remain post-v0 work.
+Status: the scoped numerical diagnostics and plotting API are complete. The
+plot-style release gate is implemented on `codex/plot-style-role-gate` and is
+locally green; final maintainer visual approval remains required before v0.
+Further automatic nonlinearity detection and richer combined dashboards remain
+post-v0 work.
 
 Goal: profile, contour, residual, pull, covariance, and likelihood diagnostics
 must communicate statistical meaning as clearly as kafe2/Minuit-style tools,
@@ -328,10 +328,24 @@ Acceptance criteria:
 
 ### Plot-style release gate
 
-The next plotting milestone is a role audit, not another round of isolated
-parameter tuning. Keep Makie's native layout and styling machinery wherever it
-already solves the problem; JuFitter should add only fitting-specific defaults
-and composition.
+The role audit replaced the overlapping preset collection with two maintained
+contracts. Keep Makie's native layout and styling machinery wherever it already
+solves the problem; JuFitter should add only fitting-specific defaults and
+composition.
+
+- `:screen` is the notebook, laboratory, and documentation role: readable
+  sans-serif typography, filled observations, a direct blue fit/band hierarchy,
+  strong axes, and quiet full guides.
+- `:article` is the vector-export role: scaled TeX typography, hollow
+  observations, a complete frame with inward ticks, no grid, and an Okabe-Ito
+  palette when multiple curves require color.
+- Previous names remain compatibility aliases of `:screen`; they no longer
+  claim separate visual semantics.
+- Focused tests enforce role differences, minimum readable dimensions, Makie
+  override precedence, compound diagnostics, and fixed output footprints.
+- The documentation exposes only `screen` and `article`, swaps real light/dark
+  assets, and has been browser-checked on ordinary fits, a compound oscillator,
+  and a profile matrix. Maintainer visual acceptance is still mandatory.
 
 - Define two to four output roles that correspond to genuinely different work:
   fast notebook/laboratory inspection, explanatory screen/documentation output,

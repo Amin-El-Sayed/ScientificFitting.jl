@@ -6,7 +6,7 @@ const GALLERY_ASSETS = joinpath(DOCS_SRC, "assets", "gallery")
 
 const REQUIRED_STYLE_PAIRS = Set(
     (style, appearance)
-    for style in ("lab", "modern", "article")
+    for style in ("screen", "article")
     for appearance in ("light", "dark")
 )
 
@@ -116,7 +116,7 @@ end
         @test length(dims) == 1
 
         for record in group_records
-            @test record.style in ("lab", "modern", "article")
+            @test record.style in ("screen", "article")
             @test record.appearance in ("light", "dark")
         end
     end

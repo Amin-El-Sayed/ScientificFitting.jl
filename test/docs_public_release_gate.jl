@@ -250,7 +250,7 @@ end
         guide = statistical_foundations_page_text()
 
         @test occursin("data-jufitter-plot-group=\"statistics-profile-matrix\"", guide)
-        for style in ("lab", "modern", "article")
+        for style in ("screen", "article")
             @test occursin("data-jufitter-plot-style=\"$(style)\"", guide)
             @test occursin("saturation_profile_matrix_$(style)_light.png", guide)
             @test occursin("saturation_profile_matrix_$(style)_dark.png", guide)

@@ -71,35 +71,26 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The plotting release slice passes locally with 122 focused API/layout tests,
-  289 gallery-structure checks, 1251 visual-asset checks, and 83 intentional
-  PNG snapshot checks. The complete Documenter build also passes, followed by
-  2034 checks against links, assets, and the responsive architecture flow in
-  the rendered HTML.
-- The plot-style audit now defines exactly three central output contracts rather
-  than loosely related color variants: `:lab` reserves color for uncertainty
-  and distinct series while using a neutral fit curve, cross markers, strong
-  axes, and a full coordinate grid; `:modern` uses larger sans-serif screen
-  typography, round markers, a direct blue curve/band hierarchy, and horizontal
-  guides; `:article` uses Makie's LaTeX font theme, a complete frame, inward
-  ticks, no grid, and an Okabe-Ito blue/orange pair when color is useful. Fit
-  plots, residuals, diagnostics, profiles, contours, profile matrices,
-  information panels, and compound gallery figures consume the same preset
-  tokens. Explicit Makie keyword overrides remain authoritative. All 81
-  style-dependent gallery PNGs were regenerated from real fits, and all 83
-  tracked PNG snapshots pass. Native-size and normal-documentation-scale review
-  covered the quickstart, photoelectric, damped-oscillator, profile-matrix,
-  Poisson/histogram, and multi-dataset layouts; the latter check caught and
-  corrected unreadably small report text in wide article figures.
-- A second display-scale audit verified all 81 style-dependent gallery assets
-  as light/dark contact sheets and exercised the documentation selectors on
-  complex damped-oscillator and multi-dataset pages. Raster exports now keep a
-  browser-sized logical canvas and use `px_per_unit` only for pixel density;
-  this avoids shrinking typography after export. Article observations are
-  hollow for grayscale separation, lab markers are denser than screen markers,
-  and compound titles were shortened where browser-scale rendering exposed
-  overlap with the information panel. The reviewed images define the updated
-  byte-level snapshot baseline.
+- The current plotting release slice passes locally with 123 focused API/layout
+  checks, 265 gallery-structure checks, 850 visual-asset checks, and 56
+  intentional PNG snapshot checks. The rendered documentation link gate passes
+  with 1940 checks and the public documentation hygiene gate with 533 checks.
+- The plot-style audit now defines exactly two maintained output contracts
+  rather than loosely related color variants. `:screen` is the readable
+  notebook/laboratory/documentation role with sans-serif typography, filled
+  observations, strong axes, quiet full guides, and a direct blue fit/band
+  hierarchy. `:article` is the vector-export role with scaled TeX typography,
+  hollow observations, a complete frame, inward ticks, no grid, and an
+  Okabe-Ito palette when multiple curves require color. Previous preset names
+  remain compatibility aliases of `:screen`; they no longer define separate
+  visual systems.
+- Fit plots, residuals, diagnostics, profiles, contours, profile matrices,
+  information panels, and compound gallery figures consume the same role
+  tokens. Explicit Makie keyword overrides remain authoritative. All 56
+  style/appearance gallery assets were regenerated from real fits and match the
+  tracked snapshot manifest. Browser review at documentation scale covers the
+  role comparison, the compound damped oscillator, and the profile matrix in
+  both roles; final maintainer visual approval remains a release decision.
 - The public gallery overview now contains only reader-facing learning paths,
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than
@@ -224,24 +215,24 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Its roughly 42-minute runtime is too slow for the default developer loop and
   remains a release/CI gate; focused reference and torture suites provide the
   edit-test loop.
-- `julia --project=. --startup-file=no test/plots/fitplot.jl` passes with 86
+- `julia --project=. --startup-file=no test/plots/fitplot.jl` passes with 123
   focused plot-regression checks locally, including structured-whitening error
   bars, prediction-band semantics, and the no-marginals failure path.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  289 checks. The gate enforces the current release standard for every public
+  265 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
   one-sigma semantics, valid image assets, and complete
-  `:lab`/`:modern`/`:article` light/dark plot-style coverage.
+  `:screen`/`:article` light/dark plot-style coverage.
   The Photoelectric Work Function checks additionally require the centered
   line parametrization and the baseline-corrected physical slope
   `m_emit - m_base` for both Planck's constant and the work function; the same
   contract is checked in the executable asset generator.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 630 checks. The gate first verifies that every page in the public
+  with 533 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -476,28 +467,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The XY-uncertainty and full-covariance gallery pages now use explicit
   notebook-style measured arrays in public code blocks, keep uncertainty-model
   construction separate from data generation, and provide real Makie-rendered
-  `:lab`, `:modern`, and `:article` plot assets for light and dark
-  documentation appearances.
-- The plot style contracts were tightened: `:lab` is now a plain sans analysis
-  style with shorter error-bar whiskers, `:modern` has a distinct but
-  restrained scientific color hierarchy, and the photoelectric custom plot
-  now derives theme, palette, marker sizes, whisker widths, line widths, and
-  report typography from the public plotting style API.
-- The release plot pass now treats the three presets as separate output
-  contracts rather than palette variants. `:lab` uses cross markers, strong
-  axes, a full grid, and a left-aligned title; `:modern` uses larger screen
-  typography, round markers, and horizontal guides; `:article` uses the LaTeX
-  font family, a complete frame, inward ticks, and no grid. Regression tests
-  enforce minimum label, tick, legend, report, and spine sizes. Compound
-  oscillator and multi-dataset pull panels inherit marker and line scales from
-  the selected preset instead of hard-coding miniature values. All 81 gallery
-  PNGs were regenerated and checked in light and dark appearances; the visual
-  asset and snapshot gates pass with 1251 and 83 checks respectively.
-- The documentation style selector now covers the compound custom gallery
-  figures as well as ordinary `plot_fit` figures: Poisson counts, histogram
-  likelihoods, constraints/profile/contour plots, damped oscillator, and
-  multi-dataset calibration all render real Makie assets for
-  `:lab`, `:modern`, and `:article` in light and dark appearances.
+  `:screen` and `:article` plot assets for light and dark documentation
+  appearances.
+- The documentation style selector covers compound custom gallery figures as
+  well as ordinary `plot_fit` figures: Poisson counts, histogram likelihoods,
+  constraints/profile/contour plots, damped oscillator, and multi-dataset
+  calibration all render real Makie assets for both maintained roles and both
+  appearances.
 - The `How JuFitter Works` page now follows the implemented architecture in a
   bounded top-to-bottom flow: typed problem construction, validation, objective
   construction, compatible solver dispatch, result construction, and optional
@@ -550,8 +526,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   top-level user path. The public documentation hygiene gate now prevents a
   top-level `Engineering Notes` navigation block from returning.
 - Browser QA against a temporary local Documenter server verifies that the
-  Poisson/histogram page loads, exposes 12 grouped plot assets, and switches
-  the visible dark-mode image sources between `:article` and `:lab`
+  Poisson/histogram page loads and switches the visible dark-mode image sources
+  between `:article` and `:screen`
   correctly.
 - Static gallery image reference validation passes for all Markdown sources
   under `docs/src`.
@@ -571,8 +547,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   provides. Its documented LaTeX/report combination is execution-checked; an
   uncovered empty-title conversion was fixed so automatic blank labels remain
   plain empty strings instead of invalid empty LaTeX expressions.
-- Focused plot regression tests pass with 122 checks after the plot-style
-  architecture was reduced to three explicit contracts, light/dark appearance
+- Focused plot regression tests pass with 123 checks after the plot-style
+  architecture was reduced to two explicit contracts, light/dark appearance
   was separated from style, and the right-side report became a reusable,
   left-aligned layout component. The same gate also covers compatibility
   aliases, public theme/palette access, invalid style combinations, and
@@ -650,18 +626,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   three-card remainder. The sequence uses plain panels without decorative
   gradients or shadows. Browser checks confirm no horizontal overflow, eight
   visible cards, exactly one rendered image per card, and correct switching
-  between article/dark and modern/light assets.
+  between article/dark and screen/light assets.
 
 ## Release Blockers
 
-- Maintainer visual review has reopened the plot-style preset system as a v0
-  blocker. The current `:lab`, `:modern`, and `:article` assets are deterministic
-  and technically covered, but remain too similar in purpose and contain text
-  that is too small in some compound figures. The 83-image snapshot gate proves
-  intentional byte-level output only; it is not evidence of design quality.
-  Before release, the preset set must be reduced, renamed, or redesigned around
-  distinct real-world output roles and pass the fixed-size human comparison gate
-  specified in `ROADMAP.md`.
+- The plot-style implementation has passed its technical and local browser
+  gates after being reduced to the distinct `:screen` and `:article` roles.
+  Snapshot evidence remains only a change detector; final maintainer visual
+  approval at the intended display sizes is still required before v0.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,

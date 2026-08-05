@@ -9,10 +9,12 @@ const _JF_DARK_MUTED = "#d3dae0"
 const _JF_DARK_GRID = "#73808d"
 
 const _JF_STYLE_ALIASES = Dict(
-    :workbench => :lab,
-    :clean => :lab,
-    :minimal => :lab,
-    :showcase => :modern,
+    :lab => :screen,
+    :modern => :screen,
+    :workbench => :screen,
+    :clean => :screen,
+    :minimal => :screen,
+    :showcase => :screen,
     :publication => :article,
     :paper => :article,
     :latex => :article,
@@ -25,74 +27,77 @@ function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     if theme == :dark
         appearance == :light &&
             throw(ArgumentError("theme=:dark conflicts with appearance=:light"))
-        return :lab, :dark
+        return :screen, :dark
     end
 
     style = get(_JF_STYLE_ALIASES, theme, theme)
-    style in (:lab, :modern, :article, :custom) ||
+    style in (:screen, :article, :custom) ||
         throw(ArgumentError(
-            "theme must be :lab, :modern, :article, :custom, or a supported legacy alias",
+            "theme must be :screen, :article, :custom, or a supported legacy alias",
         ))
     return style, appearance == :auto ? :light : appearance
 end
 
 function _style_preset(style::Symbol, appearance::Symbol)
+    style == :custom && return _style_preset(:screen, appearance)
+
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : _JF_INK
     grid = dark ? _JF_DARK_GRID : _JF_GRID
-    muted = dark ? _JF_DARK_MUTED : _JF_MUTED
     box = dark ? "#1b2027" : _JF_PAPER_SOFT
     box_stroke = dark ? "#65717d" : _JF_GRID
 
-    if style == :modern
-        # Screen figures follow the direct blue/red hierarchy used throughout
-        # Beautiful Makie: strong focal marks, quiet guides, no decorative UI.
-        fit = dark ? "#5aaeff" : "#1e88e5"
+    if style == :screen
+        # Screen output follows the direct Beautiful Makie band grammar: one
+        # strong blue fit hierarchy, neutral observations, and quiet guides.
+        fit = :dodgerblue
         return (
             background_color=paper,
             axis_color=ink,
-            grid_color=(grid, dark ? 0.30 : 0.40),
+            grid_color=(grid, dark ? 0.28 : 0.38),
             data_color=ink,
             data_marker=:circle,
-            data_markersize=12.0,
+            data_markersize=11.0,
             data_strokecolor=paper,
-            data_strokewidth=1.3,
+            data_strokewidth=1.2,
             fit_color=fit,
-            fit_linewidth=3.8,
+            fit_linewidth=3.3,
             band_color=fit,
-            band_alpha=dark ? 0.25 : 0.22,
-            xerr_color=(ink, dark ? 0.78 : 0.66),
-            yerr_color=(ink, dark ? 0.78 : 0.66),
-            error_whiskerwidth=6.0,
-            secondary_color=dark ? "#ff7f88" : "#d1495b",
-            reference_color=dark ? "#d3dae0" : "#59636e",
+            band_alpha=dark ? 0.24 : 0.20,
+            xerr_color=(ink, dark ? 0.84 : 0.76),
+            yerr_color=(ink, dark ? 0.84 : 0.76),
+            error_whiskerwidth=4.0,
+            secondary_color=:red,
+            reference_color=dark ? :slategray1 : :gray35,
             series_colors=dark ?
-                (fit, "#ff7f88", "#58c6a3", "#b49aff", "#a9b4bf") :
-                (fit, "#d1495b", "#218c74", "#7656a8", "#5b6570"),
+                (fit, :red, :mediumseagreen, :mediumpurple1, :slategray1) :
+                (fit, :red, :seagreen4, :slateblue, :gray35),
             stats_color=ink,
-            stats_muted_color=muted,
-            stats_fontsize=25,
+            stats_muted_color=ink,
+            stats_fontsize=24,
             stats_box_color=box,
             stats_box_strokecolor=box_stroke,
-            fontsize=23,
-            xlabelsize=30,
-            ylabelsize=30,
-            titlesize=36,
-            titlegap=20,
-            titlealign=:center,
-            ticklabelsize=24,
-            legend_labelsize=24,
-            legend_patchsize=(36, 21),
-            legend_rowgap=6,
-            figure_padding=(18, 22, 16, 16),
-            xgridvisible=false,
+            fontsize=22,
+            xlabelsize=28,
+            ylabelsize=28,
+            titlesize=34,
+            titlegap=18,
+            titlealign=:left,
+            ticklabelsize=22,
+            legend_labelsize=22,
+            legend_patchsize=(34, 20),
+            legend_rowgap=5,
+            figure_padding=(14, 18, 14, 14),
+            figure_size_with_panel=(1120, 680),
+            figure_size_without_panel=(900, 580),
+            xgridvisible=true,
             ygridvisible=true,
             gridwidth=1.0,
             topspinevisible=false,
             rightspinevisible=false,
-            spinewidth=1.8,
-            tickwidth=1.6,
+            spinewidth=1.9,
+            tickwidth=1.7,
             ticksize=7.0,
             tickalign=0.0,
         )
@@ -122,21 +127,23 @@ function _style_preset(style::Symbol, appearance::Symbol)
                 (fit, "#ef8a62", "#70cfa8", "#d69acb", "#a9b4bf") :
                 (fit, "#d55e00", "#009e73", "#cc79a7", "#4d4d4d"),
             stats_color=ink,
-            stats_muted_color=dark ? "#e0e5e9" : "#30343a",
-            stats_fontsize=29,
+            stats_muted_color=ink,
+            stats_fontsize=30,
             stats_box_color=box,
             stats_box_strokecolor=box_stroke,
-            fontsize=25,
-            xlabelsize=31,
-            ylabelsize=31,
-            titlesize=36,
+            fontsize=26,
+            xlabelsize=32,
+            ylabelsize=32,
+            titlesize=38,
             titlegap=22,
             titlealign=:center,
-            ticklabelsize=25,
-            legend_labelsize=25,
-            legend_patchsize=(34, 20),
+            ticklabelsize=26,
+            legend_labelsize=26,
+            legend_patchsize=(36, 21),
             legend_rowgap=5,
             figure_padding=(14, 18, 13, 13),
+            figure_size_with_panel=(1040, 650),
+            figure_size_without_panel=(760, 520),
             xgridvisible=false,
             ygridvisible=false,
             gridwidth=0.0,
@@ -149,57 +156,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
         )
     end
 
-    fit = dark ? "#f0f3f5" : "#20242a"
-    band = dark ? "#89a8c4" : "#557a9e"
-    return (
-        background_color=paper,
-        axis_color=ink,
-        grid_color=(grid, dark ? 0.32 : 0.46),
-        data_color=ink,
-        data_marker=:cross,
-        # The lab view is deliberately denser than the screen showcase while
-        # retaining full-size labels and strong axis anchors.
-        data_markersize=9.5,
-        data_strokecolor=paper,
-        data_strokewidth=0.0,
-        fit_color=fit,
-        fit_linewidth=3.2,
-        band_color=band,
-        band_alpha=dark ? 0.20 : 0.17,
-        xerr_color=(ink, dark ? 0.82 : 0.72),
-        yerr_color=(ink, dark ? 0.82 : 0.72),
-        error_whiskerwidth=3.5,
-        secondary_color=dark ? "#ff7b84" : "#c43c4d",
-        reference_color=dark ? "#d3dae0" : "#4b5560",
-        series_colors=dark ?
-            (fit, "#69a7dc", "#f08a91", "#8fd3b0", "#c0a7e8") :
-            (fit, "#2f6f9f", "#b84352", "#2f7d62", "#6b5b95"),
-        stats_color=ink,
-        stats_muted_color=ink,
-        stats_fontsize=26,
-        stats_box_color=box,
-        stats_box_strokecolor=box_stroke,
-        fontsize=22,
-        xlabelsize=28,
-        ylabelsize=28,
-        titlesize=34,
-        titlegap=18,
-        titlealign=:left,
-        ticklabelsize=23,
-        legend_labelsize=23,
-        legend_patchsize=(32, 19),
-        legend_rowgap=4,
-        figure_padding=(12, 18, 12, 12),
-        xgridvisible=true,
-        ygridvisible=true,
-        gridwidth=1.0,
-        topspinevisible=false,
-        rightspinevisible=false,
-        spinewidth=1.85,
-        tickwidth=1.6,
-        ticksize=7.0,
-        tickalign=0.0,
-    )
+    throw(ArgumentError("style presets are defined only for :screen and :article"))
 end
 
 function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Theme)
@@ -268,13 +225,13 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
 end
 
 """
-    plot_theme(theme=:lab; appearance=:auto, theme_override=Theme())
+    plot_theme(theme=:screen; appearance=:auto, theme_override=Theme())
 
 Return the Makie theme used by JuFitter plots. Use this when composing a custom
 Makie figure that should remain visually consistent with `plot_fit`.
 """
 function plot_theme(
-    theme::Symbol=:lab;
+    theme::Symbol=:screen;
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
 )
@@ -283,13 +240,13 @@ function plot_theme(
 end
 
 """
-    plot_palette(theme=:lab; appearance=:auto)
+    plot_palette(theme=:screen; appearance=:auto)
 
 Return the visual tokens used by a JuFitter plot style. Besides data, fit,
 uncertainty-band, and error-bar defaults, the result exposes typography,
 layout, and color-safe multi-series tokens for custom Makie figures.
 """
-function plot_palette(theme::Symbol=:lab; appearance::Symbol=:auto)
+function plot_palette(theme::Symbol=:screen; appearance::Symbol=:auto)
     style, resolved_appearance = _resolve_plot_style(theme, appearance)
     return _style_preset(style, resolved_appearance)
 end
@@ -706,7 +663,7 @@ end
 """
     plot_info_panel!(
         cell;
-        theme=:lab,
+        theme=:screen,
         appearance=:auto,
         legend_source=nothing,
         legend_plots=nothing,
@@ -725,7 +682,7 @@ contract; explicit panel keywords remain authoritative.
 """
 function plot_info_panel!(
     cell;
-    theme::Symbol=:lab,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     legend_source=nothing,
     legend_plots=nothing,
@@ -960,7 +917,7 @@ end
         xgrid=nothing,
         filename=nothing,
         format=:pdf,
-        theme=:lab,
+        theme=:screen,
         appearance=:auto,
         theme_override=Theme(),
         title=nothing,
@@ -1021,8 +978,10 @@ end
 
 Create a scientific fit plot with data, error bars, best-fit curve, optional
 uncertainty band, and an optional right-side information panel. Use
-`theme=:lab`, `:modern`, or `:article` for the intended output
-context; `appearance=:light` or `:dark` controls the color scheme independently.
+`theme=:screen` for notebook, laboratory, and documentation output or
+`theme=:article` for vector/article output. The legacy `:lab` and `:modern`
+names remain aliases of `:screen`; `appearance=:light` or `:dark` controls the
+color scheme independently.
 `band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
 includes observation uncertainty in y and effective x uncertainty. With the
@@ -1036,7 +995,7 @@ function plot_fit(
     xgrid=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:lab,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title=nothing,
@@ -1119,7 +1078,8 @@ function plot_fit(
         style.stats_box_strokecolor : stats_box_strokecolor
     model_label = model_label === nothing ? _default_model_label(result, latex_labels) : model_label
 
-    base_size = show_stats && stats_position == :right ? (1220, 720) : (980, 640)
+    base_size = show_stats && stats_position == :right ?
+        style.figure_size_with_panel : style.figure_size_without_panel
     fig_size = figure_size === nothing ? base_size : (Int(round(figure_size[1])), Int(round(figure_size[2])))
     fig = with_theme(thm) do
         Figure(size=fig_size, backgroundcolor=style.background_color)
@@ -1443,8 +1403,7 @@ end
 
 function _diagnostic_colors(style::Symbol, appearance::Symbol)
     preset = _style_preset(style, appearance)
-    alpha = style == :modern ? (0.28, 0.16, 0.08) :
-        style == :article ? (0.20, 0.11, 0.06) : (0.24, 0.14, 0.07)
+    alpha = style == :article ? (0.20, 0.11, 0.06) : (0.28, 0.16, 0.08)
     return (
         levels=preset.series_colors[1:3],
         regions=ntuple(index -> (preset.fit_color, alpha[index]), 3),
@@ -1498,7 +1457,7 @@ function _draw_panel_status!(
 end
 
 """
-    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:article, ...)
+    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:screen, ...)
 
 Plot a one-dimensional profile-likelihood scan.
 
@@ -1514,7 +1473,7 @@ function plot_profile(
     profile_result::ProfileResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:article,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Profile",
@@ -1610,7 +1569,7 @@ function plot_profile(
 end
 
 """
-    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:article, ...)
+    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:screen, ...)
 
 Plot a two-dimensional profile-likelihood contour grid.
 
@@ -1628,7 +1587,7 @@ function plot_contour(
     contour_result::ContourResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:article,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Contour",
@@ -1667,7 +1626,12 @@ function plot_contour(
             backgroundcolor=style.background_color,
         )
     end
-    ax = Axis(fig[1, 1]; _merged_kwargs((title=title, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...)
+    # Left alignment keeps descriptive titles inside the scientific column when
+    # a natural-width legend occupies the adjacent layout cell.
+    ax = Axis(
+        fig[1, 1];
+        _merged_kwargs((title=title, titlealign=:left, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...,
+    )
     hm = if show_heatmap
         heatmap!(
             ax,
@@ -1850,7 +1814,7 @@ function plot_profile_matrix(
     parameter_names=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:article,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     npoints_profile::Int=61,
@@ -1897,7 +1861,7 @@ function plot_profile_matrix(
     parameter_names=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:article,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     panel_status_mode::Symbol=:issues,
@@ -1948,11 +1912,15 @@ function plot_profile_matrix(
     region_colors = collect(diagnostic_colors.regions)
     isempty(region_colors) && (region_colors = [(style.fit_color, 0.20)])
     corr_color = style.stats_muted_color
-    matrix_titlesize = min(style.titlesize, n <= 3 ? 25 : 22)
-    matrix_labelsize = min(style.xlabelsize, n <= 3 ? 22 : 19)
-    matrix_ticklabelsize = min(style.ticklabelsize, n <= 3 ? 19 : 17)
+    # A profile matrix needs its own density-aware type scale. Preserve the
+    # screen/article distinction without allowing dense grids to become tiny.
+    matrix_titlesize, matrix_labelsize, matrix_ticklabelsize, matrix_legend_size =
+        if n <= 3
+            resolved_style == :article ? (30, 26, 22, 23) : (28, 24, 20, 21)
+        else
+            resolved_style == :article ? (26, 22, 19, 20) : (24, 21, 18, 19)
+        end
     matrix_status_size = max(17, matrix_ticklabelsize - 1)
-    matrix_legend_size = min(style.legend_labelsize, 20)
     delta_label = resolved_style == :article ? L"\Delta\mathrm{cost}" : "Δcost"
 
     for row in 1:n, col in 1:n
@@ -2153,7 +2121,7 @@ function plot_residuals(
     kind::Symbol=:pull,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:article,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 520),
@@ -2216,7 +2184,7 @@ function plot_diagnostics(
     result::FitResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:article,
+    theme::Symbol=:screen,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 900),

@@ -178,13 +178,13 @@ using CairoMakie
 
 fig = plot_fit(
     result;
-    theme=:lab,
+    theme=:screen,
     show_stats=true,
     show_legend=true,
 )
 ```
 
-`theme=:lab`, `:modern`, and `:article` select the output context;
+`theme=:screen` and `:article` select the output context;
 `appearance=:light` or `:dark` selects the color scheme independently. Explicit
 Makie keyword arguments override the style only for the supplied element.
 

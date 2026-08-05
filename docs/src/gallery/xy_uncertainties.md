@@ -6,10 +6,8 @@ feature: if the model is steep enough, uncertainty in ``x`` contributes to the
 statistical cost and to the fitted parameter errors.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="lab" src="../assets/gallery/xy_uncertainties_lab_light.png" alt="XY uncertainty fit in lab style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="lab" src="../assets/gallery/xy_uncertainties_lab_dark.png" alt="XY uncertainty fit in lab dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="modern" src="../assets/gallery/xy_uncertainties_modern_light.png" alt="XY uncertainty fit in modern style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="modern" src="../assets/gallery/xy_uncertainties_modern_dark.png" alt="XY uncertainty fit in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="screen" src="../assets/gallery/xy_uncertainties_screen_light.png" alt="XY uncertainty fit in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="screen" src="../assets/gallery/xy_uncertainties_screen_dark.png" alt="XY uncertainty fit in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="article" src="../assets/gallery/xy_uncertainties_article_light.png" alt="XY uncertainty fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="article" src="../assets/gallery/xy_uncertainties_article_dark.png" alt="XY uncertainty fit in article dark style">
 ```

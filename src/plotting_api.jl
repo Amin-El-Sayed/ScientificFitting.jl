@@ -92,17 +92,17 @@ physical threshold to an existing fit axis.
 function add_hband! end
 
 """
-    plot_theme(style=:lab; appearance=:auto)
+    plot_theme(style=:screen; appearance=:auto)
 
-Return the Makie `Theme` used by JuFitter for a named plot style. Supported
-styles are `:lab`, `:modern`, and `:article`; legacy aliases such as
-`:workbench`, `:showcase`, and `:publication` remain accepted. `appearance` is
-`:light`, `:dark`, or `:auto`.
+Return the Makie `Theme` used by JuFitter for a named plot style. The maintained
+output roles are `:screen` and `:article`; legacy aliases such as `:lab`,
+`:modern`, `:workbench`, `:showcase`, and `:publication` remain accepted.
+`appearance` is `:light`, `:dark`, or `:auto`.
 """
 function plot_theme end
 
 """
-    plot_palette(style=:lab; appearance=:auto)
+    plot_palette(style=:screen; appearance=:auto)
 
 Return the visual tokens used by JuFitter's plot helpers, including color-safe
 series colors, markers, line weights, typography, and layout defaults. Use this
@@ -111,7 +111,7 @@ when building compound Makie figures that should respond to a selected style.
 function plot_palette end
 
 """
-    plot_info_panel!(cell; theme=:lab, appearance=:auto,
+    plot_info_panel!(cell; theme=:screen, appearance=:auto,
                      legend_source=nothing, legend_plots=nothing,
                      legend_labels=nothing, model_label=nothing,
                      parameter_lines=Any[], statistic_lines=Any[], kwargs...)
@@ -127,7 +127,7 @@ information hierarchy without coupling the panel to one `FitResult`.
 function plot_info_panel! end
 
 """
-    plot_residuals(result; kind=:pull, theme=:article, kwargs...)
+    plot_residuals(result; kind=:pull, theme=:screen, kwargs...)
 
 Plot residuals, pulls, or data/fit ratios for a fitted model. Use this when the
 main fit plot looks plausible but the noise model or model structure needs

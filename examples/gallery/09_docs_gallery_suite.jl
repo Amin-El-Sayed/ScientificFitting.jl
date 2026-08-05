@@ -65,7 +65,7 @@ end
 function style_variant_plot(
     result,
     name;
-    styles=(:lab, :modern, :article),
+    styles=(:screen, :article),
     plain=NamedTuple(),
     latex=plain,
     kwargs...,
@@ -98,7 +98,7 @@ function save_poisson_counts(
     counts,
     model,
     name;
-    style::Symbol=:modern,
+    style::Symbol=:screen,
     appearance::Symbol=:light,
 )
     render_asset_group(name) || return nothing
@@ -176,7 +176,7 @@ function save_histogram_fit(
     counts,
     expected_counts,
     name;
-    style::Symbol=:modern,
+    style::Symbol=:screen,
     appearance::Symbol=:light,
 )
     render_asset_group(name) || return nothing
@@ -331,7 +331,7 @@ function save_photoelectric_work_function(
     emission_mask,
     name;
     reference_frequency,
-    style::Symbol=:modern,
+    style::Symbol=:screen,
     appearance::Symbol=:light,
 )
     render_asset_group(name) || return nothing
@@ -535,7 +535,7 @@ style_variant_plot(
 
 # The same scientific content rendered through every public style preset.
 if render_asset_group("plot_style")
-    for style in (:lab, :modern, :article)
+    for style in (:screen, :article)
         typography = if style == :article
             (
                 title=L"\mathrm{Quickstart\ calibration}",
@@ -674,7 +674,7 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     println("emission")
     println(diagnostic_dashboard_text(emission_result))
 end
-for style in (:lab, :modern, :article), appearance in (:light, :dark)
+for style in (:screen, :article), appearance in (:light, :dark)
     save_photoelectric_work_function(
         emission_result,
         baseline_result,
@@ -921,7 +921,7 @@ if render_asset_group("constraints_profiles")
         max_refinements=1,
     )
 
-    for style in (:lab, :modern, :article), appearance in (:light, :dark)
+    for style in (:screen, :article), appearance in (:light, :dark)
         profile_figure = plot_profile(
             prof;
             theme=style,
@@ -948,7 +948,7 @@ if render_asset_group("constraints_profiles")
         )
         save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
-    for style in (:lab, :modern, :article), appearance in (:light, :dark)
+    for style in (:screen, :article), appearance in (:light, :dark)
         matrix_parameter_names = style == :article ? [L"A", L"\tau", L"c"] :
             profile_overview_names
         matrix_figure = plot_profile_matrix(
@@ -992,7 +992,7 @@ emit_doc_output_snapshot("poisson_decay") do
     @printf("P(D) = %.3f\n", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
-for style in (:lab, :modern, :article), appearance in (:light, :dark)
+for style in (:screen, :article), appearance in (:light, :dark)
     save_poisson_counts(
         poisson_result,
         x_counts,
@@ -1038,7 +1038,7 @@ emit_doc_output_snapshot("histogram_likelihood") do
     @printf("P(D) = %.3f\n", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
-for style in (:lab, :modern, :article), appearance in (:light, :dark)
+for style in (:screen, :article), appearance in (:light, :dark)
     save_histogram_fit(
         hist_result,
         edges,

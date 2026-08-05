@@ -80,39 +80,35 @@ summary in the same left-aligned information panel. With
 the in-axis locations independently. `show_stats=false` removes the report
 panel entirely.
 
-The default figure is `(1220, 720)` with a right-side panel and `(980, 640)`
-without one. Pass `figure_size=(width, height)` for a required export footprint.
-The requested size is preserved; report length does not silently resize the
-saved figure. `stats_panel_width=:auto` should remain the default unless an
-external journal template requires an explicit width.
+The screen role defaults to `(1120, 680)` with a right-side panel and
+`(900, 580)` without one. The article role uses a slightly tighter
+`(1040, 650)` or `(760, 520)` canvas. Pass `figure_size=(width, height)` for a
+required export footprint. The requested size is preserved; report length does
+not silently resize the saved figure. `stats_panel_width=:auto` should remain
+the default unless an external journal template requires an explicit width.
 
-## Three Output Styles
+## Two Output Roles
 
-The styles are three output contracts, not three color variations. They do not
-change the data, fit, uncertainty band, or reported statistics.
+The maintained themes represent different output jobs, not cosmetic color
+variations. They do not change data, fit, uncertainty band, or statistics.
 
-- `theme=:lab` is the working view for live analysis. It uses a left-aligned
-  title, cross markers, a neutral fit curve, strong axes, and a full x/y grid.
-  Color is reserved for uncertainty and genuinely distinct series, so dense
-  observations and outliers remain easy to read on a laboratory screen.
-- `theme=:modern` is the screen and documentation view. It uses larger
-  sans-serif typography, filled round markers, a vivid blue curve/band
-  hierarchy, and horizontal guides only. It follows the direct Makie visual
-  language used by Beautiful Makie rather than adding a decorative
-  product-design layer.
+- `theme=:screen` is the default for live analysis, notebooks, and
+  documentation. It uses readable sans-serif typography, neutral filled data,
+  a direct blue fit/band hierarchy, full but quiet guides, strong axes, and a
+  left-aligned title. It is designed to remain legible on an ordinary laptop,
+  not only in a large exported image.
 - `theme=:article` is the vector-export view. It uses Makie's LaTeX font family,
   hollow observations, a complete axis frame with inward ticks, no grid, and an
   Okabe-Ito blue/orange pair when multiple curves require color. Hollow markers
-  preserve data/curve separation in grayscale. Its TeX typography is optically
-  scaled to remain as readable as the screen styles.
+  preserve data/curve separation in grayscale. Its TeX typography is scaled to
+  remain readable when the figure is placed in an article.
 
 Every image below contains the same observations, errors, fit, one-sigma
 prediction band, labels, legend, report fields, and output dimensions.
 
 ```@raw html
 <div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="The same calibration fit in the lab plot style"><div><h3>lab</h3><p>Working analysis: neutral fit, full grid, cross markers, high contrast.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_modern.png" alt="The same calibration fit in the modern plot style"><div><h3>modern</h3><p>Screen and docs: strong color hierarchy, round markers, horizontal guides.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_screen.png" alt="The same calibration fit in the screen plot role"><div><h3>screen</h3><p>Lab, notebook, and docs: direct hierarchy, round markers, quiet guides, strong text.</p></div></div>
 <div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="The same calibration fit in the article plot style"><div><h3>article</h3><p>Vector export: readable TeX typography, hollow observations, framed axes, no grid.</p></div></div>
 </div>
 ```
@@ -120,7 +116,7 @@ prediction band, labels, legend, report fields, and output dimensions.
 Color appearance is independent of style:
 
 ```julia
-plot_fit(result; theme=:modern, appearance=:dark)
+plot_fit(result; theme=:screen, appearance=:dark)
 ```
 
 `appearance=:auto` currently resolves to the light appearance. Select
@@ -168,8 +164,9 @@ declared browser-sized canvas, while `px_per_unit` supplies retina-resolution
 pixels. Font-size checks therefore refer to the rendered page, not the raw PNG
 dimensions.
 
-Use the three current style names in new code. Older style aliases remain
-accepted for compatibility, but they do not define additional visual systems.
+Use `:screen` and `:article` in new code. Older names including `:lab`,
+`:modern`, `:workbench`, and `:showcase` remain accepted as aliases of
+`:screen`; they do not define additional visual systems.
 
 ## State What The Band Means
 
@@ -234,7 +231,7 @@ and each Makie `*_kwargs` container is applied last:
 ```julia
 fig = plot_fit(
     result;
-    theme=:modern,
+    theme=:screen,
     fit_color=:navy,
     axis_kwargs=(
         xgridvisible=false,
@@ -264,9 +261,9 @@ Retrieve the data axis from a finished figure and add annotations without
 recomputing the fit:
 
 ```julia
-fig = plot_fit(result; theme=:modern, show_legend=false)
+fig = plot_fit(result; theme=:screen, show_legend=false)
 ax = fit_axis(fig)
-colors = plot_palette(:modern)
+colors = plot_palette(:screen)
 
 add_vband!(ax, 2.8, 3.2; color=(colors.band_color, 0.16), label="accepted range")
 add_vline!(ax, 3.0; color=colors.fit_color, linestyle=:dash, label="threshold")
@@ -294,8 +291,8 @@ exist.
 contract for a figure whose scientific layout is not a single fit axis:
 
 ```julia
-theme = plot_theme(:modern; appearance=:light)
-colors = plot_palette(:modern; appearance=:light)
+theme = plot_theme(:screen; appearance=:light)
+colors = plot_palette(:screen; appearance=:light)
 
 fig = with_theme(theme) do
     fig = Figure(size=(1200, 720))
@@ -306,7 +303,7 @@ fig = with_theme(theme) do
 
     plot_info_panel!(
         fig[1, 2];
-        theme=:modern,
+        theme=:screen,
         appearance=:light,
         legend_plots=[data_plot, fit_plot],
         legend_labels=["data", "fit"],
@@ -366,7 +363,7 @@ Pass a filename directly or save the returned figure with Makie:
 ```julia
 plot_fit(result; filename="fit.pdf", theme=:article)
 
-fig = plot_fit(result; theme=:modern)
+fig = plot_fit(result; theme=:screen)
 save("fit.svg", fig)
 save("fit.png", fig; px_per_unit=2)
 ```

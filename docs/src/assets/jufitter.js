@@ -6,8 +6,9 @@
     "documenter-light": "light",
     "documenter-dark": "dark",
   };
-  const plotStyles = ["lab", "modern", "article"];
-  const defaultPlotStyle = "modern";
+  const plotStyles = ["screen", "article"];
+  const legacyScreenStyles = new Set(["lab", "modern", "workbench", "showcase"]);
+  const defaultPlotStyle = "screen";
 
   try {
     const selectedTheme = window.localStorage && window.localStorage.getItem(themeStorageKey);
@@ -92,6 +93,10 @@
     try {
       const stored = window.localStorage && window.localStorage.getItem(plotStyleStorageKey);
       if (plotStyles.includes(stored)) return stored;
+      if (legacyScreenStyles.has(stored)) {
+        window.localStorage.setItem(plotStyleStorageKey, "screen");
+        return "screen";
+      }
     } catch (_) {
       // Storage is optional; the selector should still work for this page.
     }

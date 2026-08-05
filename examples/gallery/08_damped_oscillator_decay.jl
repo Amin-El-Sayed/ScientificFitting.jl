@@ -124,7 +124,7 @@ end
 
 function save_model_comparison(
     filename;
-    style::Symbol=:modern,
+    style::Symbol=:screen,
     appearance::Symbol=:light,
 )
     RENDER_PLOTS || return nothing
@@ -319,7 +319,7 @@ end
 if RENDER_PLOTS
     if RENDER_DOC_ASSETS
         mkpath(DOC_ASSET_DIR)
-        for style in (:lab, :modern, :article), appearance in (:light, :dark)
+        for style in (:screen, :article), appearance in (:light, :dark)
             save_model_comparison(
                 joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(appearance).png");
                 style=style,
@@ -329,7 +329,7 @@ if RENDER_PLOTS
     else
         mkpath(OUTPUT_DIR)
         output_path = joinpath(OUTPUT_DIR, "08_damped_oscillator_decay.png")
-        save_model_comparison(output_path; style=:modern, appearance=:light)
+        save_model_comparison(output_path; style=:screen, appearance=:light)
         println("Saved figure to ", output_path)
     end
 end

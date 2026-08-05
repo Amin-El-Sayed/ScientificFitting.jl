@@ -7,10 +7,8 @@ fitted separately, and the threshold is the intersection of those two fitted
 lines with uncertainty propagated from both covariance matrices.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="lab" src="../assets/gallery/photoelectric_threshold_lab_light.png" alt="Photoelectric work-function fit in lab style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="lab" src="../assets/gallery/photoelectric_threshold_lab_dark.png" alt="Photoelectric work-function fit in lab dark style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="modern" src="../assets/gallery/photoelectric_threshold_modern_light.png" alt="Photoelectric work-function fit in modern style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="modern" src="../assets/gallery/photoelectric_threshold_modern_dark.png" alt="Photoelectric work-function fit in modern dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="screen" src="../assets/gallery/photoelectric_threshold_screen_light.png" alt="Photoelectric work-function fit in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="screen" src="../assets/gallery/photoelectric_threshold_screen_dark.png" alt="Photoelectric work-function fit in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="article" src="../assets/gallery/photoelectric_threshold_article_light.png" alt="Photoelectric work-function fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="article" src="../assets/gallery/photoelectric_threshold_article_dark.png" alt="Photoelectric work-function fit in article dark style">
 ```
@@ -253,7 +251,7 @@ annotations.
 using CairoMakie
 using JuFitter
 
-style = :modern
+style = :screen
 appearance = :light
 palette = plot_palette(style; appearance=appearance)
 baseline_color = palette.secondary_color
@@ -333,7 +331,7 @@ save("photoelectric_threshold.pdf", fig)
 
 All colors, error bars, line widths, and report typography come from the
 selected JuFitter plot style. Switching to
-`style=:lab`, `style=:article`, or `appearance=:dark` therefore
+`style=:article` or `appearance=:dark` therefore
 changes the whole figure coherently instead of requiring manual restyling.
 
 ## Error Propagation

@@ -116,7 +116,7 @@ fmt(x, digits=4) = @sprintf("%.*g", digits, x)
 function save_multi_dataset_calibration(
     filename;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:modern,
+    style::Symbol=:screen,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
     MULTI_RENDER_PLOTS || return nothing
@@ -307,7 +307,7 @@ end
 
 if MULTI_RENDER_DOC_ASSETS
     mkpath(MULTI_DOC_ASSET_DIR)
-    for style in (:lab, :modern, :article), appearance in (:light, :dark)
+    for style in (:screen, :article), appearance in (:light, :dark)
         save_multi_dataset_calibration(
             joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
             style=style,

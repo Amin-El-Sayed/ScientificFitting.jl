@@ -391,8 +391,9 @@ control the panel. `fit_range=:axis` extrapolates the fitted curve over the
 padded visible x range; use `fit_range=:data` or an explicit `xgrid` at a
 physical domain boundary.
 
-The three maintained styles are `:lab`, `:modern`, and `:article`. Explicit
-Makie keywords override style defaults only for the element receiving them.
+The maintained output roles are `:screen` and `:article`. The old `:lab` and
+`:modern` names remain aliases of `:screen`. Explicit Makie keywords override
+style defaults only for the element receiving them.
 See [Plotting And Customization](plotting_design.md) for the complete layout and
 extension contract.
 
