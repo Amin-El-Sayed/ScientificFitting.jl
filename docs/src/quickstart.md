@@ -179,7 +179,19 @@ measurement uncertainty?
 If you want only the uncertainty of the fitted mean curve, use
 `band=:confidence`.
 
-## Reading The Result
+## Interpreting The Result
+
+The fitted calibration coefficients are
+
+```math
+m = (1.8475 \pm 0.0170)\,\mathrm{V\,mm^{-1}},
+\qquad
+b = (0.7369 \pm 0.0775)\,\mathrm{V}.
+```
+
+These are local one-standard-deviation errors from the parameter covariance.
+They describe the stated independent-Gaussian model; they do not include an
+unmodelled shared calibration uncertainty or residual correlation.
 
 The most important fields are:
 
@@ -195,6 +207,19 @@ As a rule of thumb, ``\chi^2/\mathrm{ndf}`` should be near one when the model an
 uncertainties are both plausible. Much larger values usually mean missing model
 structure, underestimated uncertainties, outliers, or wrong correlations. Much
 smaller values can mean overestimated uncertainties or non-independent data.
+
+Here ``\chi^2/\mathrm{ndf}=0.50`` and ``p=0.974`` are not evidence of an
+exceptionally accurate calibration. Together with the smooth residual pattern,
+they suggest that the pointwise errors are conservative, correlated, or both.
+The numerical coefficients are useful for continuing the analysis, but the
+uncertainty model needs review before they become a final calibration result.
+
+The report also exposes normalized likelihood and information-criterion fields
+for later model comparisons. `minus2loglik_min` includes the Gaussian
+normalization and may be negative; its absolute value is not a goodness-of-fit
+score. AIC and BIC likewise have no useful absolute target. Compare them only
+between candidate models fitted to the same observations with the same
+likelihood definition.
 
 ## First Diagnosis
 
@@ -212,10 +237,10 @@ The report prints reader-facing status labels:
 - `critical - fix before use`: at least one critical issue exists and must be
   fixed before the result is used for conclusions.
 
-For this controlled example, `review - inspect diagnostics` is not surprising.
-The residuals contain a smooth pattern, not purely independent Gaussian scatter.
-A useful diagnostic tool should notice that structure even when the fitted line
-looks visually reasonable.
+For this controlled example, `review - inspect diagnostics` follows directly
+from the low chi-square and smooth residual pattern. The next action is therefore
+to inspect acquisition order and replace the independent-error model if a shared
+or time-correlated component is physically justified.
 
 The dashboard does not prove the model is true. It only catches common failure
 modes quickly: bad goodness-of-fit, active bounds, ill-conditioned covariance,

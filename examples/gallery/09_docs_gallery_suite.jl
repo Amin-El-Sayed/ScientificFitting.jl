@@ -491,11 +491,6 @@ quick_sigma_y = [0.1600, 0.1687, 0.1774, 0.1861, 0.1948, 0.2035, 0.2122,
                  0.3426, 0.3513, 0.3600]
 quick_model(x, p) = @. p[1] * x + p[2]
 quick_result = fit_model(quick_model, quick_x, quick_y; p0=[1.0, 0.0], sigma_y=quick_sigma_y)
-emit_doc_output_snapshot("quickstart") do
-    println(report_text(quick_result; parameter_names=["m", "b"]))
-    println()
-    println(diagnostic_dashboard_text(quick_result))
-end
 style_variant_plot(
     quick_result,
     "quickstart_linear";

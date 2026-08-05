@@ -55,6 +55,19 @@ function run_snapshot_script(script::AbstractString)
     )
 end
 
+function run_documented_quickstart()
+    page = read(joinpath(DOCS_SRC, "quickstart.md"), String)
+    code_match = match(r"## Complete Code.*?```julia\n(.*?)\n```"s, page)
+    isnothing(code_match) && error("quickstart.md has no executable Complete Code block")
+
+    return mktempdir() do directory
+        script = joinpath(directory, "quickstart.jl")
+        write(script, code_match.captures[1])
+        cmd = `$(Base.julia_cmd()) --project=$(joinpath(ROOT, "docs")) --startup-file=no $script`
+        read(Cmd(cmd; dir=directory), String)
+    end
+end
+
 function is_ordered_line_subset(expected::Vector{SubString{String}}, actual::Vector{SubString{String}})
     actual_index = 1
     for line in expected
@@ -73,9 +86,11 @@ function is_ordered_line_subset(expected::Vector{SubString{String}}, actual::Vec
 end
 
 @testset "Documentation output snapshots" begin
+    quickstart_output = run_documented_quickstart()
     gallery_output = run_snapshot_script(joinpath(ROOT, "examples", "gallery", "09_docs_gallery_suite.jl"))
     resonance_output = run_snapshot_script(joinpath(ROOT, "examples", "gallery", "08_damped_oscillator_decay.jl"))
     snapshots = merge(marker_outputs(gallery_output), marker_outputs(resonance_output))
+    snapshots["quickstart"] = quickstart_output
 
     for (_, id, _) in OUTPUT_EXPECTATIONS
         @test haskey(snapshots, id)

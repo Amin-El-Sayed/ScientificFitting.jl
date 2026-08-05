@@ -309,7 +309,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   quickstart/gallery example scripts with snapshot markers and verifies that
   every documented `Real output` block is an ordered subset of real script
   output. This caught and fixed stale rounded numbers, missing statistic fields,
-  and a manually summarized multi-dataset output block. The test uses
+  and a manually summarized multi-dataset output block. The Quickstart is
+  stricter: the gate extracts and executes the exact Julia block displayed under
+  `Complete Code` in a temporary directory, so its report cannot drift behind a
+  merely equivalent maintainer script. The remaining gallery checks use
   `JUFITTER_DOC_SNAPSHOT_ONLY=1`, so it verifies computations and terminal
   output without re-rendering Makie assets.
 - `test/performance_budget_gate.jl` now covers representative steady-state hot
