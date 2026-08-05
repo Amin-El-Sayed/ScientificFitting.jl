@@ -15,6 +15,8 @@ using Printf
 const MULTI_OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const MULTI_DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
+const MULTI_RENDER_WIDTH = 1280
+const MULTI_PX_PER_UNIT = 2.0
 
 function emit_multi_doc_output_snapshot(body::Function, id::AbstractString)
     MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
@@ -131,7 +133,7 @@ function save_multi_dataset_calibration(
     all_shared_maps = [[1, 2], [1, 3], [1, 4]]
 
     figure = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1560, 1040), backgroundcolor=palette.background_color)
+        Figure(size=(MULTI_RENDER_WIDTH, 860), backgroundcolor=palette.background_color)
     end
     fit_axis = Axis(
         figure[1, 1];
@@ -140,13 +142,13 @@ function save_multi_dataset_calibration(
     )
     shared_pull_axis = Axis(
         figure[2, 1];
-        title="Pulls: all channels forced to share one gain",
+        title="Pulls: shared gain",
         titlealign=:left,
         ylabel="pull rᵢ",
     )
     partial_pull_axis = Axis(
         figure[3, 1];
-        title="Pulls: channels A/B share a gain; C is independent",
+        title="Pulls: partial sharing",
         titlealign=:left,
         xlabel="reference input x",
         ylabel="pull rᵢ",
@@ -289,7 +291,7 @@ function save_multi_dataset_calibration(
     rowsize!(figure.layout, 2, Relative(0.21))
     rowsize!(figure.layout, 3, Relative(0.21))
     colgap!(figure.layout, 24)
-    save(filename, figure)
+    save(filename, figure; px_per_unit=MULTI_PX_PER_UNIT)
 end
 
 if MULTI_RENDER_PLOTS

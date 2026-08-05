@@ -92,7 +92,9 @@ list as an ownership map, not a second architecture chapter.
 8. Text sizes are part of the plotting contract. Validate them in the rendered
    documentation at normal browser scale, not only in full-resolution PNGs;
    wide multi-panel figures otherwise hide unreadable labels behind apparently
-   successful image generation.
+   successful image generation. Figure dimensions describe the intended
+   logical display footprint; use `px_per_unit` for raster density instead of
+   enlarging the logical canvas and shrinking it again in HTML.
 
 ## Documentation Truth
 

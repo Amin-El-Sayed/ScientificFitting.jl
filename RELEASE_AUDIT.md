@@ -71,7 +71,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The plotting release slice passes locally with 119 focused API/layout tests,
+- The plotting release slice passes locally with 122 focused API/layout tests,
   289 gallery-structure checks, 1251 visual-asset checks, and 83 intentional
   PNG snapshot checks. The complete Documenter build also passes, followed by
   2034 checks against links, assets, and the responsive architecture flow in
@@ -91,6 +91,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   covered the quickstart, photoelectric, damped-oscillator, profile-matrix,
   Poisson/histogram, and multi-dataset layouts; the latter check caught and
   corrected unreadably small report text in wide article figures.
+- A second display-scale audit verified all 81 style-dependent gallery assets
+  as light/dark contact sheets and exercised the documentation selectors on
+  complex damped-oscillator and multi-dataset pages. Raster exports now keep a
+  browser-sized logical canvas and use `px_per_unit` only for pixel density;
+  this avoids shrinking typography after export. Article observations are
+  hollow for grayscale separation, lab markers are denser than screen markers,
+  and compound titles were shortened where browser-scale rendering exposed
+  overlap with the information panel. The reviewed images define the updated
+  byte-level snapshot baseline.
 - The public gallery overview now contains only reader-facing learning paths,
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than

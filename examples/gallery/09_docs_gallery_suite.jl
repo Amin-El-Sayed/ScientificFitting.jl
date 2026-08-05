@@ -23,6 +23,8 @@ using SpecialFunctions
 
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
+const DOC_RENDER_WIDTH = 1280
+const DOC_PX_PER_UNIT = 2.0
 
 if RENDER_DOC_ASSETS
     mkpath(DOC_ASSET_DIR)
@@ -30,6 +32,12 @@ end
 
 function gallery_path(name)
     return joinpath(DOC_ASSET_DIR, name)
+end
+
+function save_gallery_figure(name::AbstractString, figure)
+    # Figure size describes the final CSS-sized canvas. Pixel density controls
+    # raster sharpness without shrinking labels when the image is embedded.
+    save(gallery_path(name), figure; px_per_unit=DOC_PX_PER_UNIT)
 end
 
 function render_asset_group(name::AbstractString)
@@ -66,15 +74,14 @@ function style_variant_plot(
 
     for style in styles, appearance in (:light, :dark)
         typography = style == :article ? latex : plain
-        plot_fit(
+        figure = plot_fit(
             result;
             kwargs...,
             typography...,
             theme=style,
             appearance=appearance,
-            filename=gallery_path("$(name)_$(style)_$(appearance).png"),
-            format=:png,
         )
+        save_gallery_figure("$(name)_$(style)_$(appearance).png", figure)
     end
 end
 
@@ -104,7 +111,7 @@ function save_poisson_counts(
     residual_positive = fit_color
     residual_negative = palette.reference_color
     fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1460, 850), backgroundcolor=palette.background_color)
+        Figure(size=(DOC_RENDER_WIDTH, 760), backgroundcolor=palette.background_color)
     end
     ax = Axis(fig[1, 1]; title="Radioactive decay with detector background", ylabel="counts per 10 s")
     xg = collect(range(minimum(x), maximum(x); length=300))
@@ -160,7 +167,7 @@ function save_poisson_counts(
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
     colgap!(fig.layout, 24)
-    save(gallery_path("$(name)_$(style)_$(appearance).png"), fig)
+    save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
 end
 
 function save_histogram_fit(
@@ -183,7 +190,7 @@ function save_histogram_fit(
     residual_positive = fit_color
     residual_negative = palette.reference_color
     fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1460, 850), backgroundcolor=palette.background_color)
+        Figure(size=(DOC_RENDER_WIDTH, 760), backgroundcolor=palette.background_color)
     end
     article = style == :article
     ax = Axis(
@@ -269,7 +276,7 @@ function save_histogram_fit(
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
     colgap!(fig.layout, 24)
-    save(gallery_path("$(name)_$(style)_$(appearance).png"), fig)
+    save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
 end
 
 function line_intersection(emission_result, baseline_result, reference_frequency)
@@ -355,7 +362,7 @@ function save_photoelectric_work_function(
     baseline_slope, baseline_intercept = baseline_result.params
 
     fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1360, 800), backgroundcolor=palette.background_color)
+        Figure(size=(DOC_RENDER_WIDTH, 750), backgroundcolor=palette.background_color)
     end
     ax = Axis(
         fig[1, 1];
@@ -474,7 +481,7 @@ function save_photoelectric_work_function(
         appearance=appearance,
     )
     colgap!(fig.layout, 18)
-    save(gallery_path("$(name)_$(style)_$(appearance).png"), fig)
+    save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
 end
 
 # 0. Quickstart plot matching docs/src/quickstart.md.
@@ -554,12 +561,10 @@ if render_asset_group("plot_style")
                 latex_stats=false,
             )
         end
-        plot_fit(
+        figure = plot_fit(
             quick_result;
             typography...,
             theme=style,
-            filename=gallery_path("plot_style_$(style).png"),
-            format=:png,
             band=:prediction,
             nsigma=1,
             band_label=style == :article ? L"1\sigma\ \mathrm{prediction\ band}" : "1σ prediction band",
@@ -568,6 +573,7 @@ if render_asset_group("plot_style")
             stats_mode=:full,
             figure_size=(1200, 760),
         )
+        save_gallery_figure("plot_style_$(style).png", figure)
     end
 end
 
@@ -916,7 +922,7 @@ if render_asset_group("constraints_profiles")
     )
 
     for style in (:lab, :modern, :article), appearance in (:light, :dark)
-        plot_profile(
+        profile_figure = plot_profile(
             prof;
             theme=style,
             appearance=appearance,
@@ -925,10 +931,10 @@ if render_asset_group("constraints_profiles")
             xlabel=style == :article ? L"\mathrm{amplitude}\ A" : "amplitude A",
             local_sigma=saturation_result.param_stderr[1],
             delta_max=8,
-            filename=gallery_path("saturation_profile_$(style)_$(appearance).png"),
-            format=:png,
         )
-        plot_contour(
+        save_gallery_figure("saturation_profile_$(style)_$(appearance).png", profile_figure)
+
+        contour_figure = plot_contour(
             cont;
             theme=style,
             appearance=appearance,
@@ -939,23 +945,21 @@ if render_asset_group("constraints_profiles")
             local_covariance=saturation_result.param_covariance,
             local_center=saturation_result.params[[1, 2]],
             figure_size=(980, 720),
-            filename=gallery_path("amplitude_timescale_contour_$(style)_$(appearance).png"),
-            format=:png,
         )
+        save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
     for style in (:lab, :modern, :article), appearance in (:light, :dark)
         matrix_parameter_names = style == :article ? [L"A", L"\tau", L"c"] :
             profile_overview_names
-        plot_profile_matrix(
+        matrix_figure = plot_profile_matrix(
             profile_overview;
             parameter_names=matrix_parameter_names,
             panel_status_mode=:issues,
             theme=style,
             appearance=appearance,
             figure_size=(1020, 980),
-            filename=gallery_path("saturation_profile_matrix_$(style)_$(appearance).png"),
-            format=:png,
         )
+        save_gallery_figure("saturation_profile_matrix_$(style)_$(appearance).png", matrix_figure)
     end
 end
 

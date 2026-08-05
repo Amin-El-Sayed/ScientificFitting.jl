@@ -261,12 +261,15 @@ using Test
         style in (lab_style, modern_style, article_style))
     @test lab_style.fit_color == "#20242a"
     @test lab_style.band_color != lab_style.fit_color
-    @test modern_style.fit_color == "#1e7bd8"
+    @test modern_style.fit_color == "#1e88e5"
     @test modern_style.secondary_color == "#d1495b"
     @test lab_style.fit_color != modern_style.fit_color
     @test article_style.fit_color == "#0072b2"
     @test article_style.secondary_color == "#d55e00"
+    @test article_style.data_color == article_style.background_color
     @test article_style.data_strokecolor == article_style.axis_color
+    @test article_style.data_strokewidth > modern_style.data_strokewidth
+    @test lab_style.data_markersize < modern_style.data_markersize
 
     style_signature(style) = (
         style.data_marker,

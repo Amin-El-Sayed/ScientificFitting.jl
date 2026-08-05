@@ -16,6 +16,8 @@ const DATA_FILE = joinpath(@__DIR__, "..", "data", "damped_oscillator", "pohl_wh
 const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
+const DOC_RENDER_WIDTH = 1280
+const DOC_PX_PER_UNIT = 2.0
 
 function load_damped_oscillator(path)
     rows = readlines(path)[2:end]
@@ -136,13 +138,13 @@ function save_model_comparison(
     pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
     pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
     article = style == :article
-    fit_title = "Free decay: constant frequency versus frequency drift"
+    fit_title = "Damped oscillator: frequency drift"
     angle_label = article ? L"\varphi\;(\mathrm{rad})" : "angle φ (rad)"
     pull_label = article ? L"r_i" : "pull rᵢ"
     time_label = article ? L"t\;(\mathrm{s})" : "elapsed time t (s)"
 
     figure = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(1440, 960), backgroundcolor=palette.background_color)
+        Figure(size=(DOC_RENDER_WIDTH, 860), backgroundcolor=palette.background_color)
     end
     fit_axis = Axis(
         figure[1, 1];
@@ -311,7 +313,7 @@ function save_model_comparison(
     rowsize!(figure.layout, 2, Relative(0.19))
     rowsize!(figure.layout, 3, Relative(0.19))
     colgap!(figure.layout, 18)
-    save(filename, figure)
+    save(filename, figure; px_per_unit=DOC_PX_PER_UNIT)
 end
 
 if RENDER_PLOTS

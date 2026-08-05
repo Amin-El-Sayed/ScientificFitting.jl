@@ -46,14 +46,16 @@ function _style_preset(style::Symbol, appearance::Symbol)
     box_stroke = dark ? "#65717d" : _JF_GRID
 
     if style == :modern
-        fit = dark ? "#58a6ff" : "#1e7bd8"
+        # Screen figures follow the direct blue/red hierarchy used throughout
+        # Beautiful Makie: strong focal marks, quiet guides, no decorative UI.
+        fit = dark ? "#5aaeff" : "#1e88e5"
         return (
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, dark ? 0.30 : 0.40),
             data_color=ink,
             data_marker=:circle,
-            data_markersize=11.5,
+            data_markersize=12.0,
             data_strokecolor=paper,
             data_strokewidth=1.3,
             fit_color=fit,
@@ -100,11 +102,13 @@ function _style_preset(style::Symbol, appearance::Symbol)
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, 0.0),
-            data_color=ink,
+            # Hollow observations remain separable from fitted curves in
+            # grayscale and in dense vector exports.
+            data_color=paper,
             data_marker=:circle,
-            data_markersize=10.0,
+            data_markersize=11.0,
             data_strokecolor=ink,
-            data_strokewidth=0.7,
+            data_strokewidth=1.7,
             fit_color=fit,
             fit_linewidth=3.0,
             band_color=fit,
@@ -153,7 +157,9 @@ function _style_preset(style::Symbol, appearance::Symbol)
         grid_color=(grid, dark ? 0.32 : 0.46),
         data_color=ink,
         data_marker=:cross,
-        data_markersize=11.5,
+        # The lab view is deliberately denser than the screen showcase while
+        # retaining full-size labels and strong axis anchors.
+        data_markersize=9.5,
         data_strokecolor=paper,
         data_strokewidth=0.0,
         fit_color=fit,
@@ -162,7 +168,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
         band_alpha=dark ? 0.20 : 0.17,
         xerr_color=(ink, dark ? 0.82 : 0.72),
         yerr_color=(ink, dark ? 0.82 : 0.72),
-        error_whiskerwidth=4.0,
+        error_whiskerwidth=3.5,
         secondary_color=dark ? "#ff7b84" : "#c43c4d",
         reference_color=dark ? "#d3dae0" : "#4b5560",
         series_colors=dark ?
@@ -170,7 +176,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             (fit, "#2f6f9f", "#b84352", "#2f7d62", "#6b5b95"),
         stats_color=ink,
         stats_muted_color=ink,
-        stats_fontsize=24,
+        stats_fontsize=26,
         stats_box_color=box,
         stats_box_strokecolor=box_stroke,
         fontsize=22,
@@ -251,7 +257,12 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
             rowgap=preset.legend_rowgap,
         ),
         Lines=(linewidth=preset.fit_linewidth,),
-        Scatter=(marker=preset.data_marker, markersize=preset.data_markersize,),
+        Scatter=(
+            marker=preset.data_marker,
+            markersize=preset.data_markersize,
+            strokecolor=preset.data_strokecolor,
+            strokewidth=preset.data_strokewidth,
+        ),
     )
     return merge(font_theme, visual_theme, theme_override)
 end

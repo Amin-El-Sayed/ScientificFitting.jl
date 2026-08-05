@@ -96,12 +96,14 @@ change the data, fit, uncertainty band, or reported statistics.
   Color is reserved for uncertainty and genuinely distinct series, so dense
   observations and outliers remain easy to read on a laboratory screen.
 - `theme=:modern` is the screen and documentation view. It uses larger
-  sans-serif typography, round markers, a clear blue curve/band hierarchy, and
-  horizontal guides only. It follows the direct Makie visual language used by
-  Beautiful Makie rather than adding a decorative product-design layer.
+  sans-serif typography, filled round markers, a vivid blue curve/band
+  hierarchy, and horizontal guides only. It follows the direct Makie visual
+  language used by Beautiful Makie rather than adding a decorative
+  product-design layer.
 - `theme=:article` is the vector-export view. It uses Makie's LaTeX font family,
-  a complete axis frame with inward ticks, no grid, and an Okabe-Ito blue/orange
-  pair when multiple curves require color. Its TeX typography is optically
+  hollow observations, a complete axis frame with inward ticks, no grid, and an
+  Okabe-Ito blue/orange pair when multiple curves require color. Hollow markers
+  preserve data/curve separation in grayscale. Its TeX typography is optically
   scaled to remain as readable as the screen styles.
 
 Every image below contains the same observations, errors, fit, one-sigma
@@ -111,7 +113,7 @@ prediction band, labels, legend, report fields, and output dimensions.
 <div class="jufitter-gallery-grid jufitter-style-grid">
 <div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="The same calibration fit in the lab plot style"><div><h3>lab</h3><p>Working analysis: neutral fit, full grid, cross markers, high contrast.</p></div></div>
 <div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_modern.png" alt="The same calibration fit in the modern plot style"><div><h3>modern</h3><p>Screen and docs: strong color hierarchy, round markers, horizontal guides.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="The same calibration fit in the article plot style"><div><h3>article</h3><p>Vector export: readable TeX typography, framed axes, inward ticks, no grid.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="The same calibration fit in the article plot style"><div><h3>article</h3><p>Vector export: readable TeX typography, hollow observations, framed axes, no grid.</p></div></div>
 </div>
 ```
 
@@ -146,6 +148,25 @@ Plain strings remain text, even when rendered with LaTeX typography. Pass a
 `LaTeXString`, such as `L"\nu"`, when a label contains mathematical symbols.
 `latex_stats=true` applies to the structured right-side panel; the compact
 in-axis text box remains plain text.
+
+## Figure Size Is Not Resolution
+
+Makie interprets `Figure(size=(width, height))` as a logical canvas in CSS-like
+pixels. Increasing that size to obtain a sharper PNG makes the plot physically
+larger; when a document scales it back down, every label becomes smaller with
+it. Keep the figure at its intended display size and control raster density
+when saving:
+
+```julia
+fig = plot_fit(result; figure_size=(960, 600))
+save("fit.png", fig; px_per_unit=2)  # sharper raster, unchanged layout
+save("fit.svg", fig)                 # vector output for scalable documents
+```
+
+The documentation gallery follows the same rule: compound figures use a
+declared browser-sized canvas, while `px_per_unit` supplies retina-resolution
+pixels. Font-size checks therefore refer to the rendered page, not the raw PNG
+dimensions.
 
 Use the three current style names in new code. Older style aliases remain
 accepted for compatibility, but they do not define additional visual systems.
