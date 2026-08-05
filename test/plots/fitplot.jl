@@ -45,7 +45,7 @@ using Test
 
     @test right_panel.figure !== nothing
     @test isfile(right_panel_out)
-    @test size(right_panel.figure.scene) == (1120, 680)
+    @test size(right_panel.figure.scene) == (1200, 720)
 
     custom_out = joinpath(mktempdir(), "fitplot_customized.png")
     Label(
@@ -55,7 +55,7 @@ using Test
         halign=:left,
     )
     save(custom_out, right_panel.figure)
-    @test size(right_panel.figure.scene) == (1120, 680)
+    @test size(right_panel.figure.scene) == (1200, 720)
     @test isfile(custom_out)
 
     extension_out = joinpath(mktempdir(), "fitplot_extensions.png")
@@ -69,7 +69,7 @@ using Test
     @test add_vband!(ax, 1.4, 1.7; color=(:gray70, 0.18)) !== nothing
     @test add_hband!(ax, 2.2, 2.6; color=(:gray70, 0.12)) !== nothing
     save(extension_out, right_panel.figure)
-    @test size(right_panel.figure.scene) == (1120, 680)
+    @test size(right_panel.figure.scene) == (1200, 720)
     @test isfile(extension_out)
     @test_throws ArgumentError fit_axis(right_panel.figure; index=0)
     @test_throws ArgumentError add_curve!(ax, [1.0, 2.0], [1.0])
@@ -197,9 +197,20 @@ using Test
     ) !== nothing
 
     screen_out = joinpath(mktempdir(), "fitplot_screen.png")
+    lab_out = joinpath(mktempdir(), "fitplot_lab.png")
     legacy_out = joinpath(mktempdir(), "fitplot_legacy_dark.png")
     article_out = joinpath(mktempdir(), "fitplot_article.png")
 
+    fitplot(
+        x,
+        y;
+        sigma_y=sigma_y,
+        filename=lab_out,
+        format=:png,
+        report=:none,
+        theme=:lab,
+        parameter_names=["m", "b"],
+    )
     fitplot(
         x,
         y;
@@ -234,17 +245,24 @@ using Test
     )
 
     @test isfile(screen_out)
+    @test isfile(lab_out)
     @test isfile(legacy_out)
     @test isfile(article_out)
     @test plot_theme(:modern; appearance=:dark) !== nothing
     screen_style = plot_palette(:screen)
     lab_style = plot_palette(:lab)
     modern_style = plot_palette(:modern)
+    workbench_style = plot_palette(:workbench)
     article_style = plot_palette(:article)
-    @test lab_style == screen_style
+    @test lab_style != screen_style
     @test modern_style == screen_style
+    @test workbench_style == lab_style
+    @test lab_style.data_marker == :cross
     @test screen_style.data_marker == :circle
+    @test lab_style.xgridvisible && lab_style.ygridvisible
+    @test lab_style.topspinevisible && lab_style.rightspinevisible
     @test screen_style.xgridvisible && screen_style.ygridvisible
+    @test !screen_style.topspinevisible && !screen_style.rightspinevisible
     @test !article_style.xgridvisible && !article_style.ygridvisible
     @test article_style.topspinevisible && article_style.rightspinevisible
     @test screen_style.titlealign == :left
@@ -254,20 +272,26 @@ using Test
     @test screen_style.ylabelsize >= 28
     @test screen_style.stats_fontsize >= 24
     @test screen_style.legend_labelsize >= 22
+    @test lab_style.ticklabelsize >= 20
+    @test lab_style.xlabelsize >= 25
+    @test lab_style.ylabelsize >= 25
+    @test lab_style.stats_fontsize >= 21
+    @test lab_style.legend_labelsize >= 20
     @test article_style.ticklabelsize >= 26
     @test article_style.xlabelsize >= 32
     @test article_style.ylabelsize >= 32
     @test article_style.stats_fontsize >= 30
     @test article_style.legend_labelsize >= 26
-    @test minimum(style.spinewidth for style in (screen_style, article_style)) >= 1.5
-    @test maximum(style.error_whiskerwidth for style in (screen_style, article_style)) <= 6
+    @test minimum(style.spinewidth for style in (lab_style, screen_style, article_style)) >= 1.5
+    @test maximum(style.error_whiskerwidth for style in (lab_style, screen_style, article_style)) <= 6
     @test all(length(unique(style.series_colors)) == length(style.series_colors) for
-        style in (screen_style, article_style))
+        style in (lab_style, screen_style, article_style))
+    @test lab_style.fit_color == "#005a8d"
     @test screen_style.fit_color == :dodgerblue
     @test screen_style.band_color == screen_style.fit_color
-    @test screen_style.secondary_color == :red
+    @test screen_style.secondary_color == "#b83280"
     @test article_style.fit_color == "#0072b2"
-    @test article_style.secondary_color == "#d55e00"
+    @test article_style.secondary_color == "#cc79a7"
     @test article_style.data_color == article_style.background_color
     @test article_style.data_strokecolor == article_style.axis_color
     @test article_style.data_strokewidth > screen_style.data_strokewidth
@@ -282,7 +306,7 @@ using Test
         style.titlealign,
         style.tickalign,
     )
-    @test length(unique(style_signature.((screen_style, article_style)))) == 2
+    @test length(unique(style_signature.((lab_style, screen_style, article_style)))) == 3
 
     screen_axis = fit_axis(plot_fit(quick.result; theme=:screen, show_stats=false))
     lab_axis = fit_axis(plot_fit(quick.result; theme=:lab, show_stats=false))
@@ -290,6 +314,7 @@ using Test
     article_axis = fit_axis(plot_fit(quick.result; theme=:article, show_stats=false))
     @test screen_axis.xgridvisible[] && screen_axis.ygridvisible[]
     @test lab_axis.xgridvisible[] && lab_axis.ygridvisible[]
+    @test lab_axis.topspinevisible[] && lab_axis.rightspinevisible[]
     @test modern_axis.xgridvisible[] && modern_axis.ygridvisible[]
     @test article_axis.topspinevisible[] && article_axis.rightspinevisible[]
 

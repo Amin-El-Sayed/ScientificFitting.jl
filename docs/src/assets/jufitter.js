@@ -6,8 +6,9 @@
     "documenter-light": "light",
     "documenter-dark": "dark",
   };
-  const plotStyles = ["screen", "article"];
-  const legacyScreenStyles = new Set(["lab", "modern", "workbench", "showcase"]);
+  const plotStyles = ["lab", "screen", "article"];
+  const legacyLabStyles = new Set(["workbench"]);
+  const legacyScreenStyles = new Set(["modern", "showcase"]);
   const defaultPlotStyle = "screen";
 
   try {
@@ -93,6 +94,10 @@
     try {
       const stored = window.localStorage && window.localStorage.getItem(plotStyleStorageKey);
       if (plotStyles.includes(stored)) return stored;
+      if (legacyLabStyles.has(stored)) {
+        window.localStorage.setItem(plotStyleStorageKey, "lab");
+        return "lab";
+      }
       if (legacyScreenStyles.has(stored)) {
         window.localStorage.setItem(plotStyleStorageKey, "screen");
         return "screen";

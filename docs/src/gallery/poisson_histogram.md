@@ -24,7 +24,9 @@ T_{1/2} = \frac{\log 2}{\lambda}.
 ```
 
 ```@raw html
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="lab" src="../assets/gallery/poisson_counts_lab_light.png" alt="Radioactive decay count fit in lab style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="screen" src="../assets/gallery/poisson_counts_screen_light.png" alt="Radioactive decay count fit in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="lab" src="../assets/gallery/poisson_counts_lab_dark.png" alt="Radioactive decay count fit in dark lab style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="screen" src="../assets/gallery/poisson_counts_screen_dark.png" alt="Radioactive decay count fit in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="article" src="../assets/gallery/poisson_counts_article_light.png" alt="Radioactive decay count fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="article" src="../assets/gallery/poisson_counts_article_dark.png" alt="Radioactive decay count fit in article dark style">
@@ -217,7 +219,9 @@ bin. The fitted quantities are peak yield ``N``, centroid ``m``, Gaussian width
 ``s``, and background density ``\rho_B``.
 
 ```@raw html
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="lab" src="../assets/gallery/histogram_likelihood_lab_light.png" alt="Histogram likelihood fit in lab style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="screen" src="../assets/gallery/histogram_likelihood_screen_light.png" alt="Histogram likelihood fit in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="lab" src="../assets/gallery/histogram_likelihood_lab_dark.png" alt="Histogram likelihood fit in dark lab style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="screen" src="../assets/gallery/histogram_likelihood_screen_dark.png" alt="Histogram likelihood fit in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="article" src="../assets/gallery/histogram_likelihood_article_light.png" alt="Histogram likelihood fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="article" src="../assets/gallery/histogram_likelihood_article_dark.png" alt="Histogram likelihood fit in article dark style">

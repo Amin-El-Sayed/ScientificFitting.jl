@@ -329,26 +329,27 @@ Acceptance criteria:
 
 ### Plot-style release gate
 
-The previous role audit reduced the preset collection to two contracts, but the
-result did not pass maintainer visual review: the roles remain too similar and
-some compound figures still render text below a practical reading size. Treat
-the current implementation as a technical baseline, not an accepted design.
+The plot-style redesign now has three work-specific contracts in one central
+preset layer. It remains under maintainer visual review until the regenerated
+ordinary, compound, and diagnostic gallery assets pass the full browser gate.
 Keep Makie's native layout and styling machinery wherever it already solves the
-problem; JuFitter should add only fitting-specific defaults and composition.
+problem; JuFitter adds only fitting-specific defaults and composition.
 
-- `:screen` is the notebook, laboratory, and documentation role: readable
+- `:lab` is the compact inspection role: complete frame, lookup grid, cross
+  observations, prominent uncertainties, and dense but readable sans-serif
+  output.
+- `:screen` is the notebook, documentation, and presentation role: larger
   sans-serif typography, filled observations, a direct blue fit/band hierarchy,
-  strong axes, and quiet full guides.
+  and open top/right axes.
 - `:article` is the vector-export role: scaled TeX typography, hollow
-  observations, a complete frame with inward ticks, no grid, and an Okabe-Ito
-  palette when multiple curves require color.
-- Previous names remain compatibility aliases of `:screen`; they no longer
-  claim separate visual semantics.
+  observations, a complete frame with inward ticks, no grid, and a color-safe
+  restrained palette.
+- Previous names remain compatibility aliases; they no longer claim separate
+  visual semantics.
 - Focused tests enforce role differences, minimum readable dimensions, Makie
   override precedence, compound diagnostics, and fixed output footprints.
-- The documentation exposes only `screen` and `article`, swaps real light/dark
-  assets, and has been browser-checked on ordinary fits, a compound oscillator,
-  and a profile matrix. Maintainer visual acceptance is still mandatory.
+- The documentation exposes all three roles and swaps real light/dark assets.
+  Maintainer visual acceptance is still mandatory.
 
 - Define two to four output roles that correspond to genuinely different work:
   fast notebook/laboratory inspection, explanatory screen/documentation output,

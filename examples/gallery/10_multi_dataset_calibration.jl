@@ -307,7 +307,7 @@ end
 
 if MULTI_RENDER_DOC_ASSETS
     mkpath(MULTI_DOC_ASSET_DIR)
-    for style in (:screen, :article), appearance in (:light, :dark)
+    for style in (:lab, :screen, :article), appearance in (:light, :dark)
         save_multi_dataset_calibration(
             joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
             style=style,

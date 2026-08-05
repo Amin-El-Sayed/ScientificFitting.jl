@@ -16,7 +16,9 @@
 ```
 
 ```@raw html
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="lab" src="assets/gallery/quickstart_linear_lab_light.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in lab style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="screen" src="assets/gallery/quickstart_linear_screen_light.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="lab" src="assets/gallery/quickstart_linear_lab_dark.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in dark lab style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="screen" src="assets/gallery/quickstart_linear_screen_dark.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_light.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_dark.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in dark article style">

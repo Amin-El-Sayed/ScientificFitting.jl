@@ -557,10 +557,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   provides. Its documented LaTeX/report combination is execution-checked; an
   uncovered empty-title conversion was fixed so automatic blank labels remain
   plain empty strings instead of invalid empty LaTeX expressions.
-- Focused plot regression tests pass with 123 checks after the plot-style
-  architecture was reduced to two explicit contracts, light/dark appearance
-  was separated from style, and the right-side report became a reusable,
-  left-aligned layout component. The same gate also covers compatibility
+- Focused plot regression tests pass with 136 checks after the plot-style
+  architecture was consolidated into three work-specific contracts, light/dark
+  appearance was separated from style, and the right-side report became a
+  reusable, left-aligned layout component. `:lab` provides compact live
+  inspection, `:screen` provides notebook/documentation output, and `:article`
+  provides TeX-oriented vector export. The same gate also covers compatibility
   aliases, public theme/palette access, invalid style combinations, and
   style-aware profile, contour, residual, and diagnostic plots. It now also
   verifies that a right-side report cannot collapse the requested output
@@ -636,15 +638,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   three-card remainder. The sequence uses plain panels without decorative
   gradients or shadows. Browser checks confirm no horizontal overflow, eight
   visible cards, exactly one rendered image per card, and correct switching
-  between article/dark and screen/light assets.
+  among lab, screen, and article assets in light and dark appearance.
 
 ## Release Blockers
 
-- The current `:screen` and `:article` implementation passes technical and local
-  browser gates but failed maintainer visual acceptance. A dedicated plot-style
-  block must establish genuinely different scientific use cases, readable type
-  at real export sizes, and fixed-size comparison evidence across ordinary and
-  compound plots. Snapshot evidence remains only a change detector.
+- The three-role plot-style redesign passes focused technical, asset, link, and
+  local browser gates. Fixed-size comparison evidence covers an ordinary fit,
+  a compound damped-oscillator figure, and the profile matrix; all Gallery
+  assets exist for `:lab`, `:screen`, and `:article` in light and dark
+  appearance. Final maintainer visual acceptance is still required before
+  release. Snapshot evidence remains only a change detector.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,

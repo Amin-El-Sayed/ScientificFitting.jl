@@ -319,7 +319,7 @@ end
 if RENDER_PLOTS
     if RENDER_DOC_ASSETS
         mkpath(DOC_ASSET_DIR)
-        for style in (:screen, :article), appearance in (:light, :dark)
+        for style in (:lab, :screen, :article), appearance in (:light, :dark)
             save_model_comparison(
                 joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(appearance).png");
                 style=style,

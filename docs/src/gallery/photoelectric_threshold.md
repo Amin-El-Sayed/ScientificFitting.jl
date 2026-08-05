@@ -7,7 +7,9 @@ fitted separately, and the threshold is the intersection of those two fitted
 lines with uncertainty propagated from both covariance matrices.
 
 ```@raw html
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="lab" src="../assets/gallery/photoelectric_threshold_lab_light.png" alt="Photoelectric work-function fit in lab style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="screen" src="../assets/gallery/photoelectric_threshold_screen_light.png" alt="Photoelectric work-function fit in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="lab" src="../assets/gallery/photoelectric_threshold_lab_dark.png" alt="Photoelectric work-function fit in dark lab style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="screen" src="../assets/gallery/photoelectric_threshold_screen_dark.png" alt="Photoelectric work-function fit in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="article" src="../assets/gallery/photoelectric_threshold_article_light.png" alt="Photoelectric work-function fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="article" src="../assets/gallery/photoelectric_threshold_article_dark.png" alt="Photoelectric work-function fit in article dark style">

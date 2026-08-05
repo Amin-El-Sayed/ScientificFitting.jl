@@ -6,7 +6,9 @@ statistical problem. A covariance matrix is not a prettier way to draw error
 bars; it tells the fit which residual patterns are plausible together.
 
 ```@raw html
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="lab" src="../assets/gallery/full_covariance_decay_lab_light.png" alt="Full covariance exponential fit in lab style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="screen" src="../assets/gallery/full_covariance_decay_screen_light.png" alt="Full covariance exponential fit in screen style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="lab" src="../assets/gallery/full_covariance_decay_lab_dark.png" alt="Full covariance exponential fit in dark lab style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="screen" src="../assets/gallery/full_covariance_decay_screen_dark.png" alt="Full covariance exponential fit in dark screen style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="article" src="../assets/gallery/full_covariance_decay_article_light.png" alt="Full covariance exponential fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="article" src="../assets/gallery/full_covariance_decay_article_dark.png" alt="Full covariance exponential fit in article dark style">
