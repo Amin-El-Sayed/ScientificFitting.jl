@@ -90,7 +90,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   style/appearance gallery assets were regenerated from real fits and match the
   tracked snapshot manifest. Browser review at documentation scale covers the
   role comparison, the compound damped oscillator, and the profile matrix in
-  both roles; final maintainer visual approval remains a release decision.
+  both roles. Subsequent maintainer review rejected the current visual result:
+  the roles remain too similar and text in several compound figures is too
+  small. These checks establish technical consistency, not release acceptance;
+  plot-role design is reopened as a dedicated v0 blocker.
 - The public gallery overview now contains only reader-facing learning paths,
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than
@@ -98,6 +101,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The public architecture walkthrough now describes likelihood objectives and
   stored minima on the same explicit ``-2\log L`` scale as the implementation,
   Hessian covariance, profile thresholds, and information criteria.
+- The public API reference is split along the package boundaries into an entry
+  overview, fitting contracts, results and diagnostics, and optional plotting.
+  This removed the previous 100 KiB rendered-page warning without hiding any
+  export. Fit entry-point docstrings now state their call shape, result type,
+  statistical convention, and failure behavior. The focused API gate passes
+  with 66 checks, public documentation hygiene with 566, source links with 335,
+  rendered links with 2312, and Documenter builds without a size warning.
 - Linear Calibration now identifies its controlled, deliberately imperfect
   dataset, saves directly from the complete page code, reports parameter units,
   and no longer exposes the internal gallery asset generator.
@@ -630,10 +640,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
-- The plot-style implementation has passed its technical and local browser
-  gates after being reduced to the distinct `:screen` and `:article` roles.
-  Snapshot evidence remains only a change detector; final maintainer visual
-  approval at the intended display sizes is still required before v0.
+- The current `:screen` and `:article` implementation passes technical and local
+  browser gates but failed maintainer visual acceptance. A dedicated plot-style
+  block must establish genuinely different scientific use cases, readable type
+  at real export sizes, and fixed-size comparison evidence across ordinary and
+  compound plots. Snapshot evidence remains only a change detector.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,

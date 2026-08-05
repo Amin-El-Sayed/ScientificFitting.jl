@@ -48,7 +48,12 @@ makedocs(;
             "Statistical Foundations" => "statistical_foundations.md",
         ],
         "Reference" => [
-            "API Reference" => "api.md",
+            "API Reference" => [
+                "Overview" => "api.md",
+                "Fitting" => "api_fitting.md",
+                "Results and Diagnostics" => "api_results.md",
+                "Plotting" => "api_plotting.md",
+            ],
             "Reference Map" => "overview.md",
             "Technical Notes" => [
                 "Backend Design" => "backend_design.md",

@@ -248,28 +248,31 @@ function _build_fit_result(
 end
 
 """
-    fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500, tol=1e-10, scale_covariance=:auto, initial_guesses=nothing, multistart=1)
+    fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500,
+        tol=1e-10, scale_covariance=:auto, initial_guesses=nothing,
+        multistart=1) -> FitResult
 
-Run a fit and return a `FitResult`.
+Fit a validated Gaussian `FitProblem`.
 
-`cost` accepts:
-- `:auto`: choose `:gaussian_likelihood` for parameter-dependent covariance, otherwise `:chi2`
-- `:chi2`: weighted least-squares cost
-- `:gaussian_likelihood`: full Gaussian cost on the `-2 log(L)` scale,
-  including log-determinant terms
+Keyword contracts:
+- `backend`: `:auto`, `:lsqfit`, or `:optimization`. `:auto` uses LsqFit only
+  when static chi-square least squares represents the complete problem.
+- `cost`: `:auto`, `:chi2`, or `:gaussian_likelihood`. `:auto` selects the
+  normalized Gaussian `-2 log(L)` cost for parameter-dependent covariance.
+- `maxiters`, `tol`: positive solver limits used for every candidate.
+- `scale_covariance`: `:auto`, `:never`, or `:always`. `:auto` estimates a
+  residual scale only when no observation uncertainty was supplied.
+- `initial_guesses`: additional complete parameter vectors in `p0` order.
+- `multistart`: number of deterministic candidates, including `problem.p0`.
 
-`scale_covariance` controls post-fit parameter covariance scaling:
-- `:auto`: scale only when no data uncertainties were provided
-- `:never`: trust the supplied uncertainties
-- `:always`: multiply by `chi2/ndf`
+The converged finite candidate with the lowest cost is returned. If no candidate
+converges but one remains finite, it is returned with `converged == false`; use
+`diagnostic_dashboard(result)` before interpreting it. If every candidate
+fails, the last model, validation, or solver error is rethrown.
 
-`initial_guesses` and `multistart` can be used for difficult nonlinear fits.
-
-`backend=:auto` selects the fast `LsqFit` path only when static chi-square
-least squares can represent the complete problem. An explicit
-`backend=:lsqfit` request fails if bounds, priors, constraints,
-parameter-dependent covariance, active error components, or another cost would
-otherwise be ignored.
+An explicit incompatible `backend=:lsqfit` request raises `ArgumentError`
+instead of dropping bounds, parameter terms, constraints, active error
+components, or parameter-dependent covariance.
 """
 function fit(
     problem::FitProblem;
@@ -335,16 +338,18 @@ function fit(
 end
 
 """
-    fit_model(model, x, y; kwargs...)
+    fit_model(model, x, y; p0, kwargs...) -> FitResult
 
-Convenience wrapper that constructs `FitProblem` then calls `fit`.
+Fit scalar observations `y` measured at `x` with a model satisfying
+`model(x, p) -> yhat`. `x`, `y`, and `p0` are copied to finite `Float64`
+storage; `length(x)` must equal `length(y)` and the model must return one finite
+prediction per observation.
 
-Useful parameter-control kwargs:
-- `parameter_priors=(index=i, mean=mu, sigma=sigma)`
-- `parameter_priors=(index=i, mean=mu, sigma_minus=sminus, sigma_plus=splus)`
-- `parameter_constraints=(indices=[i, j], mean=[mu_i, mu_j], covariance=cov)`
-- `fixed_parameters=(index=i, value=value, sigma=sigma)`
-- `fixed_parameters=(index=i, value=value, sigma_minus=sminus, sigma_plus=splus)`
+Observation uncertainty is supplied by exactly the applicable combination of
+`sigma_y`, `cov_y`, `sigma_x`, `cov_x`, named `error_components`, or one
+complete static `WhiteningOperator`. A whitening operator is mutually exclusive
+with every other observation-uncertainty keyword. With no uncertainty,
+unweighted least squares is used.
 
 For fits with x uncertainty, `x_derivative=(x, p) -> dy_dx` supplies a
 vectorized model derivative with respect to x. This avoids the default
@@ -360,6 +365,24 @@ Set `inplace=true` for `model!(out, x, p)`. The unbounded least-squares backend
 uses LsqFit's native in-place model interface; generic optimizer paths preserve
 the same contract with a type-correct output buffer. An optional analytic
 Jacobian must then use `jacobian!(J, x, p)`.
+
+Parameter control uses `bounds`, `constraints`, `parameter_priors`,
+`parameter_constraints`, and `fixed_parameters`. Solver keywords are forwarded
+to `fit(::FitProblem)` with defaults `backend=:auto`, `cost=:auto`,
+`maxiters=500`, `tol=1e-10`, `scale_covariance=:auto`, and `multistart=1`.
+
+Returns a `FitResult`. Invalid dimensions, non-finite values, non-positive
+standard deviations, contradictory uncertainty inputs, invalid covariance,
+bounds, or parameter controls raise `ArgumentError` before a result is
+constructed.
+
+# Example
+
+```julia
+model(x, p) = @. p[1] * x + p[2]
+result = fit_model(model, [0.0, 1.0, 2.0], [0.1, 1.2, 1.9];
+    p0=[1.0, 0.0], sigma_y=fill(0.2, 3))
+```
 """
 function fit_model(
     model,

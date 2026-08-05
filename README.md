@@ -113,7 +113,8 @@ The documentation is the main entry point:
 - `docs/src/fitting_for_practitioners.md` for practical fit judgement.
 - `docs/src/statistical_foundations.md` for the statistical assumptions and
   formulas.
-- `docs/src/api.md` for the generated API reference.
+- `docs/src/api.md` for the API overview and its focused fitting, results, and
+  plotting reference pages.
 - `docs/src/backend_design.md` and `docs/src/performance.md` for technical
   architecture and scaling behavior.
 

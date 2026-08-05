@@ -214,16 +214,22 @@ end
 
 """
     fit(problem::LikelihoodFitProblem; maxiters=1000, tol=1e-10,
-        initial_guesses=nothing, multistart=1)
+        initial_guesses=nothing, multistart=1) -> LikelihoodFitResult
 
-Minimize a likelihood-scale or custom objective problem and return a
-`LikelihoodFitResult`. Bounds, fixed parameters, Gaussian parameter terms, and
-nonlinear constraints are already stored in `problem`.
+Minimize a validated likelihood-scale or custom objective problem. Bounds,
+fixed parameters, Gaussian parameter terms, nonlinear constraints, observation
+count, and cost name are already stored in `problem`.
 
 `initial_guesses` may contain additional complete parameter vectors.
 `multistart > 1` adds deterministic bounded candidates when finite bounds are
 available. JuFitter returns the converged candidate with the lowest finite cost;
-if no candidate produces a finite result, the last underlying error is raised.
+if only non-converged finite candidates remain, the best one is returned with
+`converged == false`. If no candidate produces a finite result, the last
+objective, validation, or solver error is raised.
+
+`maxiters` and `tol` must be positive. The returned local covariance uses the
+Hessian of the complete stored cost and has likelihood meaning only when that
+cost follows the documented `-2 log(L)` convention.
 """
 function fit(
     problem::LikelihoodFitProblem;
@@ -275,7 +281,8 @@ function fit(
 end
 
 """
-    fit_custom(objective; p0, gof=nothing, nobs, cost_name=:custom, kwargs...)
+    fit_custom(objective; p0, nobs, gof=nothing, cost_name=:custom,
+               kwargs...) -> LikelihoodFitResult
 
 Fit a user-defined scalar objective. `objective(p)` is minimized directly.
 If `gof(p)` is supplied it is used for reduced goodness-of-fit statistics and
@@ -289,8 +296,19 @@ interpretation only when `objective` is a normalized `-2log(L)` cost (Gaussian
 chi-square is on the same scale). For an arbitrary loss, the optimizer result
 remains usable but those inferential fields are only arithmetic summaries.
 
-Returns `LikelihoodFitResult`. Common parameter-control and solver keywords are
-the same as for the other likelihood wrappers.
+Common keywords are `bounds`, `constraints`, `parameter_priors`,
+`parameter_constraints`, `fixed_parameters`, `parameter_names`, `maxiters`,
+`tol`, `initial_guesses`, and `multistart`. Parameter callbacks receive the
+complete vector in `p0` order. `nobs` must be positive; invalid parameter
+controls or a non-finite objective fail with an error rather than producing a
+reportable result.
+
+# Example
+
+```julia
+cost(p) = ((p[1] - 2.0) / 0.3)^2
+result = fit_custom(cost; p0=[0.0], nobs=1, cost_name=:calibration_chi2)
+```
 """
 function fit_custom(
     objective;
@@ -368,11 +386,18 @@ function _poisson_deviance(counts::Vector{Float64}, mu::AbstractVector)
 end
 
 """
-    fit_poisson_model(model, x, counts; p0, kwargs...)
+    fit_poisson_model(model, x, counts; p0, kwargs...) -> LikelihoodFitResult
 
 Fit count data with a Poisson likelihood. `model(x, p)` must return the
 strictly positive expected counts for each observation. `counts` must contain
-finite non-negative integer-valued observations.
+finite non-negative integer-valued observations; `x` must be finite and have
+the same length.
+
+The minimized objective is normalized Poisson `-2 log(L)`. `stats.chi2` stores
+the Poisson deviance and its p-value uses the asymptotic chi-square reference.
+Common parameter-control and solver keywords are listed under `fit_custom`.
+Invalid counts, dimensions, expectations, or parameter controls raise
+`ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_poisson_model(
     model,
@@ -416,10 +441,18 @@ end
 
 """
     fit_histogram_model(expected_counts, edges, counts; p0, kwargs...)
+        -> LikelihoodFitResult
 
 Fit binned counts. `expected_counts(edges, p)` must return one positive expected
 count per bin. Histogram edges must be finite and strictly increasing; `counts`
 must contain finite non-negative integer-valued observations.
+
+The objective is normalized Poisson `-2 log(L)` and `stats.chi2` is Poisson
+deviance. The caller is responsible for integrating any continuous density over
+the bins; use `fit_histogram_density` when JuFitter should perform that
+integration. Common parameter-control and solver keywords are listed under
+`fit_custom`. Invalid edges, counts, expectations, or controls raise
+`ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_histogram_model(
     expected_counts,
@@ -466,12 +499,19 @@ function fit_histogram_model(
 end
 
 """
-    fit_histogram_density(pdf, edges, counts; p0, total_count=sum(counts), kwargs...)
+    fit_histogram_density(pdf, edges, counts; p0, total_count=sum(counts),
+                          rtol=1e-8, kwargs...) -> LikelihoodFitResult
 
 Fit binned counts from a probability density. Expected bin counts are computed
 with adaptive Gauss-Kronrod quadrature. `pdf(x, p)` must be normalized on its
 intended physical domain; JuFitter does not renormalize it over the supplied
 bins. `total_count` and `rtol` must be finite and positive.
+
+Each expectation is `total_count * integral(pdf, edge[i], edge[i+1])`.
+Consequently, bins outside the supplied range still carry probability unless
+the density is normalized on that range. Common parameter-control and solver
+keywords are listed under `fit_custom`. Quadrature/model failures are propagated;
+invalid histogram input raises `ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_histogram_density(
     pdf,
@@ -522,11 +562,17 @@ function fit_histogram_density(
 end
 
 """
-    fit_unbinned_model(pdf, data; p0, kwargs...)
+    fit_unbinned_model(pdf, data; p0, kwargs...) -> LikelihoodFitResult
 
 Fit independent unbinned observations with a normalized positive density
 `pdf(x, p)`. JuFitter checks positivity at the observations but cannot infer or
 verify the normalization domain. Observations must be finite.
+
+The objective is `-2 * sum(log(pdf(x_i, p)))`. No universal chi-square
+goodness-of-fit statistic exists, so `chi2`, `chi2_ndf`, and `pvalue` are `NaN`.
+Common parameter-control and solver keywords are listed under `fit_custom`.
+Non-positive densities and invalid controls raise `ArgumentError`. Returns
+`LikelihoodFitResult`.
 """
 function fit_unbinned_model(
     pdf,
@@ -571,12 +617,19 @@ function fit_unbinned_model(
 end
 
 """
-    fit_extended_unbinned_model(rate, data, domain; p0, kwargs...)
+    fit_extended_unbinned_model(rate, data, domain; p0, rtol=1e-8,
+                                kwargs...) -> LikelihoodFitResult
 
 Fit an inhomogeneous Poisson point process. `rate(x, p)` is the event intensity,
 not a normalized density. `domain=(a, b)` defines the integration range for the
 expected total event count. The domain endpoints must be finite, and all
 observations must lie inside the domain.
+
+The objective is `2 * integral(rate, domain) - 2 * sum(log(rate(x_i, p)))`.
+No generic chi-square p-value is reported. `rtol` controls Gauss-Kronrod
+integration and must be positive. Common parameter-control and solver keywords
+are listed under `fit_custom`. Invalid domains, non-positive rates, and
+integration/model failures raise an error. Returns `LikelihoodFitResult`.
 """
 function fit_extended_unbinned_model(
     rate,
@@ -686,7 +739,8 @@ function _normalize_multi_sigma_sets(sigma_y, y_sets::AbstractVector)
 end
 
 """
-    fit_indexed_model(model, indices, y; p0, sigma_y=nothing, cov_y=nothing, kwargs...)
+    fit_indexed_model(model, indices, y; p0, sigma_y=nothing, cov_y=nothing,
+                      kwargs...) -> LikelihoodFitResult
 
 Fit observations addressed by arbitrary indices. `model(indices, p)` must return
 one model value per index. This is useful when the independent variable is not a
@@ -696,6 +750,11 @@ optional `cov_y` must be a finite symmetric positive-definite covariance matrix.
 The minimized objective is chi-square without additive Gaussian normalization
 constants. AIC/BIC may compare models fit to the same observations and the same
 uncertainty model, but not different uncertainty scales or datasets.
+
+Use either `sigma_y` or `cov_y`, never both. With neither, the fit is
+unweighted. Common parameter-control and solver keywords are listed under
+`fit_custom`. Invalid dimensions, uncertainty, covariance, model output, or
+controls raise `ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_indexed_model(
     model,
@@ -744,7 +803,8 @@ function fit_indexed_model(
 end
 
 """
-    fit_multi_model(models, xs, ys; p0, sigma_y, kwargs...)
+    fit_multi_model(models, xs, ys; p0, sigma_y=nothing,
+                    parameter_map=nothing, kwargs...) -> LikelihoodFitResult
 
 Fit multiple datasets simultaneously with one shared global parameter vector.
 By default each `models[i](xs[i], p)` receives the full parameter vector `p`.
@@ -755,6 +815,13 @@ must be finite and positive.
 The minimized objective is the summed chi-square without additive Gaussian
 normalization constants. AIC/BIC may compare models fit to the same datasets
 and uncertainty model, but not different uncertainty scales or datasets.
+
+`sigma_y` is either `nothing` or one uncertainty vector (or `nothing`) per
+dataset. `parameter_map[i]` contains one-based indices into the global `p0` and
+defines the local parameter order passed to model `i`. Common parameter-control
+and solver keywords are listed under `fit_custom`. Empty or mismatched dataset
+collections, invalid maps or uncertainties, and wrong model-output lengths
+raise `ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_multi_model(
     models::AbstractVector,

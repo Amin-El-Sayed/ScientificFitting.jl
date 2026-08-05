@@ -286,11 +286,12 @@ Deferred scientific architecture candidates:
 
 ## Phase 3.5: Diagnostic Plots and Contours
 
-Status: the scoped numerical diagnostics and plotting API are complete. The
-plot-style release gate is implemented on `codex/plot-style-role-gate` and is
-locally green; final maintainer visual approval remains required before v0.
-Further automatic nonlinearity detection and richer combined dashboards remain
-post-v0 work.
+Status: the scoped numerical diagnostics and plotting API are complete, but the
+plot-style milestone is reopened after maintainer review. The current technical
+gate proves consistency and override behavior; it does not establish that the
+roles are visually distinct, consistently readable, or aesthetically ready for
+v0. Further automatic nonlinearity detection and richer combined dashboards
+remain post-v0 work.
 
 Goal: profile, contour, residual, pull, covariance, and likelihood diagnostics
 must communicate statistical meaning as clearly as kafe2/Minuit-style tools,
@@ -328,10 +329,12 @@ Acceptance criteria:
 
 ### Plot-style release gate
 
-The role audit replaced the overlapping preset collection with two maintained
-contracts. Keep Makie's native layout and styling machinery wherever it already
-solves the problem; JuFitter should add only fitting-specific defaults and
-composition.
+The previous role audit reduced the preset collection to two contracts, but the
+result did not pass maintainer visual review: the roles remain too similar and
+some compound figures still render text below a practical reading size. Treat
+the current implementation as a technical baseline, not an accepted design.
+Keep Makie's native layout and styling machinery wherever it already solves the
+problem; JuFitter should add only fitting-specific defaults and composition.
 
 - `:screen` is the notebook, laboratory, and documentation role: readable
   sans-serif typography, filled observations, a direct blue fit/band hierarchy,

@@ -1,30 +1,48 @@
 # API Reference
 
-This is the technical reference for JuFitter's public API. If you are fitting a
-first dataset, begin with [Quickstart](quickstart.md). If you need the reasoning
-behind a statistical choice, use [Statistical Foundations](statistical_foundations.md).
+This reference defines JuFitter's public contracts. Start with
+[Quickstart](quickstart.md) for a first fit or
+[Statistical Foundations](statistical_foundations.md) for the assumptions behind
+the methods.
 
 ## Choose An Entry Point
 
-The public fitting functions differ by observation model, not by plotting
+The fitting function is selected by the observation model, not by the plotting
 style or optimizer.
 
 | Data and sampling model | Entry point | Model contract | Result |
 |---|---|---|---|
-| Numeric ``x`` and ``y`` with Gaussian uncertainties | [`fit_model`](@ref) | `model(x, p) -> ŷ` | [`FitResult`](@ref) |
+| Numeric ``x`` and ``y`` with Gaussian uncertainties | [`fit_model`](@ref) | `model(x, p) -> y_hat` | [`FitResult`](@ref) |
 | Independent counts | [`fit_poisson_model`](@ref) | `model(x, p) -> expected_counts` | [`LikelihoodFitResult`](@ref) |
-| Histogram with precomputed expected bin counts | [`fit_histogram_model`](@ref) | `expected_counts(edges, p) -> μ` | [`LikelihoodFitResult`](@ref) |
+| Histogram with expected bin counts | [`fit_histogram_model`](@ref) | `expected_counts(edges, p) -> mu` | [`LikelihoodFitResult`](@ref) |
 | Histogram from a normalized density | [`fit_histogram_density`](@ref) | `pdf(x, p) -> density` | [`LikelihoodFitResult`](@ref) |
 | Independent unbinned observations | [`fit_unbinned_model`](@ref) | `pdf(x, p) -> density` | [`LikelihoodFitResult`](@ref) |
 | Unbinned events with a parameter-dependent rate | [`fit_extended_unbinned_model`](@ref) | `rate(x, p) -> event_rate` | [`LikelihoodFitResult`](@ref) |
-| Observations addressed by non-numeric indices | [`fit_indexed_model`](@ref) | `model(indices, p) -> ŷ` | [`LikelihoodFitResult`](@ref) |
+| Observations addressed by non-numeric indices | [`fit_indexed_model`](@ref) | `model(indices, p) -> y_hat` | [`LikelihoodFitResult`](@ref) |
 | Several datasets sharing parameters | [`fit_multi_model`](@ref) | one `model_i(x_i, p_i)` per dataset | [`LikelihoodFitResult`](@ref) |
 | A custom scalar objective | [`fit_custom`](@ref) | `objective(p) -> scalar` | [`LikelihoodFitResult`](@ref) |
 
+Minimal call shapes, with required keywords shown explicitly:
+
+| Entry point | Minimal call |
+|---|---|
+| `fit_model` | `fit_model(model, x, y; p0=[...], sigma_y=[...])` |
+| `fit_poisson_model` | `fit_poisson_model(expected_counts, x, counts; p0=[...])` |
+| `fit_histogram_model` | `fit_histogram_model(expected_per_bin, edges, counts; p0=[...])` |
+| `fit_histogram_density` | `fit_histogram_density(pdf, edges, counts; p0=[...], total_count=sum(counts))` |
+| `fit_unbinned_model` | `fit_unbinned_model(pdf, observations; p0=[...])` |
+| `fit_extended_unbinned_model` | `fit_extended_unbinned_model(rate, observations, (a, b); p0=[...])` |
+| `fit_indexed_model` | `fit_indexed_model(model, indices, y; p0=[...], cov_y=C)` |
+| `fit_multi_model` | `fit_multi_model(models, xs, ys; p0=[...], sigma_y=sigma_sets)` |
+| `fit_custom` | `fit_custom(cost; p0=[...], nobs=n)` |
+
+These are signatures, not one shared executable example. Each model must obey
+the contract in the first table, and every placeholder must be replaced by data
+of matching dimensions. Complete analyses are in the [Gallery](gallery.md).
+
 For reusable low-level workflows, construct [`FitProblem`](@ref) or
 [`LikelihoodFitProblem`](@ref) and call [`fit`](@ref). `JuFitter.fit` extends
-the standard `StatsAPI.fit` generic, so it coexists with packages such as
-StatsBase and Distributions.
+the `StatsAPI.fit` generic, so it coexists with StatsBase and Distributions.
 
 ## Common Conventions
 
@@ -34,53 +52,49 @@ StatsBase and Distributions.
 constraints, profiles, and contours are Julia's one-based indices into that
 vector.
 
-The ordinary allocating model contract is
+The allocating model contract is:
 
 ```julia
 model(x, p) -> vector with length(y)
 ```
 
-For the allocation-sensitive path, use
+For allocation-sensitive fits, use:
 
 ```julia
 model!(out, x, p)
 jacobian!(J, x, p)  # optional
 ```
 
-and pass `inplace=true`. JuFitter validates at construction time that these
-functions fill every output. On automatic-differentiation paths, `p`, `out`,
-and `J` may contain non-`Float64` scalar types; mutating functions must not
-hard-code `Float64` buffers internally.
+and pass `inplace=true`. JuFitter validates that the callbacks fill every
+output. On automatic-differentiation paths, `p`, `out`, and `J` may contain
+non-`Float64` scalar types; mutating functions must not hard-code `Float64`
+buffers internally.
 
-Input observations and starting values are copied to `Float64` storage. A
-model must return finite values at every parameter point used by the solver.
+Input observations and starting values are copied to `Float64` storage. A model
+must return finite values at every parameter point used by the solver.
 
 ### Parameter Control
 
-The controls below are accepted by `fit_model` and all likelihood wrappers.
+The following controls are accepted by `fit_model` and the likelihood wrappers.
 
 | Keyword | Meaning |
 |---|---|
 | `p0` | Required complete starting vector. |
-| `bounds=(lower, upper)` | Componentwise closed bounds; use `±Inf` for an open side. |
+| `bounds=(lower, upper)` | Componentwise closed bounds; use `+/-Inf` for an open side. |
 | `fixed_parameters` | Remove parameters from the optimizer with `FixedParameter`, `i => value`, or equivalent named tuples. |
 | `parameter_priors` | Independent normalized Gaussian or split-normal terms. |
 | `parameter_constraints` | Correlated Gaussian terms on selected parameters. |
 | `constraints` | General nonlinear constraints; `ineq(p) <= 0` and `eq(p) == 0`. |
 
 Constraint callbacks receive the complete parameter vector in `p0` order,
-including fixed entries. JuFitter maps that vector to the optimizer's reduced
-free-parameter coordinates internally.
+including fixed entries. JuFitter maps it to reduced free-parameter coordinates
+internally.
 
-Likelihood wrappers additionally accept `parameter_names`, which are stored in
-the low-level problem for reports and diagnostics. For a `FitResult`, pass
-reader-facing names to `fit_report`, `report_text`, or the plotting function.
-
-`FixedParameter(..., sigma)` stores that uncertainty in reports and in the
-fixed parameter's diagonal covariance entry, with zero fitted
-cross-covariances. It does not change the objective or propagate uncertainty
-into free fitted parameters. Use a `ParameterPrior` or `ParameterConstraint`
-when an external measurement must participate in the fit and its correlations.
+`FixedParameter(..., sigma)` stores that uncertainty in reports and in the fixed
+parameter's covariance diagonal, with zero fitted cross-covariances. It does not
+change the objective or propagate uncertainty into free fitted parameters. Use
+a `ParameterPrior` or `ParameterConstraint` when an external measurement must
+participate in the fit.
 
 ### Solver Control
 
@@ -89,7 +103,7 @@ when an external measurement must participate in the fit and its correlations.
 | `maxiters` | `500` for `fit_model`, `1000` for likelihood wrappers | Positive iteration limit for each candidate. |
 | `tol` | `1e-10` | Positive absolute and relative solver tolerance. |
 | `initial_guesses` | `nothing` | Additional complete starting vectors. |
-| `multistart` | `1` | Number of deterministic candidates generated from finite bounds or scaled versions of `p0`. |
+| `multistart` | `1` | Deterministic candidates generated from finite bounds or scaled versions of `p0`. |
 
 `fit_model` additionally accepts:
 
@@ -101,318 +115,15 @@ when an external measurement must participate in the fit and its correlations.
 | `jacobian` | `nothing` | Analytic model Jacobian, allocating or in-place according to `inplace`. |
 | `x_derivative` | `nothing` | Vector ``\partial f/\partial x`` for efficient x-uncertainty propagation. |
 
-`backend=:auto` uses the fast LsqFit path only when static chi-square least
-squares represents the complete problem. An explicit incompatible
-`backend=:lsqfit` request raises an error rather than silently dropping bounds,
-constraints, priors, or parameter-dependent covariance.
+`backend=:auto` uses LsqFit only when static chi-square least squares represents
+the complete problem. An incompatible explicit `backend=:lsqfit` request raises
+an error rather than dropping bounds, constraints, priors, or
+parameter-dependent covariance.
 
-## Gaussian Fits
+## Reference Sections
 
-### Observation Uncertainty
-
-Choose one representation for each physical uncertainty source. JuFitter
-rejects contradictory combinations instead of guessing how they should be
-combined.
-
-| Keyword | Accepted value | Statistical role |
-|---|---|---|
-| `sigma_y` | positive vector | Independent y standard deviations. |
-| `cov_y` | dense or sparse SPD matrix | Complete y covariance. Mutually exclusive with `sigma_y`. |
-| `sigma_x` | positive vector | Independent x standard deviations propagated through ``\partial f/\partial x``. |
-| `cov_x` | dense or sparse SPD matrix | Complete x covariance. Mutually exclusive with `sigma_x`. |
-| `error_components` | named [`ErrorComponent`](@ref)s | Additive absolute, relative, model-relative, or covariance contributions. |
-| `whitening` | [`WhiteningOperator`](@ref) | Complete static observation covariance represented by ``W^\mathsf{T}W=C^{-1}``. |
-
-`whitening` is intentionally exclusive with all other observation-uncertainty
-keywords. It describes the complete covariance; combining it with another
-source without an explicit derivation would double-count uncertainty.
-
-With no supplied observation uncertainty, `fit_model` performs unweighted
-least squares and `scale_covariance=:auto` estimates the residual scale from
-``\chi^2/\mathrm{ndf}``. With physical uncertainties, `:auto` leaves their
-scale unchanged.
-
-### Error Components
-
-An error component has a stable name and can be activated or deactivated
-without rewriting the fit:
-
-```julia
-ErrorComponent(:readout, :y, :absolute, sigma_readout)
-ErrorComponent(:gain, :y, :relative, 0.015)
-ErrorComponent(:calibration, :y, :model_relative, 0.008)
-ErrorComponent(:shared, :y, :covariance, covariance_matrix)
-```
-
-`target` is `:x` or `:y`. `mode` is `:absolute`, `:relative`,
-`:model_relative`, or `:covariance`; x components do not support
-`:model_relative`.
-
-### Fit Completion And Failure
-
-Scientific input errors such as non-finite observations, non-positive standard
-deviations, invalid bounds, or non-positive-definite covariance matrices raise
-`ArgumentError` before optimization.
-
-For multistart fits, JuFitter returns the converged candidate with the lowest
-finite cost. If no candidate converges but one returns a finite result, that
-result is returned with `converged == false`; callers must inspect the status or
-use [`diagnostic_dashboard`](@ref). If every candidate fails, the underlying
-error is raised.
-
-```@docs
-JuFitter.fit(::JuFitter.FitProblem)
-JuFitter.fit_model
-JuFitter.FitProblem
-JuFitter.FitOptions
-```
-
-## Likelihood And Count Fits
-
-Poisson, histogram, unbinned, and extended-unbinned entry points minimize costs
-on the ``-2\log L`` scale. Poisson and histogram fits also compute Poisson
-deviance, so `chi2`, `chi2_ndf`, and `pvalue` are available as goodness-of-fit
-summaries. Ordinary and extended unbinned fits do not invent a chi-square
-statistic; those fields are `NaN`.
-
-`fit_indexed_model` and `fit_multi_model` minimize chi-square but omit additive
-Gaussian normalization constants. Their AIC/BIC values may compare models fit
-to the same observations with the same uncertainty model; they must not be used
-to compare different uncertainty scales or datasets.
-
-| Entry point | Additional contract |
+| Need | Reference |
 |---|---|
-| `fit_poisson_model` | Every expected count must be finite and strictly positive; observed counts must be non-negative integers. |
-| `fit_histogram_model` | `length(edges) == length(counts) + 1`; edges increase strictly; the model returns one positive expectation per bin. |
-| `fit_histogram_density` | Integrates `pdf(x, p)` over every bin with Gauss-Kronrod quadrature; `total_count > 0`, `rtol > 0`. |
-| `fit_unbinned_model` | The supplied density must already be normalized and positive at every observation. |
-| `fit_extended_unbinned_model` | `rate` is an intensity, not a density; its integral over `domain` is the expected event count. |
-| `fit_indexed_model` | Supports `sigma_y` or `cov_y`; indices may be any container accepted by the model. |
-| `fit_multi_model` | Supports per-dataset `sigma_y`; `parameter_map[i]` selects global parameters passed to model `i`. |
-
-For `fit_custom`, `objective` should be a normalized ``-2\log L`` cost if local
-covariance, AIC, and BIC are to retain their standard interpretation. With an
-arbitrarily scaled loss, optimization still works, but these inferential fields
-are only arithmetic summaries. `nobs` must count statistically independent
-observations. If supplied, `gof(p)` is the data goodness-of-fit statistic;
-JuFitter adds the quadratic contributions and dimensions of Gaussian parameter
-priors and constraints.
-
-```@docs
-JuFitter.fit(::JuFitter.LikelihoodFitProblem)
-JuFitter.fit_custom
-JuFitter.fit_poisson_model
-JuFitter.fit_histogram_model
-JuFitter.fit_histogram_density
-JuFitter.fit_unbinned_model
-JuFitter.fit_extended_unbinned_model
-JuFitter.fit_indexed_model
-JuFitter.fit_multi_model
-JuFitter.LikelihoodFitProblem
-```
-
-## Results
-
-### Fit Result Fields
-
-`FitResult` and `LikelihoodFitResult` use the same parameter and status field
-names. `FitResult` additionally contains x-y-specific model and residual data.
-
-| Field | Meaning |
-|---|---|
-| `problem` | Validated problem used for the selected candidate. |
-| `options` | Normalized solver options. |
-| `backend` | `:lsqfit`, `:optimization`, or `:fixed`. |
-| `converged` | Whether the selected solver reported convergence. |
-| `iterations` | Iteration count, or `missing` when unavailable. |
-| `message` | Native solver termination message. |
-| `params` | Best-fit parameter vector. |
-| `param_stderr` | Local one-standard-deviation estimates from the covariance diagonal. |
-| `param_covariance` | Local parameter covariance matrix. |
-| `param_correlation` | Correlation matrix derived from that covariance. |
-| `stats` | [`FitStatistics`](@ref). |
-| `diagnostics` | Numerical checks computed during result construction. |
-
-Only `FitResult` has `model_y`, `residuals`, `weighted_residuals`, and
-`jacobian`. `weighted_residuals` are pulls only when the uncertainty model
-supports that pointwise interpretation; with full whitening they are whitened
-coordinates.
-
-### Fit Statistics
-
-| Field | Meaning |
-|---|---|
-| `cost` | Symbol identifying the minimized cost. |
-| `cost_min` | Minimized cost including parameter terms. |
-| `minus2loglik_min` | Value used for likelihood-derived summaries. It is a normalized ``-2\log L`` only when the objective follows that convention; an arbitrary custom loss has no likelihood interpretation. For indexed/multi wrappers it equals the chi-square objective only when no normalized Gaussian parameter terms are present. |
-| `chi2` | Chi-square or deviance goodness-of-fit statistic, otherwise `NaN`. |
-| `chi2_ndf` | `chi2 / ndf` when defined. |
-| `ndf` | Independent observations and Gaussian constraint dimensions minus free parameters. |
-| `pvalue` | Upper-tail chi-square probability when a reference distribution exists. |
-| `aic`, `bic` | Information criteria; meaningful only for compatible likelihood normalizations. |
-
-See [Statistical Foundations](statistical_foundations.md) before comparing AIC
-or BIC across different data, uncertainty models, or arbitrarily normalized
-objectives.
-
-```@docs
-JuFitter.FitResult
-JuFitter.LikelihoodFitResult
-JuFitter.FitStatistics
-JuFitter.FitDiagnostics
-```
-
-## [Parameter Covariance](@id parameter-covariance-reference)
-
-`param_covariance` is a local quadratic approximation. It can be misleading
-for nonlinear models, weak data, active bounds, asymmetric likelihoods, or
-multiple minima. `scale_covariance` changes only its residual-scale treatment;
-it does not make a non-quadratic likelihood Gaussian.
-
-Use [`profile_interval`](@ref) for asymmetric one-parameter intervals and
-[`profile_matrix`](@ref) when several parameters may be correlated or
-non-parabolic.
-
-## Profiles And Contours
-
-Profiles fix the displayed parameter or parameter pair and re-optimize every
-remaining free parameter. Therefore a scan point is a fit, not merely an
-evaluation of the original model. The same profile functions accept both
-`FitResult` and `LikelihoodFitResult`.
-
-For costs on the ``-2\log L`` or chi-square scale, common asymptotic thresholds
-are:
-
-| Coverage | One profiled parameter | Two profiled parameters |
-|---:|---:|---:|
-| 68.27% | `threshold = 1.00` | `levels = [2.30]` |
-| 95.45% | `threshold = 4.00` | `levels = [6.18]` |
-
-The defaults use `1.00` for profiles and `[2.30, 6.18]` for contours. These are
-Wilks-theorem approximations, not universal finite-sample guarantees.
-
-`adaptive=true` refines threshold-crossing intervals or contour cells instead
-of making the complete rectangular grid dense. Failed refits become `Inf` by
-default and are surfaced by profile diagnostics; use `on_failure=:throw` when
-the first failed point should stop the scan.
-
-| Scan control | Meaning |
-|---|---|
-| `values`, `xvalues`, `yvalues` | Explicit finite scan coordinates; these replace the automatic range. |
-| `npoints` | Resolution of an automatically generated profile or contour axis. |
-| `nsigma` | Half-width of the automatic range in units of the local standard error. |
-| `threshold`, `levels` | Positive delta-cost thresholds used for intervals or regions. |
-| `adaptive` | Refine only threshold-crossing intervals or cells. |
-| `max_refinements`, `max_points` | Bound adaptive work and total scan size. |
-| `on_failure` | `:inf` records a failed refit for diagnostics; `:throw` stops immediately. |
-
-`profile_interval` uses adaptive refinement by default and linearly
-interpolates threshold crossings. A side that is not bracketed is returned as
-`NaN`, not silently extrapolated. `profile_matrix` accepts `parameters` and
-`parameter_names` to select and label a subset; `profile_tolerance` and
-`contour_tolerance` control comparisons with the local quadratic geometry.
-
-```@docs
-JuFitter.profile
-JuFitter.profile_interval
-JuFitter.contour
-JuFitter.profile_matrix
-JuFitter.profile_matrix_triage
-JuFitter.ProfileResult
-JuFitter.ProfileInterval
-JuFitter.ContourResult
-JuFitter.ProfileMatrixResult
-JuFitter.ProfileMatrixPanelTriage
-```
-
-## Diagnostics And Reports
-
-| Need | Function | Return value |
-|---|---|---|
-| Programmatic findings | [`diagnose`](@ref) | [`DiagnosticReport`](@ref) |
-| Full diagnostic text | [`diagnose_text`](@ref) | `String` |
-| Short action list | [`diagnostic_dashboard`](@ref) | [`DiagnosticDashboard`](@ref) |
-| Dashboard text | [`diagnostic_dashboard_text`](@ref) | `String` |
-| Structured fit report | [`fit_report`](@ref) | [`FitReport`](@ref) |
-| Console/notebook report | [`report_text`](@ref) | `String` |
-
-Dashboard status is `:ok`, `:review`, or `:stop`. Text output renders `:stop` as
-`critical - fix before use`. The dashboard summarizes implemented checks;
-`:ok` is not proof that the physical model is true.
-
-`diagnostic_dashboard(...; max_actions=5)` limits the deduplicated action list.
-`fit_report(...; errors=:profile)` replaces local symmetric display errors with
-profile intervals and therefore performs additional fits; its
-`profile_threshold`, `profile_npoints`, and `profile_nsigma` keywords control
-those scans. `report_text(...; sigdigits=6)` controls numerical formatting only.
-
-```@docs
-JuFitter.DiagnosticFinding
-JuFitter.DiagnosticReport
-JuFitter.DiagnosticDashboard
-JuFitter.diagnose
-JuFitter.diagnose_text
-JuFitter.diagnostic_dashboard
-JuFitter.diagnostic_dashboard_text
-JuFitter.ParameterEstimate
-JuFitter.FitReport
-JuFitter.fit_report
-JuFitter.report_text
-```
-
-## Constraints And Uncertainty Objects
-
-```@docs
-JuFitter.ConstraintSpec
-JuFitter.ParameterPrior
-JuFitter.FixedParameter
-JuFitter.ParameterConstraint
-JuFitter.ErrorComponent
-JuFitter.WhiteningOperator
-```
-
-## Plotting
-
-Fitting, profiles, diagnostics, and text reports do not require Makie. Plotting
-is activated only after loading CairoMakie:
-
-```julia
-using JuFitter
-using CairoMakie
-```
-
-[`plot_fit`](@ref) returns a `Figure`. [`fitplot`](@ref) fits and returns the
-named tuple `(result, figure)`. Use `fit_axis(figure)` as the stable extension
-point for native Makie calls or JuFitter's `add_*!` helpers.
-
-For `fitplot`, `report=:plot`, `:console`, `:both`, or `:none` controls the
-information panel and terminal output. For `plot_fit`, use `show_stats` to
-control the panel. `fit_range=:axis` extrapolates the fitted curve over the
-padded visible x range; use `fit_range=:data` or an explicit `xgrid` at a
-physical domain boundary.
-
-The maintained output roles are `:screen` and `:article`. The old `:lab` and
-`:modern` names remain aliases of `:screen`. Explicit Makie keywords override
-style defaults only for the element receiving them.
-See [Plotting And Customization](plotting_design.md) for the complete layout and
-extension contract.
-
-```@docs
-JuFitter.fitplot
-JuFitter.plot_fit
-JuFitter.fit_axis
-JuFitter.add_curve!
-JuFitter.add_points!
-JuFitter.add_vline!
-JuFitter.add_hline!
-JuFitter.add_vband!
-JuFitter.add_hband!
-JuFitter.plot_theme
-JuFitter.plot_palette
-JuFitter.plot_info_panel!
-JuFitter.plot_residuals
-JuFitter.plot_diagnostics
-JuFitter.plot_profile
-JuFitter.plot_contour
-JuFitter.plot_profile_matrix
-```
+| Fit inputs, uncertainty objects, constraints, likelihoods, and solver behavior | [Fitting](api_fitting.md) |
+| Result fields, covariance, profiles, contours, diagnostics, and reports | [Results And Diagnostics](api_results.md) |
+| Optional Makie boundary, fit figures, annotations, and diagnostic plots | [Plotting](api_plotting.md) |
