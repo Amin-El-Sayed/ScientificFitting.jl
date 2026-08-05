@@ -60,7 +60,7 @@ plot_profile(
 plot_contour(
     cont;
     filename=example_output("05_amplitude_timescale_contour.pdf"),
-    title="Profile contours versus local covariance",
+    title="Profile versus local covariance",
     xlabel="amplitude A",
     ylabel="time constant tau",
     local_covariance=result.param_covariance,

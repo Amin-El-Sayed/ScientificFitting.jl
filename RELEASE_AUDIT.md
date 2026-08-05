@@ -464,6 +464,16 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   restrained scientific color hierarchy, and the photoelectric custom plot
   now derives theme, palette, marker sizes, whisker widths, line widths, and
   report typography from the public plotting style API.
+- The release plot pass now treats the three presets as separate output
+  contracts rather than palette variants. `:lab` uses cross markers, strong
+  axes, a full grid, and a left-aligned title; `:modern` uses larger screen
+  typography, round markers, and horizontal guides; `:article` uses the LaTeX
+  font family, a complete frame, inward ticks, and no grid. Regression tests
+  enforce minimum label, tick, legend, report, and spine sizes. Compound
+  oscillator and multi-dataset pull panels inherit marker and line scales from
+  the selected preset instead of hard-coding miniature values. All 81 gallery
+  PNGs were regenerated and checked in light and dark appearances; the visual
+  asset and snapshot gates pass with 1251 and 83 checks respectively.
 - The documentation style selector now covers the compound custom gallery
   figures as well as ordinary `plot_fit` figures: Poisson counts, histogram
   likelihoods, constraints/profile/contour plots, damped oscillator, and

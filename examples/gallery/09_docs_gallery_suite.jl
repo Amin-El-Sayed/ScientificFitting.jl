@@ -937,8 +937,8 @@ if render_asset_group("constraints_profiles")
             cont;
             theme=style,
             appearance=appearance,
-            title=style == :article ? L"\mathrm{Profile\ contours\ versus\ local\ covariance}" :
-                  "Profile contours versus local covariance",
+            title=style == :article ? L"\mathrm{Profile\ versus\ local\ covariance}" :
+                  "Profile versus local covariance",
             xlabel=style == :article ? L"\mathrm{amplitude}\ A" : "amplitude A",
             ylabel=style == :article ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
             local_covariance=saturation_result.param_covariance,

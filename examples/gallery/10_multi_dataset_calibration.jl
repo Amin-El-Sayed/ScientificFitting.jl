@@ -202,13 +202,41 @@ function save_multi_dataset_calibration(
 
     shared_pulls = dataset_pulls(all_shared_result, all_shared_maps)
     partial_pulls = dataset_pulls(partial_shared_result, partial_maps)
+    pull_linewidth = max(1.4, 0.45 * palette.fit_linewidth)
+    pull_markersize = max(5.5, 0.60 * palette.data_markersize)
     add_pull_reference!(shared_pull_axis, 0.0, 10.0, pull_1sigma, pull_2sigma, (foreground, 0.55))
     add_pull_reference!(partial_pull_axis, 0.0, 10.0, pull_1sigma, pull_2sigma, (foreground, 0.55))
     for i in eachindex(x_sets)
-        lines!(shared_pull_axis, x_sets[i], shared_pulls[i]; color=(colors[i], 0.42), linewidth=1.2)
-        scatter!(shared_pull_axis, x_sets[i], shared_pulls[i]; color=colors[i], marker=markers[i], markersize=6)
-        lines!(partial_pull_axis, x_sets[i], partial_pulls[i]; color=(colors[i], 0.42), linewidth=1.2)
-        scatter!(partial_pull_axis, x_sets[i], partial_pulls[i]; color=colors[i], marker=markers[i], markersize=6)
+        lines!(
+            shared_pull_axis,
+            x_sets[i],
+            shared_pulls[i];
+            color=(colors[i], 0.52),
+            linewidth=pull_linewidth,
+        )
+        scatter!(
+            shared_pull_axis,
+            x_sets[i],
+            shared_pulls[i];
+            color=colors[i],
+            marker=markers[i],
+            markersize=pull_markersize,
+        )
+        lines!(
+            partial_pull_axis,
+            x_sets[i],
+            partial_pulls[i];
+            color=(colors[i], 0.52),
+            linewidth=pull_linewidth,
+        )
+        scatter!(
+            partial_pull_axis,
+            x_sets[i],
+            partial_pulls[i];
+            color=colors[i],
+            marker=markers[i],
+            markersize=pull_markersize,
+        )
     end
     hidexdecorations!(shared_pull_axis; grid=false)
     linkxaxes!(fit_axis, shared_pull_axis, partial_pull_axis)

@@ -1,7 +1,7 @@
 const _JF_PAPER = "#ffffff"
 const _JF_PAPER_SOFT = "#fbfcfd"
 const _JF_INK = "#17191f"
-const _JF_MUTED = "#3f4852"
+const _JF_MUTED = "#303842"
 const _JF_GRID = "#c8cdd3"
 const _JF_DARK_PAPER = "#111318"
 const _JF_DARK_INK = "#edf2f4"
@@ -46,16 +46,16 @@ function _style_preset(style::Symbol, appearance::Symbol)
     box_stroke = dark ? "#65717d" : _JF_GRID
 
     if style == :modern
-        fit = dark ? "#55b7ff" : "#1e88e5"
+        fit = dark ? "#5aa9ff" : "#2f80ed"
         return (
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, dark ? 0.30 : 0.40),
             data_color=ink,
             data_marker=:circle,
-            data_markersize=9.0,
+            data_markersize=10.5,
             data_strokecolor=paper,
-            data_strokewidth=1.1,
+            data_strokewidth=1.3,
             fit_color=fit,
             fit_linewidth=4.0,
             band_color=fit,
@@ -63,25 +63,25 @@ function _style_preset(style::Symbol, appearance::Symbol)
             xerr_color=(ink, dark ? 0.78 : 0.66),
             yerr_color=(ink, dark ? 0.78 : 0.66),
             error_whiskerwidth=6.0,
-            secondary_color=dark ? "#ff8a65" : "#d55e00",
+            secondary_color=dark ? "#ff7a84" : "#d1495b",
             reference_color=dark ? "#d3dae0" : "#59636e",
             series_colors=dark ?
-                (fit, "#ff8a65", "#55d6a9", "#dc8add", "#8ed6ff") :
-                (fit, "#d55e00", "#008e68", "#9c4dcc", "#3f9ed1"),
+                (fit, "#ff7a84", "#57c7a0", "#b49aff", "#a9b4bf") :
+                (fit, "#d1495b", "#218c74", "#6c5ce7", "#5b6570"),
             stats_color=ink,
             stats_muted_color=muted,
-            stats_fontsize=21,
+            stats_fontsize=24,
             stats_box_color=box,
             stats_box_strokecolor=box_stroke,
-            fontsize=19,
-            xlabelsize=24,
-            ylabelsize=24,
-            titlesize=30,
-            titlegap=18,
+            fontsize=21,
+            xlabelsize=27,
+            ylabelsize=27,
+            titlesize=33,
+            titlegap=20,
             titlealign=:center,
-            ticklabelsize=19,
-            legend_labelsize=21,
-            legend_patchsize=(32, 18),
+            ticklabelsize=23,
+            legend_labelsize=23,
+            legend_patchsize=(34, 20),
             legend_rowgap=6,
             figure_padding=(18, 22, 16, 16),
             xgridvisible=false,
@@ -89,48 +89,48 @@ function _style_preset(style::Symbol, appearance::Symbol)
             gridwidth=1.15,
             topspinevisible=false,
             rightspinevisible=false,
-            spinewidth=1.5,
-            tickwidth=1.35,
-            ticksize=6.5,
+            spinewidth=1.8,
+            tickwidth=1.6,
+            ticksize=7.0,
             tickalign=0.0,
         )
     elseif style == :article
-        fit = dark ? "#79bde8" : "#0072b2"
+        fit = dark ? "#77bce6" : "#0072b2"
         return (
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, 0.0),
             data_color=ink,
             data_marker=:circle,
-            data_markersize=7.5,
+            data_markersize=8.5,
             data_strokecolor=paper,
             data_strokewidth=0.8,
             fit_color=fit,
-            fit_linewidth=2.8,
+            fit_linewidth=3.0,
             band_color=fit,
             band_alpha=dark ? 0.18 : 0.15,
             xerr_color=(ink, dark ? 0.82 : 0.76),
             yerr_color=(ink, dark ? 0.82 : 0.76),
             error_whiskerwidth=4.5,
-            secondary_color=dark ? "#f28e72" : "#c44e20",
+            secondary_color=dark ? "#ef7d86" : "#b83244",
             reference_color=dark ? "#d3dae0" : "#444a50",
             series_colors=dark ?
-                (fit, "#f28e72", "#70cfa8", "#d692ce", "#9acde8") :
-                (fit, "#c44e20", "#00875f", "#9147a8", "#3f91bd"),
+                (fit, "#ef7d86", "#70cfa8", "#b49aff", "#a9b4bf") :
+                (fit, "#b83244", "#00875f", "#7a5195", "#5b6570"),
             stats_color=ink,
             stats_muted_color=dark ? "#e0e5e9" : "#30343a",
-            stats_fontsize=21,
+            stats_fontsize=23,
             stats_box_color=box,
             stats_box_strokecolor=box_stroke,
-            fontsize=19,
-            xlabelsize=24,
-            ylabelsize=24,
-            titlesize=29,
-            titlegap=16,
+            fontsize=20,
+            xlabelsize=26,
+            ylabelsize=26,
+            titlesize=31,
+            titlegap=18,
             titlealign=:center,
-            ticklabelsize=19,
-            legend_labelsize=20,
-            legend_patchsize=(28, 16),
+            ticklabelsize=22,
+            legend_labelsize=22,
+            legend_patchsize=(30, 18),
             legend_rowgap=4,
             figure_padding=(10, 14, 10, 10),
             xgridvisible=false,
@@ -138,49 +138,49 @@ function _style_preset(style::Symbol, appearance::Symbol)
             gridwidth=0.0,
             topspinevisible=true,
             rightspinevisible=true,
-            spinewidth=1.25,
-            tickwidth=1.15,
-            ticksize=6.0,
+            spinewidth=1.5,
+            tickwidth=1.4,
+            ticksize=6.5,
             tickalign=1.0,
         )
     end
 
-    fit = dark ? "#69b8ff" : "#005ab5"
+    fit = dark ? "#67b3ff" : "#0b5cad"
     return (
         background_color=paper,
         axis_color=ink,
         grid_color=(grid, dark ? 0.30 : 0.42),
         data_color=ink,
         data_marker=:cross,
-        data_markersize=11.0,
+        data_markersize=11.5,
         data_strokecolor=paper,
         data_strokewidth=0.0,
         fit_color=fit,
-        fit_linewidth=3.0,
+        fit_linewidth=3.2,
         band_color=fit,
         band_alpha=dark ? 0.22 : 0.18,
         xerr_color=(ink, dark ? 0.82 : 0.72),
         yerr_color=(ink, dark ? 0.82 : 0.72),
         error_whiskerwidth=5.5,
-        secondary_color=dark ? "#ff8a65" : "#c94f22",
+        secondary_color=dark ? "#ff7b84" : "#c43c4d",
         reference_color=dark ? "#d3dae0" : "#4b5560",
         series_colors=dark ?
-            (fit, "#ff8a65", "#55d6a9", "#dc8add", "#8ed6ff") :
-            (fit, "#c94f22", "#008e68", "#9147a8", "#3f91bd"),
+            (fit, "#ff7b84", "#57c7a0", "#b49aff", "#a9b4bf") :
+            (fit, "#c43c4d", "#218c74", "#6c5ce7", "#5b6570"),
         stats_color=ink,
         stats_muted_color=muted,
-        stats_fontsize=20,
+        stats_fontsize=23,
         stats_box_color=box,
         stats_box_strokecolor=box_stroke,
-        fontsize=18,
-        xlabelsize=23,
-        ylabelsize=23,
-        titlesize=27,
-        titlegap=14,
+        fontsize=20,
+        xlabelsize=26,
+        ylabelsize=26,
+        titlesize=31,
+        titlegap=18,
         titlealign=:left,
-        ticklabelsize=19,
-        legend_labelsize=20,
-        legend_patchsize=(28, 16),
+        ticklabelsize=22,
+        legend_labelsize=22,
+        legend_patchsize=(30, 18),
         legend_rowgap=4,
         figure_padding=(12, 18, 12, 12),
         xgridvisible=true,
@@ -188,9 +188,9 @@ function _style_preset(style::Symbol, appearance::Symbol)
         gridwidth=1.0,
         topspinevisible=false,
         rightspinevisible=false,
-        spinewidth=1.55,
-        tickwidth=1.35,
-        ticksize=6.5,
+        spinewidth=1.85,
+        tickwidth=1.6,
+        ticksize=7.0,
         tickalign=0.0,
     )
 end
@@ -654,7 +654,7 @@ function _draw_inside_stats!(
     ax,
     stats_lines;
     position::Symbol=:lt,
-    fontsize::Real=14,
+    fontsize::Real=16,
     box_color=_JF_PAPER_SOFT,
     box_alpha::Real=0.90,
     box_strokecolor=_JF_GRID,
@@ -1443,7 +1443,7 @@ end
 function _panel_status_color(status::Symbol, appearance::Symbol)
     dark = appearance == :dark
     status == :stop && return dark ? "#ff8a80" : "#a33a2b"
-    status == :review && return dark ? "#ffd166" : "#9b6a10"
+    status == :review && return dark ? "#d3dae0" : "#4b5560"
     return dark ? _JF_DARK_MUTED : _JF_MUTED
 end
 
@@ -1479,7 +1479,7 @@ function _draw_panel_status!(
         space=:relative,
         align=(:left, :top),
         color=_panel_status_color(status, appearance),
-        fontsize=fontsize === nothing ? max(14, style.ticklabelsize - 2) : Float64(fontsize),
+        fontsize=fontsize === nothing ? max(16, style.ticklabelsize - 2) : Float64(fontsize),
         font=:bold,
     )
     return nothing
@@ -1936,11 +1936,11 @@ function plot_profile_matrix(
     region_colors = collect(diagnostic_colors.regions)
     isempty(region_colors) && (region_colors = [(style.fit_color, 0.20)])
     corr_color = style.stats_muted_color
-    matrix_titlesize = min(style.titlesize, n <= 3 ? 23 : 20)
-    matrix_labelsize = min(style.xlabelsize, n <= 3 ? 20 : 17)
-    matrix_ticklabelsize = min(style.ticklabelsize, n <= 3 ? 16 : 14)
-    matrix_status_size = max(14, matrix_ticklabelsize - 1)
-    matrix_legend_size = min(style.legend_labelsize, 17)
+    matrix_titlesize = min(style.titlesize, n <= 3 ? 25 : 22)
+    matrix_labelsize = min(style.xlabelsize, n <= 3 ? 22 : 19)
+    matrix_ticklabelsize = min(style.ticklabelsize, n <= 3 ? 19 : 17)
+    matrix_status_size = max(17, matrix_ticklabelsize - 1)
+    matrix_legend_size = min(style.legend_labelsize, 20)
     delta_label = resolved_style == :article ? L"\Delta\mathrm{cost}" : "Δcost"
 
     for row in 1:n, col in 1:n
@@ -2043,7 +2043,7 @@ function plot_profile_matrix(
                 space=:relative,
                 align=(:center, :center),
                 color=corr_color,
-                fontsize=max(16, matrix_ticklabelsize),
+                fontsize=max(18, matrix_ticklabelsize),
             )
         end
 

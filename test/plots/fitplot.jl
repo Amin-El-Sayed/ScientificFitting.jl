@@ -246,13 +246,22 @@ using Test
     @test !modern_style.xgridvisible && modern_style.ygridvisible
     @test !article_style.xgridvisible && !article_style.ygridvisible
     @test article_style.topspinevisible && article_style.rightspinevisible
+    @test lab_style.titlealign == :left
+    @test modern_style.titlealign == :center
+    @test article_style.tickalign == 1.0
     @test modern_style.titlesize > lab_style.titlesize > article_style.xlabelsize
-    @test minimum(style.ticklabelsize for style in (lab_style, modern_style, article_style)) >= 19
-    @test minimum(style.stats_fontsize for style in (lab_style, modern_style, article_style)) >= 20
+    @test minimum(style.ticklabelsize for style in (lab_style, modern_style, article_style)) >= 22
+    @test minimum(style.xlabelsize for style in (lab_style, modern_style, article_style)) >= 26
+    @test minimum(style.ylabelsize for style in (lab_style, modern_style, article_style)) >= 26
+    @test minimum(style.stats_fontsize for style in (lab_style, modern_style, article_style)) >= 23
+    @test minimum(style.legend_labelsize for style in (lab_style, modern_style, article_style)) >= 22
+    @test minimum(style.spinewidth for style in (lab_style, modern_style, article_style)) >= 1.5
     @test maximum(style.error_whiskerwidth for style in (lab_style, modern_style, article_style)) <= 6
     @test all(length(unique(style.series_colors)) == length(style.series_colors) for
         style in (lab_style, modern_style, article_style))
-    @test modern_style.fit_color == "#1e88e5"
+    @test modern_style.fit_color == "#2f80ed"
+    @test modern_style.secondary_color == "#d1495b"
+    @test lab_style.fit_color != modern_style.fit_color
     @test article_style.fit_color == "#0072b2"
 
     lab_axis = fit_axis(plot_fit(quick.result; theme=:lab, show_stats=false))
@@ -287,6 +296,8 @@ using Test
     article_dark_diagnostics = plotting_extension._diagnostic_colors(:article, :dark)
     @test article_dark_diagnostics.levels[1] == plot_palette(:article; appearance=:dark).fit_color
     @test all(color -> first(color) != :black, article_dark_diagnostics.regions)
+    @test plotting_extension._panel_status_color(:review, :light) == "#4b5560"
+    @test plotting_extension._panel_status_color(:review, :dark) == "#d3dae0"
     @test_throws ArgumentError plot_fit(quick.result; theme=:unknown)
     @test_throws ArgumentError plot_fit(quick.result; theme=:dark, appearance=:light)
     @test_throws ArgumentError plot_fit(quick.result; fit_range=:unknown)

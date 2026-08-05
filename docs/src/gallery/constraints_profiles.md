@@ -202,7 +202,7 @@ plot_contour(
     local_center=result.params[[1, 2]],
     xlabel="amplitude A",
     ylabel="time constant tau",
-    title="Profile contours versus local covariance",
+    title="Profile versus local covariance",
 )
 plot_profile_matrix(profile_overview)
 

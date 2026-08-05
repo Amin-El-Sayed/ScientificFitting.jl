@@ -210,7 +210,7 @@ function save_model_comparison(
         time,
         angle;
         color=measurement_color,
-        markersize=max(3.8, palette.data_markersize - 1.4),
+        markersize=max(6.0, 0.65 * palette.data_markersize),
         label="measured angle",
     )
     hidexdecorations!(fit_axis; grid=false)
@@ -218,10 +218,36 @@ function save_model_comparison(
     xmin, xmax = extrema(time)
     add_pull_reference!(constant_pull_axis, xmin, xmax, pull_1sigma, pull_2sigma, (foreground, 0.55))
     add_pull_reference!(drift_pull_axis, xmin, xmax, pull_1sigma, pull_2sigma, (foreground, 0.55))
-    lines!(constant_pull_axis, time, constant_result.weighted_residuals; color=(constant_color, 0.50), linewidth=1.2)
-    scatter!(constant_pull_axis, time, constant_result.weighted_residuals; color=constant_color, markersize=4.8)
-    lines!(drift_pull_axis, time, drift_result.weighted_residuals; color=(drift_color, 0.50), linewidth=1.2)
-    scatter!(drift_pull_axis, time, drift_result.weighted_residuals; color=drift_color, markersize=4.8)
+    pull_linewidth = max(1.4, 0.45 * palette.fit_linewidth)
+    pull_markersize = max(5.5, 0.60 * palette.data_markersize)
+    lines!(
+        constant_pull_axis,
+        time,
+        constant_result.weighted_residuals;
+        color=(constant_color, 0.60),
+        linewidth=pull_linewidth,
+    )
+    scatter!(
+        constant_pull_axis,
+        time,
+        constant_result.weighted_residuals;
+        color=constant_color,
+        markersize=pull_markersize,
+    )
+    lines!(
+        drift_pull_axis,
+        time,
+        drift_result.weighted_residuals;
+        color=(drift_color, 0.60),
+        linewidth=pull_linewidth,
+    )
+    scatter!(
+        drift_pull_axis,
+        time,
+        drift_result.weighted_residuals;
+        color=drift_color,
+        markersize=pull_markersize,
+    )
     hidexdecorations!(constant_pull_axis; grid=false)
     linkxaxes!(fit_axis, constant_pull_axis, drift_pull_axis)
     ylims!(constant_pull_axis, -3.2, 3.2)
