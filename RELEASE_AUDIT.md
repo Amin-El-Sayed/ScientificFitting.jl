@@ -232,7 +232,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `m_emit - m_base` for both Planck's constant and the work function; the same
   contract is checked in the executable asset generator.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 619 checks. The gate first verifies that every page in the public
+  with 624 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -276,6 +276,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   verified first-user path. Installation distinguishes the local pre-release
   workflow from the future registry command, fitting/reporting from optional
   plotting dependencies, and one-time compilation from steady-state runtime.
+  It describes Julia 1.10/1.12 as the configured release matrix and retains the
+  still-unobserved complete remote run as a publication gate instead of claiming
+  that configuration alone proves support.
   The quickstart uses only the explicit arrays shown to the reader, renders a
   plot on the page, prints one real report plus one real diagnostic dashboard,
   and explains the prediction-band and `report` switches. Its documented output

@@ -1,7 +1,9 @@
 # Installation
 
-JuFitter supports Julia 1.10 and later. Julia 1.10 and Julia 1.12 are exercised
-by the release test matrix; Julia 1.10 is the compatibility floor.
+JuFitter declares support for Julia 1.10 and later. The CI workflow is
+configured to run the core and full-package gates on Julia 1.10 and Julia 1.12;
+the complete current matrix must pass before public release. Julia 1.10 is the
+compatibility floor.
 
 !!! note "Pre-release package"
     JuFitter is not registered yet and the repository must not be published

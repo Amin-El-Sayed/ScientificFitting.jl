@@ -176,6 +176,7 @@ end
         home = home_page_text()
         quickstart = quickstart_page_text()
         install = install_page_text()
+        readme = public_file_text(joinpath(ROOT, "README.md"))
 
         @test occursin("```@raw html\n<section class=\"jufitter-hero\">", home)
         @test occursin("data-jufitter-plot-group=\"home-first-fit\"", home)
@@ -186,6 +187,11 @@ end
         @test occursin("report=:both", quickstart)
         @test !occursin("println(report_text", quickstart)
         @test !occursin("Pkg.test()", install)
+        @test occursin(r"CI workflow is\s+configured", install)
+        @test occursin(r"must pass\s+before public release", install)
+        @test !occursin("are exercised by the release test matrix", install)
+        @test occursin(r"CI workflow is\s+configured", readme)
+        @test occursin(r"must pass\s+before publication", readme)
         @test !occursin("canonical=", documenter_make_text())
     end
 
