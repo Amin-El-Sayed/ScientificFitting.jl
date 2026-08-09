@@ -55,6 +55,7 @@ end
     @test missing == Symbol[]
 
     overview_text = _api_page_text(first(API_PAGES))
+    plotting_text = _api_page_text(last(API_PAGES))
     api_text = _api_reference_text()
     undocumented_on_page = Symbol[name for name in exports if !occursin(string(name), api_text)]
     @test undocumented_on_page == Symbol[]
@@ -94,6 +95,67 @@ end
         @test occursin("[Fitting](api_fitting.md)", overview_text)
         @test occursin("[Results And Diagnostics](api_results.md)", overview_text)
         @test occursin("[Plotting](api_plotting.md)", overview_text)
+    end
+
+    @testset "Plotting reference states the complete public contract" begin
+        required_sections = [
+            "## Choose The Plotting Entry Point",
+            "## Fit And Plot In One Call",
+            "## Plot An Existing Result",
+            "## Extend A Finished Figure",
+            "## Reuse The Visual Contract",
+            "## Residual, Pull, And Ratio Figures",
+            "## Profile And Contour Figures",
+            "## Export Semantics",
+            "## Failure Summary",
+        ]
+        @test all(section -> occursin(section, plotting_text), required_sections)
+
+        required_keywords = [
+            "report=:plot",
+            "fit_range",
+            "limit_padding",
+            "stats_panel_width",
+            "inside_stats_position",
+            "latex_stats",
+            "scatter_kwargs",
+            "xerrorbars_kwargs",
+            "band=:prediction",
+            "marginal_sigma",
+            "panel_status_mode",
+            "reference_line_kwargs",
+            "local_covariance",
+            "npoints_profile",
+            "max_points",
+        ]
+        @test all(keyword -> occursin(keyword, plotting_text), required_keywords)
+
+        for name in (
+            :fitplot,
+            :plot_fit,
+            :fit_axis,
+            :add_curve!,
+            :add_points!,
+            :add_vline!,
+            :add_hline!,
+            :add_vband!,
+            :add_hband!,
+            :plot_theme,
+            :plot_palette,
+            :plot_info_panel!,
+            :plot_residuals,
+            :plot_diagnostics,
+            :plot_profile,
+            :plot_contour,
+            :plot_profile_matrix,
+        )
+            @test occursin("JuFitter.$name", plotting_text)
+        end
+
+        @test occursin("does not depend on Makie", plotting_text)
+        @test occursin("does not perform another scan", plotting_text)
+        @test occursin("None of these helpers changes or reruns the fit", plotting_text)
+        @test occursin("nsigma`, negative/non-finite `limit_padding`", plotting_text)
     end
 
     @testset "Optional plotting boundary matches real methods" begin

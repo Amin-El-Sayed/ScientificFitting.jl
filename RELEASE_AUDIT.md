@@ -639,6 +639,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   gradients or shadows. Browser checks confirm no horizontal overflow, eight
   visible cards, exactly one rendered image per card, and correct switching
   among lab, screen, and article assets in light and dark appearance.
+- The plotting API reference now states the optimizer boundary, complete
+  keyword/default/return/failure contracts, uncertainty-band semantics,
+  extension points, and export behavior instead of relying on generated
+  docstrings alone. The audit also added explicit validation for finite positive
+  `nsigma` and finite non-negative `limit_padding`. The focused plot tests and
+  89-check API-reference gate pass. Browser verification at a 745 px viewport
+  also caught and fixed a navbar `width: 100%` plus margin overflow; rendered
+  content now satisfies `scrollWidth == viewportWidth`.
 
 ## Release Blockers
 

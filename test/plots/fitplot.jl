@@ -348,6 +348,9 @@ using Test
     @test_throws ArgumentError plot_fit(quick.result; theme=:unknown)
     @test_throws ArgumentError plot_fit(quick.result; theme=:dark, appearance=:light)
     @test_throws ArgumentError plot_fit(quick.result; fit_range=:unknown)
+    @test_throws ArgumentError plot_fit(quick.result; nsigma=0)
+    @test_throws ArgumentError plot_fit(quick.result; nsigma=Inf)
+    @test_throws ArgumentError plot_fit(quick.result; limit_padding=-0.01)
 
     contour_values = collect(range(-2.0, 2.0; length=17))
     contour_delta = [xv^2 + 0.5 * xv * yv + yv^2 for xv in contour_values, yv in contour_values]

@@ -81,6 +81,7 @@ html.theme--documenter-dark #documenter .docs-main header.docs-navbar {
   border: 1px solid var(--jufitter-line) !important;
   border-radius: 18px !important;
   margin: 1rem 1.4rem 1.7rem !important;
+  width: auto !important;
 }
 
 #documenter .docs-main .docs-navbar .breadcrumb a,

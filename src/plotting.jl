@@ -1118,6 +1118,9 @@ function plot_fit(
     band in (:confidence, :prediction, :none) || throw(ArgumentError("band must be :confidence, :prediction, or :none"))
     stats_position in (:inside, :right) || throw(ArgumentError("stats_position must be :inside or :right"))
     fit_range in (:axis, :data) || throw(ArgumentError("fit_range must be :axis or :data"))
+    isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and positive"))
+    isfinite(limit_padding) && limit_padding >= 0 ||
+        throw(ArgumentError("limit_padding must be finite and non-negative"))
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)

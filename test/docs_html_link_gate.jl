@@ -81,5 +81,9 @@ end
         @test occursin("data-flow-direction=\"top-to-bottom\"", architecture)
         @test occursin("FitProblem</code> or <code>LikelihoodFitProblem", architecture)
         @test !occursin("min-width: 1280px", css)
+        @test occursin(
+            "margin: 1rem 1.4rem 1.7rem !important;\n  width: auto !important;",
+            css,
+        )
     end
 end
