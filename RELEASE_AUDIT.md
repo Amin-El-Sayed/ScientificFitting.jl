@@ -101,6 +101,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   review at documentation scale verified the role comparison and custom
   Photoelectric/Poisson compositions, including real role and appearance
   switching. Final maintainer visual approval is still required.
+- The Profiles and Contours methods page now demonstrates profiling with an
+  analytic two-parameter correlated quadratic cost. At a forced one-standard-
+  error displacement, the frozen nuisance slice gives ``\Delta C=5.26`` while
+  the refitted profile gives ``\Delta C=1``. This makes the nuisance refit, the
+  local-parabola comparison, and the interpretation of profile-matrix geometry
+  independently checkable rather than relying on verbal instruction alone.
 - The contributor-facing backend design page now follows the implemented
   Gaussian and likelihood pipelines rather than repeating the introductory
   architecture graphic. Its source map, solver table, numerical invariants,

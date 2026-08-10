@@ -33,6 +33,46 @@ The refit matters. Holding nuisance parameters at their global best-fit values
 would produce a slice through the cost surface, usually overstating the
 information about ``a``.
 
+### Why A Profile Is Not A Slice
+
+Consider two standardized parameters with a correlated quadratic cost,
+
+```math
+\Delta C(a,b)
+=
+\frac{a^2-2\rho ab+b^2}{1-\rho^2},
+\qquad \rho=0.9.
+```
+
+The minimum is at ``a=b=0``. Now force ``a=1``. Keeping the nuisance parameter
+at its global best-fit value gives the vertical slice
+
+```math
+\Delta C(1,0)=\frac{1}{1-0.9^2}=5.26.
+```
+
+Profiling instead refits ``b``. The best conditional value is
+``b=\rho a=0.9``, giving
+
+```math
+\Delta C_\mathrm{prof}(1)=\Delta C(1,0.9)=1.
+```
+
+| treatment of ``b`` | conditional value | ``\Delta C`` at ``a=1`` |
+| --- | ---: | ---: |
+| frozen at the global minimum | ``0`` | ``5.26`` |
+| refitted for the forced value of ``a`` | ``0.9`` | ``1.00`` |
+
+The frozen slice would make ``a=1`` look more than two local standard errors
+away. The profile correctly recognizes that the correlated nuisance parameter
+can move with ``a``. This adjustment is not an optional numerical trick: it is
+the definition of uncertainty in ``a`` when ``b`` is unknown.
+
+For this exactly quadratic example, the profiled curve and the local covariance
+parabola agree. Their disagreement in a real fit is therefore useful evidence
+of nonlinearity, a bound, weak identification, or another failure of the local
+quadratic approximation.
+
 For two parameters, a contour fixes both coordinates and profiles all remaining
 nuisance parameters. Under Wilks' large-sample regularity conditions, common
 thresholds are:
