@@ -5,8 +5,10 @@ point-by-point uncertainties, a weighted fit, and a plot that states exactly
 what its uncertainty band means.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="screen" src="../assets/gallery/linear_calibration_screen_light.png" alt="Linear calibration fit in screen style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="screen" src="../assets/gallery/linear_calibration_screen_dark.png" alt="Linear calibration fit in dark screen style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="analysis" src="../assets/gallery/linear_calibration_analysis_light.png" alt="Linear calibration fit in analysis style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="analysis" src="../assets/gallery/linear_calibration_analysis_dark.png" alt="Linear calibration fit in dark analysis style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="presentation" src="../assets/gallery/linear_calibration_presentation_light.png" alt="Linear calibration fit in presentation style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="presentation" src="../assets/gallery/linear_calibration_presentation_dark.png" alt="Linear calibration fit in dark presentation style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="article" src="../assets/gallery/linear_calibration_article_light.png" alt="Linear calibration fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="article" src="../assets/gallery/linear_calibration_article_dark.png" alt="Linear calibration fit in article dark style">
 ```

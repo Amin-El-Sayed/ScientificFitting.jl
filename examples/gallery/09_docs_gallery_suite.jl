@@ -23,7 +23,6 @@ using SpecialFunctions
 
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
-const DOC_RENDER_WIDTH = 1280
 const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
 
@@ -66,7 +65,7 @@ end
 function style_variant_plot(
     result,
     name;
-    styles=(:screen, :article),
+    styles=(:analysis, :presentation, :article),
     plain=NamedTuple(),
     latex=plain,
     kwargs...,
@@ -75,7 +74,7 @@ function style_variant_plot(
 
     for style in styles, appearance in (:light, :dark)
         typography = style == :article ? latex : plain
-        output_defaults = style == :article ? (
+        output_defaults = style in (:presentation, :article) ? (
             show_stats=false,
             show_legend=true,
             legend_position=:lt,
@@ -93,36 +92,53 @@ function style_variant_plot(
     end
 end
 
-function gallery_output_panel!(
-    cell;
+function gallery_figure(style::Symbol, appearance::Symbol; height::Integer)
+    palette = plot_palette(style; appearance=appearance)
+    base_size = style == :analysis ?
+        palette.figure_size_with_panel : palette.figure_size_without_panel
+    # Compound figure-first plots use the same readable documentation width;
+    # the role still controls typography, axis grammar, and information density.
+    width = style == :analysis ? base_size[1] : max(base_size[1], 960)
+    return with_theme(plot_theme(style; appearance=appearance)) do
+        Figure(size=(width, height), backgroundcolor=palette.background_color)
+    end
+end
+
+function gallery_output!(
+    figure;
     style::Symbol,
     appearance::Symbol,
+    plot_rows,
+    legend_row::Integer,
     legend_source=nothing,
     legend_plots=nothing,
     legend_labels=nothing,
+    legend_nbanks::Integer=1,
     legend_kwargs=NamedTuple(),
     kwargs...,
 )
-    if style == :article
+    if style != :analysis
         palette = plot_palette(style; appearance=appearance)
         defaults = (
             framevisible=false,
-            tellwidth=true,
-            tellheight=false,
+            tellwidth=false,
+            tellheight=true,
             halign=:left,
-            valign=:top,
+            valign=:center,
+            orientation=:horizontal,
+            nbanks=legend_nbanks,
             labelsize=palette.legend_labelsize,
             patchsize=palette.legend_patchsize,
             rowgap=palette.legend_rowgap,
         )
         options = merge(defaults, legend_kwargs)
         return legend_source !== nothing ?
-            Legend(cell, legend_source; options...) :
-            Legend(cell, legend_plots, legend_labels; options...)
+            Legend(figure[legend_row, 1], legend_source; options...) :
+            Legend(figure[legend_row, 1], legend_plots, legend_labels; options...)
     end
 
     return plot_info_panel!(
-        cell;
+        figure[plot_rows, 2];
         theme=style,
         appearance=appearance,
         legend_source=legend_source,
@@ -146,7 +162,7 @@ function save_poisson_counts(
     counts,
     model,
     name;
-    style::Symbol=:screen,
+    style::Symbol=:analysis,
     appearance::Symbol=:light,
 )
     render_asset_group(name) || return nothing
@@ -158,9 +174,7 @@ function save_poisson_counts(
     band_color = (palette.band_color, max(palette.band_alpha, 0.16))
     residual_positive = fit_color
     residual_negative = palette.reference_color
-    fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(DOC_RENDER_WIDTH, 760), backgroundcolor=palette.background_color)
-    end
+    fig = gallery_figure(style, appearance; height=760)
     ax = Axis(fig[1, 1]; title="Radioactive decay with detector background", ylabel="counts per 10 s")
     xg = collect(range(minimum(x), maximum(x); length=300))
     yg = model(xg, result.params)
@@ -202,19 +216,23 @@ function save_poisson_counts(
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
         "P(D) = $(fmt_sig(deviance_pvalue, 4))",
     ]
-    gallery_output_panel!(
-        fig[1:2, 2];
+    gallery_output!(
+        fig;
         style=style,
         appearance=appearance,
+        plot_rows=1:2,
+        legend_row=3,
         legend_source=ax,
         title="Poisson likelihood fit",
         model_label=article ? L"\mu(t)=S_0 e^{-\lambda t}+B" : "μ(t) = S₀ exp(−λt) + B",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
     )
-    rowsize!(fig.layout, 1, Relative(0.72))
-    rowsize!(fig.layout, 2, Relative(0.28))
-    colgap!(fig.layout, 24)
+    row_fractions = style == :analysis ? (0.72, 0.28) : (0.62, 0.23)
+    for (row, fraction) in enumerate(row_fractions)
+        rowsize!(fig.layout, row, Relative(fraction))
+    end
+    style == :analysis && colgap!(fig.layout, 24)
     save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
 end
 
@@ -224,7 +242,7 @@ function save_histogram_fit(
     counts,
     expected_counts,
     name;
-    style::Symbol=:screen,
+    style::Symbol=:analysis,
     appearance::Symbol=:light,
 )
     render_asset_group(name) || return nothing
@@ -237,9 +255,7 @@ function save_histogram_fit(
     background_color = (palette.reference_color, 0.12)
     residual_positive = fit_color
     residual_negative = palette.reference_color
-    fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(DOC_RENDER_WIDTH, 760), backgroundcolor=palette.background_color)
-    end
+    fig = gallery_figure(style, appearance; height=760)
     article = style == :article
     ax = Axis(
         fig[1, 1];
@@ -311,19 +327,24 @@ function save_histogram_fit(
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
         "P(D) = $(fmt_sig(deviance_pvalue, 4))",
     ]
-    gallery_output_panel!(
-        fig[1:2, 2];
+    gallery_output!(
+        fig;
         style=style,
         appearance=appearance,
+        plot_rows=1:2,
+        legend_row=3,
+        legend_nbanks=2,
         legend_source=ax,
         title="Binned Poisson likelihood",
         model_label=article ? L"n_i \sim \mathrm{Poisson}(\mu_i)" : "nᵢ ~ Poisson(μᵢ)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
     )
-    rowsize!(fig.layout, 1, Relative(0.72))
-    rowsize!(fig.layout, 2, Relative(0.28))
-    colgap!(fig.layout, 24)
+    row_fractions = style == :analysis ? (0.72, 0.28) : (0.58, 0.22)
+    for (row, fraction) in enumerate(row_fractions)
+        rowsize!(fig.layout, row, Relative(fraction))
+    end
+    style == :analysis && colgap!(fig.layout, 24)
     save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
 end
 
@@ -379,7 +400,7 @@ function save_photoelectric_work_function(
     emission_mask,
     name;
     reference_frequency,
-    style::Symbol=:screen,
+    style::Symbol=:analysis,
     appearance::Symbol=:light,
 )
     render_asset_group(name) || return nothing
@@ -409,9 +430,7 @@ function save_photoelectric_work_function(
     emission_slope, emission_intercept = emission_result.params
     baseline_slope, baseline_intercept = baseline_result.params
 
-    fig = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(DOC_RENDER_WIDTH, 750), backgroundcolor=palette.background_color)
-    end
+    fig = gallery_figure(style, appearance; height=750)
     ax = Axis(
         fig[1, 1];
         title="Photoelectric work-function extraction",
@@ -517,10 +536,13 @@ function save_photoelectric_work_function(
             "baseline χ²/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
         ]
     end
-    gallery_output_panel!(
-        fig[1, 2];
+    gallery_output!(
+        fig;
         style=style,
         appearance=appearance,
+        plot_rows=1,
+        legend_row=2,
+        legend_nbanks=4,
         legend_source=ax,
         model_label=article ?
             L"U_{\mathrm{emit}}-U_{\mathrm{base}}=m_{\gamma}(\nu-\nu_0)" :
@@ -528,7 +550,7 @@ function save_photoelectric_work_function(
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
     )
-    colgap!(fig.layout, 18)
+    style == :analysis && colgap!(fig.layout, 18)
     save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
 end
 
@@ -583,7 +605,7 @@ style_variant_plot(
 
 # The same fit rendered for live analysis and figure-first article export.
 if render_asset_group("plot_style")
-    for style in (:screen, :article)
+    for style in (:analysis, :presentation, :article)
         typography = if style == :article
             (
                 title=L"\mathrm{Quickstart\ calibration}",
@@ -609,7 +631,7 @@ if render_asset_group("plot_style")
                 latex_stats=false,
             )
         end
-        output_defaults = style == :article ? (
+        output_defaults = style in (:presentation, :article) ? (
             show_stats=false,
             show_legend=true,
             legend_position=:lt,
@@ -731,7 +753,7 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     println("emission")
     println(diagnostic_dashboard_text(emission_result))
 end
-for style in (:screen, :article), appearance in (:light, :dark)
+for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
     save_photoelectric_work_function(
         emission_result,
         baseline_result,
@@ -978,7 +1000,7 @@ if render_asset_group("constraints_profiles")
         max_refinements=1,
     )
 
-    for style in (:screen, :article), appearance in (:light, :dark)
+    for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
         profile_figure = plot_profile(
             prof;
             theme=style,
@@ -1005,7 +1027,7 @@ if render_asset_group("constraints_profiles")
         )
         save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
-    for style in (:screen, :article), appearance in (:light, :dark)
+    for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
         matrix_parameter_names = style == :article ? [L"A", L"\tau", L"c"] :
             profile_overview_names
         matrix_figure = plot_profile_matrix(
@@ -1049,7 +1071,7 @@ emit_doc_output_snapshot("poisson_decay") do
     @printf("P(D) = %.3f\n", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
-for style in (:screen, :article), appearance in (:light, :dark)
+for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
     save_poisson_counts(
         poisson_result,
         x_counts,
@@ -1095,7 +1117,7 @@ emit_doc_output_snapshot("histogram_likelihood") do
     @printf("P(D) = %.3f\n", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
-for style in (:screen, :article), appearance in (:light, :dark)
+for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
     save_histogram_fit(
         hist_result,
         edges,

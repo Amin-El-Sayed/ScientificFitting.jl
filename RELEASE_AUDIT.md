@@ -37,7 +37,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   rendered links 2909, and the API-reference gate 89; Documenter also builds
   without warnings. Browser review confirmed the shortened navigation labels,
   no horizontal overflow at the checked desktop width, and correct
-  `screen/article` plus light/dark switching for the real profile-matrix assets.
+  `analysis`/`presentation`/`article` plus light/dark switching for the real
+  profile-matrix assets.
 
 - Julia 1.10.11 previously passed the Makie-free core gate with 432 checks and
   the full package test with 501 checks in an isolated environment resolved
@@ -82,38 +83,24 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The current plotting release slice passes locally with 123 focused API/layout
-  checks, 265 gallery-structure checks, 850 visual-asset checks, and 56
-  intentional PNG snapshot checks. The rendered documentation link gate passes
-  with 1940 checks and the public documentation hygiene gate with 533 checks.
-- The plot-style audit now defines exactly two maintained output contracts
-  rather than loosely related color variants. `:screen` is the readable
-  notebook/laboratory/documentation role with sans-serif typography, filled
-  observations, strong axes, quiet full guides, and a direct blue fit/band
-  hierarchy. `:article` is the vector-export role with scaled TeX typography,
-  hollow observations, a complete frame, inward ticks, no grid, and an
-  Okabe-Ito palette when multiple curves require color. Previous preset names
-  remain compatibility aliases of `:screen`; they no longer define separate
-  visual systems.
+- The current plotting release slice passes locally with 158 focused API/layout
+  checks, 289 gallery-structure checks, 1297 visual-asset checks, 83 visual
+  snapshot checks, and 713 public-documentation hygiene checks. Documenter
+  builds without warnings.
+- The plot-style audit defines exactly three maintained output contracts rather
+  than loosely related color variants. `:analysis` is the live notebook/lab
+  role with a complete result column. `:presentation` is a large sans-serif,
+  figure-first screen role. `:article` is the TeX, hollow-marker, full-frame
+  export role. Light/dark appearance is independent, previous names remain
+  compatibility aliases, and explicit Makie keyword overrides remain
+  authoritative.
 - Fit plots, residuals, diagnostics, profiles, contours, profile matrices,
   information panels, and compound gallery figures consume the same role
-  tokens. Explicit Makie keyword overrides remain authoritative. All 56
-  style/appearance gallery assets were regenerated from real fits and match the
-  tracked snapshot manifest. Browser review at documentation scale covers the
-  role comparison, the compound damped oscillator, and the profile matrix in
-  both roles. Subsequent maintainer review rejected the current visual result:
-  the roles remain too similar and text in several compound figures is too
-  small. These checks establish technical consistency, not release acceptance;
-  plot-role design is reopened as a dedicated v0 blocker.
-- The follow-up role pass changes composition rather than adding another
-  palette. `:screen` now defaults to the complete analysis record with legend,
-  model, parameters, and diagnostics; `:article` defaults to a figure-first
-  canvas with a compact legend and no result column. Explicit `show_stats` and
-  Makie keyword overrides remain authoritative. The standard fit gate passes
-  with 136 checks, the visual asset gate with 873 checks, and the 56 intentional
-  PNG snapshots were regenerated from real fits. Browser review verified all
-  eight gallery pages in screen/article and light/dark combinations with no
-  horizontal overflow. Final maintainer visual approval is still required.
+  tokens. All 81 current gallery PNGs were regenerated from real fits and match
+  the tracked snapshot manifest; obsolete `screen` assets were removed. Browser
+  review at documentation scale verified the role comparison and custom
+  Photoelectric/Poisson compositions, including real role and appearance
+  switching. Final maintainer visual approval is still required.
 - The contributor-facing backend design page now follows the implemented
   Gaussian and likelihood pipelines rather than repeating the introductory
   architecture graphic. Its source map, solver table, numerical invariants,
@@ -253,24 +240,24 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Its roughly 42-minute runtime is too slow for the default developer loop and
   remains a release/CI gate; focused reference and torture suites provide the
   edit-test loop.
-- `julia --project=. --startup-file=no test/plots/fitplot.jl` passes with 123
+- `julia --project=. --startup-file=no test/plots/fitplot.jl` passes with 158
   focused plot-regression checks locally, including structured-whitening error
   bars, prediction-band semantics, and the no-marginals failure path.
 - `julia --project=docs --startup-file=no docs/make.jl` passes locally. The
   build output is ignored and must not be committed.
 - `julia --project=. --startup-file=no test/docs_gallery_gate.jl` passes with
-  265 checks. The gate enforces the current release standard for every public
+  289 checks. The gate enforces the current release standard for every public
   gallery page:
   scientific question, data context, model/cost explanation, complete Julia
   code, real diagnostic output, interpretation, failure modes, explicit
   one-sigma semantics, valid image assets, and complete
-  `:screen`/`:article` light/dark plot-style coverage.
+  `:analysis`/`:presentation`/`:article` light/dark plot-style coverage.
   The Photoelectric Work Function checks additionally require the centered
   line parametrization and the baseline-corrected physical slope
   `m_emit - m_base` for both Planck's constant and the work function; the same
   contract is checked in the executable asset generator.
 - `julia --project=. --startup-file=no test/docs_public_release_gate.jl` passes
-  with 533 checks. The gate first verifies that every page in the public
+  with 713 checks. The gate first verifies that every page in the public
   Documenter navigation is covered, then scans those pages plus README for
   AI/placeholder wording, private local paths, author-handle leakage, and
   course-internal dataset language. It also rejects known stale public API
@@ -505,12 +492,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The XY-uncertainty and full-covariance gallery pages now use explicit
   notebook-style measured arrays in public code blocks, keep uncertainty-model
   construction separate from data generation, and provide real Makie-rendered
-  `:screen` and `:article` plot assets for light and dark documentation
-  appearances.
+  `:analysis`, `:presentation`, and `:article` plot assets for light and dark
+  documentation appearances.
 - The documentation style selector covers compound custom gallery figures as
   well as ordinary `plot_fit` figures: Poisson counts, histogram likelihoods,
   constraints/profile/contour plots, damped oscillator, and multi-dataset
-  calibration all render real Makie assets for both maintained roles and both
+  calibration all render real Makie assets for all maintained roles and both
   appearances.
 - The `How JuFitter Works` page now follows the implemented architecture in a
   bounded top-to-bottom flow: typed problem construction, validation, objective
@@ -565,8 +552,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   top-level `Engineering Notes` navigation block from returning.
 - Browser QA against a temporary local Documenter server verifies that the
   Poisson/histogram page loads and switches the visible dark-mode image sources
-  between `:article` and `:screen`
-  correctly.
+  among `:analysis`, `:presentation`, and `:article` correctly.
 - Static gallery image reference validation passes for all Markdown sources
   under `docs/src`.
 - The full core suite is now separated from plot rendering. It checks the
@@ -585,11 +571,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   provides. Its documented LaTeX/report combination is execution-checked; an
   uncovered empty-title conversion was fixed so automatic blank labels remain
   plain empty strings instead of invalid empty LaTeX expressions.
-- Focused plot regression tests passed with 136 checks for the superseded
-  three-role implementation. Maintainer review later rejected `:lab` as a
-  separate visual contract; the current two-role redesign is tracked in the
-  release blocker below. Light/dark appearance remains separate from style,
-  and the right-side report remains a reusable, left-aligned layout component.
+- Focused plot regression tests pass with 158 checks for the maintained
+  `:analysis`, `:presentation`, and `:article` contracts. Light/dark appearance
+  remains separate from style, and the right-side report remains a reusable,
+  left-aligned layout component.
   The same gate also covers compatibility
   aliases, public theme/palette access, invalid style combinations, and
   style-aware profile, contour, residual, and diagnostic plots. It now also
@@ -664,11 +649,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   width and explicit two-/one-column breakpoints. This replaces the previous
   auto-fit layout, which produced five narrow cards followed by an ambiguous
   three-card remainder. The sequence uses plain panels without decorative
-  gradients or shadows. The two-role browser rerun confirms no horizontal
+  gradients or shadows. The three-role browser rerun confirms no horizontal
   overflow, exactly one rendered light/dark asset per plot group, and correct
-  switching between `:screen` and `:article` on compound Poisson and histogram
-  pages. The obsolete `:lab` assets were removed rather than retained as a
-  duplicate visual contract.
+  switching between `:analysis`, `:presentation`, and `:article` on compound
+  Photoelectric and Poisson pages. Obsolete `screen` assets were removed rather
+  than retained beside their compatibility alias.
 - The plotting API reference now states the optimizer boundary, complete
   keyword/default/return/failure contracts, uncertainty-band semantics,
   extension points, and export behavior instead of relying on generated
@@ -680,13 +665,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
-- The plotting redesign exposes `:screen` and `:article`, with former style
-  names retained as compatibility aliases. The technical remediation is now
-  complete: the roles differ in default composition, meet explicit readability
-  floors, and pass fixed-size ordinary, compound, residual, profile-matrix, and
-  browser-switching checks. This remains a release block only until the
-  maintainer accepts the rendered figures; the repository must not be published
-  on the strength of automated visual gates alone.
+- The plotting redesign exposes `:analysis`, `:presentation`, and `:article`,
+  with former style names retained as compatibility aliases. The technical
+  remediation is complete: the roles differ in output job and composition,
+  meet explicit readability floors, and pass fixed-size ordinary, compound,
+  residual, profile-matrix, and browser-switching checks. This remains a release
+  block only until the maintainer accepts the rendered figures; the repository
+  must not be published on the strength of automated visual gates alone.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,

@@ -76,15 +76,15 @@ list as an ownership map, not a second architecture chapter.
 4. A standard right panel has one hierarchy: legend, model, parameters, then
    statistics. `plot_info_panel!`, `plot_theme`, and `plot_palette` are the
    shared composition hooks for compound figures.
-5. Plot roles are `:screen` and `:article`; light/dark appearance and explicit
-   element overrides are independent. The former `:lab`, `:workbench`,
-   `:modern`, and publication names are compatibility aliases, not extra designs.
-   Typography, markers, axes, grid, colors, bands, legends, and report panels
-   come from one central preset; compound figures consume those tokens rather
-   than branching on style or appearance locally. The default composition is
-   also part of the role: screen keeps the result column, article gives the
-   scientific axis the canvas and uses a compact legend unless the caller
-   explicitly requests `show_stats=true`.
+5. Plot roles are `:analysis`, `:presentation`, and `:article`; light/dark
+   appearance and explicit element overrides are independent. Analysis is the
+   live notebook/laboratory contract and includes the result column by default.
+   Presentation is a large, sans-serif, figure-first screen contract. Article
+   is a TeX, full-frame, figure-first export contract. The former style names
+   remain compatibility aliases, not extra designs. Typography, markers, axes,
+   grid, colors, bands, legends, and report panels come from one central preset;
+   compound figures consume those tokens rather than branching on style or
+   appearance locally. Explicit Makie keyword overrides remain authoritative.
 6. Annotation helpers validate coordinates, return Makie plot objects, and do
    not trigger a fit. Non-finite residual, pull, ratio, curve, line, or band
    coordinates fail clearly instead of disappearing in a renderer. Full-axis

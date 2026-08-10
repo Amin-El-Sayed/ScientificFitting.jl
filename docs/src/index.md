@@ -16,8 +16,10 @@
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="screen" src="assets/gallery/quickstart_linear_screen_light.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in screen style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="screen" src="assets/gallery/quickstart_linear_screen_dark.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in dark screen style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="analysis" src="assets/gallery/quickstart_linear_analysis_light.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in analysis style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="analysis" src="assets/gallery/quickstart_linear_analysis_dark.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in dark analysis style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="presentation" src="assets/gallery/quickstart_linear_presentation_light.png" alt="Weighted linear calibration in presentation style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="presentation" src="assets/gallery/quickstart_linear_presentation_dark.png" alt="Weighted linear calibration in dark presentation style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_light.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="home-first-fit" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_dark.png" alt="Weighted linear calibration with one-sigma prediction band and fit report in dark article style">
 <p class="jufitter-figure-note">Measured points, one-standard-deviation error bars, fitted model, one-sigma prediction band, and the numerical result share one figure. Use the controls above to change the documentation theme and plot style.</p>

@@ -77,8 +77,8 @@ figure = out.figure
 An explicit `show_stats=true` or `false` overrides the panel default selected
 by `report`. Any other `report` value raises `ArgumentError`.
 For `plot_fit`, use `show_stats` directly because no terminal report is emitted.
-Without an override, `:screen` includes the analysis panel and `:article`
-reserves the canvas for the figure.
+Without an override, `:analysis` includes the result panel; `:presentation` and
+`:article` reserve the canvas for the figure.
 
 ### Keyword routing
 
@@ -112,15 +112,16 @@ optional uncertainty band, and optional result panel. It does not modify
 |---|---:|---|
 | `filename` | `nothing` | Save during construction when a path is supplied. |
 | `format` | `:pdf` | Extension appended only when `filename` has no extension. |
-| `theme` | `:screen` | Maintained role: `:screen` or `:article`. |
+| `theme` | `:analysis` | Maintained role: `:analysis`, `:presentation`, or `:article`. |
 | `appearance` | `:auto` | `:light`, `:dark`, or `:auto`; `:auto` currently resolves to light. |
 | `theme_override` | `Theme()` | Makie theme merged after the selected JuFitter role. |
 | `figure_size` | role-dependent | Logical Makie canvas `(width, height)`; it does not set raster density. |
 | `tight_layout` | `true` | Trim layout whitespace while preserving the declared figure footprint. |
 
-The compatibility aliases are `:lab`, `:workbench`, `:modern`, `:clean`,
-`:minimal`, and `:showcase => :screen`, and `:publication`, `:paper`, and
-`:latex => :article`. New code should use only the two maintained names.
+The compatibility aliases are `:screen`, `:lab`, and `:workbench => :analysis`;
+`:modern`, `:clean`, `:minimal`, and `:showcase => :presentation`; and
+`:publication`, `:paper`, and `:latex => :article`. New code should use only
+the three maintained names.
 Unknown roles, unknown appearances, and contradictory
 `theme=:dark, appearance=:light` input raise `ArgumentError`.
 
@@ -169,7 +170,7 @@ remains available.
 
 | Keyword | Default | Contract |
 |---|---:|---|
-| `show_stats` | role-dependent | `true` for `:screen`, `false` for `:article`; an explicit Boolean always wins. |
+| `show_stats` | role-dependent | `true` for `:analysis`, `false` for `:presentation` and `:article`; an explicit Boolean always wins. |
 | `stats_position` | `:right` | `:right` or `:inside`. |
 | `inside_stats_position` | `:lt` | `:lt`, `:lb`, `:rt`, `:rb` and their long aliases. |
 | `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive pixel width. Fractions are clamped to 300--560 px. |
@@ -237,8 +238,8 @@ ordinary Makie plot attributes.
 ## Reuse The Visual Contract
 
 ```julia
-theme = plot_theme(:screen; appearance=:dark)
-style = plot_palette(:screen; appearance=:dark)
+theme = plot_theme(:analysis; appearance=:dark)
+style = plot_palette(:analysis; appearance=:dark)
 ```
 
 `plot_theme(style; appearance, theme_override)` returns the Makie `Theme` used
@@ -254,7 +255,7 @@ without copying private constants.
 ```julia
 plot_info_panel!(
     fig[1, 2];
-    theme=:screen,
+    theme=:analysis,
     appearance=:light,
     legend_plots=[data_plot, fit_plot],
     legend_labels=["data", "fit"],
@@ -292,7 +293,7 @@ value is zero and raises `ArgumentError` rather than plotting an infinity.
 Non-finite coordinates, values, or errors are rejected.
 
 Shared `plot_residuals` keywords are `filename=nothing`, `format=:pdf`,
-`theme=:screen`, `appearance=:auto`, `theme_override=Theme()`,
+`theme=:analysis`, `appearance=:auto`, `theme_override=Theme()`,
 `figure_size=(900, 520)`, `xlabel="x"`, `color=nothing`,
 `reference_color=nothing`, `marker=nothing`, `markersize=nothing`,
 `error_whiskerwidth=nothing`, `axis_kwargs`, `scatter_kwargs`, and
@@ -316,7 +317,7 @@ plot_profile(profile_result; local_sigma=result.param_stderr[i])
 
 | Keyword group | Keywords and defaults |
 |---|---|
-| Output and role | `filename=nothing`, `format=:pdf`, `theme=:screen`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(900, 620)` |
+| Output and role | `filename=nothing`, `format=:pdf`, `theme=:analysis`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(900, 620)` |
 | Labels | `title="Profile"`, `xlabel="parameter"`, `ylabel="Delta cost"` |
 | Profile | `line_color=nothing`, `line_width=nothing`, `profile_label="profile cost"`, `line_kwargs` |
 | Local approximation | `local_sigma=nothing`, `local_color=nothing`, `local_linewidth=nothing`, `local_linestyle=:dash`, `local_label="local covariance parabola"`, `local_line_kwargs` |
@@ -338,7 +339,7 @@ plot_contour(
 
 | Keyword group | Keywords and defaults |
 |---|---|
-| Output and role | `filename=nothing`, `format=:pdf`, `theme=:screen`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(820, 700)` |
+| Output and role | `filename=nothing`, `format=:pdf`, `theme=:analysis`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(820, 700)` |
 | Labels | `title="Contour"`, `xlabel="parameter 1"`, `ylabel="parameter 2"`, `axis_kwargs` |
 | Profile surface | `show_regions=true`, `show_profile_lines=false`, `level_colors=nothing`, `region_colors=nothing`, `line_color=nothing`, `contour_kwargs` |
 | Optional heatmap | `show_heatmap=false`, `colormap=:viridis`, `heatmap_kwargs` |
@@ -365,7 +366,7 @@ them. Its scan controls are `parameters=nothing`, `parameter_names=nothing`,
 `profile_threshold=1.0`, `contour_levels=[2.30, 6.18]`, `adaptive=false`,
 `max_refinements=2`, and `max_points=1200`.
 
-Both methods accept `filename=nothing`, `format=:pdf`, `theme=:screen`,
+Both methods accept `filename=nothing`, `format=:pdf`, `theme=:analysis`,
 `appearance=:auto`, `theme_override=Theme()`, `panel_status_mode=:issues`,
 `delta_max=nothing`, and `figure_size=nothing`. The precomputed-result method
 also accepts replacement `parameter_names` but no scan controls.

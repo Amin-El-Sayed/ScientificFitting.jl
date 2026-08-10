@@ -9,13 +9,13 @@ end
 
 using Distributions
 using JuFitter
+using LaTeXStrings
 using LinearAlgebra
 using Printf
 
 const MULTI_OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const MULTI_DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
-const MULTI_RENDER_WIDTH = 1280
 const MULTI_PX_PER_UNIT = 2.0
 
 function emit_multi_doc_output_snapshot(body::Function, id::AbstractString)
@@ -116,7 +116,7 @@ fmt(x, digits=4) = @sprintf("%.*g", digits, x)
 function save_multi_dataset_calibration(
     filename;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:screen,
+    style::Symbol=:analysis,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
 )
     MULTI_RENDER_PLOTS || return nothing
@@ -128,34 +128,42 @@ function save_multi_dataset_calibration(
     pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
     pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
     markers = [:circle, :rect, :diamond]
-    labels = ["channel A", "channel B", "channel C"]
+    article = style == :article
+    labels = article ?
+        Any[L"\mathrm{channel\ A}", L"\mathrm{channel\ B}", L"\mathrm{channel\ C}"] :
+        Any["channel A", "channel B", "channel C"]
     partial_maps = [[1, 2], [1, 3], [4, 5]]
     all_shared_maps = [[1, 2], [1, 3], [1, 4]]
 
+    base_size = style == :analysis ?
+        palette.figure_size_with_panel : palette.figure_size_without_panel
+    figure_width = style == :analysis ? base_size[1] : max(base_size[1], 960)
+    figure_height = style == :analysis ? 860 : 1040
     figure = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(MULTI_RENDER_WIDTH, 860), backgroundcolor=palette.background_color)
+        Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
     fit_axis = Axis(
         figure[1, 1];
-        title="Three-channel calibration transfer",
-        ylabel="channel response y (V)",
+        title=article ? L"\mathrm{Three-channel\ calibration\ transfer}" :
+            "Three-channel calibration transfer",
+        ylabel=article ? L"y\;(\mathrm{V})" : "channel response y (V)",
     )
     shared_pull_axis = Axis(
         figure[2, 1];
-        title="Pulls: shared gain",
+        title=article ? L"\mathrm{Pulls:\ shared\ gain}" : "Pulls: shared gain",
         titlealign=:left,
         titlesize=palette.subplot_titlesize,
         titlegap=palette.subplot_titlegap,
-        ylabel="pull rᵢ",
+        ylabel=article ? L"r_i" : "pull rᵢ",
     )
     partial_pull_axis = Axis(
         figure[3, 1];
-        title="Pulls: partial sharing",
+        title=article ? L"\mathrm{Pulls:\ partial\ sharing}" : "Pulls: partial sharing",
         titlealign=:left,
         titlesize=palette.subplot_titlesize,
         titlegap=palette.subplot_titlegap,
-        xlabel="reference input x",
-        ylabel="pull rᵢ",
+        xlabel=article ? L"x" : "reference input x",
+        ylabel=article ? L"r_i" : "pull rᵢ",
     )
 
     x_grid = collect(range(0.0, 10.0; length=300))
@@ -261,22 +269,24 @@ function save_multi_dataset_calibration(
             PolyElement(color=(palette.band_color, max(0.12, palette.band_alpha))),
         ],
     )
-    legend_labels = [
+    legend_labels = Any[
         labels...,
-        "partial-sharing model",
-        "all-shared-gain hypothesis",
-        "local 1σ fit band",
+        article ? L"\mathrm{partial-sharing\ model}" : "partial-sharing model",
+        article ? L"\mathrm{all-shared-gain\ hypothesis}" : "all-shared-gain hypothesis",
+        article ? L"\mathrm{local\ }1\sigma\mathrm{\ fit\ band}" : "local 1σ fit band",
     ]
-    if style == :article
+    if style != :analysis
         Legend(
-            figure[1:3, 2],
+            figure[4, 1],
             legend_elements,
             legend_labels;
             framevisible=false,
-            tellheight=false,
+            tellwidth=false,
+            tellheight=true,
             halign=:left,
-            valign=:top,
-            nbanks=1,
+            valign=:center,
+            orientation=:horizontal,
+            nbanks=3,
             labelsize=palette.legend_labelsize,
             patchsize=palette.legend_patchsize,
             rowgap=palette.legend_rowgap,
@@ -308,10 +318,11 @@ function save_multi_dataset_calibration(
         )
     end
 
-    rowsize!(figure.layout, 1, Relative(0.58))
-    rowsize!(figure.layout, 2, Relative(0.21))
-    rowsize!(figure.layout, 3, Relative(0.21))
-    colgap!(figure.layout, 24)
+    row_fractions = style == :analysis ? (0.58, 0.21, 0.21) : (0.50, 0.16, 0.16)
+    for (row, fraction) in enumerate(row_fractions)
+        rowsize!(figure.layout, row, Relative(fraction))
+    end
+    style == :analysis && colgap!(figure.layout, 24)
     save(filename, figure; px_per_unit=MULTI_PX_PER_UNIT)
 end
 
@@ -328,7 +339,7 @@ end
 
 if MULTI_RENDER_DOC_ASSETS
     mkpath(MULTI_DOC_ASSET_DIR)
-    for style in (:screen, :article), appearance in (:light, :dark)
+    for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
         save_multi_dataset_calibration(
             joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
             style=style,

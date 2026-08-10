@@ -6,9 +6,17 @@
     "documenter-light": "light",
     "documenter-dark": "dark",
   };
-  const plotStyles = ["screen", "article"];
-  const legacyScreenStyles = new Set(["lab", "workbench", "modern", "showcase"]);
-  const defaultPlotStyle = "screen";
+  const plotStyles = ["analysis", "presentation", "article"];
+  const legacyPlotStyles = new Map([
+    ["screen", "analysis"],
+    ["lab", "analysis"],
+    ["workbench", "analysis"],
+    ["modern", "presentation"],
+    ["clean", "presentation"],
+    ["minimal", "presentation"],
+    ["showcase", "presentation"],
+  ]);
+  const defaultPlotStyle = "analysis";
 
   try {
     const selectedTheme = window.localStorage && window.localStorage.getItem(themeStorageKey);
@@ -93,9 +101,10 @@
     try {
       const stored = window.localStorage && window.localStorage.getItem(plotStyleStorageKey);
       if (plotStyles.includes(stored)) return stored;
-      if (legacyScreenStyles.has(stored)) {
-        window.localStorage.setItem(plotStyleStorageKey, "screen");
-        return "screen";
+      if (legacyPlotStyles.has(stored)) {
+        const migrated = legacyPlotStyles.get(stored);
+        window.localStorage.setItem(plotStyleStorageKey, migrated);
+        return migrated;
       }
     } catch (_) {
       // Storage is optional; the selector should still work for this page.

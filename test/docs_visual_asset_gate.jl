@@ -6,7 +6,7 @@ const GALLERY_ASSETS = joinpath(DOCS_SRC, "assets", "gallery")
 
 const REQUIRED_STYLE_PAIRS = Set(
     (style, appearance)
-    for style in ("screen", "article")
+    for style in ("analysis", "presentation", "article")
     for appearance in ("light", "dark")
 )
 
@@ -98,7 +98,9 @@ end
         @test info.width >= 900
         @test info.height >= 500
         @test info.bytes >= 40_000
-        @test 1.0 <= info.width / info.height <= 2.4
+        # Stacked diagnostics legitimately use a slightly portrait canvas;
+        # reject only shapes that become impractical in the documentation.
+        @test 0.9 <= info.width / info.height <= 2.4
     end
 
     grouped = Dict{String,Vector{NamedTuple}}()
@@ -113,9 +115,9 @@ end
         @test REQUIRED_STYLE_PAIRS ⊆ observed
 
         # Light/dark assets must be interchangeable in-place. Different
-        # output roles may use different aspect ratios because screen keeps an
-        # analysis panel while article is figure-first.
-        for style in ("screen", "article")
+        # output roles may use different aspect ratios because analysis keeps
+        # a result panel while presentation and article are figure-first.
+        for style in ("analysis", "presentation", "article")
             style_records = filter(record -> record.style == style, group_records)
             dims = Set(
                 (infos[record.path].width, infos[record.path].height)
@@ -125,7 +127,7 @@ end
         end
 
         for record in group_records
-            @test record.style in ("screen", "article")
+            @test record.style in ("analysis", "presentation", "article")
             @test record.appearance in ("light", "dark")
         end
     end

@@ -272,7 +272,7 @@ end
         guide = profiles_page_text()
 
         @test occursin("data-jufitter-plot-group=\"statistics-profile-matrix\"", guide)
-        for style in ("screen", "article")
+        for style in ("analysis", "presentation", "article")
             @test occursin("data-jufitter-plot-style=\"$(style)\"", guide)
             @test occursin("saturation_profile_matrix_$(style)_light.png", guide)
             @test occursin("saturation_profile_matrix_$(style)_dark.png", guide)
@@ -286,7 +286,7 @@ end
         guide = plotting_page_text()
 
         @test occursin("(result, figure)", guide)
-        @test occursin("## Two Output Roles", guide)
+        @test occursin("## Three Output Roles", guide)
         @test occursin("report=:plot", guide)
         @test occursin("show_stats=true", guide)
         @test occursin("appearance=:auto` currently resolves to the light", guide)

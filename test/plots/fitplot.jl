@@ -196,7 +196,7 @@ using Test
         band=:confidence,
     ) !== nothing
 
-    screen_out = joinpath(mktempdir(), "fitplot_screen.png")
+    analysis_out = joinpath(mktempdir(), "fitplot_analysis.png")
     lab_out = joinpath(mktempdir(), "fitplot_lab.png")
     legacy_out = joinpath(mktempdir(), "fitplot_legacy_dark.png")
     article_out = joinpath(mktempdir(), "fitplot_article.png")
@@ -215,10 +215,10 @@ using Test
         x,
         y;
         sigma_y=sigma_y,
-        filename=screen_out,
+        filename=analysis_out,
         format=:png,
         report=:none,
-        theme=:screen,
+        theme=:analysis,
         parameter_names=["m", "b"],
     )
     fitplot(
@@ -244,50 +244,72 @@ using Test
         model_label="y = m x + b",
     )
 
-    @test isfile(screen_out)
+    @test isfile(analysis_out)
     @test isfile(lab_out)
     @test isfile(legacy_out)
     @test isfile(article_out)
     @test plot_theme(:modern; appearance=:dark) !== nothing
+    analysis_style = plot_palette(:analysis)
     screen_style = plot_palette(:screen)
     lab_style = plot_palette(:lab)
     modern_style = plot_palette(:modern)
     workbench_style = plot_palette(:workbench)
+    presentation_style = plot_palette(:presentation)
+    showcase_style = plot_palette(:showcase)
     article_style = plot_palette(:article)
-    @test lab_style == screen_style
-    @test modern_style == screen_style
-    @test workbench_style == screen_style
-    @test screen_style.data_marker == :circle
-    @test screen_style.xgridvisible && screen_style.ygridvisible
-    @test !screen_style.topspinevisible && !screen_style.rightspinevisible
+    @test screen_style == analysis_style
+    @test lab_style == analysis_style
+    @test workbench_style == analysis_style
+    @test modern_style == presentation_style
+    @test showcase_style == presentation_style
+    @test analysis_style.role == :analysis
+    @test presentation_style.role == :presentation
+    @test article_style.role == :article
+    @test analysis_style.default_show_stats
+    @test !presentation_style.default_show_stats
+    @test !article_style.default_show_stats
+    @test analysis_style.data_marker == :circle
+    @test analysis_style.xgridvisible && analysis_style.ygridvisible
+    @test !analysis_style.topspinevisible && !analysis_style.rightspinevisible
+    @test presentation_style.xgridvisible && presentation_style.ygridvisible
+    @test !presentation_style.topspinevisible && !presentation_style.rightspinevisible
     @test !article_style.xgridvisible && !article_style.ygridvisible
     @test article_style.topspinevisible && article_style.rightspinevisible
-    @test screen_style.titlealign == :left
+    @test analysis_style.titlealign == :left
+    @test presentation_style.titlealign == :left
     @test article_style.tickalign == 1.0
-    @test screen_style.ticklabelsize >= 22
-    @test screen_style.xlabelsize >= 28
-    @test screen_style.ylabelsize >= 28
-    @test screen_style.stats_fontsize >= 24
-    @test screen_style.legend_labelsize >= 22
-    @test screen_style.subplot_titlesize >= screen_style.ticklabelsize
+    @test analysis_style.ticklabelsize >= 22
+    @test analysis_style.xlabelsize >= 28
+    @test analysis_style.ylabelsize >= 28
+    @test analysis_style.stats_fontsize >= 24
+    @test analysis_style.legend_labelsize >= 22
+    @test analysis_style.subplot_titlesize >= analysis_style.ticklabelsize
+    @test presentation_style.ticklabelsize >= 24
+    @test presentation_style.xlabelsize >= 30
+    @test presentation_style.ylabelsize >= 30
+    @test presentation_style.legend_labelsize >= 24
     @test article_style.ticklabelsize >= 26
     @test article_style.xlabelsize >= 32
     @test article_style.ylabelsize >= 32
     @test article_style.stats_fontsize >= 30
     @test article_style.legend_labelsize >= 26
     @test article_style.subplot_titlesize >= article_style.ticklabelsize
-    @test minimum(style.spinewidth for style in (screen_style, article_style)) >= 1.5
-    @test maximum(style.error_whiskerwidth for style in (screen_style, article_style)) <= 6
+    @test minimum(style.spinewidth for style in
+        (analysis_style, presentation_style, article_style)) >= 1.5
+    @test maximum(style.error_whiskerwidth for style in
+        (analysis_style, presentation_style, article_style)) <= 6
     @test all(length(unique(style.series_colors)) == length(style.series_colors) for
-        style in (screen_style, article_style))
-    @test screen_style.fit_color == :dodgerblue
-    @test screen_style.band_color == screen_style.fit_color
-    @test screen_style.secondary_color == :red
+        style in (analysis_style, presentation_style, article_style))
+    @test analysis_style.fit_color == :dodgerblue
+    @test analysis_style.band_color == analysis_style.fit_color
+    @test analysis_style.secondary_color == :red
+    @test presentation_style.fit_color == :dodgerblue
+    @test presentation_style.band_color == presentation_style.fit_color
     @test article_style.fit_color == "#0072b2"
     @test article_style.secondary_color == "#d55e00"
     @test article_style.data_color == article_style.background_color
     @test article_style.data_strokecolor == article_style.axis_color
-    @test article_style.data_strokewidth > screen_style.data_strokewidth
+    @test article_style.data_strokewidth > analysis_style.data_strokewidth
 
     style_signature(style) = (
         style.data_marker,
@@ -298,35 +320,46 @@ using Test
         style.rightspinevisible,
         style.titlealign,
         style.tickalign,
+        style.default_show_stats,
+        style.ticklabelsize,
+        style.data_markersize,
     )
-    @test length(unique(style_signature.((screen_style, article_style)))) == 2
+    @test length(unique(style_signature.((
+        analysis_style,
+        presentation_style,
+        article_style,
+    )))) == 3
 
-    screen_axis = fit_axis(plot_fit(quick.result; theme=:screen, show_stats=false))
+    analysis_axis = fit_axis(plot_fit(quick.result; theme=:analysis, show_stats=false))
     lab_axis = fit_axis(plot_fit(quick.result; theme=:lab, show_stats=false))
     modern_axis = fit_axis(plot_fit(quick.result; theme=:modern, show_stats=false))
+    presentation_axis = fit_axis(plot_fit(quick.result; theme=:presentation, show_stats=false))
     article_axis = fit_axis(plot_fit(quick.result; theme=:article, show_stats=false))
-    @test screen_axis.xgridvisible[] && screen_axis.ygridvisible[]
+    @test analysis_axis.xgridvisible[] && analysis_axis.ygridvisible[]
     @test lab_axis.xgridvisible[] && lab_axis.ygridvisible[]
     @test !lab_axis.topspinevisible[] && !lab_axis.rightspinevisible[]
     @test modern_axis.xgridvisible[] && modern_axis.ygridvisible[]
+    @test presentation_axis.xgridvisible[] && presentation_axis.ygridvisible[]
     @test article_axis.topspinevisible[] && article_axis.rightspinevisible[]
 
     # Output roles differ in composition, not only in color and typography.
-    screen_default = plot_fit(quick.result; theme=:screen)
+    analysis_default = plot_fit(quick.result; theme=:analysis)
+    presentation_default = plot_fit(quick.result; theme=:presentation)
     article_default = plot_fit(quick.result; theme=:article)
     article_with_panel = plot_fit(quick.result; theme=:article, show_stats=true)
-    screen_without_panel = plot_fit(quick.result; theme=:screen, show_stats=false)
-    @test size(screen_default.scene) == screen_style.figure_size_with_panel
+    analysis_without_panel = plot_fit(quick.result; theme=:analysis, show_stats=false)
+    @test size(analysis_default.scene) == analysis_style.figure_size_with_panel
+    @test size(presentation_default.scene) == presentation_style.figure_size_without_panel
     @test size(article_default.scene) == article_style.figure_size_without_panel
     @test size(article_with_panel.scene) == article_style.figure_size_with_panel
-    @test size(screen_without_panel.scene) == screen_style.figure_size_without_panel
+    @test size(analysis_without_panel.scene) == analysis_style.figure_size_without_panel
 
-    panel_figure = with_theme(plot_theme(:screen)) do
+    panel_figure = with_theme(plot_theme(:analysis)) do
         Figure(size=(720, 420))
     end
     @test plot_info_panel!(
         panel_figure[1, 1];
-        theme=:screen,
+        theme=:analysis,
         model_label="y = m x + b",
         parameter_lines=["m = 1.0 +/- 0.1"],
         statistic_lines=["chi2/ndf = 1.0"],
@@ -358,6 +391,12 @@ using Test
     contour_values = collect(range(-2.0, 2.0; length=17))
     contour_delta = [xv^2 + 0.5 * xv * yv + yv^2 for xv in contour_values, yv in contour_values]
     contour_result = ContourResult((1, 2), contour_values, contour_values, contour_delta, contour_delta, [2.30, 6.18])
+    @test plotting_extension._contour_level_label(2.30) ==
+          "profile 1σ region (2 params, Δcost = 2.3)"
+    @test plotting_extension._local_contour_label([2.30, 6.18]) ==
+          "local covariance 1σ/2σ contours (parabolic approximation)"
+    @test plotting_extension._local_contour_label([1.0, 4.0]) ==
+          "local covariance contours (parabolic approximation)"
     contour_out = joinpath(mktempdir(), "contour_levels.png")
     heatmap_out = joinpath(mktempdir(), "contour_heatmap.png")
     failed_out = joinpath(mktempdir(), "contour_failed_refit.png")
@@ -435,7 +474,7 @@ using Test
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 2], panel_status_mode=:bad)
 
     residual_out = joinpath(mktempdir(), "residual_modern_dark.png")
-    diagnostics_out = joinpath(mktempdir(), "diagnostics_screen_dark.png")
+    diagnostics_out = joinpath(mktempdir(), "diagnostics_analysis_dark.png")
     @test plot_residuals(
         quick.result;
         filename=residual_out,

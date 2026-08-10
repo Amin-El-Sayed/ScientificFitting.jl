@@ -139,8 +139,10 @@ Next actions:
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="screen" src="assets/gallery/quickstart_linear_screen_light.png" alt="Quickstart calibration fit in screen style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="screen" src="assets/gallery/quickstart_linear_screen_dark.png" alt="Quickstart calibration fit in dark screen style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="analysis" src="assets/gallery/quickstart_linear_analysis_light.png" alt="Quickstart calibration fit in analysis style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="analysis" src="assets/gallery/quickstart_linear_analysis_dark.png" alt="Quickstart calibration fit in dark analysis style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="presentation" src="assets/gallery/quickstart_linear_presentation_light.png" alt="Quickstart calibration fit in presentation style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="presentation" src="assets/gallery/quickstart_linear_presentation_dark.png" alt="Quickstart calibration fit in dark presentation style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_light.png" alt="Quickstart calibration fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_dark.png" alt="Quickstart calibration fit in article dark style">
 ```

@@ -16,7 +16,6 @@ const DATA_FILE = joinpath(@__DIR__, "..", "data", "damped_oscillator", "pohl_wh
 const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
-const DOC_RENDER_WIDTH = 1280
 const DOC_PX_PER_UNIT = 2.0
 
 function load_damped_oscillator(path)
@@ -124,7 +123,7 @@ end
 
 function save_model_comparison(
     filename;
-    style::Symbol=:screen,
+    style::Symbol=:analysis,
     appearance::Symbol=:light,
 )
     RENDER_PLOTS || return nothing
@@ -138,13 +137,29 @@ function save_model_comparison(
     pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
     pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
     article = style == :article
-    fit_title = "Damped oscillator: frequency drift"
+    fit_title = article ? L"\mathrm{Damped\ oscillator:\ frequency\ drift}" :
+        "Damped oscillator: frequency drift"
+    constant_pull_title = article ? L"\mathrm{Pulls:\ constant-frequency\ model}" :
+        "Pulls: constant-frequency model"
+    drift_pull_title = article ? L"\mathrm{Pulls:\ frequency-drift\ model}" :
+        "Pulls: frequency-drift model"
     angle_label = article ? L"\varphi\;(\mathrm{rad})" : "angle φ (rad)"
     pull_label = article ? L"r_i" : "pull rᵢ"
     time_label = article ? L"t\;(\mathrm{s})" : "elapsed time t (s)"
+    prediction_label = article ? L"\mathrm{drift\ model:\ local\ }1\sigma\mathrm{\ prediction\ band}" :
+        "drift model: local 1σ prediction band"
+    constant_label = article ? L"\mathrm{constant-frequency\ model}" :
+        "constant-frequency model"
+    drift_label = article ? L"\mathrm{frequency-drift\ model}" :
+        "frequency-drift model"
+    measurement_label = article ? L"\mathrm{measured\ angle}" : "measured angle"
 
+    base_size = style == :analysis ?
+        palette.figure_size_with_panel : palette.figure_size_without_panel
+    figure_width = style == :analysis ? base_size[1] : max(base_size[1], 960)
+    figure_height = style == :analysis ? 860 : 1040
     figure = with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(DOC_RENDER_WIDTH, 860), backgroundcolor=palette.background_color)
+        Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
     fit_axis = Axis(
         figure[1, 1];
@@ -153,7 +168,7 @@ function save_model_comparison(
     )
     constant_pull_axis = Axis(
         figure[2, 1];
-        title="Pulls: constant-frequency model",
+        title=constant_pull_title,
         titlealign=:left,
         titlesize=palette.subplot_titlesize,
         titlegap=palette.subplot_titlegap,
@@ -161,7 +176,7 @@ function save_model_comparison(
     )
     drift_pull_axis = Axis(
         figure[3, 1];
-        title="Pulls: frequency-drift model",
+        title=drift_pull_title,
         titlealign=:left,
         titlesize=palette.subplot_titlesize,
         titlegap=palette.subplot_titlegap,
@@ -182,7 +197,7 @@ function save_model_comparison(
         drift_grid .- prediction_sigma,
         drift_grid .+ prediction_sigma;
         color=prediction_color,
-        label="drift model: local 1σ prediction band",
+        label=prediction_label,
     )
     lines!(
         fit_axis,
@@ -191,7 +206,7 @@ function save_model_comparison(
         color=constant_color,
         linestyle=:dash,
         linewidth=max(1.8, palette.fit_linewidth - 0.3),
-        label="constant-frequency model",
+        label=constant_label,
     )
     lines!(
         fit_axis,
@@ -199,7 +214,7 @@ function save_model_comparison(
         drift_grid;
         color=drift_color,
         linewidth=palette.fit_linewidth,
-        label="frequency-drift model",
+        label=drift_label,
     )
     errorbars!(fit_axis, time, angle, sigma_angle; color=palette.yerr_color, whiskerwidth=palette.error_whiskerwidth)
     errorbars!(
@@ -216,8 +231,8 @@ function save_model_comparison(
         time,
         angle;
         color=measurement_color,
-        markersize=max(6.0, 0.65 * palette.data_markersize),
-        label="measured angle",
+        markersize=max(7.5, 0.78 * palette.data_markersize),
+        label=measurement_label,
     )
     hidexdecorations!(fit_axis; grid=false)
 
@@ -225,7 +240,7 @@ function save_model_comparison(
     add_pull_reference!(constant_pull_axis, xmin, xmax, pull_1sigma, pull_2sigma, (foreground, 0.55))
     add_pull_reference!(drift_pull_axis, xmin, xmax, pull_1sigma, pull_2sigma, (foreground, 0.55))
     pull_linewidth = max(1.4, 0.45 * palette.fit_linewidth)
-    pull_markersize = max(5.5, 0.60 * palette.data_markersize)
+    pull_markersize = max(6.5, 0.64 * palette.data_markersize)
     lines!(
         constant_pull_axis,
         time,
@@ -271,14 +286,17 @@ function save_model_comparison(
     constant_status = status_text(diagnostic_dashboard(constant_result).status)
     drift_status = status_text(diagnostic_dashboard(drift_result).status)
 
-    if article
+    if style != :analysis
         Legend(
-            figure[1:3, 2],
+            figure[4, 1],
             fit_axis;
             framevisible=false,
-            tellheight=false,
+            tellwidth=false,
+            tellheight=true,
             halign=:left,
-            valign=:top,
+            valign=:center,
+            orientation=:horizontal,
+            nbanks=2,
             labelsize=palette.legend_labelsize,
             patchsize=palette.legend_patchsize,
             rowgap=palette.legend_rowgap,
@@ -312,17 +330,18 @@ function save_model_comparison(
         )
     end
 
-    rowsize!(figure.layout, 1, Relative(0.62))
-    rowsize!(figure.layout, 2, Relative(0.19))
-    rowsize!(figure.layout, 3, Relative(0.19))
-    colgap!(figure.layout, 18)
+    row_fractions = style == :analysis ? (0.62, 0.19, 0.19) : (0.50, 0.16, 0.16)
+    for (row, fraction) in enumerate(row_fractions)
+        rowsize!(figure.layout, row, Relative(fraction))
+    end
+    style == :analysis && colgap!(figure.layout, 18)
     save(filename, figure; px_per_unit=DOC_PX_PER_UNIT)
 end
 
 if RENDER_PLOTS
     if RENDER_DOC_ASSETS
         mkpath(DOC_ASSET_DIR)
-        for style in (:screen, :article), appearance in (:light, :dark)
+        for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
             save_model_comparison(
                 joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(appearance).png");
                 style=style,
@@ -332,7 +351,7 @@ if RENDER_PLOTS
     else
         mkpath(OUTPUT_DIR)
         output_path = joinpath(OUTPUT_DIR, "08_damped_oscillator_decay.png")
-        save_model_comparison(output_path; style=:screen, appearance=:light)
+        save_model_comparison(output_path; style=:analysis, appearance=:light)
         println("Saved figure to ", output_path)
     end
 end

@@ -136,7 +136,7 @@ html.theme--documenter-dark #documenter .docs-main header.docs-navbar {
   display: block !important;
 }
 
-[data-jufitter-plot-group][data-jufitter-plot-style]:not([data-jufitter-plot-style="screen"]) {
+[data-jufitter-plot-group][data-jufitter-plot-style]:not([data-jufitter-plot-style="analysis"]) {
   display: none !important;
 }
 

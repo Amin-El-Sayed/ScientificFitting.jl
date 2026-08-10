@@ -9,8 +9,10 @@ channels may use one common gain. The answer is no: channels A and B are
 compatible, while channel C requires a separate gain.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="screen" src="../assets/gallery/multi_dataset_shared_slope_screen_light.png" alt="Multi-dataset calibration transfer in screen style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="screen" src="../assets/gallery/multi_dataset_shared_slope_screen_dark.png" alt="Multi-dataset calibration transfer in dark screen style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="analysis" src="../assets/gallery/multi_dataset_shared_slope_analysis_light.png" alt="Multi-dataset calibration transfer in analysis style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="analysis" src="../assets/gallery/multi_dataset_shared_slope_analysis_dark.png" alt="Multi-dataset calibration transfer in dark analysis style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="presentation" src="../assets/gallery/multi_dataset_shared_slope_presentation_light.png" alt="Multi-dataset calibration transfer in presentation style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="presentation" src="../assets/gallery/multi_dataset_shared_slope_presentation_dark.png" alt="Multi-dataset calibration transfer in dark presentation style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="article" src="../assets/gallery/multi_dataset_shared_slope_article_light.png" alt="Multi-dataset calibration transfer in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="article" src="../assets/gallery/multi_dataset_shared_slope_article_dark.png" alt="Multi-dataset calibration transfer in article dark style">
 ```

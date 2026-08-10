@@ -19,7 +19,7 @@ fit = fitplot(
     p0=[0.3, 0.0, 0.0],
     sigma_y=sigma_y,
     filename=example_output("03_plot_customization.svg"),
-    theme=:screen,
+    theme=:analysis,
     theme_override=custom_theme,
     title="Quadratic calibration",
     model_label=L"y = a x^2 + b x + c",

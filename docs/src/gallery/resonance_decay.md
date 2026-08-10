@@ -16,8 +16,10 @@ an adequate description of the recorded motion, or whether the data require a
 small additional frequency drift.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="screen" src="../assets/gallery/damped_oscillator_decay_screen_light.png" alt="Damped oscillator model comparison in screen style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="screen" src="../assets/gallery/damped_oscillator_decay_screen_dark.png" alt="Damped oscillator model comparison in dark screen style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="analysis" src="../assets/gallery/damped_oscillator_decay_analysis_light.png" alt="Damped oscillator model comparison in analysis style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="analysis" src="../assets/gallery/damped_oscillator_decay_analysis_dark.png" alt="Damped oscillator model comparison in dark analysis style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="presentation" src="../assets/gallery/damped_oscillator_decay_presentation_light.png" alt="Damped oscillator model comparison in presentation style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="presentation" src="../assets/gallery/damped_oscillator_decay_presentation_dark.png" alt="Damped oscillator model comparison in dark presentation style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="article" src="../assets/gallery/damped_oscillator_decay_article_light.png" alt="Damped oscillator model comparison in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="article" src="../assets/gallery/damped_oscillator_decay_article_dark.png" alt="Damped oscillator model comparison in article dark style">
 ```

@@ -9,12 +9,13 @@ const _JF_DARK_MUTED = "#d3dae0"
 const _JF_DARK_GRID = "#73808d"
 
 const _JF_STYLE_ALIASES = Dict(
-    :lab => :screen,
-    :modern => :screen,
-    :workbench => :screen,
-    :clean => :screen,
-    :minimal => :screen,
-    :showcase => :screen,
+    :screen => :analysis,
+    :lab => :analysis,
+    :workbench => :analysis,
+    :modern => :presentation,
+    :clean => :presentation,
+    :minimal => :presentation,
+    :showcase => :presentation,
     :publication => :article,
     :paper => :article,
     :latex => :article,
@@ -27,19 +28,19 @@ function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     if theme == :dark
         appearance == :light &&
             throw(ArgumentError("theme=:dark conflicts with appearance=:light"))
-        return :screen, :dark
+        return :analysis, :dark
     end
 
     style = get(_JF_STYLE_ALIASES, theme, theme)
-    style in (:screen, :article, :custom) ||
+    style in (:analysis, :presentation, :article, :custom) ||
         throw(ArgumentError(
-            "theme must be :screen, :article, :custom, or a supported legacy alias",
+            "theme must be :analysis, :presentation, :article, :custom, or a supported legacy alias",
         ))
     return style, appearance == :auto ? :light : appearance
 end
 
 function _style_preset(style::Symbol, appearance::Symbol)
-    style == :custom && return _style_preset(:screen, appearance)
+    style == :custom && return _style_preset(:analysis, appearance)
 
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
@@ -48,11 +49,14 @@ function _style_preset(style::Symbol, appearance::Symbol)
     box = dark ? "#1b2027" : _JF_PAPER_SOFT
     box_stroke = dark ? "#65717d" : _JF_GRID
 
-    if style == :screen
-        # Stay close to Makie's native line-and-band grammar. JuFitter adds
-        # only a readable scientific hierarchy and semantic series colors.
+    if style == :analysis
+        # Analysis plots retain guides and the result panel so a fit can be
+        # judged while data are arriving. Colors follow Makie's direct
+        # blue/red line-and-band grammar rather than a JuFitter-only palette.
         fit = :dodgerblue
         return (
+            role=:analysis,
+            default_show_stats=true,
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, dark ? 0.34 : 0.46),
@@ -106,9 +110,71 @@ function _style_preset(style::Symbol, appearance::Symbol)
             ticksize=7.0,
             tickalign=0.0,
         )
+    elseif style == :presentation
+        # Presentation output is figure-first: large sans-serif text, strong
+        # marks, open axes, and no numerical report column by default.
+        fit = :dodgerblue
+        return (
+            role=:presentation,
+            default_show_stats=false,
+            background_color=paper,
+            axis_color=ink,
+            grid_color=(grid, dark ? 0.28 : 0.34),
+            data_color=ink,
+            data_marker=:circle,
+            data_markersize=13.0,
+            data_strokecolor=paper,
+            data_strokewidth=1.3,
+            fit_color=fit,
+            fit_linewidth=3.8,
+            band_color=fit,
+            band_alpha=dark ? 0.24 : 0.20,
+            xerr_color=(ink, dark ? 0.88 : 0.82),
+            yerr_color=(ink, dark ? 0.88 : 0.82),
+            error_whiskerwidth=4.5,
+            secondary_color=dark ? "#ff6b6b" : :red,
+            reference_color=dark ? :slategray1 : :gray35,
+            series_colors=dark ?
+                (fit, "#ff6b6b", "#70cfa8", :mediumpurple1, :slategray1) :
+                (fit, :red, :seagreen4, :slateblue, :gray35),
+            stats_color=ink,
+            stats_muted_color=ink,
+            stats_fontsize=27,
+            stats_box_color=box,
+            stats_box_strokecolor=box_stroke,
+            fontsize=26,
+            xlabelsize=33,
+            ylabelsize=33,
+            titlesize=40,
+            titlegap=20,
+            subplot_titlesize=31,
+            subplot_titlegap=10,
+            titlealign=:left,
+            ticklabelsize=26,
+            legend_labelsize=26,
+            legend_patchsize=(38, 22),
+            legend_rowgap=6,
+            panel_rowgap=3,
+            panel_sectiongap=11,
+            panel_gap=22,
+            figure_padding=(14, 18, 14, 14),
+            figure_size_with_panel=(1180, 700),
+            figure_size_without_panel=(960, 600),
+            xgridvisible=true,
+            ygridvisible=true,
+            gridwidth=1.0,
+            topspinevisible=false,
+            rightspinevisible=false,
+            spinewidth=2.0,
+            tickwidth=1.8,
+            ticksize=7.5,
+            tickalign=0.0,
+        )
     elseif style == :article
         fit = dark ? "#77bce6" : "#0072b2"
         return (
+            role=:article,
+            default_show_stats=false,
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, 0.0),
@@ -167,7 +233,9 @@ function _style_preset(style::Symbol, appearance::Symbol)
         )
     end
 
-    throw(ArgumentError("style presets are defined only for :screen and :article"))
+    throw(ArgumentError(
+        "style presets are defined only for :analysis, :presentation, and :article",
+    ))
 end
 
 function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Theme)
@@ -236,13 +304,13 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
 end
 
 """
-    plot_theme(theme=:screen; appearance=:auto, theme_override=Theme())
+    plot_theme(theme=:analysis; appearance=:auto, theme_override=Theme())
 
 Return the Makie theme used by JuFitter plots. Use this when composing a custom
 Makie figure that should remain visually consistent with `plot_fit`.
 """
 function plot_theme(
-    theme::Symbol=:screen;
+    theme::Symbol=:analysis;
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
 )
@@ -251,13 +319,13 @@ function plot_theme(
 end
 
 """
-    plot_palette(theme=:screen; appearance=:auto)
+    plot_palette(theme=:analysis; appearance=:auto)
 
 Return the visual tokens used by a JuFitter plot style. Besides data, fit,
 uncertainty-band, and error-bar defaults, the result exposes typography,
 layout, and color-safe multi-series tokens for custom Makie figures.
 """
-function plot_palette(theme::Symbol=:screen; appearance::Symbol=:auto)
+function plot_palette(theme::Symbol=:analysis; appearance::Symbol=:auto)
     style, resolved_appearance = _resolve_plot_style(theme, appearance)
     return _style_preset(style, resolved_appearance)
 end
@@ -674,7 +742,7 @@ end
 """
     plot_info_panel!(
         cell;
-        theme=:screen,
+        theme=:analysis,
         appearance=:auto,
         legend_source=nothing,
         legend_plots=nothing,
@@ -693,7 +761,7 @@ contract; explicit panel keywords remain authoritative.
 """
 function plot_info_panel!(
     cell;
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     legend_source=nothing,
     legend_plots=nothing,
@@ -928,7 +996,7 @@ end
         xgrid=nothing,
         filename=nothing,
         format=:pdf,
-        theme=:screen,
+        theme=:analysis,
         appearance=:auto,
         theme_override=Theme(),
         title=nothing,
@@ -989,13 +1057,13 @@ end
 
 Create a scientific fit plot with data, error bars, best-fit curve, optional
 uncertainty band, and an optional right-side information panel. Use
-`theme=:screen` for live analysis, notebooks, and documentation, or
-`theme=:article` for figure-first vector/article output. Unless overridden,
-screen plots include the result panel while article plots reserve the canvas
-for the scientific figure and place the legend in the axis. The former `:lab`, `:workbench`,
-`:modern`, and `:showcase` names remain aliases of `:screen` rather than
-separate cosmetic presets. `appearance=:light` or `:dark` controls the color
-scheme independently.
+`theme=:analysis` for live laboratory or notebook work,
+`theme=:presentation` for a large figure-first screen view, or
+`theme=:article` for TeX/vector article output. Unless overridden, analysis
+plots include the result panel while presentation and article plots reserve
+the canvas for the scientific figure and place the legend in the axis. Legacy
+style names remain compatibility aliases rather than additional cosmetic
+presets. `appearance=:light` or `:dark` controls the color scheme independently.
 `band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
 includes observation uncertainty in y and effective x uncertainty. With the
@@ -1009,7 +1077,7 @@ function plot_fit(
     xgrid=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title=nothing,
@@ -1077,7 +1145,7 @@ function plot_fit(
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)
     style = _style_preset(resolved_style, resolved_appearance)
-    show_stats = show_stats === nothing ? resolved_style != :article : show_stats
+    show_stats = show_stats === nothing ? style.default_show_stats : show_stats
     show_legend = show_legend === nothing ? true : show_legend
     panel_gap = panel_gap === nothing ? style.panel_gap : Float64(panel_gap)
     stats_fontsize = stats_fontsize === nothing ? style.stats_fontsize : Float64(stats_fontsize)
@@ -1431,6 +1499,23 @@ function _diagnostic_colors(style::Symbol, appearance::Symbol)
     )
 end
 
+_contour_level_name(level) =
+    isapprox(level, 2.30; atol=0.015) ? "1σ" :
+    isapprox(level, 6.18; atol=0.015) ? "2σ" : "Δcost"
+
+function _contour_level_label(level)
+    name = _contour_level_name(level)
+    level_text = _fmt_value(level; sigdigits=3)
+    return name == "Δcost" ? "profile contour Δcost = $level_text" :
+           "profile $name region (2 params, Δcost = $level_text)"
+end
+
+function _local_contour_label(levels)
+    names = _contour_level_name.(levels)
+    level_text = all(!=("Δcost"), names) ? "$(join(names, "/")) " : ""
+    return "local covariance $(level_text)contours (parabolic approximation)"
+end
+
 function _panel_status_color(status::Symbol, appearance::Symbol)
     dark = appearance == :dark
     status == :stop && return dark ? "#ff8a80" : "#a33a2b"
@@ -1477,7 +1562,7 @@ function _draw_panel_status!(
 end
 
 """
-    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:screen, ...)
+    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:analysis, ...)
 
 Plot a one-dimensional profile-likelihood scan.
 
@@ -1493,7 +1578,7 @@ function plot_profile(
     profile_result::ProfileResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Profile",
@@ -1589,7 +1674,7 @@ function plot_profile(
 end
 
 """
-    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:screen, ...)
+    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:analysis, ...)
 
 Plot a two-dimensional profile-likelihood contour grid.
 
@@ -1607,7 +1692,7 @@ function plot_contour(
     contour_result::ContourResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Contour",
@@ -1683,16 +1768,6 @@ function plot_contour(
         )
     end
 
-    contour_level_name(level) =
-        isapprox(level, 2.30; atol=0.015) ? "1σ" :
-        isapprox(level, 6.18; atol=0.015) ? "2σ" :
-        "Δcost"
-    contour_level_label(level) = begin
-        level_text = _fmt_value(level; sigdigits=3)
-        name = contour_level_name(level)
-        name == "Δcost" ? "profile contour Δcost = $level_text" :
-            "profile $name region (2 params, Δcost = $level_text)"
-    end
     contour_handles = Any[]
     contour_labels = String[]
     for (index, level) in enumerate(plot_levels)
@@ -1710,11 +1785,10 @@ function plot_contour(
             region_color = regions[mod1(index, length(regions))]
             push!(contour_handles, PolyElement(color=region_color, strokecolor=:transparent))
         end
-        push!(contour_labels, contour_level_label(level))
+        push!(contour_labels, _contour_level_label(level))
     end
 
-    local_handles = Any[]
-    local_labels = String[]
+    local_handle = nothing
     if local_covariance !== nothing
         cov = Matrix{Float64}(local_covariance)
         if size(cov) != (2, 2)
@@ -1747,9 +1821,12 @@ function plot_contour(
                     local_contour_kwargs,
                 )...,
             )
-            push!(local_handles, LineElement(color=local_line_color, linewidth=local_linewidth, linestyle=local_linestyle))
-            push!(local_labels, "local covariance ellipse (parabolic approx.)")
         end
+        local_handle = LineElement(
+            color=local_line_color,
+            linewidth=local_linewidth,
+            linestyle=local_linestyle,
+        )
     end
     finite_surface = replace(vec(contour_result.delta_cost), NaN => Inf)
     any(isfinite, finite_surface) ||
@@ -1778,9 +1855,9 @@ function plot_contour(
         labels = ["profile minimum"]
         append!(handles, contour_handles)
         append!(labels, contour_labels)
-        if !isempty(local_handles)
-            push!(handles, first(local_handles))
-            push!(labels, first(local_labels))
+        if local_handle !== nothing
+            push!(handles, local_handle)
+            push!(labels, _local_contour_label(plot_levels))
         end
         Legend(fig[1, 2], handles, labels; framevisible=false)
     end
@@ -1834,7 +1911,7 @@ function plot_profile_matrix(
     parameter_names=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     npoints_profile::Int=61,
@@ -1881,7 +1958,7 @@ function plot_profile_matrix(
     parameter_names=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     panel_status_mode::Symbol=:issues,
@@ -2140,7 +2217,7 @@ function plot_residuals(
     kind::Symbol=:pull,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 520),
@@ -2203,7 +2280,7 @@ function plot_diagnostics(
     result::FitResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:screen,
+    theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 900),

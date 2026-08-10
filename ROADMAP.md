@@ -48,7 +48,8 @@ Key deliverables:
 - `fitplot(...)` convenience API for common workflows.
 - Robust automatic margins for data, error bars, fit curves, bands, labels, and
   statistics panels.
-- Clean default theme plus `:paper`, `:latex`, and future gallery themes.
+- Three maintained output roles: live analysis, figure-first presentation, and
+  article export. Light/dark appearance remains an independent choice.
 - Optional residual or pull panel.
 - Clear controls for parameter/report display: plot, console, both, or none.
 - Multi-fit and multi-dataset plots as first-class workflows.
@@ -287,7 +288,7 @@ Deferred scientific architecture candidates:
 ## Phase 3.5: Diagnostic Plots and Contours
 
 Status: the scoped numerical diagnostics and plotting API are complete. The
-plot-style layer now has two distinct, tested contracts and regenerated
+plot-style layer now has three distinct, tested contracts with regenerated
 light/dark documentation assets; maintainer visual signoff remains the final
 v0 gate. Further automatic nonlinearity detection and richer combined
 dashboards remain post-v0 work.
@@ -328,26 +329,26 @@ Acceptance criteria:
 
 ### Plot-style release gate
 
-The latest review rejected `:lab` as a third visual role: it changed markers,
-frame, and density without solving a different output problem. The maintained
-preset layer therefore has two contracts. Laboratory inspection remains a
-workflow assembled from reports and diagnostics rather than a cosmetic theme.
-Keep Makie's native layout and styling machinery wherever it already solves the
-problem; JuFitter adds only fitting-specific defaults and composition.
+The maintained preset layer represents three output jobs, not cosmetic color
+variants. Keep Makie's native layout and styling machinery wherever it already
+solves the problem; JuFitter adds only fitting-specific defaults and
+composition.
 
-- `:screen` is the live-analysis, notebook, documentation, and presentation
-  role: readable sans-serif typography, filled observations, the direct
-  Beautiful Makie blue/red line-and-band hierarchy, visible guides, and strong
-  axes. Its default composition includes the result panel.
+- `:analysis` is the live-analysis and notebook role: readable sans-serif
+  typography, filled observations, visible guides, strong axes, and a complete
+  result column by default.
+- `:presentation` is the figure-first role for documentation, talks, and wide
+  notebook cells: large sans-serif type and marks, a compact legend, and no
+  numerical result column by default.
 - `:article` is the vector-export role: scaled TeX typography, hollow
   observations, a complete frame with inward ticks, no grid, and a color-safe
-  Okabe-Ito blue/vermillion palette. Its default is figure-first: no result
-  panel and a compact legend, with explicit overrides still authoritative.
+  Okabe-Ito palette. It is figure-first unless explicitly asked to show the
+  result panel.
 - Previous names remain compatibility aliases; they no longer claim separate
   visual semantics.
 - Focused tests enforce role differences, minimum readable dimensions, Makie
   override precedence, compound diagnostics, and fixed output footprints.
-- The documentation exposes both roles and swaps real light/dark assets.
+- The documentation exposes all three roles and swaps real light/dark assets.
   Compound figures use separate subplot typography so a readable main title
   cannot make residual-panel titles collide. Maintainer visual acceptance is
   still mandatory.

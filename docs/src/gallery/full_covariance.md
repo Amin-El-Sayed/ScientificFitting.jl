@@ -6,8 +6,10 @@ statistical problem. A covariance matrix is not a prettier way to draw error
 bars; it tells the fit which residual patterns are plausible together.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="screen" src="../assets/gallery/full_covariance_decay_screen_light.png" alt="Full covariance exponential fit in screen style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="screen" src="../assets/gallery/full_covariance_decay_screen_dark.png" alt="Full covariance exponential fit in dark screen style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="analysis" src="../assets/gallery/full_covariance_decay_analysis_light.png" alt="Full covariance exponential fit in analysis style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="analysis" src="../assets/gallery/full_covariance_decay_analysis_dark.png" alt="Full covariance exponential fit in dark analysis style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="presentation" src="../assets/gallery/full_covariance_decay_presentation_light.png" alt="Full covariance exponential fit in presentation style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="presentation" src="../assets/gallery/full_covariance_decay_presentation_dark.png" alt="Full covariance exponential fit in dark presentation style">
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="article" src="../assets/gallery/full_covariance_decay_article_light.png" alt="Full covariance exponential fit in article style">
 <img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="article" src="../assets/gallery/full_covariance_decay_article_dark.png" alt="Full covariance exponential fit in article dark style">
 ```

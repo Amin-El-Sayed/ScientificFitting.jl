@@ -2,13 +2,13 @@ using JuFitter
 using LaTeXStrings
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
-# A controlled style comparison: scientific content stays fixed while the two
+# A controlled style comparison: scientific content stays fixed while the three
 # maintained output roles change.
 x = collect(range(0.0, 10.0; length=90))
 sigma_y = 0.12 .+ 0.01 .* x
 y = @. 1.85 * x + 0.7 + sigma_y * sin(1.6 * x)
 
-for style in (:screen, :article)
+for style in (:analysis, :presentation, :article)
     typography = if style == :article
         (
             title=L"\mathrm{Controlled\ style\ comparison}",
@@ -48,7 +48,7 @@ for style in (:screen, :article)
         show_legend=true,
         stats_position=:right,
         stats_mode=:full,
-        report=:plot,
+        report=style == :analysis ? :plot : :none,
     )
 end
 
