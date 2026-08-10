@@ -124,6 +124,18 @@ using Test
             bounds=([0.0, -Inf], [2.0, Inf]),
             fixed_parameters=(index=1, value=3.0),
         )
+        @test_throws ArgumentError LikelihoodFitProblem(
+            p -> abs2(p[1] - 1.0),
+            nothing,
+            [1.0];
+            bounds=([0.0], [2.0]),
+            fixed_parameters=(index=1, value=3.0),
+            nobs=1,
+            cost_name=:custom,
+        )
+        @test_throws ArgumentError LikelihoodFitProblem(
+            p -> abs2(p[1]), nothing, [NaN]; nobs=1, cost_name=:custom
+        )
 
         prof = profile(bounded, 1; values=[1.0, 2.0, 3.0], on_failure=:inf)
         @test isfinite(prof.cost_values[1])

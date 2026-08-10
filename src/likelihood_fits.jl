@@ -10,6 +10,8 @@ the degrees of freedom.
 Nonlinear constraint callbacks receive the same complete `p` vector, including
 fixed parameters; JuFitter handles the reduced optimizer coordinates
 internally.
+Starting values must be finite. Fixed values are validated against declared
+bounds while the problem is constructed.
 For covariance, profile thresholds, and information criteria to have their
 documented interpretation, `objective` must use the `-2 log(L)` scale.
 Most users should prefer `fit_poisson_model`, `fit_histogram_model`,
@@ -72,19 +74,24 @@ function LikelihoodFitProblem(
 )
     p0_vec = _float_vector(p0)
     length(p0_vec) > 0 || throw(ArgumentError("p0 must contain at least one parameter"))
+    _assert_finite_vector("p0", p0_vec)
     nobs > 0 || throw(ArgumentError("nobs must be positive"))
     names = parameter_names === nothing ? nothing : collect(String, parameter_names)
     names === nothing || length(names) == length(p0_vec) || throw(ArgumentError("parameter_names length must match p0"))
+
+    normalized_bounds = _normalize_bounds(bounds, length(p0_vec))
+    normalized_fixed = _normalize_fixed_parameters(fixed_parameters, length(p0_vec))
+    _assert_fixed_parameters_within_bounds(normalized_fixed, normalized_bounds)
 
     return LikelihoodFitProblem(
         objective,
         gof,
         p0_vec,
-        _normalize_bounds(bounds, length(p0_vec)),
+        normalized_bounds,
         _normalize_constraints(constraints),
         _normalize_parameter_priors(parameter_priors, length(p0_vec)),
         _normalize_parameter_constraints(parameter_constraints, length(p0_vec)),
-        _normalize_fixed_parameters(fixed_parameters, length(p0_vec)),
+        normalized_fixed,
         Int(nobs),
         cost_name,
         names,

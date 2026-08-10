@@ -114,6 +114,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   PNG snapshots were regenerated from real fits. Browser review verified all
   eight gallery pages in screen/article and light/dark combinations with no
   horizontal overflow. Final maintainer visual approval is still required.
+- The contributor-facing backend design page now follows the implemented
+  Gaussian and likelihood pipelines rather than repeating the introductory
+  architecture graphic. Its source map, solver table, numerical invariants,
+  extension rules, and verification map are tied to current modules and tests.
+  The source audit also aligned the low-level likelihood constructor with the
+  Gaussian constructor: non-finite starts and fixed parameters outside declared
+  bounds now fail while constructing `LikelihoodFitProblem`, before solver
+  dispatch, with a focused torture regression.
 - The public gallery overview now contains only reader-facing learning paths,
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than

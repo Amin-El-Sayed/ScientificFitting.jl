@@ -1,188 +1,232 @@
 # Backend Design
 
-This page is for contributors and advanced users who need to audit how a fit is
-constructed. It records the numerical structure that must stay clear as
-JuFitter grows; public signatures and defaults remain in the
-[API Reference](api.md).
+This page is the contributor map for JuFitter's numerical core. It explains
+where statistical meaning is established, where numerical work happens, and
+which boundaries must not be blurred. User-facing signatures and defaults are
+documented in the [API Reference](api.md); the statistical derivations are in
+[Mathematics and Statistics](statistical_foundations.md).
 
-```@raw html
-<div class="jufitter-flow">
-  <div class="jufitter-flow-step"><strong>fit_model</strong><span>Normalizes user data and options.</span></div>
-  <div class="jufitter-flow-step"><strong>FitProblem</strong><span>Stores model, data, bounds, fixed parameters, priors, constraints.</span></div>
-  <div class="jufitter-flow-step"><strong>Evaluation Cache</strong><span>Prepares static covariance factors and reusable weights.</span></div>
-  <div class="jufitter-flow-step"><strong>Backend Choice</strong><span>Fast LsqFit path or general Optimization.jl path.</span></div>
-  <div class="jufitter-flow-step"><strong>Result</strong><span>Parameters, statistics, covariance, diagnostics.</span></div>
-  <div class="jufitter-flow-step"><strong>Output</strong><span>Reports and plots never change the numerical result.</span></div>
-</div>
-```
-
-## Separation Of Responsibilities
-
-The optimizer is not allowed to define the statistics. JuFitter separates the
-fit into:
+The central dependency direction is deliberately one-way:
 
 ```math
-\text{FitProblem} + \text{CostFunction} + \text{Optimizer}
-\longrightarrow
-\text{FitResult}.
+\begin{aligned}
+\text{public constructor}
+&\longrightarrow \text{validated problem} \\
+&\longrightarrow \text{objective and compatible solver} \\
+&\longrightarrow \text{result} \\
+&\longrightarrow \text{reports, diagnostics, profiles, and plots}.
+\end{aligned}
 ```
 
-The `FitProblem` stores data, model, uncertainty inputs, fixed parameters,
-bounds, priors, and constraints. The cost layer decides what is minimized. The
-optimizer only solves the numerical minimization problem.
+Later stages may inspect an earlier result. They must not reconstruct or mutate
+the statistical problem behind it.
 
-The low-level `fit(problem)` methods extend `StatsAPI.fit`; JuFitter does not
-create a competing generic with the same ecosystem-wide name.
+## Two Problem Families
 
-Plotting is a package extension, not a numerical backend dependency.
-`plotting_api.jl` defines the public plotting functions and informative
-fallbacks, while `ext/JuFitterCairoMakieExt.jl` loads the CairoMakie
-implementation from `plotting.jl`. Consequently `using JuFitter` keeps fitting,
-reports, diagnostics, profiles, and profile-matrix computation Makie-free;
-`using CairoMakie` activates rendering methods without changing a fit result.
+JuFitter has two normalized problem types because a residual vector and a
+general likelihood do not expose the same information.
 
-## Cost Functions
+| Normalized problem | Scientific payload and public path |
+|---|---|
+| `FitProblem` -> `FitResult` | Gaussian x-y data built by `fit_model` or `FitProblem`; stores the model, observations, uncertainty, and parameter controls; minimizes static ``\chi^2`` or normalized Gaussian ``-2\log L``. |
+| `LikelihoodFitProblem` -> `LikelihoodFitResult` | Counts, samples, indexed data, or custom objectives built by the likelihood helpers or `fit_custom`; stores the objective, optional goodness statistic, observation count, and parameter controls. |
 
-For Gaussian XY fits, JuFitter currently distinguishes:
+Both families share parameter bounds, fixed parameters, Gaussian parameter
+terms, nonlinear constraints, multistart selection, local covariance,
+diagnostics, and profile refits. They stay separate where their data contracts
+differ: a generic likelihood need not have x-y residuals, model predictions, or
+a natural fit curve.
 
-- `:chi2`: quadratic residual cost for static Gaussian uncertainties.
-- `:gaussian_likelihood`: full Gaussian likelihood cost on the ``-2\log L``
-  scale, including normalization and log-determinant terms.
+## One Fit, Step By Step
 
-`cost=:auto` chooses `:gaussian_likelihood` when the effective covariance
-depends on the parameters, especially for x uncertainties or model-relative y
-uncertainties. Otherwise it uses `:chi2`.
+### 1. Normalize and validate the scientific input
 
-For residuals
+Convenience functions construct a `FitProblem` or `LikelihoodFitProblem` before
+optimization begins. Problem construction and the public fit entry points copy
+numeric inputs into stable storage and reject mismatched dimensions, non-finite
+observations or starting values, non-positive standard deviations, invalid
+covariance matrices, inconsistent parameter indices, and fixed values outside
+declared bounds before solver dispatch.
+
+This boundary is intentional. A solver should never be asked to discover that a
+covariance matrix is not positive definite or that the model returned the wrong
+number of predictions.
+
+### 2. Map full parameters to optimizer coordinates
+
+The scientific model always sees the complete parameter vector. Fixed
+parameters are removed only from the optimizer-visible vector:
 
 ```math
-r(\theta)=y-m(x,\theta)
+q_{\mathrm{free}}
+\xrightarrow{\text{expand}}
+p_{\mathrm{full}}.
 ```
 
-and covariance ``V``, the chi-square cost is
+Bounds are reduced to the same free coordinates. Nonlinear constraint callbacks
+are wrapped so that user code still receives `p_full`. After fitting, free
+covariance and Jacobian blocks are embedded back into full parameter order.
+This single mapping is reused by ordinary fits, multistart candidates, profiles,
+and contours.
+
+### 3. Prepare reusable evaluation state
+
+Static Gaussian uncertainty is prepared outside repeated scalar objective
+evaluations:
+
+- diagonal errors become inverse standard deviations and a log determinant,
+- dense covariance becomes a Cholesky factor and a log determinant,
+- sparse covariance stays sparse on the compatible least-squares path,
+- `WhiteningOperator` keeps the supplied matrix-free operation and determinant,
+- correlated parameter constraints are factorized once.
+
+The general Gaussian path stores this state in `FitEvaluationCache`; likelihood
+fits use `LikelihoodEvaluationCache` for reusable parameter-constraint state.
+The LsqFit path prepares equivalent static weights directly for its native
+residual interface.
+
+Parameter-dependent covariance is not cached as if it were static. Effective
+x-error covariance and model-relative uncertainty must be recomputed at each
+parameter point because that dependence is part of the probability model.
+
+### 4. Construct exactly one objective
+
+For a Gaussian problem, `cost=:auto` selects static chi-square when the
+covariance is parameter independent:
 
 ```math
-\chi^2(\theta)=r(\theta)^T V^{-1}r(\theta).
+\chi^2(p)=r(p)^\mathsf{T}V^{-1}r(p).
 ```
 
-For the full Gaussian likelihood cost:
+When the effective covariance depends on the fitted parameters, it selects the
+normalized Gaussian objective:
 
 ```math
--2\log L(\theta)
-=
-n\log(2\pi)
-+
-\log\det V(\theta)
-+
-r(\theta)^T V(\theta)^{-1}r(\theta).
+-2\log L(p)
+=n\log(2\pi)+\log\det V(p)+r(p)^\mathsf{T}V(p)^{-1}r(p).
 ```
 
-The log determinant is essential when ``V`` depends on ``\theta``.
+The log determinant cannot be dropped in the second case. Doing so changes the
+optimum, not merely the reported normalization.
 
-## Backend Selection
+Likelihood problems provide their data objective directly on the ``-2\log L``
+scale. Gaussian parameter priors and correlated parameter constraints are then
+added by the shared parameter layer. Bounds and fixed parameters restrict the
+parameter space; they are not hidden penalty terms.
 
-The fast path uses `LsqFit` for unbounded static chi-square fits. Analytic
-Jacobians are forwarded to the backend when provided, and the weighted Jacobian
-computed by `LsqFit` is reused when constructing the `FitResult`.
+### 5. Dispatch only to a compatible solver
 
-The general path uses `Optimization.jl` for scalar objectives, bounds,
-constraints, priors, parameter-dependent covariance, and likelihood workflows.
+Solver selection follows the represented problem rather than a speed preference:
 
-An explicit backend request cannot weaken the statistical problem.
-`backend=:lsqfit` is rejected when the fit contains a non-chi-square cost,
-bounds, priors, parameter constraints, nonlinear constraints, active error
-components, or parameter-dependent covariance. Use `backend=:auto` unless a
-specific compatible backend is needed for a controlled comparison.
+| Condition | Backend |
+|---|---|
+| All parameters fixed | no optimizer; evaluate the complete result once |
+| Unbounded, static Gaussian chi-square without extra parameter terms | LsqFit least-squares path |
+| Bounds, priors, parameter constraints, parameter-dependent covariance, or likelihood objective | Optimization.jl with LBFGS |
+| Nonlinear equality or inequality constraints | Optimization.jl with IPNewton |
 
-No-op bounds such as `[-Inf, Inf]` are normalized and do not block the fast
-least-squares path. This matters because generic APIs often pass bounds even
-when they do not mathematically constrain the problem.
+An explicit `backend=:lsqfit` request is rejected if it would discard any part
+of the statistical problem. Backend selection may change how the same objective
+is minimized; it must never change which objective is being minimized.
 
-## Covariance and Whitening
+### 6. Build the result once
 
-Static uncertainty information is prepared in `FitEvaluationCache`.
+`FitResult` and `LikelihoodFitResult` are the numerical source of truth. Result
+construction records the selected minimum, solver status, parameter estimates,
+local parameter covariance, correlations, statistics, and diagnostics. Gaussian
+x-y results additionally retain model predictions, raw residuals, weighted
+residuals, and the weighted Jacobian.
 
-Diagonal covariance stores inverse standard deviations and log determinants.
-Dense static covariance stores a Cholesky factor and log determinant. Residuals
-are whitened by linear solves, not by multiplying with an explicit inverse
-matrix.
+For static least squares, local covariance comes from the weighted Jacobian. For
+Gaussian likelihood and general likelihood fits, it comes from the objective
+Hessian on the ``-2\log L`` scale. This covariance is a local approximation;
+profiles and contours remain separate refit operations when the cost is not
+locally quadratic.
 
-`WhiteningOperator` is the matrix-free static path. Its user function applies a
-complete operator ``W`` with ``W^T W=V^{-1}``; JuFitter applies the same
-operation to residuals and Jacobian columns. The supplied log determinant keeps
-the normalized Gaussian ``-2\log L`` value and information criteria consistent.
-The operator is exclusive with other observation-uncertainty inputs, so the
-cache never silently combines covariance models with unknown semantics.
+### 7. Read the result without changing it
 
-Parameter-dependent covariance remains dynamic by design. Recomputing the
-effective covariance for x uncertainties or model-relative uncertainty is part
-of the statistical model, not accidental overhead.
+`report_text`, `diagnose`, and `diagnostic_dashboard` consume result fields.
+`profile` and `contour` reuse the stored normalized problem, fix one or two
+parameters, and refit the remaining nuisance parameters. Plotting is an optional
+CairoMakie package extension and consumes the same result objects. None of these
+paths reruns or alters the original fit unless the API explicitly describes a
+profile or contour refit.
 
-## Parameter Mapping
+## Numerical Invariants
 
-Fixed parameters are removed from the optimizer-visible vector. JuFitter maps
-between:
+These are architectural rules, not implementation preferences.
 
-- the full parameter vector used by the model,
-- the free parameter vector used by the optimizer,
-- reported parameter estimates and uncertainties.
+| Invariant | Consequence |
+|---|---|
+| Statistical semantics precede solver choice. | An optimizer cannot silently drop bounds, priors, constraints, or covariance terms. |
+| Covariance is applied by factorization, solves, or a validated whitening operation. | Production cost evaluation does not form an explicit covariance inverse. |
+| Numerical repairs are visible. | Invalid inputs fail; JuFitter does not add hidden diagonal jitter to make a covariance appear usable. |
+| Static work stays outside the hot objective. | Repeated evaluations reuse factors, determinants, and prepared constraint state. |
+| Full and free parameter order have one mapping. | Fixed parameters, callbacks, covariance dimensions, ndf, profiles, and reports remain consistent. |
+| ``-2\log L`` is the likelihood scale. | Hessian covariance, likelihood-ratio thresholds, AIC, and BIC use one convention. |
+| A local covariance is not a coverage guarantee. | Diagnostics expose suspect curvature; profile and contour results remain first-class outputs. |
+| Plotting is optional. | `using JuFitter` provides fitting, reports, diagnostics, and profiles without loading Makie. |
 
-This keeps fixed parameters, priors, bounds, covariance dimensions, and degrees
-of freedom consistent. A fixed parameter is still part of the scientific model,
-so it must satisfy any declared bound for that parameter. Profile and contour
-refits use the same rule; a scan point outside a bound is a failed refit, not a
-valid uncertainty point.
+The durable review and ownership version of these rules lives in the root-level
+`MAINTAINERS.md` file in the source checkout.
 
-## Diagnostics
+## Source Map
 
-`FitDiagnostics` records warnings, condition numbers, active bounds, and
-structured diagnostic findings. The diagnostics layer must remain separate from
-the numerical result: it interprets the result, but it does not silently repair
-or modify it.
+The core is split by responsibility rather than by feature-specific vertical
+stacks.
 
-Important cases that must stay visible:
+| Source | Owns |
+|---|---|
+| `types.jl` | validated problem/result types, uncertainty inputs, and in-place wrappers |
+| `parameters.jl` | full/free parameter mapping, fixed parameters, bounds, and multistart candidates |
+| `weights.jl` | covariance preparation, whitening, weighted residuals/Jacobians, local covariance helpers, backend compatibility |
+| `costs.jl` | chi-square, normalized Gaussian likelihood, priors, and correlated parameter terms |
+| `fit.jl` | Gaussian solver dispatch and `FitResult` construction |
+| `likelihood_fits.jl` | likelihood problem construction, wrappers, solver path, and `LikelihoodFitResult` |
+| `profile.jl` | fixed-parameter refits, profile intervals, contours, matrix summaries, and their diagnostics |
+| `diagnostics.jl` | structured findings, severity, evidence, and next actions |
+| `report.jl` | Makie-free report objects and text formatting |
+| `plotting_api.jl` | public plotting boundary and informative fallback methods |
+| `ext/JuFitterCairoMakieExt.jl` plus `plotting.jl` | CairoMakie rendering only |
 
-- optimizer non-convergence,
-- non-positive degrees of freedom,
-- unavailable goodness-of-fit statistics,
-- ill-conditioned covariance or Hessian matrices,
-- active bounds,
-- strong parameter correlations,
-- suspicious residual structure,
-- failed profile or contour refits,
-- non-finite or non-positive-semidefinite local parameter covariance.
+This map is also a review rule. For example, a plotting feature should not add a
+second statistical calculation, and a new optimizer should not own covariance
+semantics.
 
-## Scaling Limits
+## Where A New Feature Belongs
 
-Diagonal and uncorrelated problems are the target class for very large datasets.
-Dense covariance matrices are supported and tested, but they scale as `O(n^2)`
-memory and `O(n^3)` factorization time.
+Before adding a type or abstraction, first ask whether an existing problem can
+already express the required statistics.
 
-Large correlated datasets can provide a `WhiteningOperator` instead of a dense
-matrix. Its cost and storage are defined by the application-specific operation;
-an AR(1) recurrence is ``O(n)`` in both time and working memory. Built-in
-banded, Toeplitz, low-rank-plus-diagonal, and sparse-precision wrappers remain
-future extensions. This is a data-structure problem, not a micro-optimization
-of dense matrices.
+| Change | Preferred integration |
+|---|---|
+| New convenience fitting function | validate its domain-specific inputs, then construct an existing problem type |
+| New static uncertainty representation | add validation, preparation/whitening, determinant semantics, and an analytic covariance reference |
+| New likelihood family | provide a ``-2\log L`` objective, a justified goodness statistic when one exists, and an explicit observation count |
+| New numerical backend | add a compatibility predicate and prove that the represented objective is unchanged |
+| New diagnostic | consume a result or profile object and return structured evidence plus an action |
+| New report or plot | consume existing result fields; keep rendering inside the optional extension |
 
-Large ordinary least-squares problems can use `fit_model(...; inplace=true)`
-with `model!(out, x, p)` and, optionally, `jacobian!(J, x, p)`. The LsqFit path
-then evaluates model values and residuals in reusable solver buffers. General
-constrained and parameter-dependent-covariance objectives retain the same user
-contract, but automatic differentiation still requires temporary dual-number
-buffers.
+Do not add a parallel result type, cache, or solver path merely to support a new
+presentation. Small APIs that compose existing contracts are easier to audit
+than duplicated feature stacks.
 
-## Extension Points
+## Verification Map
 
-The main backend extension points are:
+Architecture changes need evidence at the layer they affect:
 
-- built-in structured covariance wrappers on top of the whitening contract,
-- parameter-dependent and structured x-covariance operators,
-- in-place likelihood and custom-objective evaluation,
-- analytic Jacobian hooks for likelihood workflows,
-- optimizer fallback and parameter scaling policies,
-- stronger profile/contour refinement,
-- ODE/PDE model adapters once the base fitting API is stable.
+| Claim | Primary evidence |
+|---|---|
+| Gaussian values, covariance, normalization, and constraints | `test/statistics/linear_gaussian_reference.jl` and `covariance_semantics_reference.jl` |
+| Poisson, histogram, unbinned, extended, indexed, and multi-fit semantics | `test/statistics/likelihood_reference.jl` |
+| Profiles, contours, local approximations, and failed refits | `test/statistics/profile_contour_reference.jl` |
+| Structured matrix-free covariance | `test/statistics/structured_whitening_reference.jl` |
+| In-place models and Jacobians | `test/numerics/inplace_model_reference.jl` |
+| Invalid scientific and numerical inputs | `test/numerics/torture_inputs.jl` |
+| Public compatibility and optional plotting boundary | `test/regression/current_api.jl` |
+| Steady-state hot-path budgets | `test/performance_budget_gate.jl` |
+| Plot composition and extension behavior | `test/plots/fitplot.jl` |
 
-Every extension should add reference tests before changing statistical
-semantics and benchmark coverage before changing a hot path.
+The core gate is `julia --project=. test/core_runtests.jl`; the complete package
+gate is `julia --project=. test/runtests.jl`. Performance methodology and the
+benchmark runner are documented on the [Performance](performance.md) page.
