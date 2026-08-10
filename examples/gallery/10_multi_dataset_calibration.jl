@@ -261,35 +261,52 @@ function save_multi_dataset_calibration(
             PolyElement(color=(palette.band_color, max(0.12, palette.band_alpha))),
         ],
     )
-    plot_info_panel!(
-        figure[1:3, 2];
-        legend_plots=legend_elements,
-        legend_labels=[
-            labels...,
-            "partial-sharing model",
-            "all-shared-gain hypothesis",
-            "local 1σ fit band",
-        ],
-        legend_kwargs=(nbanks=2,),
-        title="Partial-sharing result",
-        parameter_lines=[
-            "gain A/B = $(fmt(partial_shared_result.params[1], 6)) ± $(fmt(partial_shared_result.param_stderr[1], 2))",
-            "gain C = $(fmt(partial_shared_result.params[4], 6)) ± $(fmt(partial_shared_result.param_stderr[4], 2))",
-            "gain C − gain A/B = $(fmt(gain_gap, 5)) ± $(fmt(sigma_gain_gap, 2))",
-            "difference = $(fmt(gain_gap / sigma_gain_gap, 3))σ from zero",
-        ],
-        statistic_lines=[
-            "all-shared: χ²/ndf = $(fmt(all_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(all_shared_result.stats.pvalue, 4))",
-            "all-shared: AIC = $(fmt(all_shared_result.stats.aic, 5))",
-            "partial-sharing: χ²/ndf = $(fmt(partial_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(partial_shared_result.stats.pvalue, 4))",
-            "partial-sharing: AIC = $(fmt(partial_shared_result.stats.aic, 5))",
-            "nested test: Δχ² = $(fmt(delta_chi2, 5)), p = $(fmt(nested_pvalue, 3))",
-            "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))",
-            "Do not transfer channel C's gain.",
-        ],
-        theme=style,
-        appearance=appearance,
-    )
+    legend_labels = [
+        labels...,
+        "partial-sharing model",
+        "all-shared-gain hypothesis",
+        "local 1σ fit band",
+    ]
+    if style == :article
+        Legend(
+            figure[1:3, 2],
+            legend_elements,
+            legend_labels;
+            framevisible=false,
+            tellheight=false,
+            halign=:left,
+            valign=:top,
+            nbanks=1,
+            labelsize=palette.legend_labelsize,
+            patchsize=palette.legend_patchsize,
+            rowgap=palette.legend_rowgap,
+        )
+    else
+        plot_info_panel!(
+            figure[1:3, 2];
+            legend_plots=legend_elements,
+            legend_labels=legend_labels,
+            legend_kwargs=(nbanks=2,),
+            title="Partial-sharing result",
+            parameter_lines=[
+                "gain A/B = $(fmt(partial_shared_result.params[1], 6)) ± $(fmt(partial_shared_result.param_stderr[1], 2))",
+                "gain C = $(fmt(partial_shared_result.params[4], 6)) ± $(fmt(partial_shared_result.param_stderr[4], 2))",
+                "gain C − gain A/B = $(fmt(gain_gap, 5)) ± $(fmt(sigma_gain_gap, 2))",
+                "difference = $(fmt(gain_gap / sigma_gain_gap, 3))σ from zero",
+            ],
+            statistic_lines=[
+                "all-shared: χ²/ndf = $(fmt(all_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(all_shared_result.stats.pvalue, 4))",
+                "all-shared: AIC = $(fmt(all_shared_result.stats.aic, 5))",
+                "partial-sharing: χ²/ndf = $(fmt(partial_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(partial_shared_result.stats.pvalue, 4))",
+                "partial-sharing: AIC = $(fmt(partial_shared_result.stats.aic, 5))",
+                "nested test: Δχ² = $(fmt(delta_chi2, 5)), p = $(fmt(nested_pvalue, 3))",
+                "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))",
+                "Do not transfer channel C's gain.",
+            ],
+            theme=style,
+            appearance=appearance,
+        )
+    end
 
     rowsize!(figure.layout, 1, Relative(0.58))
     rowsize!(figure.layout, 2, Relative(0.21))

@@ -81,7 +81,10 @@ list as an ownership map, not a second architecture chapter.
    `:modern`, and publication names are compatibility aliases, not extra designs.
    Typography, markers, axes, grid, colors, bands, legends, and report panels
    come from one central preset; compound figures consume those tokens rather
-   than branching on style or appearance locally.
+   than branching on style or appearance locally. The default composition is
+   also part of the role: screen keeps the result column, article gives the
+   scientific axis the canvas and uses a compact legend unless the caller
+   explicitly requests `show_stats=true`.
 6. Annotation helpers validate coordinates, return Makie plot objects, and do
    not trigger a fit. Non-finite residual, pull, ratio, curve, line, or band
    coordinates fail clearly instead of disappearing in a renderer. Full-axis

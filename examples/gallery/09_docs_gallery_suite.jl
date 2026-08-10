@@ -75,15 +75,62 @@ function style_variant_plot(
 
     for style in styles, appearance in (:light, :dark)
         typography = style == :article ? latex : plain
+        output_defaults = style == :article ? (
+            show_stats=false,
+            show_legend=true,
+            legend_position=:lt,
+            figure_size=nothing,
+        ) : NamedTuple()
+        plot_kwargs = merge((; kwargs...), output_defaults)
         figure = plot_fit(
             result;
-            kwargs...,
+            plot_kwargs...,
             typography...,
             theme=style,
             appearance=appearance,
         )
         save_gallery_figure("$(name)_$(style)_$(appearance).png", figure)
     end
+end
+
+function gallery_output_panel!(
+    cell;
+    style::Symbol,
+    appearance::Symbol,
+    legend_source=nothing,
+    legend_plots=nothing,
+    legend_labels=nothing,
+    legend_kwargs=NamedTuple(),
+    kwargs...,
+)
+    if style == :article
+        palette = plot_palette(style; appearance=appearance)
+        defaults = (
+            framevisible=false,
+            tellwidth=true,
+            tellheight=false,
+            halign=:left,
+            valign=:top,
+            labelsize=palette.legend_labelsize,
+            patchsize=palette.legend_patchsize,
+            rowgap=palette.legend_rowgap,
+        )
+        options = merge(defaults, legend_kwargs)
+        return legend_source !== nothing ?
+            Legend(cell, legend_source; options...) :
+            Legend(cell, legend_plots, legend_labels; options...)
+    end
+
+    return plot_info_panel!(
+        cell;
+        theme=style,
+        appearance=appearance,
+        legend_source=legend_source,
+        legend_plots=legend_plots,
+        legend_labels=legend_labels,
+        legend_kwargs=legend_kwargs,
+        kwargs...,
+    )
 end
 
 function poisson_deviance_residuals(counts, expected)
@@ -155,15 +202,15 @@ function save_poisson_counts(
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
         "P(D) = $(fmt_sig(deviance_pvalue, 4))",
     ]
-    plot_info_panel!(
+    gallery_output_panel!(
         fig[1:2, 2];
+        style=style,
+        appearance=appearance,
         legend_source=ax,
         title="Poisson likelihood fit",
         model_label=article ? L"\mu(t)=S_0 e^{-\lambda t}+B" : "μ(t) = S₀ exp(−λt) + B",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
-        theme=style,
-        appearance=appearance,
     )
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
@@ -264,15 +311,15 @@ function save_histogram_fit(
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
         "P(D) = $(fmt_sig(deviance_pvalue, 4))",
     ]
-    plot_info_panel!(
+    gallery_output_panel!(
         fig[1:2, 2];
+        style=style,
+        appearance=appearance,
         legend_source=ax,
         title="Binned Poisson likelihood",
         model_label=article ? L"n_i \sim \mathrm{Poisson}(\mu_i)" : "nᵢ ~ Poisson(μᵢ)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
-        theme=style,
-        appearance=appearance,
     )
     rowsize!(fig.layout, 1, Relative(0.72))
     rowsize!(fig.layout, 2, Relative(0.28))
@@ -470,16 +517,16 @@ function save_photoelectric_work_function(
             "baseline χ²/ndf = $(fmt_sig(baseline_result.stats.chi2_ndf, 4))",
         ]
     end
-    plot_info_panel!(
+    gallery_output_panel!(
         fig[1, 2];
+        style=style,
+        appearance=appearance,
         legend_source=ax,
         model_label=article ?
             L"U_{\mathrm{emit}}-U_{\mathrm{base}}=m_{\gamma}(\nu-\nu_0)" :
             "ΔU(ν) = mγ (ν - ν₀)",
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
-        theme=style,
-        appearance=appearance,
     )
     colgap!(fig.layout, 18)
     save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
@@ -534,7 +581,7 @@ style_variant_plot(
     figure_size=DOC_FIT_SIZE,
 )
 
-# The same scientific content rendered through every public style preset.
+# The same fit rendered for live analysis and figure-first article export.
 if render_asset_group("plot_style")
     for style in (:screen, :article)
         typography = if style == :article
@@ -562,6 +609,18 @@ if render_asset_group("plot_style")
                 latex_stats=false,
             )
         end
+        output_defaults = style == :article ? (
+            show_stats=false,
+            show_legend=true,
+            legend_position=:lt,
+            figure_size=nothing,
+        ) : (
+            show_stats=true,
+            show_legend=true,
+            stats_position=:right,
+            stats_mode=:full,
+            figure_size=DOC_FIT_SIZE,
+        )
         figure = plot_fit(
             quick_result;
             typography...,
@@ -569,10 +628,7 @@ if render_asset_group("plot_style")
             band=:prediction,
             nsigma=1,
             band_label=style == :article ? L"1\sigma\ \mathrm{prediction\ band}" : "1σ prediction band",
-            show_legend=true,
-            stats_position=:right,
-            stats_mode=:full,
-            figure_size=DOC_FIT_SIZE,
+            output_defaults...,
         )
         save_gallery_figure("plot_style_$(style).png", figure)
     end

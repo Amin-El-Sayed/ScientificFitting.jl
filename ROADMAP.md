@@ -338,10 +338,11 @@ problem; JuFitter adds only fitting-specific defaults and composition.
 - `:screen` is the live-analysis, notebook, documentation, and presentation
   role: readable sans-serif typography, filled observations, the direct
   Beautiful Makie blue/red line-and-band hierarchy, visible guides, and strong
-  axes.
+  axes. Its default composition includes the result panel.
 - `:article` is the vector-export role: scaled TeX typography, hollow
   observations, a complete frame with inward ticks, no grid, and a color-safe
-  Okabe-Ito blue/vermillion palette.
+  Okabe-Ito blue/vermillion palette. Its default is figure-first: no result
+  panel and a compact legend, with explicit overrides still authoritative.
 - Previous names remain compatibility aliases; they no longer claim separate
   visual semantics.
 - Focused tests enforce role differences, minimum readable dimensions, Makie

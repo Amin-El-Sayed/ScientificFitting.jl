@@ -105,6 +105,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   the roles remain too similar and text in several compound figures is too
   small. These checks establish technical consistency, not release acceptance;
   plot-role design is reopened as a dedicated v0 blocker.
+- The follow-up role pass changes composition rather than adding another
+  palette. `:screen` now defaults to the complete analysis record with legend,
+  model, parameters, and diagnostics; `:article` defaults to a figure-first
+  canvas with a compact legend and no result column. Explicit `show_stats` and
+  Makie keyword overrides remain authoritative. The standard fit gate passes
+  with 136 checks, the visual asset gate with 873 checks, and the 56 intentional
+  PNG snapshots were regenerated from real fits. Browser review verified all
+  eight gallery pages in screen/article and light/dark combinations with no
+  horizontal overflow. Final maintainer visual approval is still required.
 - The public gallery overview now contains only reader-facing learning paths,
   example summaries, and reproducible run instructions. Asset-generation and
   release-gate procedures remain in the maintainer documentation rather than
@@ -663,15 +672,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
-- The plotting redesign currently exposes `:screen` and `:article`, with former
-  style names retained as compatibility aliases. Technical gates confirm that
-  the contracts propagate through ordinary and compound figures, but maintainer
-  review found that the visible roles remain too similar and that text in
-  several diagnostic/compound figures is too small. Plot styling is therefore
-  reopened as a dedicated v0 release block. Acceptance requires fixed-size
-  comparison renders across ordinary fits, dense data, side panels, residuals,
-  profile matrices, and custom Makie annotations; each retained role must solve
-  a distinct scientific output problem and meet explicit readability floors.
+- The plotting redesign exposes `:screen` and `:article`, with former style
+  names retained as compatibility aliases. The technical remediation is now
+  complete: the roles differ in default composition, meet explicit readability
+  floors, and pass fixed-size ordinary, compound, residual, profile-matrix, and
+  browser-switching checks. This remains a release block only until the
+  maintainer accepts the rendered figures; the repository must not be published
+  on the strength of automated visual gates alone.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,

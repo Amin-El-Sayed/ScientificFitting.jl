@@ -77,6 +77,8 @@ figure = out.figure
 An explicit `show_stats=true` or `false` overrides the panel default selected
 by `report`. Any other `report` value raises `ArgumentError`.
 For `plot_fit`, use `show_stats` directly because no terminal report is emitted.
+Without an override, `:screen` includes the analysis panel and `:article`
+reserves the canvas for the figure.
 
 ### Keyword routing
 
@@ -167,7 +169,7 @@ remains available.
 
 | Keyword | Default | Contract |
 |---|---:|---|
-| `show_stats` | `true` | Show or remove the result summary. |
+| `show_stats` | role-dependent | `true` for `:screen`, `false` for `:article`; an explicit Boolean always wins. |
 | `stats_position` | `:right` | `:right` or `:inside`. |
 | `inside_stats_position` | `:lt` | `:lt`, `:lb`, `:rt`, `:rb` and their long aliases. |
 | `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive pixel width. Fractions are clamped to 300--560 px. |
@@ -180,7 +182,7 @@ remains available.
 | `latex_stats` | `false` | Render structured right-panel symbols and numbers as LaTeX. |
 | `stats_box_color`, `stats_box_alpha` | role-dependent, `0.95` | In-axis summary background. |
 | `stats_box_strokecolor`, `stats_box_strokewidth` | role-dependent, `1.0` | In-axis summary border. |
-| `show_legend` | `false` | Show data, fit, and band labels. With a right panel, the legend is placed above the report. |
+| `show_legend` | `true` | Show data, fit, and band labels. With a right panel, the legend is placed above the report. |
 | `legend_position` | `:rt` | In-axis Makie legend position when no right-side panel owns the legend. |
 | `legend_kwargs` | `NamedTuple()` | Makie legend attributes applied last. |
 

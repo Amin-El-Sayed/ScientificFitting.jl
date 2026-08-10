@@ -83,7 +83,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             ylabelsize=29,
             titlesize=36,
             titlegap=18,
-            subplot_titlesize=24,
+            subplot_titlesize=28,
             subplot_titlegap=8,
             titlealign=:left,
             ticklabelsize=23,
@@ -141,7 +141,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             ylabelsize=32,
             titlesize=38,
             titlegap=22,
-            subplot_titlesize=27,
+            subplot_titlesize=30,
             subplot_titlegap=10,
             # Long scientific titles must never clip against a narrow axis.
             titlealign=:left,
@@ -948,7 +948,7 @@ end
         panel_gap=nothing,
         latex_labels=false,
         latex_stats=false,
-        show_stats=true,
+        show_stats=nothing,
         stats_mode=:compact,
         tight_layout=true,
         stats_sigdigits=5,
@@ -959,7 +959,7 @@ end
         stats_box_alpha=0.95,
         stats_box_strokecolor=nothing,
         stats_box_strokewidth=1.0,
-        show_legend=false,
+        show_legend=nothing,
         legend_position=:rt,
         axis_kwargs=NamedTuple(),
         legend_kwargs=NamedTuple(),
@@ -990,7 +990,9 @@ end
 Create a scientific fit plot with data, error bars, best-fit curve, optional
 uncertainty band, and an optional right-side information panel. Use
 `theme=:screen` for live analysis, notebooks, and documentation, or
-`theme=:article` for vector/article output. The former `:lab`, `:workbench`,
+`theme=:article` for figure-first vector/article output. Unless overridden,
+screen plots include the result panel while article plots reserve the canvas
+for the scientific figure and place the legend in the axis. The former `:lab`, `:workbench`,
 `:modern`, and `:showcase` names remain aliases of `:screen` rather than
 separate cosmetic presets. `appearance=:light` or `:dark` controls the color
 scheme independently.
@@ -1027,7 +1029,7 @@ function plot_fit(
     panel_gap::Union{Nothing, Real}=nothing,
     latex_labels::Bool=false,
     latex_stats::Bool=false,
-    show_stats::Bool=true,
+    show_stats::Union{Nothing, Bool}=nothing,
     stats_mode::Symbol=:compact,
     tight_layout::Bool=true,
     stats_sigdigits::Int=5,
@@ -1038,7 +1040,7 @@ function plot_fit(
     stats_box_alpha::Real=0.95,
     stats_box_strokecolor=nothing,
     stats_box_strokewidth::Real=1.0,
-    show_legend::Bool=false,
+    show_legend::Union{Nothing, Bool}=nothing,
     legend_position=:rt,
     axis_kwargs=NamedTuple(),
     legend_kwargs=NamedTuple(),
@@ -1075,6 +1077,8 @@ function plot_fit(
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)
     style = _style_preset(resolved_style, resolved_appearance)
+    show_stats = show_stats === nothing ? resolved_style != :article : show_stats
+    show_legend = show_legend === nothing ? true : show_legend
     panel_gap = panel_gap === nothing ? style.panel_gap : Float64(panel_gap)
     stats_fontsize = stats_fontsize === nothing ? style.stats_fontsize : Float64(stats_fontsize)
     data_color = data_color === nothing ? style.data_color : data_color

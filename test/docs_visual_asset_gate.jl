@@ -112,8 +112,17 @@ end
         observed = Set((record.style, record.appearance) for record in group_records)
         @test REQUIRED_STYLE_PAIRS ⊆ observed
 
-        dims = Set((infos[record.path].width, infos[record.path].height) for record in group_records)
-        @test length(dims) == 1
+        # Light/dark assets must be interchangeable in-place. Different
+        # output roles may use different aspect ratios because screen keeps an
+        # analysis panel while article is figure-first.
+        for style in ("screen", "article")
+            style_records = filter(record -> record.style == style, group_records)
+            dims = Set(
+                (infos[record.path].width, infos[record.path].height)
+                for record in style_records
+            )
+            @test length(dims) == 1
+        end
 
         for record in group_records
             @test record.style in ("screen", "article")

@@ -62,7 +62,9 @@ The one-call interface separates terminal output from plot content:
 or removing the visual panel independently.
 
 These four values belong to `fitplot`. Starting from an existing result,
-`plot_fit` exposes the visual controls directly:
+`plot_fit` exposes the visual controls directly. Its defaults follow the output
+role: `:screen` includes the analysis panel, while `:article` uses the canvas
+for the figure and puts the legend in the axis.
 
 ```julia
 plot_fit(
@@ -81,7 +83,8 @@ the in-axis locations independently. `show_stats=false` removes the report
 panel entirely.
 
 Screen output defaults to `(1040, 640)` with a right-side panel and `(860, 560)`
-without one. Article output uses `(1000, 640)` or `(760, 520)`. Pass
+without one. Article output defaults to `(760, 520)` without the panel; an
+explicit `show_stats=true` uses `(1000, 640)`. Pass
 `figure_size=(width, height)` for a required
 export footprint. The requested size is preserved; report length does not
 silently resize the saved figure. `stats_panel_width=:auto` should remain the
@@ -95,25 +98,31 @@ variations. They do not change data, fit, uncertainty band, or statistics.
 - `theme=:screen` is the default for live analysis, notebooks, documentation,
   and talks. It stays close to Makie's native line-and-band grammar: readable
   sans-serif type, neutral filled observations, a saturated blue fit, a red
-  secondary series, visible guides, strong axes, and a left-aligned title.
+  secondary series, visible guides, strong axes, and a left-aligned title. Its
+  default right column keeps the legend, model, parameters, and fit diagnostics
+  visible while data are arriving.
 - `theme=:article` is the vector-export view. It uses Makie's LaTeX font family,
   hollow observations, a complete axis frame with inward ticks, no grid, and the
   Okabe-Ito blue/vermillion pair when multiple curves require color. Hollow
   markers preserve data/curve separation in grayscale. Its TeX typography is
-  scaled to remain readable when the figure is placed in an article.
+  scaled to remain readable when the figure is placed in an article. It omits
+  the result panel by default so the data axis is not reduced for values that
+  normally belong in a caption or table; `show_stats=true` restores the panel
+  when a self-contained article figure needs it.
 
 Laboratory inspection is a workflow, not a third color theme. Use
 `report=:console`, `show_stats=false`, or the diagnostic functions to change
 what is shown. The former `:lab` and `:workbench` names remain accepted aliases
 of `:screen` so existing scripts do not break.
 
-Every image below contains the same observations, errors, fit, one-sigma
-prediction band, labels, legend, report fields, and output dimensions.
+Both images below contain the same observations, errors, fit, one-sigma
+prediction band, and labels. Their composition differs deliberately: screen is
+an analysis record, while article is the figure readers see in print.
 
 ```@raw html
 <div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_screen.png" alt="The same calibration fit in the screen plot role"><div><h3>screen</h3><p>Live work and screens: direct Makie hierarchy, filled observations, visible guides, strong text.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="The same calibration fit in the article plot style"><div><h3>article</h3><p>Vector export: readable TeX typography, hollow observations, framed axes, no grid.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_screen.png" alt="Calibration analysis with legend, model, parameters, and diagnostics in the screen role"><div><h3>screen</h3><p>Live analysis: readable guides and a complete result column beside the data.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="Figure-first calibration plot in the article role"><div><h3>article</h3><p>Article figure: readable TeX typography, hollow observations, compact in-axis legend, and no report column.</p></div></div>
 </div>
 ```
 

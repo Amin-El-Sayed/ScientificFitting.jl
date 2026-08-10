@@ -271,47 +271,46 @@ function save_model_comparison(
     constant_status = status_text(diagnostic_dashboard(constant_result).status)
     drift_status = status_text(diagnostic_dashboard(drift_result).status)
 
-    parameter_lines = article ? Any[
-        LaTeXString("\\omega_{\\mathrm{ref}} = $(fmt_tex(drift_result.params[2], 6)) \\pm $(fmt_tex(drift_result.param_stderr[2], 2))\\;\\mathrm{rad\\,s^{-1}}"),
-        LaTeXString("\\beta = $(fmt_tex(1e3 * beta, 5)) \\pm $(fmt_tex(1e3 * sigma_beta, 2))\\;\\mathrm{mrad\\,s^{-2}}"),
-        LaTeXString("\\Delta\\omega_{\\mathrm{record}} = $(fmt_tex(frequency_change, 4)) \\pm $(fmt_tex(sigma_frequency_change, 2))\\;\\mathrm{rad\\,s^{-1}}"),
-        LaTeXString("\\lambda = $(fmt_tex(drift_result.params[4], 5)) \\pm $(fmt_tex(drift_result.param_stderr[4], 2))\\;\\mathrm{s^{-1}}"),
-        LaTeXString("\\tau_d = $(fmt_tex(damping_time, 5)) \\pm $(fmt_tex(sigma_damping_time, 2))\\;\\mathrm{s}"),
-    ] : Any[
-        "ωᵣ = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹",
-        "β = $(fmt(1e3 * beta, 5)) ± $(fmt(1e3 * sigma_beta, 2)) mrad s⁻²",
-        "Δω over $(fmt(time_span, 4)) s = $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹",
-        "λ = $(fmt(drift_result.params[4], 5)) ± $(fmt(drift_result.param_stderr[4], 2)) s⁻¹",
-        "τd = $(fmt(damping_time, 5)) ± $(fmt(sigma_damping_time, 2)) s",
-    ]
-    statistic_lines = article ? Any[
-        LaTeXString("\\chi^2_{\\mathrm{const}}/\\mathrm{ndf} = $(fmt_tex(constant_result.stats.chi2_ndf, 4))"),
-        LaTeXString("P_{\\mathrm{const}}(\\chi^2) = $(fmt_tex(constant_result.stats.pvalue, 3))"),
-        LaTeXString("\\mathrm{constant\\ diagnostic} = \\mathrm{$constant_status}"),
-        LaTeXString("\\chi^2_{\\mathrm{drift}}/\\mathrm{ndf} = $(fmt_tex(drift_result.stats.chi2_ndf, 4))"),
-        LaTeXString("P_{\\mathrm{drift}}(\\chi^2) = $(fmt_tex(drift_result.stats.pvalue, 3))"),
-        LaTeXString("\\mathrm{drift\\ diagnostic} = \\mathrm{$drift_status}"),
-        LaTeXString("\\Delta\\mathrm{AIC} = $(fmt_tex(delta_aic, 5))\\;\\mathrm{in\\ favor\\ of\\ drift}"),
-    ] : Any[
-        "constant model: χ²/ndf = $(fmt(constant_result.stats.chi2_ndf, 4))",
-        "constant model: P(χ²) = $(fmt(constant_result.stats.pvalue, 3))",
-        "constant diagnostic = $constant_status",
-        "drift model: χ²/ndf = $(fmt(drift_result.stats.chi2_ndf, 4))",
-        "drift model: P(χ²) = $(fmt(drift_result.stats.pvalue, 3))",
-        "drift diagnostic = $drift_status",
-        "ΔAIC = $(fmt(delta_aic, 5)) in favor of drift",
-    ]
-    plot_info_panel!(
-        figure[1:3, 2];
-        legend_source=fit_axis,
-        title="Frequency-drift result",
-        model_label=article ? L"A e^{-\lambda \tau}\cos(\omega_{\mathrm{ref}}\tau+\beta \tau^2/2+\varphi)" :
-            "A exp(−λτ) cos(ωᵣτ + βτ²/2 + φ)",
-        parameter_lines=parameter_lines,
-        statistic_lines=statistic_lines,
-        theme=style,
-        appearance=appearance,
-    )
+    if article
+        Legend(
+            figure[1:3, 2],
+            fit_axis;
+            framevisible=false,
+            tellheight=false,
+            halign=:left,
+            valign=:top,
+            labelsize=palette.legend_labelsize,
+            patchsize=palette.legend_patchsize,
+            rowgap=palette.legend_rowgap,
+        )
+    else
+        parameter_lines = Any[
+            "ωᵣ = $(fmt(drift_result.params[2], 6)) ± $(fmt(drift_result.param_stderr[2], 2)) rad s⁻¹",
+            "β = $(fmt(1e3 * beta, 5)) ± $(fmt(1e3 * sigma_beta, 2)) mrad s⁻²",
+            "Δω over $(fmt(time_span, 4)) s = $(fmt(frequency_change, 4)) ± $(fmt(sigma_frequency_change, 2)) rad s⁻¹",
+            "λ = $(fmt(drift_result.params[4], 5)) ± $(fmt(drift_result.param_stderr[4], 2)) s⁻¹",
+            "τd = $(fmt(damping_time, 5)) ± $(fmt(sigma_damping_time, 2)) s",
+        ]
+        statistic_lines = Any[
+            "constant model: χ²/ndf = $(fmt(constant_result.stats.chi2_ndf, 4))",
+            "constant model: P(χ²) = $(fmt(constant_result.stats.pvalue, 3))",
+            "constant diagnostic = $constant_status",
+            "drift model: χ²/ndf = $(fmt(drift_result.stats.chi2_ndf, 4))",
+            "drift model: P(χ²) = $(fmt(drift_result.stats.pvalue, 3))",
+            "drift diagnostic = $drift_status",
+            "ΔAIC = $(fmt(delta_aic, 5)) in favor of drift",
+        ]
+        plot_info_panel!(
+            figure[1:3, 2];
+            legend_source=fit_axis,
+            title="Frequency-drift result",
+            model_label="A exp(−λτ) cos(ωᵣτ + βτ²/2 + φ)",
+            parameter_lines=parameter_lines,
+            statistic_lines=statistic_lines,
+            theme=style,
+            appearance=appearance,
+        )
+    end
 
     rowsize!(figure.layout, 1, Relative(0.62))
     rowsize!(figure.layout, 2, Relative(0.19))

@@ -311,6 +311,16 @@ using Test
     @test modern_axis.xgridvisible[] && modern_axis.ygridvisible[]
     @test article_axis.topspinevisible[] && article_axis.rightspinevisible[]
 
+    # Output roles differ in composition, not only in color and typography.
+    screen_default = plot_fit(quick.result; theme=:screen)
+    article_default = plot_fit(quick.result; theme=:article)
+    article_with_panel = plot_fit(quick.result; theme=:article, show_stats=true)
+    screen_without_panel = plot_fit(quick.result; theme=:screen, show_stats=false)
+    @test size(screen_default.scene) == screen_style.figure_size_with_panel
+    @test size(article_default.scene) == article_style.figure_size_without_panel
+    @test size(article_with_panel.scene) == article_style.figure_size_with_panel
+    @test size(screen_without_panel.scene) == screen_style.figure_size_without_panel
+
     panel_figure = with_theme(plot_theme(:screen)) do
         Figure(size=(720, 420))
     end
