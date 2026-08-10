@@ -286,12 +286,11 @@ Deferred scientific architecture candidates:
 
 ## Phase 3.5: Diagnostic Plots and Contours
 
-Status: the scoped numerical diagnostics and plotting API are complete, but the
-plot-style milestone is reopened after maintainer review. The current technical
-gate proves consistency and override behavior; it does not establish that the
-roles are visually distinct, consistently readable, or aesthetically ready for
-v0. Further automatic nonlinearity detection and richer combined dashboards
-remain post-v0 work.
+Status: the scoped numerical diagnostics and plotting API are complete. The
+plot-style layer now has two distinct, tested contracts and regenerated
+light/dark documentation assets; maintainer visual signoff remains the final
+v0 gate. Further automatic nonlinearity detection and richer combined
+dashboards remain post-v0 work.
 
 Goal: profile, contour, residual, pull, covariance, and likelihood diagnostics
 must communicate statistical meaning as clearly as kafe2/Minuit-style tools,
@@ -329,32 +328,29 @@ Acceptance criteria:
 
 ### Plot-style release gate
 
-The plot-style redesign now has three work-specific contracts in one central
-preset layer. It remains under maintainer visual review until the regenerated
-ordinary, compound, and diagnostic gallery assets pass the full browser gate.
+The latest review rejected `:lab` as a third visual role: it changed markers,
+frame, and density without solving a different output problem. The maintained
+preset layer therefore has two contracts. Laboratory inspection remains a
+workflow assembled from reports and diagnostics rather than a cosmetic theme.
 Keep Makie's native layout and styling machinery wherever it already solves the
 problem; JuFitter adds only fitting-specific defaults and composition.
 
-- `:lab` is the compact inspection role: complete frame, lookup grid, cross
-  observations, prominent uncertainties, and dense but readable sans-serif
-  output.
-- `:screen` is the notebook, documentation, and presentation role: larger
-  sans-serif typography, filled observations, a direct blue fit/band hierarchy,
-  and open top/right axes.
+- `:screen` is the live-analysis, notebook, documentation, and presentation
+  role: readable sans-serif typography, filled observations, the direct
+  Beautiful Makie blue/red line-and-band hierarchy, visible guides, and strong
+  axes.
 - `:article` is the vector-export role: scaled TeX typography, hollow
   observations, a complete frame with inward ticks, no grid, and a color-safe
-  restrained palette.
+  Okabe-Ito blue/vermillion palette.
 - Previous names remain compatibility aliases; they no longer claim separate
   visual semantics.
 - Focused tests enforce role differences, minimum readable dimensions, Makie
   override precedence, compound diagnostics, and fixed output footprints.
-- The documentation exposes all three roles and swaps real light/dark assets.
-  Maintainer visual acceptance is still mandatory.
+- The documentation exposes both roles and swaps real light/dark assets.
+  Compound figures use separate subplot typography so a readable main title
+  cannot make residual-panel titles collide. Maintainer visual acceptance is
+  still mandatory.
 
-- Define two to four output roles that correspond to genuinely different work:
-  fast notebook/laboratory inspection, explanatory screen/documentation output,
-  and print/article export. Rename or remove presets that cannot justify a
-  separate role.
 - A preset must be identifiable from an unlabeled side-by-side render. Changing
   only font size, saturation, or one accent color is not a distinct contract.
 - Establish minimum readable text, tick, line, marker, and error-bar dimensions

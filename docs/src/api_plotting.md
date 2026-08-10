@@ -110,15 +110,15 @@ optional uncertainty band, and optional result panel. It does not modify
 |---|---:|---|
 | `filename` | `nothing` | Save during construction when a path is supplied. |
 | `format` | `:pdf` | Extension appended only when `filename` has no extension. |
-| `theme` | `:screen` | Maintained role: `:lab`, `:screen`, or `:article`. |
+| `theme` | `:screen` | Maintained role: `:screen` or `:article`. |
 | `appearance` | `:auto` | `:light`, `:dark`, or `:auto`; `:auto` currently resolves to light. |
 | `theme_override` | `Theme()` | Makie theme merged after the selected JuFitter role. |
 | `figure_size` | role-dependent | Logical Makie canvas `(width, height)`; it does not set raster density. |
 | `tight_layout` | `true` | Trim layout whitespace while preserving the declared figure footprint. |
 
-The compatibility aliases are `:workbench => :lab`, `:modern`, `:clean`,
+The compatibility aliases are `:lab`, `:workbench`, `:modern`, `:clean`,
 `:minimal`, and `:showcase => :screen`, and `:publication`, `:paper`, and
-`:latex => :article`. New code should use only the three maintained names.
+`:latex => :article`. New code should use only the two maintained names.
 Unknown roles, unknown appearances, and contradictory
 `theme=:dark, appearance=:light` input raise `ArgumentError`.
 

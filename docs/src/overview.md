@@ -184,7 +184,7 @@ fig = plot_fit(
 )
 ```
 
-`theme=:lab`, `:screen`, and `:article` select the output context;
+`theme=:screen` and `:article` select the output context;
 `appearance=:light` or `:dark` selects the color scheme independently. Explicit
 Makie keyword arguments override the style only for the supplied element.
 

@@ -76,9 +76,9 @@ list as an ownership map, not a second architecture chapter.
 4. A standard right panel has one hierarchy: legend, model, parameters, then
    statistics. `plot_info_panel!`, `plot_theme`, and `plot_palette` are the
    shared composition hooks for compound figures.
-5. Plot roles are `:lab`, `:screen`, and `:article`; light/dark appearance and
-   explicit element overrides are independent. `:workbench`, `:modern`, and
-   the former publication names are compatibility aliases, not extra designs.
+5. Plot roles are `:screen` and `:article`; light/dark appearance and explicit
+   element overrides are independent. The former `:lab`, `:workbench`,
+   `:modern`, and publication names are compatibility aliases, not extra designs.
    Typography, markers, axes, grid, colors, bands, legends, and report panels
    come from one central preset; compound figures consume those tokens rather
    than branching on style or appearance locally.

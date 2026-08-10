@@ -24,6 +24,7 @@ using SpecialFunctions
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_RENDER_WIDTH = 1280
+const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
 
 if RENDER_DOC_ASSETS
@@ -65,7 +66,7 @@ end
 function style_variant_plot(
     result,
     name;
-    styles=(:lab, :screen, :article),
+    styles=(:screen, :article),
     plain=NamedTuple(),
     latex=plain,
     kwargs...,
@@ -530,12 +531,12 @@ style_variant_plot(
     show_legend=true,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=(1200, 760),
+    figure_size=DOC_FIT_SIZE,
 )
 
 # The same scientific content rendered through every public style preset.
 if render_asset_group("plot_style")
-    for style in (:lab, :screen, :article)
+    for style in (:screen, :article)
         typography = if style == :article
             (
                 title=L"\mathrm{Quickstart\ calibration}",
@@ -571,7 +572,7 @@ if render_asset_group("plot_style")
             show_legend=true,
             stats_position=:right,
             stats_mode=:full,
-            figure_size=(1200, 760),
+            figure_size=DOC_FIT_SIZE,
         )
         save_gallery_figure("plot_style_$(style).png", figure)
     end
@@ -621,7 +622,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=(1200, 760),
+    figure_size=DOC_FIT_SIZE,
 )
 
 # 2. Photoelectric work-function extraction from the intersection of two regimes.
@@ -674,7 +675,7 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     println("emission")
     println(diagnostic_dashboard_text(emission_result))
 end
-for style in (:lab, :screen, :article), appearance in (:light, :dark)
+for style in (:screen, :article), appearance in (:light, :dark)
     save_photoelectric_work_function(
         emission_result,
         baseline_result,
@@ -759,7 +760,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=(1200, 760),
+    figure_size=DOC_FIT_SIZE,
 )
 
 # 4. Effective-variance fit with x and y uncertainties.
@@ -817,7 +818,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=(1200, 760),
+    figure_size=DOC_FIT_SIZE,
 )
 
 # 5. Bounds, prior, profile, and a genuinely non-elliptic contour.
@@ -887,7 +888,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=(1200, 760),
+    figure_size=DOC_FIT_SIZE,
 )
 amplitude_interval = profile_interval(saturation_result, 1; npoints=81, nsigma=4)
 emit_doc_output_snapshot("constraints_profiles") do
@@ -921,7 +922,7 @@ if render_asset_group("constraints_profiles")
         max_refinements=1,
     )
 
-    for style in (:lab, :screen, :article), appearance in (:light, :dark)
+    for style in (:screen, :article), appearance in (:light, :dark)
         profile_figure = plot_profile(
             prof;
             theme=style,
@@ -948,7 +949,7 @@ if render_asset_group("constraints_profiles")
         )
         save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
-    for style in (:lab, :screen, :article), appearance in (:light, :dark)
+    for style in (:screen, :article), appearance in (:light, :dark)
         matrix_parameter_names = style == :article ? [L"A", L"\tau", L"c"] :
             profile_overview_names
         matrix_figure = plot_profile_matrix(
@@ -992,7 +993,7 @@ emit_doc_output_snapshot("poisson_decay") do
     @printf("P(D) = %.3f\n", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
-for style in (:lab, :screen, :article), appearance in (:light, :dark)
+for style in (:screen, :article), appearance in (:light, :dark)
     save_poisson_counts(
         poisson_result,
         x_counts,
@@ -1038,7 +1039,7 @@ emit_doc_output_snapshot("histogram_likelihood") do
     @printf("P(D) = %.3f\n", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
-for style in (:lab, :screen, :article), appearance in (:light, :dark)
+for style in (:screen, :article), appearance in (:light, :dark)
     save_histogram_fit(
         hist_result,
         edges,

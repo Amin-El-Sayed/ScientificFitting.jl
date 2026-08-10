@@ -95,8 +95,8 @@ function add_hband! end
     plot_theme(style=:screen; appearance=:auto)
 
 Return the Makie `Theme` used by JuFitter for a named plot style. The maintained
-output roles are `:lab`, `:screen`, and `:article`. `:workbench` remains an
-alias of `:lab`; `:modern` and `:showcase` remain aliases of `:screen`; and
+output roles are `:screen` and `:article`. `:lab`, `:workbench`, `:modern`, and
+`:showcase` remain aliases of `:screen`; and
 `:publication` remains an alias of `:article`. `appearance` is `:light`,
 `:dark`, or `:auto`.
 """

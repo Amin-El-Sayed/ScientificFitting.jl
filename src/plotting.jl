@@ -9,8 +9,9 @@ const _JF_DARK_MUTED = "#d3dae0"
 const _JF_DARK_GRID = "#73808d"
 
 const _JF_STYLE_ALIASES = Dict(
+    :lab => :screen,
     :modern => :screen,
-    :workbench => :lab,
+    :workbench => :screen,
     :clean => :screen,
     :minimal => :screen,
     :showcase => :screen,
@@ -30,9 +31,9 @@ function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     end
 
     style = get(_JF_STYLE_ALIASES, theme, theme)
-    style in (:lab, :screen, :article, :custom) ||
+    style in (:screen, :article, :custom) ||
         throw(ArgumentError(
-            "theme must be :lab, :screen, :article, :custom, or a supported legacy alias",
+            "theme must be :screen, :article, :custom, or a supported legacy alias",
         ))
     return style, appearance == :auto ? :light : appearance
 end
@@ -47,70 +48,14 @@ function _style_preset(style::Symbol, appearance::Symbol)
     box = dark ? "#1b2027" : _JF_PAPER_SOFT
     box_stroke = dark ? "#65717d" : _JF_GRID
 
-    if style == :lab
-        # Lab output prioritizes fast inspection: compact type, prominent
-        # errors, a complete frame, and a grid that supports numeric lookup.
-        fit = dark ? "#62b6e7" : "#005a8d"
-        return (
-            background_color=paper,
-            axis_color=ink,
-            grid_color=(grid, dark ? 0.30 : 0.42),
-            data_color=ink,
-            data_marker=:cross,
-            data_markersize=10.5,
-            data_strokecolor=ink,
-            data_strokewidth=1.6,
-            fit_color=fit,
-            fit_linewidth=2.8,
-            band_color=fit,
-            band_alpha=dark ? 0.20 : 0.16,
-            xerr_color=(ink, dark ? 0.90 : 0.86),
-            yerr_color=(ink, dark ? 0.90 : 0.86),
-            error_whiskerwidth=3.5,
-            secondary_color=dark ? "#ee8fbd" : "#a23b72",
-            reference_color=dark ? "#c9d1d9" : "#4c545d",
-            series_colors=dark ?
-                (fit, "#ee8fbd", "#8fc98a", "#baa6e8", "#c9d1d9") :
-                (fit, "#a23b72", "#3a7d44", "#6750a4", "#4c545d"),
-            stats_color=ink,
-            stats_muted_color=ink,
-            stats_fontsize=21,
-            stats_box_color=box,
-            stats_box_strokecolor=box_stroke,
-            fontsize=20,
-            xlabelsize=25,
-            ylabelsize=25,
-            titlesize=30,
-            titlegap=12,
-            titlealign=:left,
-            ticklabelsize=20,
-            legend_labelsize=20,
-            legend_patchsize=(30, 17),
-            legend_rowgap=3,
-            panel_rowgap=1,
-            panel_sectiongap=7,
-            panel_gap=16,
-            figure_padding=(12, 14, 11, 11),
-            figure_size_with_panel=(1080, 620),
-            figure_size_without_panel=(860, 540),
-            xgridvisible=true,
-            ygridvisible=true,
-            gridwidth=0.9,
-            topspinevisible=true,
-            rightspinevisible=true,
-            spinewidth=1.8,
-            tickwidth=1.5,
-            ticksize=6.0,
-            tickalign=0.0,
-        )
-    elseif style == :screen
-        # Screen output follows the direct Beautiful Makie band grammar: one
-        # strong fit hierarchy, neutral observations, and quiet guides.
+    if style == :screen
+        # Stay close to Makie's native line-and-band grammar. JuFitter adds
+        # only a readable scientific hierarchy and semantic series colors.
         fit = :dodgerblue
         return (
             background_color=paper,
             axis_color=ink,
-            grid_color=(grid, dark ? 0.28 : 0.38),
+            grid_color=(grid, dark ? 0.34 : 0.46),
             data_color=ink,
             data_marker=:circle,
             data_markersize=11.0,
@@ -123,11 +68,11 @@ function _style_preset(style::Symbol, appearance::Symbol)
             xerr_color=(ink, dark ? 0.84 : 0.76),
             yerr_color=(ink, dark ? 0.84 : 0.76),
             error_whiskerwidth=4.0,
-            secondary_color=dark ? "#ee8fbd" : "#b83280",
+            secondary_color=dark ? "#ff6b6b" : :red,
             reference_color=dark ? :slategray1 : :gray35,
             series_colors=dark ?
-                (fit, "#ee8fbd", "#8fc98a", :mediumpurple1, :slategray1) :
-                (fit, "#b83280", "#3a7d44", :slateblue, :gray35),
+                (fit, "#ff6b6b", "#70cfa8", :mediumpurple1, :slategray1) :
+                (fit, :red, :seagreen4, :slateblue, :gray35),
             stats_color=ink,
             stats_muted_color=ink,
             stats_fontsize=24,
@@ -138,6 +83,8 @@ function _style_preset(style::Symbol, appearance::Symbol)
             ylabelsize=29,
             titlesize=36,
             titlegap=18,
+            subplot_titlesize=24,
+            subplot_titlegap=8,
             titlealign=:left,
             ticklabelsize=23,
             legend_labelsize=23,
@@ -147,8 +94,8 @@ function _style_preset(style::Symbol, appearance::Symbol)
             panel_sectiongap=10,
             panel_gap=22,
             figure_padding=(14, 18, 14, 14),
-            figure_size_with_panel=(1200, 720),
-            figure_size_without_panel=(920, 600),
+            figure_size_with_panel=(1040, 640),
+            figure_size_without_panel=(860, 560),
             xgridvisible=true,
             ygridvisible=true,
             gridwidth=1.0,
@@ -179,11 +126,11 @@ function _style_preset(style::Symbol, appearance::Symbol)
             xerr_color=(ink, dark ? 0.82 : 0.76),
             yerr_color=(ink, dark ? 0.82 : 0.76),
             error_whiskerwidth=4.5,
-            secondary_color=dark ? "#ee8fbd" : "#cc79a7",
+            secondary_color=dark ? "#f06b4f" : "#d55e00",
             reference_color=dark ? "#d3dae0" : "#444a50",
             series_colors=dark ?
-                (fit, "#ee8fbd", "#8fc98a", "#baa6e8", "#a9b4bf") :
-                (fit, "#cc79a7", "#3a7d44", "#6750a4", "#4d4d4d"),
+                (fit, "#f06b4f", "#70cfa8", "#d69acb", "#a9b4bf") :
+                (fit, "#d55e00", "#009e73", "#cc79a7", "#4d4d4d"),
             stats_color=ink,
             stats_muted_color=ink,
             stats_fontsize=30,
@@ -194,7 +141,10 @@ function _style_preset(style::Symbol, appearance::Symbol)
             ylabelsize=32,
             titlesize=38,
             titlegap=22,
-            titlealign=:center,
+            subplot_titlesize=27,
+            subplot_titlegap=10,
+            # Long scientific titles must never clip against a narrow axis.
+            titlealign=:left,
             ticklabelsize=26,
             legend_labelsize=26,
             legend_patchsize=(36, 21),
@@ -203,7 +153,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             panel_sectiongap=10,
             panel_gap=20,
             figure_padding=(14, 18, 13, 13),
-            figure_size_with_panel=(1040, 650),
+            figure_size_with_panel=(1000, 640),
             figure_size_without_panel=(760, 520),
             xgridvisible=false,
             ygridvisible=false,
@@ -217,7 +167,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
         )
     end
 
-    throw(ArgumentError("style presets are defined only for :lab, :screen, and :article"))
+    throw(ArgumentError("style presets are defined only for :screen and :article"))
 end
 
 function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Theme)
@@ -1039,11 +989,11 @@ end
 
 Create a scientific fit plot with data, error bars, best-fit curve, optional
 uncertainty band, and an optional right-side information panel. Use
-`theme=:lab` for compact live inspection, `theme=:screen` for notebooks and
-documentation, or `theme=:article` for vector/article output. Legacy
-`theme=:workbench` resolves to `:lab`; `:modern` and `:showcase` resolve to
-`:screen`. `appearance=:light` or `:dark` controls the color scheme
-independently.
+`theme=:screen` for live analysis, notebooks, and documentation, or
+`theme=:article` for vector/article output. The former `:lab`, `:workbench`,
+`:modern`, and `:showcase` names remain aliases of `:screen` rather than
+separate cosmetic presets. `appearance=:light` or `:dark` controls the color
+scheme independently.
 `band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
 includes observation uncertainty in y and effective x uncertainty. With the
@@ -1469,10 +1419,7 @@ end
 
 function _diagnostic_colors(style::Symbol, appearance::Symbol)
     preset = _style_preset(style, appearance)
-    alpha =
-        style == :lab ? (0.22, 0.12, 0.06) :
-        style == :article ? (0.20, 0.11, 0.06) :
-        (0.28, 0.16, 0.08)
+    alpha = style == :article ? (0.20, 0.11, 0.06) : (0.28, 0.16, 0.08)
     return (
         levels=preset.series_colors[1:3],
         regions=ntuple(index -> (preset.fit_color, alpha[index]), 3),

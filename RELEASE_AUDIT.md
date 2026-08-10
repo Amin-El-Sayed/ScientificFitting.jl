@@ -23,7 +23,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Real executable output now preserves the resulting `critical` baseline and
   `review` drift diagnostics instead of tuning the uncertainty scale to obtain
   an attractive p-value. Its public script writes to `examples/output/` by
-  default; regenerating the six tracked documentation assets requires the
+  default; regenerating the four tracked documentation assets requires the
   explicit `JUFITTER_RENDER_DOC_ASSETS=1` maintainer flag.
 
 ## Current Verification
@@ -557,12 +557,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   provides. Its documented LaTeX/report combination is execution-checked; an
   uncovered empty-title conversion was fixed so automatic blank labels remain
   plain empty strings instead of invalid empty LaTeX expressions.
-- Focused plot regression tests pass with 136 checks after the plot-style
-  architecture was consolidated into three work-specific contracts, light/dark
-  appearance was separated from style, and the right-side report became a
-  reusable, left-aligned layout component. `:lab` provides compact live
-  inspection, `:screen` provides notebook/documentation output, and `:article`
-  provides TeX-oriented vector export. The same gate also covers compatibility
+- Focused plot regression tests passed with 136 checks for the superseded
+  three-role implementation. Maintainer review later rejected `:lab` as a
+  separate visual contract; the current two-role redesign is tracked in the
+  release blocker below. Light/dark appearance remains separate from style,
+  and the right-side report remains a reusable, left-aligned layout component.
+  The same gate also covers compatibility
   aliases, public theme/palette access, invalid style combinations, and
   style-aware profile, contour, residual, and diagnostic plots. It now also
   verifies that a right-side report cannot collapse the requested output
@@ -636,9 +636,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   width and explicit two-/one-column breakpoints. This replaces the previous
   auto-fit layout, which produced five narrow cards followed by an ambiguous
   three-card remainder. The sequence uses plain panels without decorative
-  gradients or shadows. Browser checks confirm no horizontal overflow, eight
-  visible cards, exactly one rendered image per card, and correct switching
-  among lab, screen, and article assets in light and dark appearance.
+  gradients or shadows. The two-role browser rerun confirms no horizontal
+  overflow, exactly one rendered light/dark asset per plot group, and correct
+  switching between `:screen` and `:article` on compound Poisson and histogram
+  pages. The obsolete `:lab` assets were removed rather than retained as a
+  duplicate visual contract.
 - The plotting API reference now states the optimizer boundary, complete
   keyword/default/return/failure contracts, uncertainty-band semantics,
   extension points, and export behavior instead of relying on generated
@@ -650,12 +652,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
-- The three-role plot-style redesign passes focused technical, asset, link, and
-  local browser gates. Fixed-size comparison evidence covers an ordinary fit,
-  a compound damped-oscillator figure, and the profile matrix; all Gallery
-  assets exist for `:lab`, `:screen`, and `:article` in light and dark
-  appearance. Final maintainer visual acceptance is still required before
-  release. Snapshot evidence remains only a change detector.
+- The plotting redesign now has two maintained contracts: `:screen` for direct
+  analysis and explanatory screen output, and `:article` for TeX/vector output.
+  Former style names remain compatibility aliases. Ordinary fits, the damped
+  oscillator, Poisson/histogram layouts, and profile matrices were regenerated
+  and checked in light and dark appearances. The focused plotting gate passes
+  132 checks; visual assets, snapshots, public hygiene, API reference, source
+  links, rendered links, and the Documenter build also pass locally. Snapshot
+  evidence remains a change detector, so final maintainer visual acceptance is
+  still required before release.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,

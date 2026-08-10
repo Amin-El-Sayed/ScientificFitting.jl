@@ -80,40 +80,39 @@ summary in the same left-aligned information panel. With
 the in-axis locations independently. `show_stats=false` removes the report
 panel entirely.
 
-The lab role defaults to `(1080, 620)` with a right-side panel and `(860, 540)`
-without one. Screen output uses `(1200, 720)` or `(920, 600)` so labels retain
-their hierarchy in notebooks and documentation. Article output uses
-`(1040, 650)` or `(760, 520)`. Pass `figure_size=(width, height)` for a required
+Screen output defaults to `(1040, 640)` with a right-side panel and `(860, 560)`
+without one. Article output uses `(1000, 640)` or `(760, 520)`. Pass
+`figure_size=(width, height)` for a required
 export footprint. The requested size is preserved; report length does not
 silently resize the saved figure. `stats_panel_width=:auto` should remain the
 default unless an external journal template requires an explicit width.
 
-## Three Output Roles
+## Two Output Roles
 
 The maintained themes represent different output jobs, not cosmetic color
 variations. They do not change data, fit, uncertainty band, or statistics.
 
-- `theme=:lab` is the inspection view for incoming measurements and dense data.
-  It uses compact sans-serif type, a complete frame, a lookup grid, small cross
-  markers, and prominent error bars. The goal is to expose points, errors, and
-  residual structure without spending screen area on presentation styling.
-- `theme=:screen` is the default for notebooks, documentation, and talks. It
-  follows Makie's direct line-and-band grammar: readable sans-serif type,
-  neutral filled observations, one strong blue fit hierarchy, quiet guides,
-  open top/right axes, and a left-aligned title.
+- `theme=:screen` is the default for live analysis, notebooks, documentation,
+  and talks. It stays close to Makie's native line-and-band grammar: readable
+  sans-serif type, neutral filled observations, a saturated blue fit, a red
+  secondary series, visible guides, strong axes, and a left-aligned title.
 - `theme=:article` is the vector-export view. It uses Makie's LaTeX font family,
-  hollow observations, a complete axis frame with inward ticks, no grid, and an
-  color-safe blue/pink pair when multiple curves require color. Hollow markers
-  preserve data/curve separation in grayscale. Its TeX typography is scaled to
-  remain readable when the figure is placed in an article.
+  hollow observations, a complete axis frame with inward ticks, no grid, and the
+  Okabe-Ito blue/vermillion pair when multiple curves require color. Hollow
+  markers preserve data/curve separation in grayscale. Its TeX typography is
+  scaled to remain readable when the figure is placed in an article.
+
+Laboratory inspection is a workflow, not a third color theme. Use
+`report=:console`, `show_stats=false`, or the diagnostic functions to change
+what is shown. The former `:lab` and `:workbench` names remain accepted aliases
+of `:screen` so existing scripts do not break.
 
 Every image below contains the same observations, errors, fit, one-sigma
 prediction band, labels, legend, report fields, and output dimensions.
 
 ```@raw html
 <div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_lab.png" alt="The same calibration fit in the lab plot role"><div><h3>lab</h3><p>Live inspection: compact information density, full frame, lookup grid, and error-first marks.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_screen.png" alt="The same calibration fit in the screen plot role"><div><h3>screen</h3><p>Notebook and docs: direct hierarchy, round markers, quiet guides, and strong text.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_screen.png" alt="The same calibration fit in the screen plot role"><div><h3>screen</h3><p>Live work and screens: direct Makie hierarchy, filled observations, visible guides, strong text.</p></div></div>
 <div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="The same calibration fit in the article plot style"><div><h3>article</h3><p>Vector export: readable TeX typography, hollow observations, framed axes, no grid.</p></div></div>
 </div>
 ```
@@ -169,10 +168,9 @@ declared browser-sized canvas, while `px_per_unit` supplies retina-resolution
 pixels. Font-size checks therefore refer to the rendered page, not the raw PNG
 dimensions.
 
-Use `:lab`, `:screen`, and `:article` in new code. The legacy name
-`:workbench` resolves to `:lab`; `:modern`, `:clean`, `:minimal`, and
-`:showcase` resolve to `:screen`; `:publication`, `:paper`, and `:latex`
-resolve to `:article`.
+Use `:screen` and `:article` in new code. The former `:lab`, `:workbench`,
+`:modern`, `:clean`, `:minimal`, and `:showcase` names resolve to `:screen`;
+`:publication`, `:paper`, and `:latex` resolve to `:article`.
 
 ## State What The Band Means
 

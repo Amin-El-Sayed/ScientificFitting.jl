@@ -144,12 +144,16 @@ function save_multi_dataset_calibration(
         figure[2, 1];
         title="Pulls: shared gain",
         titlealign=:left,
+        titlesize=palette.subplot_titlesize,
+        titlegap=palette.subplot_titlegap,
         ylabel="pull rᵢ",
     )
     partial_pull_axis = Axis(
         figure[3, 1];
         title="Pulls: partial sharing",
         titlealign=:left,
+        titlesize=palette.subplot_titlesize,
+        titlegap=palette.subplot_titlegap,
         xlabel="reference input x",
         ylabel="pull rᵢ",
     )
@@ -307,7 +311,7 @@ end
 
 if MULTI_RENDER_DOC_ASSETS
     mkpath(MULTI_DOC_ASSET_DIR)
-    for style in (:lab, :screen, :article), appearance in (:light, :dark)
+    for style in (:screen, :article), appearance in (:light, :dark)
         save_multi_dataset_calibration(
             joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
             style=style,

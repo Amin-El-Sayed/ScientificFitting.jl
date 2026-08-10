@@ -155,12 +155,16 @@ function save_model_comparison(
         figure[2, 1];
         title="Pulls: constant-frequency model",
         titlealign=:left,
+        titlesize=palette.subplot_titlesize,
+        titlegap=palette.subplot_titlegap,
         ylabel=pull_label,
     )
     drift_pull_axis = Axis(
         figure[3, 1];
         title="Pulls: frequency-drift model",
         titlealign=:left,
+        titlesize=palette.subplot_titlesize,
+        titlegap=palette.subplot_titlegap,
         xlabel=time_label,
         ylabel=pull_label,
     )
@@ -319,7 +323,7 @@ end
 if RENDER_PLOTS
     if RENDER_DOC_ASSETS
         mkpath(DOC_ASSET_DIR)
-        for style in (:lab, :screen, :article), appearance in (:light, :dark)
+        for style in (:screen, :article), appearance in (:light, :dark)
             save_model_comparison(
                 joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(appearance).png");
                 style=style,
