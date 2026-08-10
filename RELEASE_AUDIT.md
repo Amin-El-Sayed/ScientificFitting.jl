@@ -83,10 +83,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The current plotting release slice passes locally with 158 focused API/layout
+- The current plotting release slice passes locally with 175 focused API/layout
   checks, 289 gallery-structure checks, 1297 visual-asset checks, 83 visual
   snapshot checks, and 713 public-documentation hygiene checks. Documenter
-  builds without warnings.
+  builds without warnings. The authoritative local `test/runtests.jl` gate also
+  passes all 719 core and plotting checks after this style correction.
 - The plot-style audit defines exactly three maintained output contracts rather
   than loosely related color variants. `:analysis` is the live notebook/lab
   role with a complete result column. `:presentation` is a large sans-serif,
@@ -101,6 +102,11 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   review at documentation scale verified the role comparison and custom
   Photoelectric/Poisson compositions, including real role and appearance
   switching. Final maintainer visual approval is still required.
+- Compound profile matrices now inherit role-specific information density
+  rather than applying one global shrink factor. Analysis output retains panel
+  triage, presentation output uses the full type scale without workflow labels,
+  and article output remains a clean TeX export. Focused tests inspect the
+  effective Makie axis sizes and the role defaults, not only preset tokens.
 - The Profiles and Contours methods page now demonstrates profiling with an
   analytic two-parameter correlated quadratic cost. At a forced one-standard-
   error displacement, the frozen nuisance slice gives ``\Delta C=5.26`` while

@@ -367,15 +367,17 @@ them. Its scan controls are `parameters=nothing`, `parameter_names=nothing`,
 `max_refinements=2`, and `max_points=1200`.
 
 Both methods accept `filename=nothing`, `format=:pdf`, `theme=:analysis`,
-`appearance=:auto`, `theme_override=Theme()`, `panel_status_mode=:issues`,
+`appearance=:auto`, `theme_override=Theme()`, `panel_status_mode=nothing`,
 `delta_max=nothing`, and `figure_size=nothing`. The precomputed-result method
 also accepts replacement `parameter_names` but no scan controls.
 
-`panel_status_mode=:issues` labels only panels requiring attention; `:all`
-labels every panel and `:none` suppresses status text. Invalid modes, mismatched
-display-name counts, or inconsistent stored matrix dimensions raise
-`ArgumentError`. Compute [`profile_matrix`](@ref) separately when scans should
-run headlessly, be triaged before rendering, or be reused in several exports.
+With `panel_status_mode=nothing`, the output role chooses the default:
+`:analysis` labels only panels requiring attention, while `:presentation` and
+`:article` suppress workflow labels. Explicit `:issues`, `:all`, or `:none`
+overrides that choice. Invalid modes, mismatched display-name counts, or
+inconsistent stored matrix dimensions raise `ArgumentError`. Compute
+[`profile_matrix`](@ref) separately when scans should run headlessly, be
+triaged before rendering, or be reused in several exports.
 
 ## Export Semantics
 

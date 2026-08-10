@@ -57,6 +57,8 @@ function _style_preset(style::Symbol, appearance::Symbol)
         return (
             role=:analysis,
             default_show_stats=true,
+            diagnostic_scale=0.84,
+            diagnostic_status_mode=:issues,
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, dark ? 0.34 : 0.46),
@@ -117,6 +119,8 @@ function _style_preset(style::Symbol, appearance::Symbol)
         return (
             role=:presentation,
             default_show_stats=false,
+            diagnostic_scale=1.0,
+            diagnostic_status_mode=:none,
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, dark ? 0.28 : 0.34),
@@ -175,6 +179,8 @@ function _style_preset(style::Symbol, appearance::Symbol)
         return (
             role=:article,
             default_show_stats=false,
+            diagnostic_scale=0.90,
+            diagnostic_status_mode=:none,
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, 0.0),
@@ -1536,6 +1542,12 @@ function _validate_panel_status_mode(mode::Symbol)
     return nothing
 end
 
+function _resolve_panel_status_mode(mode::Union{Nothing, Symbol}, style)
+    mode === nothing && return style.diagnostic_status_mode
+    _validate_panel_status_mode(mode)
+    return mode
+end
+
 function _draw_panel_status!(
     axis::Axis,
     status::Symbol,
@@ -1900,10 +1912,11 @@ not parabolic, or profile contours do not resemble the local ellipse, symmetric
 local covariance errors should not be treated as the final uncertainty
 statement.
 
-`panel_status_mode=:issues` marks only panels with warnings or critical
-findings. Use `:all` to label every panel or `:none` for a purely graphical
-matrix. Passing a precomputed `ProfileMatrixResult` renders the stored scans
-without repeating the profile and contour refits.
+By default, the analysis role marks panels with warnings or critical findings,
+while presentation and article output remain purely graphical. Set
+`panel_status_mode=:issues`, `:all`, or `:none` to override that role default.
+Passing a precomputed `ProfileMatrixResult` renders the stored scans without
+repeating the profile and contour refits.
 """
 function plot_profile_matrix(
     result;
@@ -1922,11 +1935,11 @@ function plot_profile_matrix(
     adaptive::Bool=false,
     max_refinements::Int=2,
     max_points::Int=1200,
-    panel_status_mode::Symbol=:issues,
+    panel_status_mode::Union{Nothing, Symbol}=nothing,
     delta_max::Union{Nothing, Real}=nothing,
     figure_size=nothing,
 )
-    _validate_panel_status_mode(panel_status_mode)
+    panel_status_mode === nothing || _validate_panel_status_mode(panel_status_mode)
     matrix = profile_matrix(
         result;
         parameters=parameters,
@@ -1961,11 +1974,10 @@ function plot_profile_matrix(
     theme::Symbol=:analysis,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
-    panel_status_mode::Symbol=:issues,
+    panel_status_mode::Union{Nothing, Symbol}=nothing,
     delta_max::Union{Nothing, Real}=nothing,
     figure_size=nothing,
 )
-    _validate_panel_status_mode(panel_status_mode)
     selected = matrix.parameters
     names = parameter_names === nothing ? matrix.parameter_names : collect(parameter_names)
     n = length(selected)
@@ -1993,6 +2005,7 @@ function plot_profile_matrix(
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     style = _style_preset(resolved_style, resolved_appearance)
+    panel_status_mode = _resolve_panel_status_mode(panel_status_mode, style)
     diagnostic_colors = _diagnostic_colors(resolved_style, resolved_appearance)
     cell = n <= 3 ? 285 : 235
     fig_size = figure_size === nothing ? (cell * n + 80, cell * n + 70) :
@@ -2011,7 +2024,7 @@ function plot_profile_matrix(
     corr_color = style.stats_muted_color
     # Dense matrices scale the selected role down, but never below a readable
     # final-size floor. This keeps one typography contract across all plots.
-    density_scale = n <= 3 ? 0.82 : 0.70
+    density_scale = style.diagnostic_scale * (n <= 3 ? 1.0 : 0.84)
     matrix_titlesize = max(n <= 3 ? 26 : 24, round(Int, density_scale * style.titlesize))
     matrix_labelsize = max(n <= 3 ? 23 : 21, round(Int, density_scale * style.xlabelsize))
     matrix_ticklabelsize = max(n <= 3 ? 20 : 18, round(Int, density_scale * style.ticklabelsize))

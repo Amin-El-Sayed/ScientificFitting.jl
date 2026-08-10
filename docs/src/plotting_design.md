@@ -117,6 +117,13 @@ variations. They do not change data, fit, uncertainty band, or statistics.
   normally belong in a caption or table; `show_stats=true` restores the panel
   when a self-contained article figure needs it.
 
+The same contracts apply to compound diagnostics. An analysis profile matrix
+uses compact readable type and marks panels that need inspection. Presentation
+output removes those workflow labels and spends the available canvas on larger
+type. Article output also omits workflow labels, uses TeX typography, and keeps
+the full axis frame. Set `panel_status_mode` explicitly only when an export must
+depart from that role default.
+
 All three images below contain the same observations, errors, fit, one-sigma
 prediction band, and labels. Only the output job changes.
 

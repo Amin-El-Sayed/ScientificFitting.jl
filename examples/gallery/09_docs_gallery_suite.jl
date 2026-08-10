@@ -1033,7 +1033,6 @@ if render_asset_group("constraints_profiles")
         matrix_figure = plot_profile_matrix(
             profile_overview;
             parameter_names=matrix_parameter_names,
-            panel_status_mode=:issues,
             theme=style,
             appearance=appearance,
             figure_size=(1020, 980),

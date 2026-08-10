@@ -268,6 +268,11 @@ using Test
     @test analysis_style.default_show_stats
     @test !presentation_style.default_show_stats
     @test !article_style.default_show_stats
+    @test analysis_style.diagnostic_status_mode == :issues
+    @test presentation_style.diagnostic_status_mode == :none
+    @test article_style.diagnostic_status_mode == :none
+    @test presentation_style.diagnostic_scale > analysis_style.diagnostic_scale
+    @test article_style.diagnostic_scale > analysis_style.diagnostic_scale
     @test analysis_style.data_marker == :circle
     @test analysis_style.xgridvisible && analysis_style.ygridvisible
     @test !analysis_style.topspinevisible && !analysis_style.rightspinevisible
@@ -376,6 +381,10 @@ using Test
     @test latex_figure !== nothing
     plotting_extension = Base.get_extension(JuFitter, :JuFitterCairoMakieExt)
     @test plotting_extension !== nothing
+    @test plotting_extension._resolve_panel_status_mode(nothing, analysis_style) == :issues
+    @test plotting_extension._resolve_panel_status_mode(nothing, presentation_style) == :none
+    @test plotting_extension._resolve_panel_status_mode(nothing, article_style) == :none
+    @test plotting_extension._resolve_panel_status_mode(:all, article_style) == :all
     article_dark_diagnostics = plotting_extension._diagnostic_colors(:article, :dark)
     @test article_dark_diagnostics.levels[1] == plot_palette(:article; appearance=:dark).fit_color
     @test all(color -> first(color) != :black, article_dark_diagnostics.regions)
@@ -467,6 +476,20 @@ using Test
         theme=:modern,
     ) !== nothing
     @test isfile(precomputed_matrix_out)
+    analysis_matrix = plot_profile_matrix(precomputed_matrix; theme=:analysis)
+    presentation_matrix = plot_profile_matrix(precomputed_matrix; theme=:presentation)
+    article_matrix = plot_profile_matrix(precomputed_matrix; theme=:article)
+    analysis_matrix_axes = filter(content -> content isa Axis, analysis_matrix.content)
+    presentation_matrix_axes = filter(content -> content isa Axis, presentation_matrix.content)
+    article_matrix_axes = filter(content -> content isa Axis, article_matrix.content)
+    @test length(analysis_matrix_axes) == 4
+    @test length(presentation_matrix_axes) == 4
+    @test length(article_matrix_axes) == 4
+    @test first(presentation_matrix_axes).titlesize[] > first(analysis_matrix_axes).titlesize[]
+    @test first(article_matrix_axes).titlesize[] > first(analysis_matrix_axes).titlesize[]
+    @test minimum(axis.xticklabelsize[] for axis in analysis_matrix_axes) >= 20
+    @test minimum(axis.xticklabelsize[] for axis in presentation_matrix_axes) >= 24
+    @test minimum(axis.xticklabelsize[] for axis in article_matrix_axes) >= 22
     @test_throws ArgumentError plot_profile_matrix(precomputed_matrix; parameter_names=["m"])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=Int[])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 1])
