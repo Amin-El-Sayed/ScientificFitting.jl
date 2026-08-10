@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-08-05
+Status: 2026-08-10
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -27,6 +27,17 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   explicit `JUFITTER_RENDER_DOC_ASSETS=1` maintainer flag.
 
 ## Current Verification
+
+- The mathematics and statistics handbook now has five focused public pages
+  instead of one 788-line chapter: an overview/reading path, Gaussian fits and
+  covariance, parameter information and fit quality, profiles and contours,
+  and likelihood/model comparison. The pages preserve one statistical
+  convention and link method assumptions to executable gallery analyses. The
+  focused public-documentation gate passes 616 checks, source links 403,
+  rendered links 2909, and the API-reference gate 89; Documenter also builds
+  without warnings. Browser review confirmed the shortened navigation labels,
+  no horizontal overflow at the checked desktop width, and correct
+  `screen/article` plus light/dark switching for the real profile-matrix assets.
 
 - Julia 1.10.11 previously passed the Makie-free core gate with 432 checks and
   the full package test with 501 checks in an isolated environment resolved
@@ -652,15 +663,15 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
-- The plotting redesign now has two maintained contracts: `:screen` for direct
-  analysis and explanatory screen output, and `:article` for TeX/vector output.
-  Former style names remain compatibility aliases. Ordinary fits, the damped
-  oscillator, Poisson/histogram layouts, and profile matrices were regenerated
-  and checked in light and dark appearances. The focused plotting gate passes
-  132 checks; visual assets, snapshots, public hygiene, API reference, source
-  links, rendered links, and the Documenter build also pass locally. Snapshot
-  evidence remains a change detector, so final maintainer visual acceptance is
-  still required before release.
+- The plotting redesign currently exposes `:screen` and `:article`, with former
+  style names retained as compatibility aliases. Technical gates confirm that
+  the contracts propagate through ordinary and compound figures, but maintainer
+  review found that the visible roles remain too similar and that text in
+  several diagnostic/compound figures is too small. Plot styling is therefore
+  reopened as a dedicated v0 release block. Acceptance requires fixed-size
+  comparison renders across ordinary fits, dense data, side panels, residuals,
+  profile matrices, and custom Makie annotations; each retained role must solve
+  a distinct scientific output problem and meet explicit readability floors.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,

@@ -46,8 +46,8 @@ coordinates.
 An arbitrary custom loss has no likelihood interpretation. For indexed and
 multi-dataset wrappers, `minus2loglik_min` equals the chi-square objective only
 when no normalized Gaussian parameter terms are present. See
-[Statistical Foundations](statistical_foundations.md) before comparing AIC or
-BIC across different data or uncertainty models.
+[Likelihoods and Model Comparison](likelihood_models.md) before comparing AIC
+or BIC across different data or uncertainty models.
 
 ```@docs
 JuFitter.FitResult

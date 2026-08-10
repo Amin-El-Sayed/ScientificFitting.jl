@@ -274,5 +274,6 @@ cont = contour(result, 1, 2; adaptive=true)
   the one-line interface.
 - See [Fitting for Practitioners](fitting_for_practitioners.md) for practical
   troubleshooting rules.
-- See [Statistical Foundations](statistical_foundations.md) for the mathematical
-  justification of chi-square, likelihoods, covariance, profiles, and contours.
+- See [Gaussian Fits and Covariance](gaussian_models.md) for the derivation of
+  weighted chi-square and [Profiles and Contours](profiles_contours.md) when a
+  local symmetric error is not enough.

@@ -225,4 +225,4 @@ model with nuisance parameters or a structured covariance description.
 
 Next useful pages: [Full Covariance](@ref),
 [Damped Oscillator](resonance_decay.md), and
-[Statistical Foundations](@ref).
+[Gaussian Fits and Covariance](../gaussian_models.md#Uncertainty-In-X).

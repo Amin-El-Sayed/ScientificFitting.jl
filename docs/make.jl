@@ -45,7 +45,11 @@ makedocs(;
             "Plotting and Customization" => "plotting_design.md",
         ],
         "Mathematics and Statistics" => [
-            "Statistical Foundations" => "statistical_foundations.md",
+            "Overview" => "statistical_foundations.md",
+            "Gaussian Fits and Covariance" => "gaussian_models.md",
+            "Parameters and Fit Quality" => "parameter_inference.md",
+            "Profiles and Contours" => "profiles_contours.md",
+            "Likelihoods and Model Comparison" => "likelihood_models.md",
         ],
         "Reference" => [
             "API Reference" => [

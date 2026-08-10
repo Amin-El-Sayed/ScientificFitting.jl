@@ -371,4 +371,5 @@ asymptotic likelihood-ratio thresholds may be unreliable. Inspect a profile and
 report a one-sided limit when appropriate.
 
 Next useful pages: [Constraints and Profiles](@ref),
-[Fitting for Practitioners](@ref), and [Statistical Foundations](@ref).
+[Fitting for Practitioners](@ref), and
+[Likelihoods and Model Comparison](../likelihood_models.md).

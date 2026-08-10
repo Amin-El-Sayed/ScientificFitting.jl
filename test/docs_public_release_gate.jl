@@ -22,6 +22,10 @@ const PUBLIC_DOC_PAGES = [
     "fitting_for_practitioners.md",
     "plotting_design.md",
     "statistical_foundations.md",
+    "gaussian_models.md",
+    "parameter_inference.md",
+    "profiles_contours.md",
+    "likelihood_models.md",
     "api.md",
     "api_fitting.md",
     "api_results.md",
@@ -105,6 +109,21 @@ end
 
 function statistical_foundations_page_text()
     return public_file_text(joinpath(DOCS_SRC, "statistical_foundations.md"))
+end
+
+function statistics_pages_text()
+    pages = (
+        "statistical_foundations.md",
+        "gaussian_models.md",
+        "parameter_inference.md",
+        "profiles_contours.md",
+        "likelihood_models.md",
+    )
+    return join((public_file_text(joinpath(DOCS_SRC, page)) for page in pages), "\n")
+end
+
+function profiles_page_text()
+    return public_file_text(joinpath(DOCS_SRC, "profiles_contours.md"))
 end
 
 function reference_map_page_text()
@@ -250,7 +269,7 @@ end
     end
 
     @testset "Statistics guide makes profile geometry readable" begin
-        guide = statistical_foundations_page_text()
+        guide = profiles_page_text()
 
         @test occursin("data-jufitter-plot-group=\"statistics-profile-matrix\"", guide)
         for style in ("screen", "article")
@@ -283,8 +302,14 @@ end
     end
 
     @testset "Statistical foundations states assumptions and limits" begin
-        foundations = statistical_foundations_page_text()
+        overview = statistical_foundations_page_text()
+        foundations = statistics_pages_text()
 
+        @test occursin("## Choose A Reading Path", overview)
+        @test occursin("Gaussian Fits and Covariance", overview)
+        @test occursin("Parameters and Fit Quality", overview)
+        @test occursin("Profiles and Contours", overview)
+        @test occursin("Likelihoods and Model Comparison", overview)
         @test occursin("C(\\theta) = -2\\log L(\\theta)", foundations)
         @test occursin("\\chi^2_\\mathrm{common}=\\frac{2}{1+\\rho}=1.11", foundations)
         @test occursin("\\chi^2_\\mathrm{opposite}=\\frac{2}{1-\\rho}=10", foundations)

@@ -409,4 +409,4 @@ is large or the model is strongly curved over one ``\sigma_t``, use a more
 complete errors-in-variables model instead of trusting first-order propagation.
 
 Next useful pages: [Fitting for Practitioners](@ref),
-[Statistical Foundations](@ref), and [XY Uncertainties](@ref).
+[Profiles and Contours](../profiles_contours.md), and [XY Uncertainties](@ref).

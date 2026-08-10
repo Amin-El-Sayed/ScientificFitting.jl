@@ -308,4 +308,5 @@ A wrong covariance can hide model mismatch or make uncertainties look more
 credible than they are.
 
 Next useful pages: [Damped Oscillator](resonance_decay.md),
-[Fitting for Practitioners](@ref), and [Statistical Foundations](@ref).
+[Fitting for Practitioners](@ref), and
+[Gaussian Fits and Covariance](../gaussian_models.md).

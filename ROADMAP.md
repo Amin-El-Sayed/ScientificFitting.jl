@@ -373,6 +373,14 @@ Status: active release focus. Core and diagnostic gates are locally green; the
 remaining work is a page-by-page editorial, didactic, API-reference, and visual
 review plus packaging/deployment decisions requiring maintainer approval.
 
+The mathematics and statistics handbook is now split into five focused pages:
+an entry map, Gaussian fits and covariance, parameter information and fit
+quality, profiles and contours, and likelihood/model comparison. The split is
+organizational rather than additive: one long reference page was replaced by a
+reader path and method chapters with explicit assumptions, small numerical
+examples, cross-links to executable gallery analyses, and one shared reporting
+contract.
+
 Goal: documentation is good enough to teach scientific fitting, not only list
 function signatures.
 

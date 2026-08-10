@@ -430,4 +430,5 @@ implausibly small, or the profile is non-parabolic, the local symmetric errors
 are not enough evidence for a careful scientific report.
 
 Next useful pages: [XY Uncertainties](@ref),
-[Constraints and Profiles](@ref), and [Statistical Foundations](@ref).
+[Constraints and Profiles](@ref), and
+[Parameters and Fit Quality](../parameter_inference.md).

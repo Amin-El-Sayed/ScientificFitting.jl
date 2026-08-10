@@ -208,6 +208,6 @@ both, or neither.
 | Complete scientific workflows | [Gallery](gallery.md) |
 | A suspicious fit and a practical next action | [Fitting for Practitioners](fitting_for_practitioners.md) |
 | Plot styles, panels, and custom Makie composition | [Plotting and Customization](plotting_design.md) |
-| Statistical assumptions and derivations | [Statistical Foundations](statistical_foundations.md) |
+| Statistical assumptions and derivations | [Statistical Foundations](statistical_foundations.md) and its focused method chapters |
 | Every keyword, field, default, and failure mode | [API Reference](api.md) |
 | Internal validation, solver, and result flow | [Backend Design](backend_design.md) |

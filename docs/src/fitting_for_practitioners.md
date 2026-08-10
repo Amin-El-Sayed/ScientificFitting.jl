@@ -445,5 +445,5 @@ For complete worked examples, follow the gallery progression from
 [XY Uncertainties](gallery/xy_uncertainties.md),
 [Full Covariance](gallery/full_covariance.md), and
 [Constraints and Profiles](gallery/constraints_profiles.md). The
-[Statistical Foundations](statistical_foundations.md) page derives the cost
-functions and uncertainty conventions used here.
+[Statistical Foundations](statistical_foundations.md) overview routes each
+observation model and uncertainty question to its focused method chapter.

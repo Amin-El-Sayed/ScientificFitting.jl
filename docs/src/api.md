@@ -2,8 +2,8 @@
 
 This reference defines JuFitter's public contracts. Start with
 [Quickstart](quickstart.md) for a first fit or
-[Statistical Foundations](statistical_foundations.md) for the assumptions behind
-the methods.
+[Statistical Foundations](statistical_foundations.md) to choose the method
+chapter that matches the observation process.
 
 ## Choose An Entry Point
 
