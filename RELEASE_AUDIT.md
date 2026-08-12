@@ -871,10 +871,12 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   hygiene gate; keep extending that gate when new release-language risks are
   identified.
 - Dark-mode plots must be checked visually whenever a gallery asset changes.
-- Linear Calibration and XY Uncertainties now keep their measured uncertainty
-  values unchanged while using smaller observation markers and native Makie
-  whisker controls in the examples. The short y-error bars, and both x/y bars
-  in the XY example, were visually checked in sans/TeX and light/dark outputs.
+- Measurement errors now have one central rendering contract: opaque
+  axis-contrast color, a 1.05-unit line, and 4-unit caps in both styles. The
+  Makie color cycle is disabled for error bars, direct custom figures inherit
+  the same defaults, and per-element Makie kwargs remain authoritative. Sans
+  uses solid observations without a white halo; TeX uses a fine open marker.
+  Linear and XY assets were checked in both styles and light/dark appearances.
 
 ## CI And Packaging Blockers
 

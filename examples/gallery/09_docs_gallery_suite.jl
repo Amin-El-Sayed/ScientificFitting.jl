@@ -721,10 +721,8 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    # Preserve the measured uncertainties; smaller markers expose short bars.
+    # Compact observations keep short measured uncertainties visible.
     data_markersize=5.0,
-    error_whiskerwidth=5.0,
-    yerrorbars_kwargs=(linewidth=1.3,),
     figure_size=DOC_FIT_SIZE,
 )
 
@@ -922,11 +920,8 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    # Both uncertainty components remain visible at documentation scale.
+    # Compact observations keep both uncertainty components visible.
     data_markersize=5.0,
-    error_whiskerwidth=5.0,
-    xerrorbars_kwargs=(linewidth=1.3,),
-    yerrorbars_kwargs=(linewidth=1.3,),
     figure_size=DOC_FIT_SIZE,
 )
 

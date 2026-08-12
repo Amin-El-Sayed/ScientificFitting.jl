@@ -100,10 +100,8 @@ plot_fit(
     show_legend=true,
     stats_position=:right,
     stats_mode=:full,
-    # Small markers keep the measured error bars visible without exaggerating sigma_y.
+    # Compact observations keep short measured uncertainties visible.
     data_markersize=5,
-    error_whiskerwidth=5,
-    yerrorbars_kwargs=(linewidth=1.3,),
     filename="linear_calibration.pdf",
 )
 

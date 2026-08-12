@@ -125,11 +125,8 @@ plot_fit(
     show_legend=true,
     stats_position=:right,
     stats_mode=:full,
-    # Keep both short uncertainty components visible at normal screen size.
+    # Compact observations keep both uncertainty components visible.
     data_markersize=5,
-    error_whiskerwidth=5,
-    xerrorbars_kwargs=(linewidth=1.3,),
-    yerrorbars_kwargs=(linewidth=1.3,),
     filename="xy_uncertainties.pdf",
 )
 

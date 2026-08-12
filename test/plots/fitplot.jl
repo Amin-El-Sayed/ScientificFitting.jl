@@ -1,5 +1,5 @@
 using JuFitter
-using CairoMakie: Axis, Figure, Label, save, scatter!, with_theme
+using CairoMakie: Axis, Figure, Label, errorbars!, save, scatter!, with_theme
 using LaTeXStrings
 using Test
 
@@ -293,6 +293,12 @@ using Test
         (sans_style, tex_style)) >= 1.5
     @test maximum(style.error_whiskerwidth for style in
         (sans_style, tex_style)) <= 6
+    @test sans_style.error_linewidth == tex_style.error_linewidth
+    @test sans_style.error_linewidth <= 1.1
+    @test sans_style.xerr_color == sans_style.axis_color
+    @test sans_style.yerr_color == sans_style.axis_color
+    @test tex_style.xerr_color == tex_style.axis_color
+    @test tex_style.yerr_color == tex_style.axis_color
     @test all(length(unique(style.series_colors)) == length(style.series_colors) for
         style in (sans_style, tex_style))
     @test sans_style.fit_color == :dodgerblue
@@ -303,6 +309,17 @@ using Test
     @test tex_style.data_color == tex_style.background_color
     @test tex_style.data_strokecolor == tex_style.axis_color
     @test tex_style.data_strokewidth > sans_style.data_strokewidth
+
+    # Direct Makie composition must inherit the same error-bar contract as
+    # `plot_fit`; disabling Makie's color cycle keeps errors tied to the axes.
+    themed_errorbars = with_theme(plot_theme(:sans)) do
+        figure = Figure()
+        axis = Axis(figure[1, 1])
+        errorbars!(axis, [1.0], [2.0], [0.2])
+    end
+    @test themed_errorbars.color[] == sans_style.axis_color
+    @test themed_errorbars.linewidth[] == sans_style.error_linewidth
+    @test themed_errorbars.whiskerwidth[] == sans_style.error_whiskerwidth
 
     style_signature(style) = (
         style.data_marker,

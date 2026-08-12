@@ -197,7 +197,9 @@ Makie keyword container is merged last and therefore has final authority.
 
 Every `*_kwargs` container accepts a `NamedTuple`, `AbstractDict`, or `nothing`.
 Other container types raise `ArgumentError`. Explicit element overrides affect
-only that layer; unmodified layers continue to follow the selected style.
+only that layer; unmodified layers continue to follow the selected style. Both
+styles render measurement-error lines at full contrast with the same fine
+stroke. Override `linewidth` only through the corresponding Makie container.
 
 ## Extend A Finished Figure
 

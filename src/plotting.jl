@@ -58,13 +58,16 @@ function _style_preset(style::Symbol, appearance::Symbol)
             data_marker=:circle,
             data_markersize=11.0,
             data_strokecolor=paper,
-            data_strokewidth=1.2,
+            data_strokewidth=0.0,
             fit_color=fit,
             fit_linewidth=3.3,
             band_color=fit,
             band_alpha=dark ? 0.24 : 0.20,
-            xerr_color=(ink, dark ? 0.84 : 0.76),
-            yerr_color=(ink, dark ? 0.84 : 0.76),
+            # Measurement errors are primary data, not muted decoration.
+            # Keep them opaque and fine; explicit Makie kwargs still win.
+            xerr_color=ink,
+            yerr_color=ink,
+            error_linewidth=1.05,
             error_whiskerwidth=4.0,
             secondary_color=dark ? "#ff6b6b" : :red,
             reference_color=dark ? :slategray1 : :gray35,
@@ -118,14 +121,15 @@ function _style_preset(style::Symbol, appearance::Symbol)
             data_marker=:circle,
             data_markersize=11.0,
             data_strokecolor=ink,
-            data_strokewidth=1.7,
+            data_strokewidth=0.9,
             fit_color=fit,
             fit_linewidth=3.0,
             band_color=fit,
             band_alpha=dark ? 0.18 : 0.15,
-            xerr_color=(ink, dark ? 0.82 : 0.76),
-            yerr_color=(ink, dark ? 0.82 : 0.76),
-            error_whiskerwidth=4.5,
+            xerr_color=ink,
+            yerr_color=ink,
+            error_linewidth=1.05,
+            error_whiskerwidth=4.0,
             secondary_color=dark ? "#f06b4f" : "#d55e00",
             reference_color=dark ? "#d3dae0" : "#444a50",
             series_colors=dark ?
@@ -230,6 +234,14 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
             markersize=preset.data_markersize,
             strokecolor=preset.data_strokecolor,
             strokewidth=preset.data_strokewidth,
+        ),
+        Errorbars=(
+            color=preset.axis_color,
+            # A typed empty cycle preserves the semantic error color instead
+            # of replacing it with the next series color.
+            cycle=Cycle(nothing),
+            linewidth=preset.error_linewidth,
+            whiskerwidth=preset.error_whiskerwidth,
         ),
     )
     return merge(font_theme, visual_theme, theme_override)
@@ -1195,7 +1207,14 @@ function plot_fit(
             x,
             y,
             yerr;
-            _merged_kwargs((color=yerr_color, whiskerwidth=error_whiskerwidth), yerrorbars_kwargs)...,
+            _merged_kwargs(
+                (
+                    color=yerr_color,
+                    linewidth=style.error_linewidth,
+                    whiskerwidth=error_whiskerwidth,
+                ),
+                yerrorbars_kwargs,
+            )...,
         )
     end
 
@@ -1206,7 +1225,12 @@ function plot_fit(
             y,
             xerr;
             _merged_kwargs(
-                (direction=:x, color=xerr_color, whiskerwidth=error_whiskerwidth),
+                (
+                    direction=:x,
+                    color=xerr_color,
+                    linewidth=style.error_linewidth,
+                    whiskerwidth=error_whiskerwidth,
+                ),
                 xerrorbars_kwargs,
             )...,
         )
