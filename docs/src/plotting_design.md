@@ -332,6 +332,11 @@ Diagnostic plots use the same `theme` and `appearance` contract:
   filled profile regions with the local covariance approximation as a line;
 - `plot_profile_matrix(...)` gives the multi-parameter overview.
 
+Single-profile and contour legends default to `legend_position=:below`. The
+axis therefore keeps the full scientific content width even when confidence
+labels are descriptive. Set `legend_position=:right` for a bounded side column,
+or pass `legend_kwargs` for direct Makie-level legend customization.
+
 Expensive profile matrices can be computed without Makie, inspected in a
 headless job, and rendered later without repeating any refits:
 

@@ -75,7 +75,10 @@ list as an ownership map, not a second architecture chapter.
    are reserved for a declared export constraint.
 4. A standard right panel has one hierarchy: legend, model, parameters, then
    statistics. `plot_info_panel!`, `plot_theme`, and `plot_palette` are the
-   shared composition hooks for compound figures.
+   shared composition hooks for compound figures. Standalone profile and
+   contour legends default to a separate row below the data axis; descriptive
+   label length must never determine the width of the scientific column. An
+   explicitly requested right legend uses bounded layout weights.
 5. Plot styles are `:sans` and `:tex`; light/dark appearance, result-panel
    visibility, terminal output, legend visibility, and explicit element
    overrides are independent. `:sans` is the open-axis/grid contract and `:tex`

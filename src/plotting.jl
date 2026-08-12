@@ -1505,6 +1505,40 @@ function _validate_panel_status_mode(mode::Symbol)
     return nothing
 end
 
+function _diagnostic_legend!(
+    fig,
+    handles,
+    labels;
+    position::Symbol=:below,
+    legend_kwargs=NamedTuple(),
+)
+    position in (:below, :right) ||
+        throw(ArgumentError("legend_position must be :below or :right"))
+    below = position == :below
+    defaults = (
+        framevisible=false,
+        orientation=:vertical,
+        halign=:left,
+        valign=:top,
+        tellwidth=false,
+        tellheight=below,
+    )
+    cell = below ? fig[2, 1] : fig[1, 2]
+    legend = Legend(cell, handles, labels; _merged_kwargs(defaults, legend_kwargs)...)
+
+    if below
+        # The legend determines only its own row height. Its longest label must
+        # never determine the width of the scientific data column.
+        rowsize!(fig.layout, 1, Auto(false, 1))
+    else
+        # A requested side legend gets one third of the layout, independent of
+        # label length. This prevents descriptive text from collapsing the axis.
+        colsize!(fig.layout, 1, Auto(false, 2))
+        colsize!(fig.layout, 2, Auto(false, 1))
+    end
+    return legend
+end
+
 function _draw_panel_status!(
     axis::Axis,
     status::Symbol,
@@ -1541,7 +1575,9 @@ symmetric errors should not be treated as the final uncertainty statement.
 Use `delta_max` to focus the view on scientifically relevant interval
 thresholds when a strongly non-parabolic tail would otherwise compress the
 minimum. Line weights and colors follow `theme`; explicit `line_kwargs`,
-`local_line_kwargs`, and `threshold_kwargs` take precedence.
+`local_line_kwargs`, and `threshold_kwargs` take precedence. Descriptive
+legends default to a row below the axis so label length cannot shrink the data
+area. Use `legend_position=:right` only when a side legend is preferred.
 """
 function plot_profile(
     profile_result::ProfileResult;
@@ -1561,6 +1597,7 @@ function plot_profile(
     local_linestyle=:dash,
     threshold_color=nothing,
     show_legend::Bool=true,
+    legend_position::Symbol=:below,
     profile_label="profile cost",
     local_label="local covariance parabola",
     threshold_label=nothing,
@@ -1570,6 +1607,7 @@ function plot_profile(
     line_kwargs=NamedTuple(),
     local_line_kwargs=NamedTuple(),
     threshold_kwargs=NamedTuple(),
+    legend_kwargs=NamedTuple(),
 )
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     style = _style_preset(resolved_style, resolved_appearance)
@@ -1628,7 +1666,13 @@ function plot_profile(
             "interval threshold (Δcost = $(_fmt_value(profile_result.threshold; sigdigits=3)))" :
             threshold_label,
         )
-        Legend(fig[1, 2], handles, labels; framevisible=false)
+        _diagnostic_legend!(
+            fig,
+            handles,
+            labels;
+            position=legend_position,
+            legend_kwargs=legend_kwargs,
+        )
     end
 
     if filename !== nothing
@@ -1655,7 +1699,9 @@ because they make confidence thresholds harder to read quickly.
 Pass `local_covariance=result.param_covariance` and
 `local_center=result.params[[i, j]]` to overlay the local covariance ellipse in
 the same parameter plane. Non-elliptic profile contours indicate that local
-Gaussian covariance errors are not sufficient.
+Gaussian covariance errors are not sufficient. Descriptive legends default to
+a row below the axis so label length cannot shrink the data area. Use
+`legend_position=:right` only when a side legend is preferred.
 """
 function plot_contour(
     contour_result::ContourResult;
@@ -1671,6 +1717,7 @@ function plot_contour(
     show_heatmap::Bool=false,
     show_regions::Bool=true,
     show_legend::Bool=true,
+    legend_position::Symbol=:below,
     show_profile_lines::Bool=false,
     level_colors=nothing,
     region_colors=nothing,
@@ -1685,6 +1732,7 @@ function plot_contour(
     heatmap_kwargs=NamedTuple(),
     contour_kwargs=NamedTuple(),
     local_contour_kwargs=NamedTuple(),
+    legend_kwargs=NamedTuple(),
 )
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     style = _style_preset(resolved_style, resolved_appearance)
@@ -1700,8 +1748,6 @@ function plot_contour(
             backgroundcolor=style.background_color,
         )
     end
-    # Left alignment keeps descriptive titles inside the scientific column when
-    # a natural-width legend occupies the adjacent layout cell.
     ax = Axis(
         fig[1, 1];
         _merged_kwargs((title=title, titlealign=:left, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...,
@@ -1828,7 +1874,13 @@ function plot_contour(
             push!(handles, local_handle)
             push!(labels, _local_contour_label(plot_levels))
         end
-        Legend(fig[1, 2], handles, labels; framevisible=false)
+        _diagnostic_legend!(
+            fig,
+            handles,
+            labels;
+            position=legend_position,
+            legend_kwargs=legend_kwargs,
+        )
     end
 
     if filename !== nothing

@@ -10,6 +10,17 @@ Publication policy: do not push, publish, register, deploy documentation, or
 make the repository public without explicit manual approval from Amin_El_Sayed.
 Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
+- Standalone profile and contour figures now share one diagnostic-legend
+  layout policy. Their descriptive legends default below the full-width data
+  axis instead of allowing the longest confidence-region label to size a right
+  column and collapse the plot. A right-side legend remains an explicit,
+  bounded option through `legend_position=:right`; `legend_kwargs` remains the
+  direct Makie override surface. The focused plotting gate passes 164 checks,
+  the visual snapshot gate 96, the plotting API gate 89, and the public-docs
+  hygiene gate 776. Documenter builds without warnings. Browser review at
+  1280 px confirms a 928 px contour image, one active style asset, working
+  light/dark and sans/TeX switching, and no horizontal overflow.
+
 - The final v0 plotting contract now separates visual style from output
   composition. The maintained styles are `:sans` and `:tex`; `show_panel`,
   `print_report`, legend visibility, and light/dark appearance are orthogonal.

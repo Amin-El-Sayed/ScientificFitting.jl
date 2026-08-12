@@ -311,10 +311,14 @@ plot_profile(profile_result; local_sigma=result.param_stderr[i])
 | Profile | `line_color=nothing`, `line_width=nothing`, `profile_label="profile cost"`, `line_kwargs` |
 | Local approximation | `local_sigma=nothing`, `local_color=nothing`, `local_linewidth=nothing`, `local_linestyle=:dash`, `local_label="local covariance parabola"`, `local_line_kwargs` |
 | Threshold | `threshold_color=nothing`, `threshold_label=nothing`, `threshold_kwargs` |
-| Layout | `show_legend=true`, `delta_max=nothing`, `axis_kwargs` |
+| Layout | `show_legend=true`, `legend_position=:below`, `delta_max=nothing`, `axis_kwargs`, `legend_kwargs` |
 
 `local_sigma` must be positive. `delta_max` must be positive when supplied; it
 changes only the displayed y range, not the profile scan or interval.
+The default vertical legend occupies its own row below the data axis, so a long
+threshold description cannot reduce the scientific plotting width.
+`legend_position=:right` requests a bounded side column instead. Explicit Makie
+legend attributes in `legend_kwargs` take precedence.
 
 ### Two-parameter contour
 
@@ -333,7 +337,7 @@ plot_contour(
 | Profile surface | `show_regions=true`, `show_profile_lines=false`, `level_colors=nothing`, `region_colors=nothing`, `line_color=nothing`, `contour_kwargs` |
 | Optional heatmap | `show_heatmap=false`, `colormap=:viridis`, `heatmap_kwargs` |
 | Local approximation | `local_covariance=nothing`, `local_center=nothing`, `local_line_color=nothing`, `local_linewidth=nothing`, `local_linestyle=:dash`, `local_contour_kwargs` |
-| Legend | `show_legend=true` |
+| Legend | `show_legend=true`, `legend_position=:below`, `legend_kwargs` |
 
 The default uses filled profile regions and labels the common two-parameter
 thresholds 2.30 and 6.18 as one- and two-sigma regions. A heatmap is opt-in.
@@ -341,6 +345,9 @@ thresholds 2.30 and 6.18 as one- and two-sigma regions. A heatmap is opt-in.
 `local_center` must contain exactly two values. Empty/non-positive contour
 levels, an empty color collection, incompatible covariance dimensions, or a
 surface with no finite cost value raise `ArgumentError`.
+The default vertical legend occupies its own row below the contour. This keeps
+the contour width independent of descriptive confidence-region labels.
+`legend_position=:right` requests a bounded side column instead.
 
 ### Profile/contour matrix
 

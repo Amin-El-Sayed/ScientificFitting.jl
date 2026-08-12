@@ -402,7 +402,7 @@ using Test
     heatmap_out = joinpath(mktempdir(), "contour_heatmap.png")
     failed_out = joinpath(mktempdir(), "contour_failed_refit.png")
 
-    @test plot_contour(
+    contour_figure = plot_contour(
         contour_result;
         filename=contour_out,
         format=:png,
@@ -410,11 +410,31 @@ using Test
         appearance=:dark,
         local_covariance=[1.0 -0.25; -0.25 1.0],
         local_center=[0.0, 0.0],
-    ) !== nothing
+    )
+    @test contour_figure !== nothing
+    contour_axis = only(filter(content -> content isa Axis, contour_figure.content))
+    @test contour_axis.scene.viewport[].widths[1] >= 0.75 * size(contour_figure.scene)[1]
+
+    # Descriptive confidence labels must not reduce the data-column width.
+    contour_without_legend = plot_contour(contour_result; show_legend=false)
+    save(joinpath(mktempdir(), "contour_without_legend.png"), contour_without_legend)
+    contour_axis_without_legend = only(filter(content -> content isa Axis, contour_without_legend.content))
+    @test contour_axis.scene.viewport[].widths[1] ==
+          contour_axis_without_legend.scene.viewport[].widths[1]
+
+    contour_right = plot_contour(
+        contour_result;
+        legend_position=:right,
+        local_covariance=[1.0 -0.25; -0.25 1.0],
+        local_center=[0.0, 0.0],
+    )
+    save(joinpath(mktempdir(), "contour_right_legend.png"), contour_right)
+    contour_right_axis = only(filter(content -> content isa Axis, contour_right.content))
+    @test contour_right_axis.scene.viewport[].widths[1] >= 0.5 * size(contour_right.scene)[1]
     @test plot_contour(contour_result; filename=heatmap_out, format=:png, show_heatmap=true) !== nothing
     profile_result = ProfileResult(1, contour_values, contour_values .^ 2, contour_values .^ 2, 1.0, 0.0)
     profile_out = joinpath(mktempdir(), "profile_legend.png")
-    @test plot_profile(
+    profile_figure = plot_profile(
         profile_result;
         filename=profile_out,
         format=:png,
@@ -423,8 +443,13 @@ using Test
         local_sigma=1.0,
         delta_max=4.0,
         threshold_kwargs=(linewidth=2.5,),
-    ) !== nothing
+    )
+    @test profile_figure !== nothing
+    profile_axis = only(filter(content -> content isa Axis, profile_figure.content))
+    @test profile_axis.scene.viewport[].widths[1] >= 0.75 * size(profile_figure.scene)[1]
     @test_throws ArgumentError plot_profile(profile_result; delta_max=0.0)
+    @test_throws ArgumentError plot_profile(profile_result; legend_position=:inside)
+    @test_throws ArgumentError plot_contour(contour_result; legend_position=:inside)
     failed_delta = copy(contour_delta)
     failed_delta[2, 3] = Inf
     failed_contour = ContourResult((1, 2), contour_values, contour_values, failed_delta, failed_delta, [2.30, 6.18])

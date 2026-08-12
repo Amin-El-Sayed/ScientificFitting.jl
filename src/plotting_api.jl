@@ -152,7 +152,9 @@ function plot_diagnostics end
 Plot a one-parameter profile scan, including the fitted minimum, local
 parabolic approximation when available, and configured threshold levels.
 Profile, approximation, and threshold line styles can be overridden
-independently without rebuilding the scan.
+independently without rebuilding the scan. The descriptive legend defaults to
+a full-width row below the data axis; `legend_position=:right` is an explicit
+alternative.
 """
 function plot_profile end
 
@@ -161,7 +163,8 @@ function plot_profile end
 
 Plot a two-parameter profile contour with labeled confidence regions and optional
 local covariance overlay. Use this to detect non-elliptic likelihood geometry or
-strong parameter correlations.
+strong parameter correlations. The descriptive legend defaults to a full-width
+row below the data axis so long statistical labels cannot compress the contour.
 """
 function plot_contour end
 
