@@ -6,7 +6,14 @@ const GALLERY_ASSETS = joinpath(DOCS_SRC, "assets", "gallery")
 
 const REQUIRED_STYLE_PAIRS = Set(
     (style, appearance)
-    for style in ("analysis", "presentation", "article")
+    for style in ("sans", "tex")
+    for appearance in ("light", "dark")
+)
+
+const REQUIRED_PANEL_VARIANTS = Set(
+    (style, panel, appearance)
+    for style in ("sans", "tex")
+    for panel in ("show", "hide")
     for appearance in ("light", "dark")
 )
 
@@ -60,6 +67,7 @@ function image_records()
 
             group_match = match(r"data-jufitter-plot-group=\"([^\"]+)\"", tag)
             style_match = match(r"data-jufitter-plot-style=\"([^\"]+)\"", tag)
+            panel_match = match(r"data-jufitter-plot-panel=\"([^\"]+)\"", tag)
             alt_match = match(r"alt=\"([^\"]+)\"", tag)
             src = src_match.captures[1]
             appearance = occursin("_dark", src) ? "dark" : occursin("_light", src) ? "light" : ""
@@ -72,6 +80,7 @@ function image_records()
                     path=path,
                     group=isnothing(group_match) ? "" : group_match.captures[1],
                     style=isnothing(style_match) ? "" : style_match.captures[1],
+                    panel=isnothing(panel_match) ? "" : panel_match.captures[1],
                     appearance=appearance,
                     alt=isnothing(alt_match) ? "" : alt_match.captures[1],
                 ),
@@ -114,11 +123,23 @@ end
         observed = Set((record.style, record.appearance) for record in group_records)
         @test REQUIRED_STYLE_PAIRS ⊆ observed
 
-        # Light/dark assets must be interchangeable in-place. Different
-        # output roles may use different aspect ratios because analysis keeps
-        # a result panel while presentation and article are figure-first.
-        for style in ("analysis", "presentation", "article")
-            style_records = filter(record -> record.style == style, group_records)
+        panels = Set(record.panel for record in group_records if !isempty(record.panel))
+        if !isempty(panels)
+            @test panels == Set(("show", "hide"))
+            variants = Set(
+                (record.style, record.panel, record.appearance) for record in group_records
+            )
+            @test REQUIRED_PANEL_VARIANTS ⊆ variants
+        end
+
+        # Light/dark assets must be interchangeable in-place. Panel state may
+        # change the canvas because it changes content, while style may not.
+        layout_keys = Set((record.style, record.panel) for record in group_records)
+        for layout_key in layout_keys
+            style_records = filter(
+                record -> (record.style, record.panel) == layout_key,
+                group_records,
+            )
             dims = Set(
                 (infos[record.path].width, infos[record.path].height)
                 for record in style_records
@@ -127,7 +148,8 @@ end
         end
 
         for record in group_records
-            @test record.style in ("analysis", "presentation", "article")
+            @test record.style in ("sans", "tex")
+            @test record.panel in ("", "show", "hide")
             @test record.appearance in ("light", "dark")
         end
     end

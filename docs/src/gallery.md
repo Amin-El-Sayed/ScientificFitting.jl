@@ -52,12 +52,14 @@ summary and diagnostic messages shown on the page.
 ```@raw html
 <div class="jufitter-gallery-grid">
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="analysis" src="assets/gallery/linear_calibration_analysis_light.png" alt="Linear calibration in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="analysis" src="assets/gallery/linear_calibration_analysis_dark.png" alt="Linear calibration in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="presentation" src="assets/gallery/linear_calibration_presentation_light.png" alt="Linear calibration in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="presentation" src="assets/gallery/linear_calibration_presentation_dark.png" alt="Linear calibration in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="article" src="assets/gallery/linear_calibration_article_light.png" alt="Linear calibration in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="article" src="assets/gallery/linear_calibration_article_dark.png" alt="Linear calibration in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/linear_calibration_sans_panel_light.png" alt="Linear calibration in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/linear_calibration_sans_panel_dark.png" alt="Linear calibration in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/linear_calibration_sans_plot_light.png" alt="Linear calibration in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/linear_calibration_sans_plot_dark.png" alt="Linear calibration in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/linear_calibration_tex_panel_light.png" alt="Linear calibration in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/linear_calibration_tex_plot_light.png" alt="Linear calibration in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/linear_calibration_tex_panel_dark.png" alt="Linear calibration in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/linear_calibration_tex_plot_dark.png" alt="Linear calibration in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">first fit</span>
 <span class="jufitter-tag">prediction band</span>
@@ -66,12 +68,14 @@ summary and diagnostic messages shown on the page.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="analysis" src="assets/gallery/xy_uncertainties_analysis_light.png" alt="XY uncertainty fit in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="analysis" src="assets/gallery/xy_uncertainties_analysis_dark.png" alt="XY uncertainty fit in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="presentation" src="assets/gallery/xy_uncertainties_presentation_light.png" alt="XY uncertainty fit in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="presentation" src="assets/gallery/xy_uncertainties_presentation_dark.png" alt="XY uncertainty fit in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="article" src="assets/gallery/xy_uncertainties_article_light.png" alt="XY uncertainty fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="article" src="assets/gallery/xy_uncertainties_article_dark.png" alt="XY uncertainty fit in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/xy_uncertainties_sans_panel_dark.png" alt="XY uncertainty fit in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/xy_uncertainties_sans_plot_light.png" alt="XY uncertainty fit in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/xy_uncertainties_sans_plot_dark.png" alt="XY uncertainty fit in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/xy_uncertainties_tex_panel_light.png" alt="XY uncertainty fit in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/xy_uncertainties_tex_plot_light.png" alt="XY uncertainty fit in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/xy_uncertainties_tex_panel_dark.png" alt="XY uncertainty fit in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-xy" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/xy_uncertainties_tex_plot_dark.png" alt="XY uncertainty fit in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">effective variance</span>
 <span class="jufitter-tag">x errors</span>
@@ -80,12 +84,14 @@ summary and diagnostic messages shown on the page.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="analysis" src="assets/gallery/full_covariance_decay_analysis_light.png" alt="Full covariance fit in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="analysis" src="assets/gallery/full_covariance_decay_analysis_dark.png" alt="Full covariance fit in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="presentation" src="assets/gallery/full_covariance_decay_presentation_light.png" alt="Full covariance fit in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="presentation" src="assets/gallery/full_covariance_decay_presentation_dark.png" alt="Full covariance fit in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="article" src="assets/gallery/full_covariance_decay_article_light.png" alt="Full covariance fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="article" src="assets/gallery/full_covariance_decay_article_dark.png" alt="Full covariance fit in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance fit in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/full_covariance_decay_sans_panel_dark.png" alt="Full covariance fit in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/full_covariance_decay_sans_plot_light.png" alt="Full covariance fit in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/full_covariance_decay_sans_plot_dark.png" alt="Full covariance fit in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/full_covariance_decay_tex_panel_light.png" alt="Full covariance fit in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/full_covariance_decay_tex_plot_light.png" alt="Full covariance fit in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/full_covariance_decay_tex_panel_dark.png" alt="Full covariance fit in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/full_covariance_decay_tex_plot_dark.png" alt="Full covariance fit in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">covariance</span>
 <span class="jufitter-tag">correlations</span>
@@ -94,12 +100,14 @@ summary and diagnostic messages shown on the page.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="analysis" src="assets/gallery/damped_oscillator_decay_analysis_light.png" alt="Damped oscillator fit in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="analysis" src="assets/gallery/damped_oscillator_decay_analysis_dark.png" alt="Damped oscillator fit in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="presentation" src="assets/gallery/damped_oscillator_decay_presentation_light.png" alt="Damped oscillator fit in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="presentation" src="assets/gallery/damped_oscillator_decay_presentation_dark.png" alt="Damped oscillator fit in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="article" src="assets/gallery/damped_oscillator_decay_article_light.png" alt="Damped oscillator fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="article" src="assets/gallery/damped_oscillator_decay_article_dark.png" alt="Damped oscillator fit in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator fit in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/damped_oscillator_decay_sans_panel_dark.png" alt="Damped oscillator fit in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_sans_plot_light.png" alt="Damped oscillator fit in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_sans_plot_dark.png" alt="Damped oscillator fit in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/damped_oscillator_decay_tex_panel_light.png" alt="Damped oscillator fit in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_tex_plot_light.png" alt="Damped oscillator fit in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/damped_oscillator_decay_tex_panel_dark.png" alt="Damped oscillator fit in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-damped" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_tex_plot_dark.png" alt="Damped oscillator fit in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">real data</span>
 <span class="jufitter-tag">nonlinear</span>
@@ -109,12 +117,14 @@ summary and diagnostic messages shown on the page.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="analysis" src="assets/gallery/photoelectric_threshold_analysis_light.png" alt="Photoelectric work-function fit in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="analysis" src="assets/gallery/photoelectric_threshold_analysis_dark.png" alt="Photoelectric work-function fit in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="presentation" src="assets/gallery/photoelectric_threshold_presentation_light.png" alt="Photoelectric work-function fit in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="presentation" src="assets/gallery/photoelectric_threshold_presentation_dark.png" alt="Photoelectric work-function fit in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="article" src="assets/gallery/photoelectric_threshold_article_light.png" alt="Photoelectric work-function fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="article" src="assets/gallery/photoelectric_threshold_article_dark.png" alt="Photoelectric work-function fit in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/photoelectric_threshold_sans_panel_dark.png" alt="Photoelectric work-function fit in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/photoelectric_threshold_sans_plot_light.png" alt="Photoelectric work-function fit in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/photoelectric_threshold_sans_plot_dark.png" alt="Photoelectric work-function fit in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/photoelectric_threshold_tex_panel_light.png" alt="Photoelectric work-function fit in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/photoelectric_threshold_tex_plot_light.png" alt="Photoelectric work-function fit in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/photoelectric_threshold_tex_panel_dark.png" alt="Photoelectric work-function fit in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-photoelectric" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/photoelectric_threshold_tex_plot_dark.png" alt="Photoelectric work-function fit in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">x/y errors</span>
 <span class="jufitter-tag">line intersection</span>
@@ -123,12 +133,14 @@ summary and diagnostic messages shown on the page.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="analysis" src="assets/gallery/poisson_counts_analysis_light.png" alt="Poisson count fit in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="analysis" src="assets/gallery/poisson_counts_analysis_dark.png" alt="Poisson count fit in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="presentation" src="assets/gallery/poisson_counts_presentation_light.png" alt="Poisson count fit in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="presentation" src="assets/gallery/poisson_counts_presentation_dark.png" alt="Poisson count fit in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="article" src="assets/gallery/poisson_counts_article_light.png" alt="Poisson count fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="article" src="assets/gallery/poisson_counts_article_dark.png" alt="Poisson count fit in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/poisson_counts_sans_panel_light.png" alt="Poisson count fit in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/poisson_counts_sans_panel_dark.png" alt="Poisson count fit in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/poisson_counts_sans_plot_light.png" alt="Poisson count fit in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/poisson_counts_sans_plot_dark.png" alt="Poisson count fit in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/poisson_counts_tex_panel_light.png" alt="Poisson count fit in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/poisson_counts_tex_plot_light.png" alt="Poisson count fit in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/poisson_counts_tex_panel_dark.png" alt="Poisson count fit in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-poisson" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/poisson_counts_tex_plot_dark.png" alt="Poisson count fit in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">likelihood</span>
 <span class="jufitter-tag">counts</span>
@@ -137,12 +149,14 @@ summary and diagnostic messages shown on the page.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="analysis" src="assets/gallery/constraints_priors_analysis_light.png" alt="Constrained fit in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="analysis" src="assets/gallery/constraints_priors_analysis_dark.png" alt="Constrained fit in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="presentation" src="assets/gallery/constraints_priors_presentation_light.png" alt="Constrained fit in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="presentation" src="assets/gallery/constraints_priors_presentation_dark.png" alt="Constrained fit in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="article" src="assets/gallery/constraints_priors_article_light.png" alt="Constrained fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="article" src="assets/gallery/constraints_priors_article_dark.png" alt="Constrained fit in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained fit in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/constraints_priors_sans_panel_dark.png" alt="Constrained fit in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/constraints_priors_sans_plot_light.png" alt="Constrained fit in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/constraints_priors_sans_plot_dark.png" alt="Constrained fit in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/constraints_priors_tex_panel_light.png" alt="Constrained fit in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/constraints_priors_tex_plot_light.png" alt="Constrained fit in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/constraints_priors_tex_panel_dark.png" alt="Constrained fit in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-constraints" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/constraints_priors_tex_plot_dark.png" alt="Constrained fit in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">constraints</span>
 <span class="jufitter-tag">profiles</span>
@@ -151,12 +165,14 @@ summary and diagnostic messages shown on the page.
 </div>
 </div>
 <div class="jufitter-gallery-item">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="analysis" src="assets/gallery/multi_dataset_shared_slope_analysis_light.png" alt="Multi-dataset fit in analysis style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="analysis" src="assets/gallery/multi_dataset_shared_slope_analysis_dark.png" alt="Multi-dataset fit in dark analysis style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="presentation" src="assets/gallery/multi_dataset_shared_slope_presentation_light.png" alt="Multi-dataset fit in presentation style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="presentation" src="assets/gallery/multi_dataset_shared_slope_presentation_dark.png" alt="Multi-dataset fit in dark presentation style">
-<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="article" src="assets/gallery/multi_dataset_shared_slope_article_light.png" alt="Multi-dataset fit in article style">
-<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="article" src="assets/gallery/multi_dataset_shared_slope_article_dark.png" alt="Multi-dataset fit in article dark style">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_sans_panel_light.png" alt="Multi-dataset fit in sans style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_sans_panel_dark.png" alt="Multi-dataset fit in dark sans style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_sans_plot_light.png" alt="Multi-dataset fit in sans style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_sans_plot_dark.png" alt="Multi-dataset fit in dark sans style without result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_tex_panel_light.png" alt="Multi-dataset fit in tex style with result panel">
+<img class="jufitter-plot-light" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_tex_plot_light.png" alt="Multi-dataset fit in tex style without result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_tex_panel_dark.png" alt="Multi-dataset fit in dark tex style with result panel">
+<img class="jufitter-plot-dark" data-jufitter-plot-group="gallery-multi" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_tex_plot_dark.png" alt="Multi-dataset fit in dark tex style without result panel">
 <div>
 <span class="jufitter-tag">multi-fit</span>
 <span class="jufitter-tag">shared parameters</span>

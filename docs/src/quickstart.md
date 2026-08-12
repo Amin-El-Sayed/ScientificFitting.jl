@@ -94,7 +94,8 @@ fit = fitplot(
     nsigma=1,
     band_label="1σ prediction band",
     show_legend=true,
-    report=:both,
+    show_panel=true,
+    print_report=true,
     filename="quickstart_linear.pdf",
 )
 
@@ -139,17 +140,19 @@ Next actions:
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="analysis" src="assets/gallery/quickstart_linear_analysis_light.png" alt="Quickstart calibration fit in analysis style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="analysis" src="assets/gallery/quickstart_linear_analysis_dark.png" alt="Quickstart calibration fit in dark analysis style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="presentation" src="assets/gallery/quickstart_linear_presentation_light.png" alt="Quickstart calibration fit in presentation style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="presentation" src="assets/gallery/quickstart_linear_presentation_dark.png" alt="Quickstart calibration fit in dark presentation style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_light.png" alt="Quickstart calibration fit in article style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="article" src="assets/gallery/quickstart_linear_article_dark.png" alt="Quickstart calibration fit in article dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Quickstart calibration fit in sans style with result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_dark.png" alt="Quickstart calibration fit in dark sans style with result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_light.png" alt="Quickstart calibration fit in sans style without result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_dark.png" alt="Quickstart calibration fit in dark sans style without result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_light.png" alt="Quickstart calibration fit in tex style with result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_light.png" alt="Quickstart calibration fit in tex style without result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_dark.png" alt="Quickstart calibration fit in dark tex style with result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_dark.png" alt="Quickstart calibration fit in dark tex style without result panel">
 ```
 
-`report=:both` puts the numerical summary beside the axes and prints the same
-real report to the terminal. Set it to `:plot`, `:console`, or `:none` when only
-one output is wanted. The returned `fit.figure` is an ordinary Makie figure.
+`show_panel=true` puts the numerical summary beside the axes;
+`print_report=true` independently prints the same real report to the terminal.
+The returned `fit.figure` is an ordinary Makie figure.
 
 `fitplot(x, y; sigma_y=...)` uses a straight-line model by default. If you want
 to make the model explicit, use:

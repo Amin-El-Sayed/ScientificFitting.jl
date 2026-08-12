@@ -76,15 +76,14 @@ list as an ownership map, not a second architecture chapter.
 4. A standard right panel has one hierarchy: legend, model, parameters, then
    statistics. `plot_info_panel!`, `plot_theme`, and `plot_palette` are the
    shared composition hooks for compound figures.
-5. Plot roles are `:analysis`, `:presentation`, and `:article`; light/dark
-   appearance and explicit element overrides are independent. Analysis is the
-   live notebook/laboratory contract and includes the result column by default.
-   Presentation is a large, sans-serif, figure-first screen contract. Article
-   is a TeX, full-frame, figure-first export contract. The former style names
-   remain compatibility aliases, not extra designs. Typography, markers, axes,
-   grid, colors, bands, legends, and report panels come from one central preset;
-   compound figures consume those tokens rather than branching on style or
-   appearance locally. Explicit Makie keyword overrides remain authoritative.
+5. Plot styles are `:sans` and `:tex`; light/dark appearance, result-panel
+   visibility, terminal output, legend visibility, and explicit element
+   overrides are independent. `:sans` is the open-axis/grid contract and `:tex`
+   is the TeX/full-frame contract. Former style names remain compatibility
+   aliases, not extra designs. Typography, markers, axes, grid, colors, bands,
+   legends, and panel tokens come from one central preset; compound figures
+   consume those tokens rather than branching on style or appearance locally.
+   Explicit Makie keyword overrides remain authoritative.
 6. Annotation helpers validate coordinates, return Makie plot objects, and do
    not trigger a fit. Non-finite residual, pull, ratio, curve, line, or band
    coordinates fail clearly instead of disappearing in a renderer. Full-axis
@@ -98,6 +97,9 @@ list as an ownership map, not a second architecture chapter.
    successful image generation. Figure dimensions describe the intended
    logical display footprint; use `px_per_unit` for raster density instead of
    enlarging the logical canvas and shrinking it again in HTML.
+9. Generated axis labels use SI quantity calculus, `quantity / unit`, so tick
+   labels remain pure numbers. Explicit `axis_kwargs` labels always take
+   precedence.
 
 ## Documentation Truth
 

@@ -94,12 +94,10 @@ view. It is computed from the same constrained saturation fit used in the
 the selector in the documentation header changes only the rendering style.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="analysis" src="assets/gallery/saturation_profile_matrix_analysis_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in analysis style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="analysis" src="assets/gallery/saturation_profile_matrix_analysis_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark analysis style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="presentation" src="assets/gallery/saturation_profile_matrix_presentation_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in presentation style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="presentation" src="assets/gallery/saturation_profile_matrix_presentation_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark presentation style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="article" src="assets/gallery/saturation_profile_matrix_article_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in article style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="article" src="assets/gallery/saturation_profile_matrix_article_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark article style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in sans style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark sans style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in tex style">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark tex style">
 <p class="jufitter-figure-note">Diagonal: refitted one-parameter profiles against the local parabolic approximation. Lower triangle: filled one- and two-sigma profiled regions against dashed local covariance ellipses. Upper triangle: local correlation coefficients.</p>
 ```
 
@@ -154,7 +152,7 @@ using CairoMakie
 
 profile_fig = plot_profile(interval.profile_result; local_sigma=result.param_stderr[1])
 contour_fig = plot_contour(pair; local_covariance=result.param_covariance[[1, 2], [1, 2]])
-matrix_fig = plot_profile_matrix(matrix; theme=:article)
+matrix_fig = plot_profile_matrix(matrix; theme=:tex)
 ```
 
 The executable [Constraints and Profiles](gallery/constraints_profiles.md)

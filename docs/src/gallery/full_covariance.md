@@ -6,12 +6,14 @@ statistical problem. A covariance matrix is not a prettier way to draw error
 bars; it tells the fit which residual patterns are plausible together.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="analysis" src="../assets/gallery/full_covariance_decay_analysis_light.png" alt="Full covariance exponential fit in analysis style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="analysis" src="../assets/gallery/full_covariance_decay_analysis_dark.png" alt="Full covariance exponential fit in dark analysis style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="presentation" src="../assets/gallery/full_covariance_decay_presentation_light.png" alt="Full covariance exponential fit in presentation style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="presentation" src="../assets/gallery/full_covariance_decay_presentation_dark.png" alt="Full covariance exponential fit in dark presentation style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="article" src="../assets/gallery/full_covariance_decay_article_light.png" alt="Full covariance exponential fit in article style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="article" src="../assets/gallery/full_covariance_decay_article_dark.png" alt="Full covariance exponential fit in article dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance exponential fit in sans style with result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_dark.png" alt="Full covariance exponential fit in dark sans style with result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_light.png" alt="Full covariance exponential fit in sans style without result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_dark.png" alt="Full covariance exponential fit in dark sans style without result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_light.png" alt="Full covariance exponential fit in tex style with result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_light.png" alt="Full covariance exponential fit in tex style without result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_dark.png" alt="Full covariance exponential fit in dark tex style with result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_dark.png" alt="Full covariance exponential fit in dark tex style without result panel">
 ```
 
 ## Question

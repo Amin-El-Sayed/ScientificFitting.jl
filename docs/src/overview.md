@@ -178,15 +178,16 @@ using CairoMakie
 
 fig = plot_fit(
     result;
-    theme=:analysis,
-    show_stats=true,
+    theme=:sans,
+    show_panel=true,
     show_legend=true,
 )
 ```
 
-`theme=:analysis`, `:presentation`, and `:article` select the output context;
-`appearance=:light` or `:dark` selects the color scheme independently. Explicit
-Makie keyword arguments override the style only for the supplied element.
+`theme=:sans` or `:tex` selects the visual contract; `show_panel` controls
+information density independently. `appearance=:light` or `:dark` selects the
+color scheme. Explicit Makie keyword arguments override the style only for the
+supplied element.
 
 Add scientific annotations without reconstructing or refitting the model:
 
@@ -196,9 +197,8 @@ add_vline!(ax, threshold; label="threshold")
 add_curve!(ax, reference_model; xspan=(0, 10), label="reference")
 ```
 
-For a one-call Gaussian workflow, `fitplot(...; report=:plot | :console |
-:both | :none)` controls whether statistics appear in the figure, terminal,
-both, or neither.
+For a one-call Gaussian workflow, `show_panel` controls statistics in the
+figure and `print_report` independently controls terminal output.
 
 ## Continue From Here
 

@@ -130,6 +130,10 @@ function reference_map_page_text()
     return public_file_text(joinpath(DOCS_SRC, "overview.md"))
 end
 
+function docs_asset_text(name)
+    return read(joinpath(DOCS_SRC, "assets", name), String)
+end
+
 function markdown_image_alt_texts(text::AbstractString)
     return [match.captures[1] for match in eachmatch(r"!\[([^\]]*)\]\([^)]+\)", text)]
 end
@@ -161,6 +165,19 @@ end
         for path in PUBLIC_TEXT_FILES
             @test isfile(path)
         end
+    end
+
+    @testset "Plot controls stay orthogonal" begin
+        script = docs_asset_text("jufitter.js")
+        stylesheet = docs_asset_text("jufitter.css")
+
+        @test occursin("const plotStyles = [\"sans\", \"tex\"]", script)
+        @test occursin("const plotPanels = [\"show\", \"hide\"]", script)
+        @test occursin("const defaultPlotPanel = \"show\"", script)
+        @test occursin("buildPlotStylePicker(anchor)", script)
+        @test occursin("buildPlotPanelPicker(anchor)", script)
+        @test occursin("data-jufitter-plot-panel", script)
+        @test occursin("data-jufitter-plot-panel=\"hide\"", stylesheet)
     end
 
     for path in PUBLIC_TEXT_FILES
@@ -206,7 +223,8 @@ end
         @test !occursin("collect(range", home)
         @test occursin("using CairoMakie", quickstart)
         @test !occursin("collect(range", quickstart)
-        @test occursin("report=:both", quickstart)
+        @test occursin("show_panel=true", quickstart)
+        @test occursin("print_report=true", quickstart)
         @test !occursin("println(report_text", quickstart)
         @test !occursin("Pkg.test()", install)
         @test occursin(r"CI workflow is\s+configured", install)
@@ -272,7 +290,7 @@ end
         guide = profiles_page_text()
 
         @test occursin("data-jufitter-plot-group=\"statistics-profile-matrix\"", guide)
-        for style in ("analysis", "presentation", "article")
+        for style in ("sans", "tex")
             @test occursin("data-jufitter-plot-style=\"$(style)\"", guide)
             @test occursin("saturation_profile_matrix_$(style)_light.png", guide)
             @test occursin("saturation_profile_matrix_$(style)_dark.png", guide)
@@ -286,14 +304,14 @@ end
         guide = plotting_page_text()
 
         @test occursin("(result, figure)", guide)
-        @test occursin("## Three Output Roles", guide)
-        @test occursin("report=:plot", guide)
-        @test occursin("show_stats=true", guide)
+        @test occursin("## Two Visual Styles", guide)
+        @test occursin("show_panel=true", guide)
+        @test occursin("print_report=true", guide)
         @test occursin("appearance=:auto` currently resolves to the light", guide)
         @test occursin("plot_profile_matrix(matrix", guide)
         @test occursin("does not rerun the optimizer", guide)
         @test occursin("an x-y `FitResult`", guide)
-        @test occursin("explicit `show_stats=true` or", guide)
+        @test occursin("controlled separately through `panel_status_mode`", guide)
         @test occursin("must provide `marginal_sigma`", guide)
         @test occursin(r"Pass a\s+`LaTeXString`", guide)
         @test occursin("pass a matching `xgrid`", guide)
@@ -349,7 +367,7 @@ end
         @test occursin("profile_matrix_triage(matrix)", reference)
         @test occursin("does not rerun the", reference)
         @test occursin(r"do\s+not require Makie", reference)
-        @test occursin("report=:plot | :console |", reference)
-        @test !occursin("report=:plot,", reference)
+        @test occursin("`print_report` independently controls terminal output", reference)
+        @test !occursin("report=:plot", reference)
     end
 end

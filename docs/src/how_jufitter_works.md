@@ -191,14 +191,10 @@ not carry a second copy of the model, parameters, or fit statistics.
 
 ## Output Is Switchable
 
-`fitplot` can produce no automatic report, terminal output, a plot-side report,
-or both. Use these controls deliberately:
+`fitplot` keeps output surfaces independent. Use these controls deliberately:
 
-- `report=:none` suppresses automatic reporting.
-- `report=:console` prints a text report.
-- `report=:plot` shows a right-side plot panel.
-- `report=:both` does both.
-- `show_stats=false` removes the statistics panel from a plot.
+- `print_report=true` prints a text report.
+- `show_panel=false` removes the statistics panel from a plot.
 - `show_legend=false` removes the legend.
 - `stats_position=:right` keeps results outside the data axis.
 - `stats_position=:inside` uses a compact in-axis box when space is limited.
@@ -215,7 +211,7 @@ fragment that assumes the named physical values and reference function already
 exist:
 
 ```julia
-fig = plot_fit(result; show_stats=true, show_legend=true)
+fig = plot_fit(result; show_panel=true, show_legend=true)
 ax = fit_axis(fig)
 
 add_vline!(ax, threshold; color=:gray40, linestyle=:dash, label="threshold")

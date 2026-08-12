@@ -24,7 +24,7 @@ out = fitplot(
     xunit="mm",
     ylabel="voltage",
     yunit="V",
-    report=:plot,
+    show_panel=true,
 )
 
 result = out.result
@@ -50,27 +50,21 @@ workflow.
 
 ## Reports, Legends, And Panels
 
-The one-call interface separates terminal output from plot content:
+The one-call interface uses independent switches rather than bundled output
+modes:
 
-- `report=:plot` shows the plot-side result panel by default;
-- `report=:console` prints `report_text(result)` and omits the panel by default;
-- `report=:both` enables both outputs;
-- `report=:none` disables both report outputs.
+- `show_panel=true` includes the numerical result panel in the figure;
+- `print_report=true` prints `report_text(result)` to the terminal;
+- `show_legend=true` controls the legend independently.
 
-`report` chooses the default for `show_stats`. An explicit `show_stats=true` or
-`false` takes precedence, so a notebook can print to the terminal while keeping
-or removing the visual panel independently.
-
-These four values belong to `fitplot`. Starting from an existing result,
-`plot_fit` exposes the visual controls directly. Its defaults follow the output
-role: `:analysis` includes the result panel, while `:presentation` and
-`:article` use the canvas for the scientific figure and put the legend with the
-data view.
+Both `fitplot` and `plot_fit` default to `show_panel=true`. Only `fitplot` has
+`print_report`, because `plot_fit` never emits terminal output. Thus all four
+panel/terminal combinations are direct Boolean choices rather than style names.
 
 ```julia
 plot_fit(
     result;
-    show_stats=true,
+    show_panel=true,
     stats_position=:right,   # or :inside
     show_legend=true,
     stats_mode=:compact,     # or :full
@@ -80,65 +74,48 @@ plot_fit(
 With `stats_position=:right`, the legend is placed above the model and parameter
 summary in the same left-aligned information panel. With
 `stats_position=:inside`, `legend_position` and `inside_stats_position` control
-the in-axis locations independently. `show_stats=false` removes the report
+the in-axis locations independently. `show_panel=false` removes the report
 panel entirely.
 
-Analysis output defaults to `(1040, 640)` with a right-side panel and
-`(860, 560)` without one. Presentation output defaults to `(960, 600)` without
-the panel. Article output defaults to `(760, 520)` without the panel; an
-explicit `show_stats=true` uses `(1000, 640)`. Pass
+The sans style defaults to `(1040, 640)` with a right-side panel and
+`(860, 560)` without one. The TeX style uses `(1000, 640)` with the panel and
+`(760, 520)` without it. Pass
 `figure_size=(width, height)` for a required
 export footprint. The requested size is preserved; report length does not
 silently resize the saved figure. `stats_panel_width=:auto` should remain the
 default unless an external journal template requires an explicit width.
 
-## Three Output Roles
+## Two Visual Styles
 
-The maintained themes represent different output jobs, not cosmetic color
-variations. They do not change data, fit, uncertainty band, or statistics.
+The maintained themes describe visual properties only. They do not decide
+whether a panel is present, and they never change data, fit, uncertainty band,
+or statistics.
 
-- `theme=:analysis` is the default for live analysis and notebooks. It stays
-  close to Makie's native line-and-band grammar: readable
-  sans-serif type, neutral filled observations, a saturated blue fit, a red
-  secondary series, visible guides, strong axes, and a left-aligned title. Its
-  default right column keeps the legend, model, parameters, and fit diagnostics
-  visible while data are arriving.
-- `theme=:presentation` is figure-first output for documentation, talks, and
-  wide notebook cells. It uses the same direct Makie color grammar, but removes
-  the report column and enlarges marks and type so the figure survives screen
-  scaling. It is not a paler copy of analysis: the information contract is the
-  plot and legend, not a complete numerical fit report.
-- `theme=:article` is the vector-export view. It uses Makie's LaTeX font family,
-  hollow observations, a complete axis frame with inward ticks, no grid, and the
-  Okabe-Ito blue/vermillion pair when multiple curves require color. Hollow
-  markers preserve data/curve separation in grayscale. Its TeX typography is
-  scaled to remain readable when the figure is placed in an article. It omits
-  the result panel by default so the data axis is not reduced for values that
-  normally belong in a caption or table; `show_stats=true` restores the panel
-  when a self-contained article figure needs it.
+- `theme=:sans` is the default. It follows Makie's direct line-and-band grammar:
+  sans-serif type, neutral filled observations, a saturated blue fit, visible
+  guides, strong open axes, and a left-aligned title.
+- `theme=:tex` uses Makie's LaTeX font family, hollow observations, a complete
+  axis frame with inward ticks, no grid, and the Okabe-Ito blue/vermillion pair
+  when multiple curves require color.
 
-The same contracts apply to compound diagnostics. An analysis profile matrix
-uses compact readable type and marks panels that need inspection. Presentation
-output removes those workflow labels and spends the available canvas on larger
-type. Article output also omits workflow labels, uses TeX typography, and keeps
-the full axis frame. Set `panel_status_mode` explicitly only when an export must
-depart from that role default.
+The same contracts apply to compound diagnostics. Diagnostic status labels are
+controlled separately through `panel_status_mode`; changing fonts or axis
+grammar does not silently remove scientific warnings.
 
-All three images below contain the same observations, errors, fit, one-sigma
-prediction band, and labels. Only the output job changes.
+Both images below contain the same observations, errors, fit, one-sigma
+prediction band, labels, and panel state. Only visual style changes.
 
 ```@raw html
 <div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_analysis.png" alt="Calibration analysis with legend, model, parameters, and diagnostics in the analysis role"><div><h3>analysis</h3><p>Live work: readable guides and a complete result column beside the data.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_presentation.png" alt="Large figure-first calibration plot in the presentation role"><div><h3>presentation</h3><p>Screen output: large sans-serif type, strong marks, and no report column.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_article.png" alt="Figure-first calibration plot in the article role"><div><h3>article</h3><p>Article figure: readable TeX typography, hollow observations, compact in-axis legend, and no report column.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_sans.png" alt="Calibration plot with sans-serif typography, open axes, and grid guides"><div><h3>sans</h3><p>Sans-serif typography, open axes, filled observations, and light grid guides.</p></div></div>
+<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_tex.png" alt="Calibration plot with TeX typography, full frame, and hollow observations"><div><h3>tex</h3><p>TeX typography, a full frame, inward ticks, hollow observations, and no grid.</p></div></div>
 </div>
 ```
 
 Color appearance is independent of style:
 
 ```julia
-plot_fit(result; theme=:analysis, appearance=:dark)
+plot_fit(result; theme=:sans, appearance=:dark)
 ```
 
 `appearance=:auto` currently resolves to the light appearance. Select
@@ -153,7 +130,7 @@ using LaTeXStrings
 
 plot_fit(
     result;
-    theme=:article,
+    theme=:tex,
     latex_labels=true,
     latex_stats=true,
     model_label=L"U_0(\nu)=h\nu/e-\Phi/e",
@@ -186,10 +163,10 @@ declared browser-sized canvas, while `px_per_unit` supplies retina-resolution
 pixels. Font-size checks therefore refer to the rendered page, not the raw PNG
 dimensions.
 
-Use `:analysis`, `:presentation`, and `:article` in new code. The former
-`:screen`, `:lab`, and `:workbench` names resolve to `:analysis`; `:modern`,
-`:clean`, `:minimal`, and `:showcase` resolve to `:presentation`;
-`:publication`, `:paper`, and `:latex` resolve to `:article`.
+Use `:sans` and `:tex` in new code. The former screen-oriented names
+`:analysis`, `:presentation`, `:screen`, `:lab`, `:workbench`, `:modern`,
+`:clean`, `:minimal`, and `:showcase` resolve to `:sans`; `:article`,
+`:publication`, `:paper`, and `:latex` resolve to `:tex`.
 
 ## State What The Band Means
 
@@ -254,7 +231,7 @@ and each Makie `*_kwargs` container is applied last:
 ```julia
 fig = plot_fit(
     result;
-    theme=:analysis,
+    theme=:sans,
     fit_color=:navy,
     axis_kwargs=(
         xgridvisible=false,
@@ -284,9 +261,9 @@ Retrieve the data axis from a finished figure and add annotations without
 recomputing the fit:
 
 ```julia
-fig = plot_fit(result; theme=:analysis, show_legend=false)
+fig = plot_fit(result; theme=:sans, show_legend=false)
 ax = fit_axis(fig)
-colors = plot_palette(:analysis)
+colors = plot_palette(:sans)
 
 add_vband!(ax, 2.8, 3.2; color=(colors.band_color, 0.16), label="accepted range")
 add_vline!(ax, 3.0; color=colors.fit_color, linestyle=:dash, label="threshold")
@@ -314,19 +291,19 @@ exist.
 contract for a figure whose scientific layout is not a single fit axis:
 
 ```julia
-theme = plot_theme(:analysis; appearance=:light)
-colors = plot_palette(:analysis; appearance=:light)
+theme = plot_theme(:sans; appearance=:light)
+colors = plot_palette(:sans; appearance=:light)
 
 fig = with_theme(theme) do
     fig = Figure(size=(1200, 720))
-    ax = Axis(fig[1, 1]; xlabel="time (s)", ylabel="signal (V)")
+    ax = Axis(fig[1, 1]; xlabel="time / s", ylabel="signal / V")
 
     data_plot = scatter!(ax, x, y; color=colors.data_color)
     fit_plot = lines!(ax, xgrid, yfit; color=colors.fit_color)
 
     plot_info_panel!(
         fig[1, 2];
-        theme=:analysis,
+        theme=:sans,
         appearance=:light,
         legend_plots=[data_plot, fit_plot],
         legend_labels=["data", "fit"],
@@ -369,7 +346,7 @@ matrix = profile_matrix(
 rows = profile_matrix_triage(matrix)
 
 using CairoMakie
-fig = plot_profile_matrix(matrix; theme=:article)
+fig = plot_profile_matrix(matrix; theme=:tex)
 ```
 
 Diagonal panels compare actual profiles with local parabolas. Lower-triangle
@@ -384,9 +361,9 @@ closer analysis.
 Pass a filename directly or save the returned figure with Makie:
 
 ```julia
-plot_fit(result; filename="fit.pdf", theme=:article)
+plot_fit(result; filename="fit.pdf", theme=:tex)
 
-fig = plot_fit(result; theme=:analysis)
+fig = plot_fit(result; theme=:sans)
 save("fit.svg", fig)
 save("fit.png", fig; px_per_unit=2)
 ```

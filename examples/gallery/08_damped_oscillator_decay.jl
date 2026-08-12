@@ -123,8 +123,9 @@ end
 
 function save_model_comparison(
     filename;
-    style::Symbol=:analysis,
+    style::Symbol=:sans,
     appearance::Symbol=:light,
+    show_panel::Bool=true,
 )
     RENDER_PLOTS || return nothing
 
@@ -136,16 +137,16 @@ function save_model_comparison(
     prediction_color = (palette.band_color, palette.band_alpha)
     pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
     pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
-    article = style == :article
+    article = style == :tex
     fit_title = article ? L"\mathrm{Damped\ oscillator:\ frequency\ drift}" :
         "Damped oscillator: frequency drift"
     constant_pull_title = article ? L"\mathrm{Pulls:\ constant-frequency\ model}" :
         "Pulls: constant-frequency model"
     drift_pull_title = article ? L"\mathrm{Pulls:\ frequency-drift\ model}" :
         "Pulls: frequency-drift model"
-    angle_label = article ? L"\varphi\;(\mathrm{rad})" : "angle φ (rad)"
+    angle_label = article ? L"\varphi\,/\,\mathrm{rad}" : "angle φ / rad"
     pull_label = article ? L"r_i" : "pull rᵢ"
-    time_label = article ? L"t\;(\mathrm{s})" : "elapsed time t (s)"
+    time_label = article ? L"t\,/\,\mathrm{s}" : "elapsed time t / s"
     prediction_label = article ? L"\mathrm{drift\ model:\ local\ }1\sigma\mathrm{\ prediction\ band}" :
         "drift model: local 1σ prediction band"
     constant_label = article ? L"\mathrm{constant-frequency\ model}" :
@@ -154,10 +155,10 @@ function save_model_comparison(
         "frequency-drift model"
     measurement_label = article ? L"\mathrm{measured\ angle}" : "measured angle"
 
-    base_size = style == :analysis ?
+    base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
-    figure_width = style == :analysis ? base_size[1] : max(base_size[1], 960)
-    figure_height = style == :analysis ? 860 : 1040
+    figure_width = show_panel ? base_size[1] : max(base_size[1], 960)
+    figure_height = show_panel ? 860 : 1040
     figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
@@ -286,7 +287,7 @@ function save_model_comparison(
     constant_status = status_text(diagnostic_dashboard(constant_result).status)
     drift_status = status_text(diagnostic_dashboard(drift_result).status)
 
-    if style != :analysis
+    if !show_panel
         Legend(
             figure[4, 1],
             fit_axis;
@@ -330,28 +331,30 @@ function save_model_comparison(
         )
     end
 
-    row_fractions = style == :analysis ? (0.62, 0.19, 0.19) : (0.50, 0.16, 0.16)
+    row_fractions = show_panel ? (0.62, 0.19, 0.19) : (0.50, 0.16, 0.16)
     for (row, fraction) in enumerate(row_fractions)
         rowsize!(figure.layout, row, Relative(fraction))
     end
-    style == :analysis && colgap!(figure.layout, 18)
+    show_panel && colgap!(figure.layout, 18)
     save(filename, figure; px_per_unit=DOC_PX_PER_UNIT)
 end
 
 if RENDER_PLOTS
     if RENDER_DOC_ASSETS
         mkpath(DOC_ASSET_DIR)
-        for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
+        for style in (:sans, :tex), show_panel in (true, false), appearance in (:light, :dark)
+            panel_suffix = show_panel ? "panel" : "plot"
             save_model_comparison(
-                joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(appearance).png");
+                joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(panel_suffix)_$(appearance).png");
                 style=style,
                 appearance=appearance,
+                show_panel=show_panel,
             )
         end
     else
         mkpath(OUTPUT_DIR)
         output_path = joinpath(OUTPUT_DIR, "08_damped_oscillator_decay.png")
-        save_model_comparison(output_path; style=:analysis, appearance=:light)
+        save_model_comparison(output_path; style=:sans, appearance=:light)
         println("Saved figure to ", output_path)
     end
 end

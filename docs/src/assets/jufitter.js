@@ -2,21 +2,27 @@
   const allowedThemes = new Set(["documenter-light", "documenter-dark"]);
   const themeStorageKey = "documenter-theme";
   const plotStyleStorageKey = "jufitter-plot-style";
+  const plotPanelStorageKey = "jufitter-plot-panel";
   const themeLabels = {
     "documenter-light": "light",
     "documenter-dark": "dark",
   };
-  const plotStyles = ["analysis", "presentation", "article"];
+  const plotStyles = ["sans", "tex"];
+  const plotPanels = ["show", "hide"];
   const legacyPlotStyles = new Map([
-    ["screen", "analysis"],
-    ["lab", "analysis"],
-    ["workbench", "analysis"],
-    ["modern", "presentation"],
-    ["clean", "presentation"],
-    ["minimal", "presentation"],
-    ["showcase", "presentation"],
+    ["analysis", "sans"],
+    ["presentation", "sans"],
+    ["screen", "sans"],
+    ["lab", "sans"],
+    ["workbench", "sans"],
+    ["modern", "sans"],
+    ["clean", "sans"],
+    ["minimal", "sans"],
+    ["showcase", "sans"],
+    ["article", "tex"],
   ]);
-  const defaultPlotStyle = "analysis";
+  const defaultPlotStyle = "sans";
+  const defaultPlotPanel = "show";
 
   try {
     const selectedTheme = window.localStorage && window.localStorage.getItem(themeStorageKey);
@@ -112,6 +118,20 @@
     return defaultPlotStyle;
   }
 
+  function selectedPlotPanel() {
+    try {
+      const stored = window.localStorage && window.localStorage.getItem(plotPanelStorageKey);
+      if (plotPanels.includes(stored)) return stored;
+
+      // Preserve the composition selected by the former three-role picker.
+      const legacyStyle = window.localStorage && window.localStorage.getItem(plotStyleStorageKey);
+      if (legacyStyle === "presentation" || legacyStyle === "article") return "hide";
+    } catch (_) {
+      // Storage is optional; use the self-contained default figure.
+    }
+    return defaultPlotPanel;
+  }
+
   function toolbarAnchor() {
     const anchor =
       document.querySelector("#documenter .docs-main .docs-navbar .docs-right") ||
@@ -143,20 +163,55 @@
       } catch (_) {
         // Keep the page interactive even when storage is blocked.
       }
-      applyPlotStyle(select.value);
+      applyPlotSelection(select.value, selectedPlotPanel());
     });
 
     label.appendChild(select);
     anchor.appendChild(label);
   }
 
-  function applyPlotStyle(style) {
+  function buildPlotPanelPicker(anchor) {
+    if (document.querySelector(".jufitter-plot-panel-control")) return;
+
+    const label = document.createElement("label");
+    label.className = "jufitter-toolbar-control jufitter-plot-panel-control";
+    label.textContent = "Result panel";
+
+    const select = document.createElement("select");
+    select.className = "jufitter-toolbar-select jufitter-plot-panel-select";
+    for (const panel of plotPanels) {
+      const option = document.createElement("option");
+      option.value = panel;
+      option.textContent = panel;
+      select.appendChild(option);
+    }
+
+    select.value = selectedPlotPanel();
+    select.addEventListener("change", () => {
+      try {
+        window.localStorage && window.localStorage.setItem(plotPanelStorageKey, select.value);
+      } catch (_) {
+        // Keep the page interactive even when storage is blocked.
+      }
+      applyPlotSelection(selectedPlotStyle(), select.value);
+    });
+
+    label.appendChild(select);
+    anchor.appendChild(label);
+  }
+
+  function applyPlotSelection(style, panel) {
     const selected = plotStyles.includes(style) ? style : defaultPlotStyle;
+    const selectedPanel = plotPanels.includes(panel) ? panel : defaultPlotPanel;
     document.documentElement.dataset.jufitterPlotStyle = selected;
+    document.documentElement.dataset.jufitterPlotPanel = selectedPanel;
     document.documentElement.classList.add("jufitter-js-plot-style-ready");
 
     document.querySelectorAll(".jufitter-plot-style-select").forEach((select) => {
       select.value = selected;
+    });
+    document.querySelectorAll(".jufitter-plot-panel-select").forEach((select) => {
+      select.value = selectedPanel;
     });
 
     const groups = new Map();
@@ -167,10 +222,18 @@
     });
 
     groups.forEach((nodes) => {
-      const selectedNodes = nodes.filter((node) => node.getAttribute("data-jufitter-plot-style") === selected);
+      const selectedNodes = nodes.filter((node) => {
+        const nodePanel = node.getAttribute("data-jufitter-plot-panel");
+        return node.getAttribute("data-jufitter-plot-style") === selected &&
+          (!nodePanel || nodePanel === selectedPanel);
+      });
       const fallbackNodes = selectedNodes.length
         ? selectedNodes
-        : nodes.filter((node) => node.getAttribute("data-jufitter-plot-style") === defaultPlotStyle);
+        : nodes.filter((node) => {
+            const nodePanel = node.getAttribute("data-jufitter-plot-panel");
+            return node.getAttribute("data-jufitter-plot-style") === defaultPlotStyle &&
+              (!nodePanel || nodePanel === defaultPlotPanel);
+          });
       const visibleNodes = fallbackNodes.length ? fallbackNodes : [nodes[0]];
       const visibleSet = new Set(visibleNodes);
 
@@ -184,9 +247,12 @@
     cleanThemePicker();
     removeUnusedDocumenterToolbarButtons();
     const anchor = toolbarAnchor();
+    const panel = selectedPlotPanel();
+    const style = selectedPlotStyle();
     buildThemePicker(anchor);
     buildPlotStylePicker(anchor);
-    applyPlotStyle(selectedPlotStyle());
+    buildPlotPanelPicker(anchor);
+    applyPlotSelection(style, panel);
   }
 
   if (document.readyState === "loading") {

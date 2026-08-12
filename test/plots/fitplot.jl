@@ -12,7 +12,7 @@ using Test
         x,
         y;
         sigma_y=sigma_y,
-        report=:none,
+        show_panel=false,
         parameter_names=["m", "b"],
         title="Quick linear fit",
         xlabel="x",
@@ -34,7 +34,7 @@ using Test
         sigma_y=sigma_y,
         filename=right_panel_out,
         format=:png,
-        report=:plot,
+        show_panel=true,
         show_legend=true,
         stats_position=:right,
         stats_mode=:full,
@@ -114,7 +114,7 @@ using Test
         sigma_y=sigma_y,
         filename=out,
         format=:png,
-        report=:none,
+        show_panel=false,
         theme=:lab,
         nsigma=2,
         band_label="2-sigma band",
@@ -136,7 +136,7 @@ using Test
         p0=[1.0, 0.3, 0.0],
         sigma_y=sigma_y,
         inplace=true,
-        report=:none,
+        show_panel=false,
         band=:none,
     )
     @test inplace_plot.result.backend == :lsqfit
@@ -166,7 +166,7 @@ using Test
         y;
         p0=[1.0, 0.0],
         whitening,
-        report=:none,
+        show_panel=false,
     )
     @test whitening_plot.result.backend == :lsqfit
     @test whitening_plot.result.problem.whitening === whitening
@@ -185,13 +185,13 @@ using Test
     )
     @test_throws ArgumentError plot_fit(
         result_without_marginals;
-        show_stats=false,
+        show_panel=false,
         show_legend=false,
         band=:prediction,
     )
     @test plot_fit(
         result_without_marginals;
-        show_stats=false,
+        show_panel=false,
         show_legend=false,
         band=:confidence,
     ) !== nothing
@@ -207,7 +207,7 @@ using Test
         sigma_y=sigma_y,
         filename=lab_out,
         format=:png,
-        report=:none,
+        show_panel=false,
         theme=:lab,
         parameter_names=["m", "b"],
     )
@@ -217,7 +217,7 @@ using Test
         sigma_y=sigma_y,
         filename=analysis_out,
         format=:png,
-        report=:none,
+        show_panel=false,
         theme=:analysis,
         parameter_names=["m", "b"],
     )
@@ -227,7 +227,7 @@ using Test
         sigma_y=sigma_y,
         filename=legacy_out,
         format=:png,
-        report=:none,
+        show_panel=false,
         theme=:modern,
         appearance=:dark,
         parameter_names=["m", "b"],
@@ -238,7 +238,7 @@ using Test
         sigma_y=sigma_y,
         filename=article_out,
         format=:png,
-        report=:none,
+        show_panel=false,
         theme=:article,
         parameter_names=["m", "b"],
         model_label="y = m x + b",
@@ -249,6 +249,8 @@ using Test
     @test isfile(legacy_out)
     @test isfile(article_out)
     @test plot_theme(:modern; appearance=:dark) !== nothing
+    sans_style = plot_palette(:sans)
+    tex_style = plot_palette(:tex)
     analysis_style = plot_palette(:analysis)
     screen_style = plot_palette(:screen)
     lab_style = plot_palette(:lab)
@@ -257,64 +259,50 @@ using Test
     presentation_style = plot_palette(:presentation)
     showcase_style = plot_palette(:showcase)
     article_style = plot_palette(:article)
+    @test analysis_style == sans_style
     @test screen_style == analysis_style
     @test lab_style == analysis_style
     @test workbench_style == analysis_style
-    @test modern_style == presentation_style
+    @test modern_style == sans_style
+    @test presentation_style == sans_style
     @test showcase_style == presentation_style
-    @test analysis_style.role == :analysis
-    @test presentation_style.role == :presentation
-    @test article_style.role == :article
-    @test analysis_style.default_show_stats
-    @test !presentation_style.default_show_stats
-    @test !article_style.default_show_stats
-    @test analysis_style.diagnostic_status_mode == :issues
-    @test presentation_style.diagnostic_status_mode == :none
-    @test article_style.diagnostic_status_mode == :none
-    @test presentation_style.diagnostic_scale > analysis_style.diagnostic_scale
-    @test article_style.diagnostic_scale > analysis_style.diagnostic_scale
-    @test analysis_style.data_marker == :circle
-    @test analysis_style.xgridvisible && analysis_style.ygridvisible
-    @test !analysis_style.topspinevisible && !analysis_style.rightspinevisible
-    @test presentation_style.xgridvisible && presentation_style.ygridvisible
-    @test !presentation_style.topspinevisible && !presentation_style.rightspinevisible
-    @test !article_style.xgridvisible && !article_style.ygridvisible
-    @test article_style.topspinevisible && article_style.rightspinevisible
-    @test analysis_style.titlealign == :left
-    @test presentation_style.titlealign == :left
-    @test article_style.tickalign == 1.0
-    @test analysis_style.ticklabelsize >= 22
-    @test analysis_style.xlabelsize >= 28
-    @test analysis_style.ylabelsize >= 28
-    @test analysis_style.stats_fontsize >= 24
-    @test analysis_style.legend_labelsize >= 22
-    @test analysis_style.subplot_titlesize >= analysis_style.ticklabelsize
-    @test presentation_style.ticklabelsize >= 24
-    @test presentation_style.xlabelsize >= 30
-    @test presentation_style.ylabelsize >= 30
-    @test presentation_style.legend_labelsize >= 24
-    @test article_style.ticklabelsize >= 26
-    @test article_style.xlabelsize >= 32
-    @test article_style.ylabelsize >= 32
-    @test article_style.stats_fontsize >= 30
-    @test article_style.legend_labelsize >= 26
-    @test article_style.subplot_titlesize >= article_style.ticklabelsize
+    @test article_style == tex_style
+    @test sans_style.name == :sans
+    @test tex_style.name == :tex
+    @test tex_style.diagnostic_scale > sans_style.diagnostic_scale
+    @test sans_style.data_marker == :circle
+    @test sans_style.xgridvisible && sans_style.ygridvisible
+    @test !sans_style.topspinevisible && !sans_style.rightspinevisible
+    @test !tex_style.xgridvisible && !tex_style.ygridvisible
+    @test tex_style.topspinevisible && tex_style.rightspinevisible
+    @test sans_style.titlealign == :left
+    @test tex_style.tickalign == 1.0
+    @test sans_style.ticklabelsize >= 22
+    @test sans_style.xlabelsize >= 28
+    @test sans_style.ylabelsize >= 28
+    @test sans_style.stats_fontsize >= 24
+    @test sans_style.legend_labelsize >= 22
+    @test sans_style.subplot_titlesize >= sans_style.ticklabelsize
+    @test tex_style.ticklabelsize >= 26
+    @test tex_style.xlabelsize >= 32
+    @test tex_style.ylabelsize >= 32
+    @test tex_style.stats_fontsize >= 30
+    @test tex_style.legend_labelsize >= 26
+    @test tex_style.subplot_titlesize >= tex_style.ticklabelsize
     @test minimum(style.spinewidth for style in
-        (analysis_style, presentation_style, article_style)) >= 1.5
+        (sans_style, tex_style)) >= 1.5
     @test maximum(style.error_whiskerwidth for style in
-        (analysis_style, presentation_style, article_style)) <= 6
+        (sans_style, tex_style)) <= 6
     @test all(length(unique(style.series_colors)) == length(style.series_colors) for
-        style in (analysis_style, presentation_style, article_style))
-    @test analysis_style.fit_color == :dodgerblue
-    @test analysis_style.band_color == analysis_style.fit_color
-    @test analysis_style.secondary_color == :red
-    @test presentation_style.fit_color == :dodgerblue
-    @test presentation_style.band_color == presentation_style.fit_color
-    @test article_style.fit_color == "#0072b2"
-    @test article_style.secondary_color == "#d55e00"
-    @test article_style.data_color == article_style.background_color
-    @test article_style.data_strokecolor == article_style.axis_color
-    @test article_style.data_strokewidth > analysis_style.data_strokewidth
+        style in (sans_style, tex_style))
+    @test sans_style.fit_color == :dodgerblue
+    @test sans_style.band_color == sans_style.fit_color
+    @test sans_style.secondary_color == :red
+    @test tex_style.fit_color == "#0072b2"
+    @test tex_style.secondary_color == "#d55e00"
+    @test tex_style.data_color == tex_style.background_color
+    @test tex_style.data_strokecolor == tex_style.axis_color
+    @test tex_style.data_strokewidth > sans_style.data_strokewidth
 
     style_signature(style) = (
         style.data_marker,
@@ -325,53 +313,45 @@ using Test
         style.rightspinevisible,
         style.titlealign,
         style.tickalign,
-        style.default_show_stats,
         style.ticklabelsize,
         style.data_markersize,
     )
-    @test length(unique(style_signature.((
-        analysis_style,
-        presentation_style,
-        article_style,
-    )))) == 3
+    @test length(unique(style_signature.((sans_style, tex_style)))) == 2
 
-    analysis_axis = fit_axis(plot_fit(quick.result; theme=:analysis, show_stats=false))
-    lab_axis = fit_axis(plot_fit(quick.result; theme=:lab, show_stats=false))
-    modern_axis = fit_axis(plot_fit(quick.result; theme=:modern, show_stats=false))
-    presentation_axis = fit_axis(plot_fit(quick.result; theme=:presentation, show_stats=false))
-    article_axis = fit_axis(plot_fit(quick.result; theme=:article, show_stats=false))
-    @test analysis_axis.xgridvisible[] && analysis_axis.ygridvisible[]
+    sans_axis = fit_axis(plot_fit(quick.result; theme=:sans, show_panel=false))
+    lab_axis = fit_axis(plot_fit(quick.result; theme=:lab, show_panel=false))
+    modern_axis = fit_axis(plot_fit(quick.result; theme=:modern, show_panel=false))
+    tex_axis = fit_axis(plot_fit(quick.result; theme=:tex, show_panel=false))
+    @test sans_axis.xgridvisible[] && sans_axis.ygridvisible[]
     @test lab_axis.xgridvisible[] && lab_axis.ygridvisible[]
     @test !lab_axis.topspinevisible[] && !lab_axis.rightspinevisible[]
     @test modern_axis.xgridvisible[] && modern_axis.ygridvisible[]
-    @test presentation_axis.xgridvisible[] && presentation_axis.ygridvisible[]
-    @test article_axis.topspinevisible[] && article_axis.rightspinevisible[]
+    @test tex_axis.topspinevisible[] && tex_axis.rightspinevisible[]
 
-    # Output roles differ in composition, not only in color and typography.
-    analysis_default = plot_fit(quick.result; theme=:analysis)
-    presentation_default = plot_fit(quick.result; theme=:presentation)
-    article_default = plot_fit(quick.result; theme=:article)
-    article_with_panel = plot_fit(quick.result; theme=:article, show_stats=true)
-    analysis_without_panel = plot_fit(quick.result; theme=:analysis, show_stats=false)
-    @test size(analysis_default.scene) == analysis_style.figure_size_with_panel
-    @test size(presentation_default.scene) == presentation_style.figure_size_without_panel
-    @test size(article_default.scene) == article_style.figure_size_without_panel
-    @test size(article_with_panel.scene) == article_style.figure_size_with_panel
-    @test size(analysis_without_panel.scene) == analysis_style.figure_size_without_panel
+    # Style and information density are orthogonal: both styles support both
+    # panel states, and both default to a self-contained figure.
+    sans_default = plot_fit(quick.result; theme=:sans)
+    tex_default = plot_fit(quick.result; theme=:tex)
+    sans_without_panel = plot_fit(quick.result; theme=:sans, show_panel=false)
+    tex_without_panel = plot_fit(quick.result; theme=:tex, show_panel=false)
+    @test size(sans_default.scene) == sans_style.figure_size_with_panel
+    @test size(tex_default.scene) == tex_style.figure_size_with_panel
+    @test size(sans_without_panel.scene) == sans_style.figure_size_without_panel
+    @test size(tex_without_panel.scene) == tex_style.figure_size_without_panel
 
-    panel_figure = with_theme(plot_theme(:analysis)) do
+    panel_figure = with_theme(plot_theme(:sans)) do
         Figure(size=(720, 420))
     end
     @test plot_info_panel!(
         panel_figure[1, 1];
-        theme=:analysis,
+        theme=:sans,
         model_label="y = m x + b",
         parameter_lines=["m = 1.0 +/- 0.1"],
         statistic_lines=["chi2/ndf = 1.0"],
     ) !== nothing
     latex_figure = plot_fit(
         quick.result;
-        theme=:article,
+        theme=:tex,
         latex_labels=true,
         latex_stats=true,
         model_label=L"U_0(\nu)=h\nu/e-\Phi/e",
@@ -379,19 +359,31 @@ using Test
         xunit=L"\mathrm{THz}",
     )
     @test latex_figure !== nothing
+    @test fit_axis(quick.figure).xlabel[] == "x / s"
+    @test JuFitter._strip_math_delims(String(fit_axis(latex_figure).xlabel[])) ==
+          "\\nu\\,/\\,\\mathrm{THz}"
+
+    mktemp() do _, report_stream
+        redirect_stdout(report_stream) do
+            fitplot(quick.result; show_panel=false, print_report=true, band=:none)
+        end
+        flush(report_stream)
+        seekstart(report_stream)
+        @test occursin("Fit report", read(report_stream, String))
+    end
+
     plotting_extension = Base.get_extension(JuFitter, :JuFitterCairoMakieExt)
     @test plotting_extension !== nothing
-    @test plotting_extension._resolve_panel_status_mode(nothing, analysis_style) == :issues
-    @test plotting_extension._resolve_panel_status_mode(nothing, presentation_style) == :none
-    @test plotting_extension._resolve_panel_status_mode(nothing, article_style) == :none
-    @test plotting_extension._resolve_panel_status_mode(:all, article_style) == :all
-    article_dark_diagnostics = plotting_extension._diagnostic_colors(:article, :dark)
-    @test article_dark_diagnostics.levels[1] == plot_palette(:article; appearance=:dark).fit_color
-    @test all(color -> first(color) != :black, article_dark_diagnostics.regions)
+    @test isnothing(plotting_extension._validate_panel_status_mode(:issues))
+    @test isnothing(plotting_extension._validate_panel_status_mode(:all))
+    tex_dark_diagnostics = plotting_extension._diagnostic_colors(:tex, :dark)
+    @test tex_dark_diagnostics.levels[1] == plot_palette(:tex; appearance=:dark).fit_color
+    @test all(color -> first(color) != :black, tex_dark_diagnostics.regions)
     @test plotting_extension._panel_status_color(:review, :light) == "#4b5560"
     @test plotting_extension._panel_status_color(:review, :dark) == "#d3dae0"
     @test_throws ArgumentError plot_fit(quick.result; theme=:unknown)
-    @test_throws ArgumentError plot_fit(quick.result; theme=:dark, appearance=:light)
+    @test_throws ArgumentError plot_fit(quick.result; theme=:custom)
+    @test_throws ArgumentError plot_fit(quick.result; theme=:dark)
     @test_throws ArgumentError plot_fit(quick.result; fit_range=:unknown)
     @test_throws ArgumentError plot_fit(quick.result; nsigma=0)
     @test_throws ArgumentError plot_fit(quick.result; nsigma=Inf)
@@ -476,20 +468,15 @@ using Test
         theme=:modern,
     ) !== nothing
     @test isfile(precomputed_matrix_out)
-    analysis_matrix = plot_profile_matrix(precomputed_matrix; theme=:analysis)
-    presentation_matrix = plot_profile_matrix(precomputed_matrix; theme=:presentation)
-    article_matrix = plot_profile_matrix(precomputed_matrix; theme=:article)
-    analysis_matrix_axes = filter(content -> content isa Axis, analysis_matrix.content)
-    presentation_matrix_axes = filter(content -> content isa Axis, presentation_matrix.content)
-    article_matrix_axes = filter(content -> content isa Axis, article_matrix.content)
-    @test length(analysis_matrix_axes) == 4
-    @test length(presentation_matrix_axes) == 4
-    @test length(article_matrix_axes) == 4
-    @test first(presentation_matrix_axes).titlesize[] > first(analysis_matrix_axes).titlesize[]
-    @test first(article_matrix_axes).titlesize[] > first(analysis_matrix_axes).titlesize[]
-    @test minimum(axis.xticklabelsize[] for axis in analysis_matrix_axes) >= 20
-    @test minimum(axis.xticklabelsize[] for axis in presentation_matrix_axes) >= 24
-    @test minimum(axis.xticklabelsize[] for axis in article_matrix_axes) >= 22
+    sans_matrix = plot_profile_matrix(precomputed_matrix; theme=:sans)
+    tex_matrix = plot_profile_matrix(precomputed_matrix; theme=:tex)
+    sans_matrix_axes = filter(content -> content isa Axis, sans_matrix.content)
+    tex_matrix_axes = filter(content -> content isa Axis, tex_matrix.content)
+    @test length(sans_matrix_axes) == 4
+    @test length(tex_matrix_axes) == 4
+    @test first(tex_matrix_axes).titlesize[] > first(sans_matrix_axes).titlesize[]
+    @test minimum(axis.xticklabelsize[] for axis in sans_matrix_axes) >= 20
+    @test minimum(axis.xticklabelsize[] for axis in tex_matrix_axes) >= 22
     @test_throws ArgumentError plot_profile_matrix(precomputed_matrix; parameter_names=["m"])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=Int[])
     @test_throws ArgumentError plot_profile_matrix(quick.result; parameters=[1, 1])

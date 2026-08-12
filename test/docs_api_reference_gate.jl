@@ -90,7 +90,7 @@ end
         @test all(contract -> occursin(contract, api_text), required_contracts)
         @test !occursin("ci_level", api_text)
         @test occursin("`:ok`, `:review`, or `:stop`", api_text)
-        @test occursin("For `plot_fit`, use `show_stats`", api_text)
+        @test occursin("`show_panel::Bool` and `print_report::Bool` are independent", api_text)
         @test occursin("zero fitted", api_text)
         @test occursin("[Fitting](api_fitting.md)", overview_text)
         @test occursin("[Results And Diagnostics](api_results.md)", overview_text)
@@ -112,7 +112,8 @@ end
         @test all(section -> occursin(section, plotting_text), required_sections)
 
         required_keywords = [
-            "report=:plot",
+            "show_panel=true",
+            "print_report=false",
             "fit_range",
             "limit_padding",
             "stats_panel_width",

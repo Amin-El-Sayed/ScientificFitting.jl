@@ -2,14 +2,14 @@ using JuFitter
 using LaTeXStrings
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
-# A controlled style comparison: scientific content stays fixed while the three
-# maintained output roles change.
+# A controlled comparison: scientific content stays fixed while typography and
+# panel visibility vary independently.
 x = collect(range(0.0, 10.0; length=90))
 sigma_y = 0.12 .+ 0.01 .* x
 y = @. 1.85 * x + 0.7 + sigma_y * sin(1.6 * x)
 
-for style in (:analysis, :presentation, :article)
-    typography = if style == :article
+for style in (:sans, :tex), show_panel in (true, false)
+    typography = if style == :tex
         (
             title=L"\mathrm{Controlled\ style\ comparison}",
             model_label=L"U(t)=m t+b",
@@ -41,14 +41,14 @@ for style in (:analysis, :presentation, :article)
         y;
         typography...,
         sigma_y=sigma_y,
-        filename=example_output("07_style_$(style).pdf"),
+        filename=example_output("07_style_$(style)_$(show_panel ? "panel" : "plot").pdf"),
         theme=style,
         band=:prediction,
         nsigma=1,
         show_legend=true,
         stats_position=:right,
         stats_mode=:full,
-        report=style == :analysis ? :plot : :none,
+        show_panel=show_panel,
     )
 end
 

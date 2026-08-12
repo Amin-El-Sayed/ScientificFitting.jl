@@ -29,13 +29,22 @@ function image_sources(text)
 end
 
 function style_groups(text)
-    groups = Dict{String, Set{Tuple{String,String}}}()
-    pattern = r"data-jufitter-plot-group=\"([^\"]+)\"[^>]+data-jufitter-plot-style=\"([^\"]+)\"[^>]+src=\"([^\"]+)\""
-    for match in eachmatch(pattern, text)
-        group, style, src = match.captures
+    groups = Dict{String,Set{Tuple{String,String,String}}}()
+    for img_match in eachmatch(r"<img([^>]+)>", text)
+        tag = img_match.captures[1]
+        group_match = match(r"data-jufitter-plot-group=\"([^\"]+)\"", tag)
+        style_match = match(r"data-jufitter-plot-style=\"([^\"]+)\"", tag)
+        src_match = match(r"src=\"([^\"]+)\"", tag)
+        any(isnothing, (group_match, style_match, src_match)) && continue
+
+        group = group_match.captures[1]
+        style = style_match.captures[1]
+        src = src_match.captures[1]
+        panel_match = match(r"data-jufitter-plot-panel=\"([^\"]+)\"", tag)
+        panel = isnothing(panel_match) ? "" : panel_match.captures[1]
         appearance = occursin("_dark", src) ? "dark" : occursin("_light", src) ? "light" : ""
-        get!(groups, group, Set{Tuple{String,String}}())
-        push!(groups[group], (style, appearance))
+        get!(groups, group, Set{Tuple{String,String,String}}())
+        push!(groups[group], (style, panel, appearance))
     end
     return groups
 end
@@ -47,7 +56,13 @@ end
 @testset "Documentation gallery release gate" begin
     required_style_pairs = Set(
         (style, appearance)
-        for style in ("analysis", "presentation", "article")
+        for style in ("sans", "tex")
+        for appearance in ("light", "dark")
+    )
+    required_panel_variants = Set(
+        (style, panel, appearance)
+        for style in ("sans", "tex")
+        for panel in ("show", "hide")
         for appearance in ("light", "dark")
     )
 
@@ -80,8 +95,15 @@ end
 
             groups = style_groups(text)
             @test !isempty(groups)
-            for (_, pairs) in groups
-                @test required_style_pairs ⊆ pairs
+            for (_, variants) in groups
+                style_pairs = Set((style, appearance) for (style, _, appearance) in variants)
+                @test required_style_pairs ⊆ style_pairs
+
+                panels = Set(panel for (_, panel, _) in variants if !isempty(panel))
+                if !isempty(panels)
+                    @test panels == Set(("show", "hide"))
+                    @test required_panel_variants ⊆ variants
+                end
             end
         end
     end

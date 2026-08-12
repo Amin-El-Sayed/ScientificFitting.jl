@@ -23,7 +23,8 @@ cov_fit = fitplot(
     xunit="s",
     ylabel="signal",
     parameter_names=["A", "lambda", "C"],
-    report=:console,
+    show_panel=false,
+    print_report=true,
 )
 
 # Effective variance: x-errors contribute through the local model derivative.
@@ -46,7 +47,8 @@ xy_fit = fitplot(
     xlabel="measured x",
     ylabel="measured y",
     parameter_names=["m", "b"],
-    report=:console,
+    show_panel=false,
+    print_report=true,
 )
 
 println("Full covariance backend: ", cov_fit.result.backend)

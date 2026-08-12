@@ -31,7 +31,8 @@ fit = fitplot(
     nsigma=1,
     band_label="1σ prediction band",
     show_legend=true,
-    report=:both,
+    show_panel=true,
+    print_report=true,
     filename=example_output("01_quickstart_linear.pdf"),
 )
 

@@ -9,39 +9,34 @@ const _JF_DARK_MUTED = "#d3dae0"
 const _JF_DARK_GRID = "#73808d"
 
 const _JF_STYLE_ALIASES = Dict(
-    :screen => :analysis,
-    :lab => :analysis,
-    :workbench => :analysis,
-    :modern => :presentation,
-    :clean => :presentation,
-    :minimal => :presentation,
-    :showcase => :presentation,
-    :publication => :article,
-    :paper => :article,
-    :latex => :article,
+    :analysis => :sans,
+    :presentation => :sans,
+    :screen => :sans,
+    :lab => :sans,
+    :workbench => :sans,
+    :modern => :sans,
+    :clean => :sans,
+    :minimal => :sans,
+    :showcase => :sans,
+    :article => :tex,
+    :publication => :tex,
+    :paper => :tex,
+    :latex => :tex,
 )
 
 function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     appearance in (:auto, :light, :dark) ||
         throw(ArgumentError("appearance must be :auto, :light, or :dark"))
 
-    if theme == :dark
-        appearance == :light &&
-            throw(ArgumentError("theme=:dark conflicts with appearance=:light"))
-        return :analysis, :dark
-    end
-
     style = get(_JF_STYLE_ALIASES, theme, theme)
-    style in (:analysis, :presentation, :article, :custom) ||
+    style in (:sans, :tex) ||
         throw(ArgumentError(
-            "theme must be :analysis, :presentation, :article, :custom, or a supported legacy alias",
+            "theme must be :sans, :tex, or a supported legacy alias",
         ))
     return style, appearance == :auto ? :light : appearance
 end
 
 function _style_preset(style::Symbol, appearance::Symbol)
-    style == :custom && return _style_preset(:analysis, appearance)
-
     dark = appearance == :dark
     paper = dark ? _JF_DARK_PAPER : _JF_PAPER
     ink = dark ? _JF_DARK_INK : _JF_INK
@@ -49,16 +44,13 @@ function _style_preset(style::Symbol, appearance::Symbol)
     box = dark ? "#1b2027" : _JF_PAPER_SOFT
     box_stroke = dark ? "#65717d" : _JF_GRID
 
-    if style == :analysis
-        # Analysis plots retain guides and the result panel so a fit can be
-        # judged while data are arriving. Colors follow Makie's direct
-        # blue/red line-and-band grammar rather than a JuFitter-only palette.
+    if style == :sans
+        # Screen-oriented sans typography, open axes, and light grid guides.
+        # Information density is controlled independently by `show_panel`.
         fit = :dodgerblue
         return (
-            role=:analysis,
-            default_show_stats=true,
+            name=:sans,
             diagnostic_scale=0.84,
-            diagnostic_status_mode=:issues,
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, dark ? 0.34 : 0.46),
@@ -112,75 +104,11 @@ function _style_preset(style::Symbol, appearance::Symbol)
             ticksize=7.0,
             tickalign=0.0,
         )
-    elseif style == :presentation
-        # Presentation output is figure-first: large sans-serif text, strong
-        # marks, open axes, and no numerical report column by default.
-        fit = :dodgerblue
-        return (
-            role=:presentation,
-            default_show_stats=false,
-            diagnostic_scale=1.0,
-            diagnostic_status_mode=:none,
-            background_color=paper,
-            axis_color=ink,
-            grid_color=(grid, dark ? 0.28 : 0.34),
-            data_color=ink,
-            data_marker=:circle,
-            data_markersize=13.0,
-            data_strokecolor=paper,
-            data_strokewidth=1.3,
-            fit_color=fit,
-            fit_linewidth=3.8,
-            band_color=fit,
-            band_alpha=dark ? 0.24 : 0.20,
-            xerr_color=(ink, dark ? 0.88 : 0.82),
-            yerr_color=(ink, dark ? 0.88 : 0.82),
-            error_whiskerwidth=4.5,
-            secondary_color=dark ? "#ff6b6b" : :red,
-            reference_color=dark ? :slategray1 : :gray35,
-            series_colors=dark ?
-                (fit, "#ff6b6b", "#70cfa8", :mediumpurple1, :slategray1) :
-                (fit, :red, :seagreen4, :slateblue, :gray35),
-            stats_color=ink,
-            stats_muted_color=ink,
-            stats_fontsize=27,
-            stats_box_color=box,
-            stats_box_strokecolor=box_stroke,
-            fontsize=26,
-            xlabelsize=33,
-            ylabelsize=33,
-            titlesize=40,
-            titlegap=20,
-            subplot_titlesize=31,
-            subplot_titlegap=10,
-            titlealign=:left,
-            ticklabelsize=26,
-            legend_labelsize=26,
-            legend_patchsize=(38, 22),
-            legend_rowgap=6,
-            panel_rowgap=3,
-            panel_sectiongap=11,
-            panel_gap=22,
-            figure_padding=(14, 18, 14, 14),
-            figure_size_with_panel=(1180, 700),
-            figure_size_without_panel=(960, 600),
-            xgridvisible=true,
-            ygridvisible=true,
-            gridwidth=1.0,
-            topspinevisible=false,
-            rightspinevisible=false,
-            spinewidth=2.0,
-            tickwidth=1.8,
-            ticksize=7.5,
-            tickalign=0.0,
-        )
-    elseif style == :article
+    elseif style == :tex
         fit = dark ? "#77bce6" : "#0072b2"
         return (
-            role=:article,
-            default_show_stats=false,
+            name=:tex,
             diagnostic_scale=0.90,
-            diagnostic_status_mode=:none,
             background_color=paper,
             axis_color=ink,
             grid_color=(grid, 0.0),
@@ -240,15 +168,13 @@ function _style_preset(style::Symbol, appearance::Symbol)
     end
 
     throw(ArgumentError(
-        "style presets are defined only for :analysis, :presentation, and :article",
+        "style presets are defined only for :sans and :tex",
     ))
 end
 
 function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Theme)
-    style == :custom && return merge(Theme(), theme_override)
-
     preset = _style_preset(style, appearance)
-    font_theme = style == :article ? theme_latexfonts() : Theme(font="TeX Gyre Heros")
+    font_theme = style == :tex ? theme_latexfonts() : Theme(font="TeX Gyre Heros")
     visual_theme = Theme(
         fontsize=preset.fontsize,
         figure_padding=preset.figure_padding,
@@ -310,13 +236,13 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
 end
 
 """
-    plot_theme(theme=:analysis; appearance=:auto, theme_override=Theme())
+    plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
 
 Return the Makie theme used by JuFitter plots. Use this when composing a custom
 Makie figure that should remain visually consistent with `plot_fit`.
 """
 function plot_theme(
-    theme::Symbol=:analysis;
+    theme::Symbol=:sans;
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
 )
@@ -325,13 +251,13 @@ function plot_theme(
 end
 
 """
-    plot_palette(theme=:analysis; appearance=:auto)
+    plot_palette(theme=:sans; appearance=:auto)
 
 Return the visual tokens used by a JuFitter plot style. Besides data, fit,
 uncertainty-band, and error-bar defaults, the result exposes typography,
 layout, and color-safe multi-series tokens for custom Makie figures.
 """
-function plot_palette(theme::Symbol=:analysis; appearance::Symbol=:auto)
+function plot_palette(theme::Symbol=:sans; appearance::Symbol=:auto)
     style, resolved_appearance = _resolve_plot_style(theme, appearance)
     return _style_preset(style, resolved_appearance)
 end
@@ -447,7 +373,19 @@ function _label_with_unit(label, unit)
     unit_text = string(unit)
     isempty(unit_text) && return label
     label_text = string(label)
-    return isempty(label_text) ? unit_text : string(label_text, " (", unit_text, ")")
+    isempty(label_text) && return unit
+
+    # The SI quantity-calculus form makes tick values explicit: a tick at 2 on
+    # an axis `t / s` means t/s = 2. Preserve math input as one LaTeX expression
+    # so mixed quantity and unit strings do not produce nested `$...$` pairs.
+    if label isa LaTeXString || unit isa LaTeXString
+        quantity = label isa LaTeXString ? _strip_math_delims(label_text) :
+            "\\text{" * replace(label_text, "_" => "\\_") * "}"
+        unit_expr = unit isa LaTeXString ? _strip_math_delims(unit_text) :
+            "\\mathrm{" * replace(unit_text, "_" => "\\_") * "}"
+        return LaTeXString(quantity * "\\,/\\," * unit_expr)
+    end
+    return string(label_text, " / ", unit_text)
 end
 
 function _plot_title(title)
@@ -748,7 +686,7 @@ end
 """
     plot_info_panel!(
         cell;
-        theme=:analysis,
+        theme=:sans,
         appearance=:auto,
         legend_source=nothing,
         legend_plots=nothing,
@@ -767,7 +705,7 @@ contract; explicit panel keywords remain authoritative.
 """
 function plot_info_panel!(
     cell;
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     legend_source=nothing,
     legend_plots=nothing,
@@ -944,21 +882,11 @@ end
 
 _default_linear_model(x, p) = @. p[1] * x + p[2]
 
-function _normalize_fitplot_report(report::Symbol)
-    report in (:plot, :console, :both, :none) || throw(ArgumentError("report must be :plot, :console, :both, or :none"))
-    return report
-end
-
-function _fitplot_result(result::FitResult; report::Symbol=:plot, kwargs...)
-    report = _normalize_fitplot_report(report)
+function _fitplot_result(result::FitResult; print_report::Bool=false, kwargs...)
     plot_kwargs = Dict{Symbol, Any}(pairs(kwargs))
     parameter_names = get(plot_kwargs, :parameter_names, nothing)
 
-    if !haskey(plot_kwargs, :show_stats)
-        plot_kwargs[:show_stats] = report in (:plot, :both)
-    end
-
-    if report in (:console, :both)
+    if print_report
         println(report_text(result; parameter_names=parameter_names))
     end
 
@@ -967,33 +895,71 @@ function _fitplot_result(result::FitResult; report::Symbol=:plot, kwargs...)
 end
 
 """
-    fitplot(result::FitResult; report=:plot, kwargs...)
-    fitplot(model, x, y; p0, report=:plot, kwargs...)
-    fitplot(x, y; p0=nothing, report=:plot, kwargs...)
+    fitplot(result::FitResult; show_panel=true, print_report=false, kwargs...)
+    fitplot(model, x, y; p0, show_panel=true, print_report=false, kwargs...)
+    fitplot(x, y; p0=nothing, show_panel=true, print_report=false, kwargs...)
 
 Fit and plot in one call. The `model, x, y` method forwards fitting keywords
 such as `sigma_y`, `sigma_x`, `whitening`, `x_derivative`, `bounds`,
 `parameter_priors`, and `backend` to `fit_model`; plotting keywords such as
 `xlabel`, `ylabel`, `theme`, `nsigma`, and `filename` are forwarded to
-`plot_fit`. `report` is consumed by `fitplot` to select plot, console, both, or
-neither output surface.
+`plot_fit`. `show_panel` controls the numerical panel in the figure, while
+`print_report` independently controls terminal output.
 
 The `x, y` method uses a linear model by default. All methods return a named
 tuple `(result, figure)` so the numerical result is not lost.
 """
-function fitplot(result::FitResult; report::Symbol=:plot, kwargs...)
-    return _fitplot_result(result; report=report, kwargs...)
+function fitplot(
+    result::FitResult;
+    show_panel::Bool=true,
+    print_report::Bool=false,
+    kwargs...,
+)
+    return _fitplot_result(
+        result;
+        show_panel=show_panel,
+        print_report=print_report,
+        kwargs...,
+    )
 end
 
-function fitplot(model, x::AbstractVector, y::AbstractVector; p0::AbstractVector, report::Symbol=:plot, kwargs...)
+function fitplot(
+    model,
+    x::AbstractVector,
+    y::AbstractVector;
+    p0::AbstractVector,
+    show_panel::Bool=true,
+    print_report::Bool=false,
+    kwargs...,
+)
     fit_kwargs, plot_kwargs = _split_fitplot_kwargs(kwargs)
     result = fit_model(model, x, y; p0=p0, fit_kwargs...)
-    return _fitplot_result(result; report=report, plot_kwargs...)
+    return _fitplot_result(
+        result;
+        show_panel=show_panel,
+        print_report=print_report,
+        plot_kwargs...,
+    )
 end
 
-function fitplot(x::AbstractVector, y::AbstractVector; p0=nothing, report::Symbol=:plot, kwargs...)
+function fitplot(
+    x::AbstractVector,
+    y::AbstractVector;
+    p0=nothing,
+    show_panel::Bool=true,
+    print_report::Bool=false,
+    kwargs...,
+)
     initial = p0 === nothing ? _linear_initial_guess(x, y) : p0
-    return fitplot(_default_linear_model, x, y; p0=initial, report=report, kwargs...)
+    return fitplot(
+        _default_linear_model,
+        x,
+        y;
+        p0=initial,
+        show_panel=show_panel,
+        print_report=print_report,
+        kwargs...,
+    )
 end
 
 """
@@ -1002,7 +968,7 @@ end
         xgrid=nothing,
         filename=nothing,
         format=:pdf,
-        theme=:analysis,
+        theme=:sans,
         appearance=:auto,
         theme_override=Theme(),
         title=nothing,
@@ -1022,7 +988,7 @@ end
         panel_gap=nothing,
         latex_labels=false,
         latex_stats=false,
-        show_stats=nothing,
+        show_panel=true,
         stats_mode=:compact,
         tight_layout=true,
         stats_sigdigits=5,
@@ -1033,7 +999,7 @@ end
         stats_box_alpha=0.95,
         stats_box_strokecolor=nothing,
         stats_box_strokewidth=1.0,
-        show_legend=nothing,
+        show_legend=true,
         legend_position=:rt,
         axis_kwargs=NamedTuple(),
         legend_kwargs=NamedTuple(),
@@ -1063,13 +1029,12 @@ end
 
 Create a scientific fit plot with data, error bars, best-fit curve, optional
 uncertainty band, and an optional right-side information panel. Use
-`theme=:analysis` for live laboratory or notebook work,
-`theme=:presentation` for a large figure-first screen view, or
-`theme=:article` for TeX/vector article output. Unless overridden, analysis
-plots include the result panel while presentation and article plots reserve
-the canvas for the scientific figure and place the legend in the axis. Legacy
-style names remain compatibility aliases rather than additional cosmetic
-presets. `appearance=:light` or `:dark` controls the color scheme independently.
+`theme=:sans` for open axes, sans-serif typography, and grid guides, or
+`theme=:tex` for TeX typography, a full frame, and no grid. `show_panel`
+independently controls the numerical result panel and defaults to `true` for
+both styles. Legacy style names remain compatibility aliases rather than
+additional cosmetic presets. `appearance=:light` or `:dark` controls the color
+scheme independently.
 `band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
 includes observation uncertainty in y and effective x uncertainty. With the
@@ -1083,7 +1048,7 @@ function plot_fit(
     xgrid=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title=nothing,
@@ -1103,7 +1068,7 @@ function plot_fit(
     panel_gap::Union{Nothing, Real}=nothing,
     latex_labels::Bool=false,
     latex_stats::Bool=false,
-    show_stats::Union{Nothing, Bool}=nothing,
+    show_panel::Bool=true,
     stats_mode::Symbol=:compact,
     tight_layout::Bool=true,
     stats_sigdigits::Int=5,
@@ -1114,7 +1079,7 @@ function plot_fit(
     stats_box_alpha::Real=0.95,
     stats_box_strokecolor=nothing,
     stats_box_strokewidth::Real=1.0,
-    show_legend::Union{Nothing, Bool}=nothing,
+    show_legend::Bool=true,
     legend_position=:rt,
     axis_kwargs=NamedTuple(),
     legend_kwargs=NamedTuple(),
@@ -1151,8 +1116,6 @@ function plot_fit(
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)
     style = _style_preset(resolved_style, resolved_appearance)
-    show_stats = show_stats === nothing ? style.default_show_stats : show_stats
-    show_legend = show_legend === nothing ? true : show_legend
     panel_gap = panel_gap === nothing ? style.panel_gap : Float64(panel_gap)
     stats_fontsize = stats_fontsize === nothing ? style.stats_fontsize : Float64(stats_fontsize)
     data_color = data_color === nothing ? style.data_color : data_color
@@ -1172,14 +1135,14 @@ function plot_fit(
         style.stats_box_strokecolor : stats_box_strokecolor
     model_label = model_label === nothing ? _default_model_label(result, latex_labels) : model_label
 
-    base_size = show_stats && stats_position == :right ?
+    base_size = show_panel && stats_position == :right ?
         style.figure_size_with_panel : style.figure_size_without_panel
     fig_size = figure_size === nothing ? base_size : (Int(round(figure_size[1])), Int(round(figure_size[2])))
     fig = with_theme(thm) do
         Figure(size=fig_size, backgroundcolor=style.background_color)
     end
 
-    if show_stats
+    if show_panel
         colgap!(fig.layout, Int(round(panel_gap)))
     end
 
@@ -1283,7 +1246,7 @@ function plot_fit(
             _as_label_text(fit_label, latex_labels),
         ]
 
-    if show_legend && !(show_stats && stats_position == :right)
+    if show_legend && !(show_panel && stats_position == :right)
         axislegend(
             ax,
             legend_plots,
@@ -1293,23 +1256,23 @@ function plot_fit(
         )
     end
 
-    stats_lines = show_stats ? _stats_panel_lines(
+    stats_lines = show_panel ? _stats_panel_lines(
         result;
         parameter_names=parameter_names,
         sigdigits=stats_sigdigits,
         latex_stats=stats_position == :right && latex_stats,
         stats_mode=stats_mode,
     ) : nothing
-    right_stats_rows = show_stats ? _plain_stats_rows(
+    right_stats_rows = show_panel ? _plain_stats_rows(
         result;
         parameter_names=parameter_names,
         sigdigits=stats_sigdigits,
         latex_stats=latex_stats,
         stats_mode=stats_mode,
     ) : nothing
-    right_stats_lines = show_stats ? _stats_row_lines(right_stats_rows, latex_stats) : nothing
+    right_stats_lines = show_panel ? _stats_row_lines(right_stats_rows, latex_stats) : nothing
 
-    if show_stats && stats_position == :inside
+    if show_panel && stats_position == :inside
         _draw_inside_stats!(
             ax,
             stats_lines;
@@ -1321,7 +1284,7 @@ function plot_fit(
             box_strokewidth=stats_box_strokewidth,
             text_color=style.stats_color,
         )
-    elseif show_stats && stats_position == :right
+    elseif show_panel && stats_position == :right
         panel_width_px = _panel_width_px(stats_panel_width, fig_size[1])
         _draw_right_stats!(
             fig,
@@ -1497,7 +1460,7 @@ end
 
 function _diagnostic_colors(style::Symbol, appearance::Symbol)
     preset = _style_preset(style, appearance)
-    alpha = style == :article ? (0.20, 0.11, 0.06) : (0.28, 0.16, 0.08)
+    alpha = style == :tex ? (0.20, 0.11, 0.06) : (0.28, 0.16, 0.08)
     return (
         levels=preset.series_colors[1:3],
         regions=ntuple(index -> (preset.fit_color, alpha[index]), 3),
@@ -1542,12 +1505,6 @@ function _validate_panel_status_mode(mode::Symbol)
     return nothing
 end
 
-function _resolve_panel_status_mode(mode::Union{Nothing, Symbol}, style)
-    mode === nothing && return style.diagnostic_status_mode
-    _validate_panel_status_mode(mode)
-    return mode
-end
-
 function _draw_panel_status!(
     axis::Axis,
     status::Symbol,
@@ -1574,7 +1531,7 @@ function _draw_panel_status!(
 end
 
 """
-    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:analysis, ...)
+    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:sans, ...)
 
 Plot a one-dimensional profile-likelihood scan.
 
@@ -1590,7 +1547,7 @@ function plot_profile(
     profile_result::ProfileResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Profile",
@@ -1686,7 +1643,7 @@ function plot_profile(
 end
 
 """
-    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:analysis, ...)
+    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:sans, ...)
 
 Plot a two-dimensional profile-likelihood contour grid.
 
@@ -1704,7 +1661,7 @@ function plot_contour(
     contour_result::ContourResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     title="Contour",
@@ -1912,9 +1869,8 @@ not parabolic, or profile contours do not resemble the local ellipse, symmetric
 local covariance errors should not be treated as the final uncertainty
 statement.
 
-By default, the analysis role marks panels with warnings or critical findings,
-while presentation and article output remain purely graphical. Set
-`panel_status_mode=:issues`, `:all`, or `:none` to override that role default.
+By default, panels with warnings or critical findings are marked. Set
+`panel_status_mode=:issues`, `:all`, or `:none` independently of visual style.
 Passing a precomputed `ProfileMatrixResult` renders the stored scans without
 repeating the profile and contour refits.
 """
@@ -1924,7 +1880,7 @@ function plot_profile_matrix(
     parameter_names=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     npoints_profile::Int=61,
@@ -1935,11 +1891,11 @@ function plot_profile_matrix(
     adaptive::Bool=false,
     max_refinements::Int=2,
     max_points::Int=1200,
-    panel_status_mode::Union{Nothing, Symbol}=nothing,
+    panel_status_mode::Symbol=:issues,
     delta_max::Union{Nothing, Real}=nothing,
     figure_size=nothing,
 )
-    panel_status_mode === nothing || _validate_panel_status_mode(panel_status_mode)
+    _validate_panel_status_mode(panel_status_mode)
     matrix = profile_matrix(
         result;
         parameters=parameters,
@@ -1971,10 +1927,10 @@ function plot_profile_matrix(
     parameter_names=nothing,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
-    panel_status_mode::Union{Nothing, Symbol}=nothing,
+    panel_status_mode::Symbol=:issues,
     delta_max::Union{Nothing, Real}=nothing,
     figure_size=nothing,
 )
@@ -2005,7 +1961,7 @@ function plot_profile_matrix(
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     style = _style_preset(resolved_style, resolved_appearance)
-    panel_status_mode = _resolve_panel_status_mode(panel_status_mode, style)
+    _validate_panel_status_mode(panel_status_mode)
     diagnostic_colors = _diagnostic_colors(resolved_style, resolved_appearance)
     cell = n <= 3 ? 285 : 235
     fig_size = figure_size === nothing ? (cell * n + 80, cell * n + 70) :
@@ -2030,7 +1986,7 @@ function plot_profile_matrix(
     matrix_ticklabelsize = max(n <= 3 ? 20 : 18, round(Int, density_scale * style.ticklabelsize))
     matrix_legend_size = max(n <= 3 ? 20 : 19, round(Int, density_scale * style.legend_labelsize))
     matrix_status_size = max(17, matrix_ticklabelsize - 1)
-    delta_label = resolved_style == :article ? L"\Delta\mathrm{cost}" : "Δcost"
+    delta_label = resolved_style == :tex ? L"\Delta\mathrm{cost}" : "Δcost"
 
     for row in 1:n, col in 1:n
         ax = Axis(
@@ -2230,7 +2186,7 @@ function plot_residuals(
     kind::Symbol=:pull,
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 520),
@@ -2293,7 +2249,7 @@ function plot_diagnostics(
     result::FitResult;
     filename::Union{Nothing, AbstractString}=nothing,
     format::Symbol=:pdf,
-    theme::Symbol=:analysis,
+    theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
     figure_size::Tuple{<:Real, <:Real}=(900, 900),

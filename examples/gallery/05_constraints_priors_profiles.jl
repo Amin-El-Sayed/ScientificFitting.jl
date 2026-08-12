@@ -38,10 +38,11 @@ fit = fitplot(
     maxiters=2000,
     filename=example_output("05_constraints_priors_fit.pdf"),
     title="Early saturation measurement",
-    xlabel="time (s)",
-    ylabel="response (V)",
+    xlabel="time / s",
+    ylabel="response / V",
     parameter_names=["amplitude", "time constant", "offset"],
-    report=:both,
+    show_panel=true,
+    print_report=true,
 )
 
 result = fit.result

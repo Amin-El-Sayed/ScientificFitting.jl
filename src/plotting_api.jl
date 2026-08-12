@@ -26,8 +26,8 @@ plot in one call. Every method returns the named tuple
 `(result::FitResult, figure::Figure)`. Obtain the primary axis with
 `fit_axis(output.figure)` when adding custom Makie content.
 
-Use `report=:plot`, `:console`, `:both`, or `:none` to choose where fit
-statistics are shown.
+Use `show_panel=true` to include fit statistics in the figure and
+`print_report=true` to print the text report independently.
 """
 function fitplot end
 
@@ -92,19 +92,18 @@ physical threshold to an existing fit axis.
 function add_hband! end
 
 """
-    plot_theme(style=:analysis; appearance=:auto)
+    plot_theme(style=:sans; appearance=:auto)
 
 Return the Makie `Theme` used by JuFitter for a named plot style. The maintained
-output roles are `:analysis`, `:presentation`, and `:article`. Analysis keeps
-the numerical result panel for live work, presentation prioritizes a large
-screen-readable figure, and article uses TeX typography and vector-export
-conventions. The former style names remain compatibility aliases. `appearance`
+visual styles are `:sans` (sans-serif typography, open axes, grid) and `:tex`
+(TeX typography, full frame, no grid). Panel visibility is deliberately not a
+style property. Former style names remain compatibility aliases. `appearance`
 is `:light`, `:dark`, or `:auto`.
 """
 function plot_theme end
 
 """
-    plot_palette(style=:analysis; appearance=:auto)
+    plot_palette(style=:sans; appearance=:auto)
 
 Return the visual tokens used by JuFitter's plot helpers, including color-safe
 series colors, markers, line weights, typography, and layout defaults. Use this
@@ -113,7 +112,7 @@ when building compound Makie figures that should respond to a selected style.
 function plot_palette end
 
 """
-    plot_info_panel!(cell; theme=:analysis, appearance=:auto,
+    plot_info_panel!(cell; theme=:sans, appearance=:auto,
                      legend_source=nothing, legend_plots=nothing,
                      legend_labels=nothing, model_label=nothing,
                      parameter_lines=Any[], statistic_lines=Any[], kwargs...)
@@ -129,7 +128,7 @@ information hierarchy without coupling the panel to one `FitResult`.
 function plot_info_panel! end
 
 """
-    plot_residuals(result; kind=:pull, theme=:analysis, kwargs...)
+    plot_residuals(result; kind=:pull, theme=:sans, kwargs...)
 
 Plot residuals, pulls, or data/fit ratios for a fitted model. Use this when the
 main fit plot looks plausible but the noise model or model structure needs

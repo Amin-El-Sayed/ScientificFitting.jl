@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-08-10
+Status: 2026-08-12
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -9,6 +9,14 @@ sufficient.
 Publication policy: do not push, publish, register, deploy documentation, or
 make the repository public without explicit manual approval from Amin_El_Sayed.
 Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
+
+- The final v0 plotting contract now separates visual style from output
+  composition. The maintained styles are `:sans` and `:tex`; `show_panel`,
+  `print_report`, legend visibility, and light/dark appearance are orthogonal.
+  Axis units default to SI quantity-calculus labels such as `t / s`. Legacy
+  style names remain aliases. Focused plot tests pass 157 checks, and the
+  regenerated documentation assets pass the gallery, API, public-docs,
+  visual-asset, and byte-level snapshot gates.
 
 - A documentation-driven plotting audit found that `add_vband!` and
   `add_hband!` materialized Makie's provisional pre-render axis limits as data
@@ -23,8 +31,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Real executable output now preserves the resulting `critical` baseline and
   `review` drift diagnostics instead of tuning the uncertainty scale to obtain
   an attractive p-value. Its public script writes to `examples/output/` by
-  default; regenerating the four tracked documentation assets requires the
-  explicit `JUFITTER_RENDER_DOC_ASSETS=1` maintainer flag.
+  default; regenerating the eight tracked documentation assets requires the
+  explicit `JUFITTER_RENDER_DOC_ASSETS=1` maintainer flag. The style/panel
+  contract now produces eight tracked light/dark variants for this compound
+  figure.
 
 ## Current Verification
 
@@ -35,10 +45,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   convention and link method assumptions to executable gallery analyses. The
   focused public-documentation gate passes 616 checks, source links 403,
   rendered links 2909, and the API-reference gate 89; Documenter also builds
-  without warnings. Browser review confirmed the shortened navigation labels,
-  no horizontal overflow at the checked desktop width, and correct
-  `analysis`/`presentation`/`article` plus light/dark switching for the real
-  profile-matrix assets.
+  without warnings. Browser review confirmed the shortened navigation labels
+  and no horizontal overflow at the checked desktop width. The current
+  `sans`/`tex`, panel, and light/dark controls still require the final browser
+  pass recorded by this audit block.
 
 - Julia 1.10.11 previously passed the Makie-free core gate with 432 checks and
   the full package test with 501 checks in an isolated environment resolved
@@ -83,30 +93,29 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   public documentation gate rejects the retired identifiers, while the
   33-check executable-output gate verifies the new report labels against real
   example runs.
-- The current plotting release slice passes locally with 175 focused API/layout
-  checks, 289 gallery-structure checks, 1297 visual-asset checks, 83 visual
-  snapshot checks, and 713 public-documentation hygiene checks. Documenter
-  builds without warnings. The authoritative local `test/runtests.jl` gate also
-  passes all 719 core and plotting checks after this style correction.
-- The plot-style audit defines exactly three maintained output contracts rather
-  than loosely related color variants. `:analysis` is the live notebook/lab
-  role with a complete result column. `:presentation` is a large sans-serif,
-  figure-first screen role. `:article` is the TeX, hollow-marker, full-frame
-  export role. Light/dark appearance is independent, previous names remain
-  compatibility aliases, and explicit Makie keyword overrides remain
+- The current plotting release slice passes locally with 157 focused API/layout
+  checks, 319 gallery-structure checks, 1765 visual-asset checks, 96 visual
+  snapshot checks, 89 API-reference checks, and 776 public-documentation
+  hygiene checks. Documenter builds without warnings. The last authoritative
+  full-package gate predates this narrow style/API correction and is not being
+  misrepresented as current evidence.
+- The plot-style audit defines exactly two maintained visual contracts rather
+  than loosely related use-case roles. `:sans` is the open-axis/grid contract;
+  `:tex` is the TeX, hollow-marker, full-frame contract. Panel, legend,
+  terminal output, and light/dark appearance are independent. Previous names
+  remain compatibility aliases, and explicit Makie keyword overrides remain
   authoritative.
 - Fit plots, residuals, diagnostics, profiles, contours, profile matrices,
-  information panels, and compound gallery figures consume the same role
-  tokens. All 81 current gallery PNGs were regenerated from real fits and match
-  the tracked snapshot manifest; obsolete `screen` assets were removed. Browser
-  review at documentation scale verified the role comparison and custom
-  Photoelectric/Poisson compositions, including real role and appearance
-  switching. Final maintainer visual approval is still required.
-- Compound profile matrices now inherit role-specific information density
-  rather than applying one global shrink factor. Analysis output retains panel
-  triage, presentation output uses the full type scale without workflow labels,
-  and article output remains a clean TeX export. Focused tests inspect the
-  effective Makie axis sizes and the role defaults, not only preset tokens.
+  information panels, and compound gallery figures consume the same style
+  tokens. All 94 current gallery PNGs were regenerated from real fits and match
+  the tracked snapshot manifest; obsolete role assets were removed. Browser
+  review at documentation scale verified the two style choices, both panel
+  states, light/dark exclusivity, and custom Photoelectric composition. Final
+  maintainer visual approval is still required.
+- Compound profile matrices use style typography and an explicit
+  `panel_status_mode=:issues | :all | :none`; visual style cannot hide a
+  diagnostic warning. Focused tests inspect effective Makie axis sizes and
+  explicit output controls, not only preset tokens.
 - The Profiles and Contours methods page now demonstrates profiling with an
   analytic two-parameter correlated quadratic cost. At a forced one-standard-
   error displacement, the frozen nuisance slice gives ``\Delta C=5.26`` while
@@ -641,10 +650,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   Its final contract pass now also specifies complete-vector nonlinear
   constraint callbacks, fixed-parameter diagonal covariance semantics,
   profile/contour scan controls and failed-refit behavior, profile-report cost,
-  and the separate `fitplot(report=...)` versus `plot_fit(show_stats=...)`
-  interfaces. Two non-executable `plot_fit(...; report=:plot)` fragments on
-  supporting reference pages were corrected and are now rejected by the
-  public documentation gate.
+  and the independent `fitplot(show_panel=..., print_report=...)` versus
+  `plot_fit(show_panel=...)` interfaces. Obsolete `report=...`, `show_stats`,
+  and role-coupled style fragments are now rejected by the public
+  documentation gates.
 - The final entry-path audit covers Home, Installation, and Quickstart as one
   reader journey. The Home page has no horizontal overflow at the checked
   desktop viewport, its theme/style controls select exactly one real rendered

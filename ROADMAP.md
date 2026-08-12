@@ -48,10 +48,10 @@ Key deliverables:
 - `fitplot(...)` convenience API for common workflows.
 - Robust automatic margins for data, error bars, fit curves, bands, labels, and
   statistics panels.
-- Three maintained output roles: live analysis, figure-first presentation, and
-  article export. Light/dark appearance remains an independent choice.
+- Two maintained visual contracts: sans-serif/open-axis and TeX/full-frame.
+  Light/dark appearance and result-panel visibility remain independent choices.
 - Optional residual or pull panel.
-- Clear controls for parameter/report display: plot, console, both, or none.
+- Independent Boolean controls for the result panel and terminal report.
 - Multi-fit and multi-dataset plots as first-class workflows.
 
 Acceptance criteria:
@@ -288,10 +288,12 @@ Deferred scientific architecture candidates:
 ## Phase 3.5: Diagnostic Plots and Contours
 
 Status: the scoped numerical diagnostics and plotting API are complete. The
-plot-style layer now has three distinct, tested contracts with regenerated
-light/dark documentation assets; maintainer visual signoff remains the final
-v0 gate. Further automatic nonlinearity detection and richer combined
-dashboards remain post-v0 work.
+plot-style layer now has two distinct, tested visual contracts; result-panel
+visibility and light/dark appearance are orthogonal controls. Documentation
+assets cover both styles, both panel states where applicable, and both
+appearances. Maintainer visual signoff remains the final v0 gate. Further
+automatic nonlinearity detection and richer combined dashboards remain post-v0
+work.
 
 Goal: profile, contour, residual, pull, covariance, and likelihood diagnostics
 must communicate statistical meaning as clearly as kafe2/Minuit-style tools,
@@ -329,29 +331,26 @@ Acceptance criteria:
 
 ### Plot-style release gate
 
-The maintained preset layer represents three output jobs, not cosmetic color
-variants. Keep Makie's native layout and styling machinery wherever it already
-solves the problem; JuFitter adds only fitting-specific defaults and
+The maintained preset layer describes visual grammar, not intended use or
+information density. Keep Makie's native layout and styling machinery wherever
+it already solves the problem; JuFitter adds only fitting-specific defaults and
 composition.
 
-- `:analysis` is the live-analysis and notebook role: readable sans-serif
-  typography, filled observations, visible guides, strong axes, and a complete
-  result column by default.
-- `:presentation` is the figure-first role for documentation, talks, and wide
-  notebook cells: large sans-serif type and marks, a compact legend, and no
-  numerical result column by default.
-- `:article` is the vector-export role: scaled TeX typography, hollow
-  observations, a complete frame with inward ticks, no grid, and a color-safe
-  Okabe-Ito palette. It is figure-first unless explicitly asked to show the
-  result panel.
+- `:sans` uses readable sans-serif typography, filled observations, visible
+  guides, and strong open axes.
+- `:tex` uses TeX typography, hollow observations, a complete frame with inward
+  ticks, no grid, and a color-safe Okabe-Ito palette.
+- `show_panel`, `show_legend`, `print_report`, and light/dark `appearance` are
+  independent controls. A style must never silently choose any of them.
 - Previous names remain compatibility aliases; they no longer claim separate
   visual semantics.
-- Focused tests enforce role differences, minimum readable dimensions, Makie
-  override precedence, compound diagnostics, and fixed output footprints.
-- The documentation exposes all three roles and swaps real light/dark assets.
-  Compound figures use separate subplot typography so a readable main title
-  cannot make residual-panel titles collide. Maintainer visual acceptance is
-  still mandatory.
+- Focused tests enforce style differences, all style/panel combinations,
+  minimum readable dimensions, Makie override precedence, compound
+  diagnostics, and fixed output footprints.
+- The documentation exposes both styles and the panel switch, and swaps real
+  light/dark assets. Compound figures use separate subplot typography so a
+  readable main title cannot make residual-panel titles collide. Maintainer
+  visual acceptance is still mandatory.
 
 - A preset must be identifiable from an unlabeled side-by-side render. Changing
   only font size, saturation, or one accent color is not a distinct contract.

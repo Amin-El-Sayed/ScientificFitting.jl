@@ -116,8 +116,9 @@ fmt(x, digits=4) = @sprintf("%.*g", digits, x)
 function save_multi_dataset_calibration(
     filename;
     dark::Union{Nothing, Bool}=nothing,
-    style::Symbol=:analysis,
+    style::Symbol=:sans,
     appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+    show_panel::Bool=true,
 )
     MULTI_RENDER_PLOTS || return nothing
 
@@ -128,17 +129,17 @@ function save_multi_dataset_calibration(
     pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
     pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
     markers = [:circle, :rect, :diamond]
-    article = style == :article
+    article = style == :tex
     labels = article ?
         Any[L"\mathrm{channel\ A}", L"\mathrm{channel\ B}", L"\mathrm{channel\ C}"] :
         Any["channel A", "channel B", "channel C"]
     partial_maps = [[1, 2], [1, 3], [4, 5]]
     all_shared_maps = [[1, 2], [1, 3], [1, 4]]
 
-    base_size = style == :analysis ?
+    base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
-    figure_width = style == :analysis ? base_size[1] : max(base_size[1], 960)
-    figure_height = style == :analysis ? 860 : 1040
+    figure_width = show_panel ? base_size[1] : max(base_size[1], 960)
+    figure_height = show_panel ? 860 : 1040
     figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
@@ -146,7 +147,7 @@ function save_multi_dataset_calibration(
         figure[1, 1];
         title=article ? L"\mathrm{Three-channel\ calibration\ transfer}" :
             "Three-channel calibration transfer",
-        ylabel=article ? L"y\;(\mathrm{V})" : "channel response y (V)",
+        ylabel=article ? L"y\,/\,\mathrm{V}" : "channel response y / V",
     )
     shared_pull_axis = Axis(
         figure[2, 1];
@@ -275,7 +276,7 @@ function save_multi_dataset_calibration(
         article ? L"\mathrm{all-shared-gain\ hypothesis}" : "all-shared-gain hypothesis",
         article ? L"\mathrm{local\ }1\sigma\mathrm{\ fit\ band}" : "local 1σ fit band",
     ]
-    if style != :analysis
+    if !show_panel
         Legend(
             figure[4, 1],
             legend_elements,
@@ -318,11 +319,11 @@ function save_multi_dataset_calibration(
         )
     end
 
-    row_fractions = style == :analysis ? (0.58, 0.21, 0.21) : (0.50, 0.16, 0.16)
+    row_fractions = show_panel ? (0.58, 0.21, 0.21) : (0.50, 0.16, 0.16)
     for (row, fraction) in enumerate(row_fractions)
         rowsize!(figure.layout, row, Relative(fraction))
     end
-    style == :analysis && colgap!(figure.layout, 24)
+    show_panel && colgap!(figure.layout, 24)
     save(filename, figure; px_per_unit=MULTI_PX_PER_UNIT)
 end
 
@@ -339,11 +340,13 @@ end
 
 if MULTI_RENDER_DOC_ASSETS
     mkpath(MULTI_DOC_ASSET_DIR)
-    for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
+    for style in (:sans, :tex), show_panel in (true, false), appearance in (:light, :dark)
+        panel_suffix = show_panel ? "panel" : "plot"
         save_multi_dataset_calibration(
-            joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(appearance).png");
+            joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(panel_suffix)_$(appearance).png");
             style=style,
             appearance=appearance,
+            show_panel=show_panel,
         )
     end
 end

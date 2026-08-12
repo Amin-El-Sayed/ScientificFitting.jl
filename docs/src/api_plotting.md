@@ -33,9 +33,9 @@ composition examples. This page is the exact argument and failure contract.
 ## Fit And Plot In One Call
 
 ```julia
-fitplot(model, x, y; p0, report=:plot, kwargs...)
-fitplot(x, y; p0=nothing, report=:plot, kwargs...)
-fitplot(result::FitResult; report=:plot, kwargs...)
+fitplot(model, x, y; p0, show_panel=true, print_report=false, kwargs...)
+fitplot(x, y; p0=nothing, show_panel=true, print_report=false, kwargs...)
+fitplot(result::FitResult; show_panel=true, print_report=false, kwargs...)
 ```
 
 All methods return the named tuple `(result=result, figure=figure)`. The
@@ -56,7 +56,7 @@ out = fitplot(
     xunit="mm",
     ylabel="voltage",
     yunit="V",
-    report=:plot,
+    show_panel=true,
 )
 
 result = out.result
@@ -65,20 +65,9 @@ figure = out.figure
 
 ### Output selection
 
-`report` belongs to `fitplot`, not `plot_fit`:
-
-| `report` | Right/inside result panel | `report_text(result)` in terminal |
-|---|---:|---:|
-| `:plot` | yes | no |
-| `:console` | no | yes |
-| `:both` | yes | yes |
-| `:none` | no | no |
-
-An explicit `show_stats=true` or `false` overrides the panel default selected
-by `report`. Any other `report` value raises `ArgumentError`.
-For `plot_fit`, use `show_stats` directly because no terminal report is emitted.
-Without an override, `:analysis` includes the result panel; `:presentation` and
-`:article` reserve the canvas for the figure.
+`show_panel::Bool` and `print_report::Bool` are independent. The former controls
+the right/inside numerical panel; the latter prints `report_text(result)` to the
+terminal and belongs only to `fitplot`. Both styles support either panel state.
 
 ### Keyword routing
 
@@ -106,24 +95,24 @@ plot_fit(result::FitResult; kwargs...) -> Figure
 optional uncertainty band, and optional result panel. It does not modify
 `result` or rerun the optimizer.
 
-### Output, role, and appearance
+### Output, style, and appearance
 
 | Keyword | Default | Contract |
 |---|---:|---|
 | `filename` | `nothing` | Save during construction when a path is supplied. |
 | `format` | `:pdf` | Extension appended only when `filename` has no extension. |
-| `theme` | `:analysis` | Maintained role: `:analysis`, `:presentation`, or `:article`. |
+| `theme` | `:sans` | Maintained visual style: `:sans` or `:tex`. |
 | `appearance` | `:auto` | `:light`, `:dark`, or `:auto`; `:auto` currently resolves to light. |
-| `theme_override` | `Theme()` | Makie theme merged after the selected JuFitter role. |
-| `figure_size` | role-dependent | Logical Makie canvas `(width, height)`; it does not set raster density. |
+| `theme_override` | `Theme()` | Makie theme merged after the selected JuFitter style. |
+| `figure_size` | style/panel-dependent | Logical Makie canvas `(width, height)`; it does not set raster density. |
 | `tight_layout` | `true` | Trim layout whitespace while preserving the declared figure footprint. |
 
-The compatibility aliases are `:screen`, `:lab`, and `:workbench => :analysis`;
-`:modern`, `:clean`, `:minimal`, and `:showcase => :presentation`; and
-`:publication`, `:paper`, and `:latex => :article`. New code should use only
-the three maintained names.
-Unknown roles, unknown appearances, and contradictory
-`theme=:dark, appearance=:light` input raise `ArgumentError`.
+The former names `:analysis`, `:presentation`, `:screen`, `:lab`, `:workbench`,
+`:modern`, `:clean`, `:minimal`, and `:showcase` map to `:sans`; `:article`,
+`:publication`, `:paper`, and `:latex` map to `:tex`. New code should use the
+two maintained names. Unknown styles and unknown appearances raise
+`ArgumentError`. Select dark output with `appearance=:dark`; visual style and
+color appearance are separate arguments.
 
 ### Labels, units, model domain, and limits
 
@@ -132,7 +121,7 @@ Unknown roles, unknown appearances, and contradictory
 | `title` | `nothing` | Figure title; `nothing` produces no title. |
 | `model_label` | automatic for the built-in line | Model expression shown in the right panel. |
 | `xlabel`, `ylabel` | `"x"`, `"y"` | Axis quantity labels. |
-| `xunit`, `yunit` | `nothing` | Appended as `label (unit)`; units are never inferred. |
+| `xunit`, `yunit` | `nothing` | Appended in SI quantity-calculus form as `label / unit`; units are never inferred. |
 | `latex_labels` | `false` | Convert suitable labels to Makie `LaTeXString` content. Pass explicit `L"..."` strings for mathematical notation. |
 | `xgrid` | `nothing` | Explicit finite model-sampling coordinates; authoritative when supplied. |
 | `fit_range` | `:axis` | `:axis` samples over padded visible x limits; `:data` samples from the first to last measured x. |
@@ -153,7 +142,7 @@ resample the model; use a matching `xgrid` when extrapolation is intentional.
 | `band` | `:confidence` | `:confidence`, `:prediction`, or `:none`. |
 | `nsigma` | `1.0` | Finite positive multiplier for the displayed standard-deviation scale. |
 | `band_label` | `"1-sigma band"` | Legend text; update it whenever `nsigma` or the band meaning changes. |
-| `band_color`, `band_alpha` | role-dependent | Direct JuFitter-level overrides. |
+| `band_color`, `band_alpha` | style-dependent | Direct JuFitter-level overrides. |
 | `band_kwargs` | `NamedTuple()` | Makie `band!` attributes applied last. |
 
 `band=:confidence` propagates the local parameter covariance to the fitted
@@ -170,19 +159,19 @@ remains available.
 
 | Keyword | Default | Contract |
 |---|---:|---|
-| `show_stats` | role-dependent | `true` for `:analysis`, `false` for `:presentation` and `:article`; an explicit Boolean always wins. |
+| `show_panel` | `true` | Show the structured right panel or compact in-axis panel. Independent of visual style. |
 | `stats_position` | `:right` | `:right` or `:inside`. |
 | `inside_stats_position` | `:lt` | `:lt`, `:lb`, `:rt`, `:rb` and their long aliases. |
 | `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive pixel width. Fractions are clamped to 300--560 px. |
-| `panel_gap` | role-dependent | Gap between data axis and right panel. |
+| `panel_gap` | style-dependent | Gap between data axis and right panel. |
 | `stats_mode` | `:compact` | `:compact` or `:full`. |
 | `stats_sigdigits` | `5` | Significant digits used only for displayed values. |
 | `parameter_names` | `nothing` | Display names; length must equal the number of fitted parameters. |
-| `stats_fontsize` | role-dependent | Explicit result-panel or in-axis text size. |
+| `stats_fontsize` | style-dependent | Explicit result-panel or in-axis text size. |
 | `stats_title` | `nothing` | Optional title above the structured right panel. |
 | `latex_stats` | `false` | Render structured right-panel symbols and numbers as LaTeX. |
-| `stats_box_color`, `stats_box_alpha` | role-dependent, `0.95` | In-axis summary background. |
-| `stats_box_strokecolor`, `stats_box_strokewidth` | role-dependent, `1.0` | In-axis summary border. |
+| `stats_box_color`, `stats_box_alpha` | style-dependent, `0.95` | In-axis summary background. |
+| `stats_box_strokecolor`, `stats_box_strokewidth` | style-dependent, `1.0` | In-axis summary border. |
 | `show_legend` | `true` | Show data, fit, and band labels. With a right panel, the legend is placed above the report. |
 | `legend_position` | `:rt` | In-axis Makie legend position when no right-side panel owns the legend. |
 | `legend_kwargs` | `NamedTuple()` | Makie legend attributes applied last. |
@@ -208,7 +197,7 @@ Makie keyword container is merged last and therefore has final authority.
 
 Every `*_kwargs` container accepts a `NamedTuple`, `AbstractDict`, or `nothing`.
 Other container types raise `ArgumentError`. Explicit element overrides affect
-only that layer; unmodified layers continue to follow the selected role.
+only that layer; unmodified layers continue to follow the selected style.
 
 ## Extend A Finished Figure
 
@@ -238,15 +227,15 @@ ordinary Makie plot attributes.
 ## Reuse The Visual Contract
 
 ```julia
-theme = plot_theme(:analysis; appearance=:dark)
-style = plot_palette(:analysis; appearance=:dark)
+theme = plot_theme(:sans; appearance=:dark)
+style = plot_palette(:sans; appearance=:dark)
 ```
 
 `plot_theme(style; appearance, theme_override)` returns the Makie `Theme` used
 by JuFitter. `plot_palette(style; appearance)` returns the corresponding named
 tuple of visual tokens: data/fit/band colors, multi-series colors, marker and
 line sizes, typography, grids and spines, report-panel spacing, and default
-figure sizes. These functions let a custom Makie layout inherit the same role
+figure sizes. These functions let a custom Makie layout inherit the same style
 without copying private constants.
 
 `plot_info_panel!` adds the same left-aligned information hierarchy used by
@@ -255,7 +244,7 @@ without copying private constants.
 ```julia
 plot_info_panel!(
     fig[1, 2];
-    theme=:analysis,
+    theme=:sans,
     appearance=:light,
     legend_plots=[data_plot, fit_plot],
     legend_labels=["data", "fit"],
@@ -267,7 +256,7 @@ plot_info_panel!(
 ```
 
 The alternative `legend_source=axis` builds the legend from labeled content on
-an axis. `fontsize`, `color`, `muted_color`, and `legend_kwargs` override role
+an axis. `fontsize`, `color`, `muted_color`, and `legend_kwargs` override style
 defaults. `tellwidth=true` lets the panel report its natural width;
 `tellheight=false` prevents a short report from shrinking or vertically
 centering the adjacent scientific axis. The function returns its `GridLayout`.
@@ -293,7 +282,7 @@ value is zero and raises `ArgumentError` rather than plotting an infinity.
 Non-finite coordinates, values, or errors are rejected.
 
 Shared `plot_residuals` keywords are `filename=nothing`, `format=:pdf`,
-`theme=:analysis`, `appearance=:auto`, `theme_override=Theme()`,
+`theme=:sans`, `appearance=:auto`, `theme_override=Theme()`,
 `figure_size=(900, 520)`, `xlabel="x"`, `color=nothing`,
 `reference_color=nothing`, `marker=nothing`, `markersize=nothing`,
 `error_whiskerwidth=nothing`, `axis_kwargs`, `scatter_kwargs`, and
@@ -317,7 +306,7 @@ plot_profile(profile_result; local_sigma=result.param_stderr[i])
 
 | Keyword group | Keywords and defaults |
 |---|---|
-| Output and role | `filename=nothing`, `format=:pdf`, `theme=:analysis`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(900, 620)` |
+| Output and style | `filename=nothing`, `format=:pdf`, `theme=:sans`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(900, 620)` |
 | Labels | `title="Profile"`, `xlabel="parameter"`, `ylabel="Delta cost"` |
 | Profile | `line_color=nothing`, `line_width=nothing`, `profile_label="profile cost"`, `line_kwargs` |
 | Local approximation | `local_sigma=nothing`, `local_color=nothing`, `local_linewidth=nothing`, `local_linestyle=:dash`, `local_label="local covariance parabola"`, `local_line_kwargs` |
@@ -339,7 +328,7 @@ plot_contour(
 
 | Keyword group | Keywords and defaults |
 |---|---|
-| Output and role | `filename=nothing`, `format=:pdf`, `theme=:analysis`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(820, 700)` |
+| Output and style | `filename=nothing`, `format=:pdf`, `theme=:sans`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(820, 700)` |
 | Labels | `title="Contour"`, `xlabel="parameter 1"`, `ylabel="parameter 2"`, `axis_kwargs` |
 | Profile surface | `show_regions=true`, `show_profile_lines=false`, `level_colors=nothing`, `region_colors=nothing`, `line_color=nothing`, `contour_kwargs` |
 | Optional heatmap | `show_heatmap=false`, `colormap=:viridis`, `heatmap_kwargs` |
@@ -366,15 +355,14 @@ them. Its scan controls are `parameters=nothing`, `parameter_names=nothing`,
 `profile_threshold=1.0`, `contour_levels=[2.30, 6.18]`, `adaptive=false`,
 `max_refinements=2`, and `max_points=1200`.
 
-Both methods accept `filename=nothing`, `format=:pdf`, `theme=:analysis`,
-`appearance=:auto`, `theme_override=Theme()`, `panel_status_mode=nothing`,
+Both methods accept `filename=nothing`, `format=:pdf`, `theme=:sans`,
+`appearance=:auto`, `theme_override=Theme()`, `panel_status_mode=:issues`,
 `delta_max=nothing`, and `figure_size=nothing`. The precomputed-result method
 also accepts replacement `parameter_names` but no scan controls.
 
-With `panel_status_mode=nothing`, the output role chooses the default:
-`:analysis` labels only panels requiring attention, while `:presentation` and
-`:article` suppress workflow labels. Explicit `:issues`, `:all`, or `:none`
-overrides that choice. Invalid modes, mismatched display-name counts, or
+`panel_status_mode=:issues` labels panels requiring attention. `:all` or
+`:none` changes that choice independently of visual style. Invalid modes,
+mismatched display-name counts, or
 inconsistent stored matrix dimensions raise `ArgumentError`. Compute
 [`profile_matrix`](@ref) separately when scans should run headlessly, be
 triaged before rendering, or be reused in several exports.
@@ -387,7 +375,7 @@ extension, `.$(format)` is appended. For explicit resolution control, save the
 returned figure with Makie:
 
 ```julia
-fig = plot_fit(result; theme=:article)
+fig = plot_fit(result; theme=:tex)
 save("fit.svg", fig)
 save("fit.png", fig; px_per_unit=2)
 ```
@@ -401,7 +389,7 @@ text; it is not a substitute for export resolution.
 | Failure | Result |
 |---|---|
 | CairoMakie extension not loaded | `ArgumentError` naming the required extension |
-| Invalid role, appearance, report mode, band, stats position, or fit range | `ArgumentError` |
+| Invalid style, appearance, band, stats position, or fit range | `ArgumentError` |
 | Non-positive/non-finite `nsigma`, negative/non-finite `limit_padding` | `ArgumentError` |
 | Prediction band without matrix-free marginal errors | `ArgumentError` with the required remedy |
 | Wrong number of `parameter_names` | `ArgumentError` |

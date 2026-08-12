@@ -7,12 +7,14 @@ fitted separately, and the threshold is the intersection of those two fitted
 lines with uncertainty propagated from both covariance matrices.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="analysis" src="../assets/gallery/photoelectric_threshold_analysis_light.png" alt="Photoelectric work-function fit in analysis style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="analysis" src="../assets/gallery/photoelectric_threshold_analysis_dark.png" alt="Photoelectric work-function fit in dark analysis style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="presentation" src="../assets/gallery/photoelectric_threshold_presentation_light.png" alt="Photoelectric work-function fit in presentation style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="presentation" src="../assets/gallery/photoelectric_threshold_presentation_dark.png" alt="Photoelectric work-function fit in dark presentation style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="article" src="../assets/gallery/photoelectric_threshold_article_light.png" alt="Photoelectric work-function fit in article style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="article" src="../assets/gallery/photoelectric_threshold_article_dark.png" alt="Photoelectric work-function fit in article dark style">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_dark.png" alt="Photoelectric work-function fit in dark sans style with result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_light.png" alt="Photoelectric work-function fit in sans style without result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_dark.png" alt="Photoelectric work-function fit in dark sans style without result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_light.png" alt="Photoelectric work-function fit in tex style with result panel">
+<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_light.png" alt="Photoelectric work-function fit in tex style without result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_dark.png" alt="Photoelectric work-function fit in dark tex style with result panel">
+<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_dark.png" alt="Photoelectric work-function fit in dark tex style without result panel">
 ```
 
 ## Question
@@ -253,7 +255,7 @@ annotations.
 using CairoMakie
 using JuFitter
 
-style = :analysis
+style = :sans
 appearance = :light
 palette = plot_palette(style; appearance=appearance)
 baseline_color = palette.secondary_color
@@ -265,8 +267,8 @@ end
 
 ax = Axis(fig[1, 1];
     title="Photoelectric threshold from two fitted regimes",
-    xlabel="frequency ν (THz)",
-    ylabel="stopping voltage U₀ (V)")
+    xlabel="frequency ν / THz",
+    ylabel="stopping voltage U₀ / V")
 
 errorbars!(ax, frequency_THz, voltage_V, sigma_voltage_V;
            color=palette.yerr_color,
@@ -333,7 +335,7 @@ save("photoelectric_threshold.pdf", fig)
 
 All colors, error bars, line widths, and report typography come from the
 selected JuFitter plot style. Switching to
-`style=:article` or `appearance=:dark` therefore
+`style=:tex` or `appearance=:dark` therefore
 changes the whole figure coherently instead of requiring manual restyling.
 
 ## Error Propagation

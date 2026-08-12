@@ -25,6 +25,12 @@ const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "g
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
+const DOC_PLOT_VARIANTS = (
+    (style=:sans, show_panel=true),
+    (style=:sans, show_panel=false),
+    (style=:tex, show_panel=true),
+    (style=:tex, show_panel=false),
+)
 
 if RENDER_DOC_ASSETS
     mkpath(DOC_ASSET_DIR)
@@ -33,6 +39,10 @@ end
 function gallery_path(name)
     return joinpath(DOC_ASSET_DIR, name)
 end
+
+panel_suffix(show_panel::Bool) = show_panel ? "panel" : "plot"
+variant_name(name, style, show_panel, appearance) =
+    "$(name)_$(style)_$(panel_suffix(show_panel))_$(appearance).png"
 
 function save_gallery_figure(name::AbstractString, figure)
     # Figure size describes the final CSS-sized canvas. Pixel density controls
@@ -65,21 +75,25 @@ end
 function style_variant_plot(
     result,
     name;
-    styles=(:analysis, :presentation, :article),
     plain=NamedTuple(),
     latex=plain,
     kwargs...,
 )
     render_asset_group(name) || return nothing
 
-    for style in styles, appearance in (:light, :dark)
-        typography = style == :article ? latex : plain
-        output_defaults = style in (:presentation, :article) ? (
-            show_stats=false,
+    for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+        style, show_panel = variant.style, variant.show_panel
+        typography = style == :tex ? latex : plain
+        output_defaults = !show_panel ? (
+            show_panel=false,
             show_legend=true,
             legend_position=:lt,
             figure_size=nothing,
-        ) : NamedTuple()
+        ) : (
+            show_panel=true,
+            show_legend=true,
+            stats_position=:right,
+        )
         plot_kwargs = merge((; kwargs...), output_defaults)
         figure = plot_fit(
             result;
@@ -88,17 +102,22 @@ function style_variant_plot(
             theme=style,
             appearance=appearance,
         )
-        save_gallery_figure("$(name)_$(style)_$(appearance).png", figure)
+        save_gallery_figure(variant_name(name, style, show_panel, appearance), figure)
     end
 end
 
-function gallery_figure(style::Symbol, appearance::Symbol; height::Integer)
+function gallery_figure(
+    style::Symbol,
+    appearance::Symbol;
+    height::Integer,
+    show_panel::Bool,
+)
     palette = plot_palette(style; appearance=appearance)
-    base_size = style == :analysis ?
+    base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
     # Compound figure-first plots use the same readable documentation width;
     # the role still controls typography, axis grammar, and information density.
-    width = style == :analysis ? base_size[1] : max(base_size[1], 960)
+    width = show_panel ? base_size[1] : max(base_size[1], 960)
     return with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(width, height), backgroundcolor=palette.background_color)
     end
@@ -108,6 +127,7 @@ function gallery_output!(
     figure;
     style::Symbol,
     appearance::Symbol,
+    show_panel::Bool,
     plot_rows,
     legend_row::Integer,
     legend_source=nothing,
@@ -117,7 +137,7 @@ function gallery_output!(
     legend_kwargs=NamedTuple(),
     kwargs...,
 )
-    if style != :analysis
+    if !show_panel
         palette = plot_palette(style; appearance=appearance)
         defaults = (
             framevisible=false,
@@ -162,8 +182,9 @@ function save_poisson_counts(
     counts,
     model,
     name;
-    style::Symbol=:analysis,
+    style::Symbol=:sans,
     appearance::Symbol=:light,
+    show_panel::Bool=true,
 )
     render_asset_group(name) || return nothing
 
@@ -174,7 +195,7 @@ function save_poisson_counts(
     band_color = (palette.band_color, max(palette.band_alpha, 0.16))
     residual_positive = fit_color
     residual_negative = palette.reference_color
-    fig = gallery_figure(style, appearance; height=760)
+    fig = gallery_figure(style, appearance; height=760, show_panel=show_panel)
     ax = Axis(fig[1, 1]; title="Radioactive decay with detector background", ylabel="counts per 10 s")
     xg = collect(range(minimum(x), maximum(x); length=300))
     yg = model(xg, result.params)
@@ -188,7 +209,7 @@ function save_poisson_counts(
     expected = model(x, result.params)
     residuals = poisson_deviance_residuals(counts, expected)
     residual_colors = ifelse.(residuals .>= 0, residual_positive, residual_negative)
-    residual_ax = Axis(fig[2, 1]; xlabel="elapsed time (min)", ylabel="deviance residual")
+    residual_ax = Axis(fig[2, 1]; xlabel="elapsed time / min", ylabel="deviance residual")
     barplot!(residual_ax, x, residuals; width=0.66, color=residual_colors)
     hlines!(residual_ax, [0.0]; color=(foreground, 0.70), linewidth=1.5)
     hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
@@ -197,7 +218,7 @@ function save_poisson_counts(
     half_life = log(2) / result.params[2]
     sigma_half_life = log(2) * result.param_stderr[2] / result.params[2]^2
     deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
-    article = style == :article
+    article = style == :tex
     parameter_lines = article ? Any[
         LaTeXString("S_0 = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))\\;\\mathrm{counts}"),
         LaTeXString("\\lambda = $(fmt_tex(result.params[2], 5)) \\pm $(fmt_tex(result.param_stderr[2], 2))\\;\\mathrm{min^{-1}}"),
@@ -220,6 +241,7 @@ function save_poisson_counts(
         fig;
         style=style,
         appearance=appearance,
+        show_panel=show_panel,
         plot_rows=1:2,
         legend_row=3,
         legend_source=ax,
@@ -228,12 +250,12 @@ function save_poisson_counts(
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
     )
-    row_fractions = style == :analysis ? (0.72, 0.28) : (0.62, 0.23)
+    row_fractions = show_panel ? (0.72, 0.28) : (0.62, 0.23)
     for (row, fraction) in enumerate(row_fractions)
         rowsize!(fig.layout, row, Relative(fraction))
     end
-    style == :analysis && colgap!(fig.layout, 24)
-    save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
+    show_panel && colgap!(fig.layout, 24)
+    save_gallery_figure(variant_name(name, style, show_panel, appearance), fig)
 end
 
 function save_histogram_fit(
@@ -242,8 +264,9 @@ function save_histogram_fit(
     counts,
     expected_counts,
     name;
-    style::Symbol=:analysis,
+    style::Symbol=:sans,
     appearance::Symbol=:light,
+    show_panel::Bool=true,
 )
     render_asset_group(name) || return nothing
 
@@ -255,13 +278,13 @@ function save_histogram_fit(
     background_color = (palette.reference_color, 0.12)
     residual_positive = fit_color
     residual_negative = palette.reference_color
-    fig = gallery_figure(style, appearance; height=760)
-    article = style == :article
+    fig = gallery_figure(style, appearance; height=760, show_panel=show_panel)
+    article = style == :tex
     ax = Axis(
         fig[1, 1];
         title="Binned detector spectrum",
-        ylabel=article ? L"\mathrm{event\ density}\;(\mathrm{V}^{-1})" :
-            "event density (V⁻¹)",
+        ylabel=article ? L"\mathrm{event\ density}\,/\,\mathrm{V}^{-1}" :
+            "event density / V⁻¹",
     )
     centers = [(edges[i] + edges[i + 1]) / 2 for i in 1:(length(edges) - 1)]
     widths = diff(edges)
@@ -302,7 +325,7 @@ function save_histogram_fit(
 
     residuals = poisson_deviance_residuals(counts, expected)
     residual_colors = ifelse.(residuals .>= 0, residual_positive, residual_negative)
-    residual_ax = Axis(fig[2, 1]; xlabel="pulse amplitude (V)", ylabel="deviance residual")
+    residual_ax = Axis(fig[2, 1]; xlabel="pulse amplitude / V", ylabel="deviance residual")
     barplot!(residual_ax, centers, residuals; width=0.82 .* widths, color=residual_colors)
     hlines!(residual_ax, [0.0]; color=(foreground, 0.70), linewidth=1.5)
     hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
@@ -331,6 +354,7 @@ function save_histogram_fit(
         fig;
         style=style,
         appearance=appearance,
+        show_panel=show_panel,
         plot_rows=1:2,
         legend_row=3,
         legend_nbanks=2,
@@ -340,12 +364,12 @@ function save_histogram_fit(
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
     )
-    row_fractions = style == :analysis ? (0.72, 0.28) : (0.58, 0.22)
+    row_fractions = show_panel ? (0.72, 0.28) : (0.58, 0.22)
     for (row, fraction) in enumerate(row_fractions)
         rowsize!(fig.layout, row, Relative(fraction))
     end
-    style == :analysis && colgap!(fig.layout, 24)
-    save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
+    show_panel && colgap!(fig.layout, 24)
+    save_gallery_figure(variant_name(name, style, show_panel, appearance), fig)
 end
 
 function line_intersection(emission_result, baseline_result, reference_frequency)
@@ -400,8 +424,9 @@ function save_photoelectric_work_function(
     emission_mask,
     name;
     reference_frequency,
-    style::Symbol=:analysis,
+    style::Symbol=:sans,
     appearance::Symbol=:light,
+    show_panel::Bool=true,
 )
     render_asset_group(name) || return nothing
 
@@ -414,7 +439,7 @@ function save_photoelectric_work_function(
     baseline_band = (baseline_color, max(0.10, 0.70 * palette.band_alpha))
     error_whiskerwidth = palette.error_whiskerwidth
     fit_linewidth = palette.fit_linewidth
-    article = style == :article
+    article = style == :tex
 
     derived = line_intersection(
         emission_result,
@@ -430,12 +455,12 @@ function save_photoelectric_work_function(
     emission_slope, emission_intercept = emission_result.params
     baseline_slope, baseline_intercept = baseline_result.params
 
-    fig = gallery_figure(style, appearance; height=750)
+    fig = gallery_figure(style, appearance; height=750, show_panel=show_panel)
     ax = Axis(
         fig[1, 1];
         title="Photoelectric work-function extraction",
-        xlabel=article ? L"\nu\;(\mathrm{THz})" : "frequency ν (THz)",
-        ylabel=article ? L"U_0\;(\mathrm{V})" : "stopping voltage U₀ (V)",
+        xlabel=article ? L"\nu\,/\,\mathrm{THz}" : "frequency ν / THz",
+        ylabel=article ? L"U_0\,/\,\mathrm{V}" : "stopping voltage U₀ / V",
     )
 
     errorbars!(ax, frequency, voltage, sigma_voltage; color=palette.yerr_color, whiskerwidth=error_whiskerwidth)
@@ -501,7 +526,7 @@ function save_photoelectric_work_function(
         [threshold_y];
         color=threshold_color,
         marker=:star5,
-        markersize=style == :article ? 13 : 16,
+        markersize=style == :tex ? 13 : 16,
         label=article ? L"\mathrm{line\ intersection}" : "line intersection",
     )
     limits!(ax, xmin - 20, xmax + 20, minimum(voltage .- sigma_voltage) - 0.16, maximum(voltage .+ sigma_voltage) + 0.25)
@@ -540,6 +565,7 @@ function save_photoelectric_work_function(
         fig;
         style=style,
         appearance=appearance,
+        show_panel=show_panel,
         plot_rows=1,
         legend_row=2,
         legend_nbanks=4,
@@ -550,8 +576,8 @@ function save_photoelectric_work_function(
         parameter_lines=parameter_lines,
         statistic_lines=statistic_lines,
     )
-    style == :analysis && colgap!(fig.layout, 18)
-    save_gallery_figure("$(name)_$(style)_$(appearance).png", fig)
+    show_panel && colgap!(fig.layout, 18)
+    save_gallery_figure(variant_name(name, style, show_panel, appearance), fig)
 end
 
 # 0. Quickstart plot matching docs/src/quickstart.md.
@@ -603,10 +629,11 @@ style_variant_plot(
     figure_size=DOC_FIT_SIZE,
 )
 
-# The same fit rendered for live analysis and figure-first article export.
+# The same fit rendered with the two visual contracts. Panel visibility is
+# deliberately held constant so this comparison isolates visual style.
 if render_asset_group("plot_style")
-    for style in (:analysis, :presentation, :article)
-        typography = if style == :article
+    for style in (:sans, :tex)
+        typography = if style == :tex
             (
                 title=L"\mathrm{Quickstart\ calibration}",
                 model_label=L"U(x)=m x+b",
@@ -631,17 +658,11 @@ if render_asset_group("plot_style")
                 latex_stats=false,
             )
         end
-        output_defaults = style in (:presentation, :article) ? (
-            show_stats=false,
+        output_defaults = (
+            show_panel=false,
             show_legend=true,
             legend_position=:lt,
             figure_size=nothing,
-        ) : (
-            show_stats=true,
-            show_legend=true,
-            stats_position=:right,
-            stats_mode=:full,
-            figure_size=DOC_FIT_SIZE,
         )
         figure = plot_fit(
             quick_result;
@@ -649,7 +670,7 @@ if render_asset_group("plot_style")
             theme=style,
             band=:prediction,
             nsigma=1,
-            band_label=style == :article ? L"1\sigma\ \mathrm{prediction\ band}" : "1σ prediction band",
+            band_label=style == :tex ? L"1\sigma\ \mathrm{prediction\ band}" : "1σ prediction band",
             output_defaults...,
         )
         save_gallery_figure("plot_style_$(style).png", figure)
@@ -753,7 +774,7 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     println("emission")
     println(diagnostic_dashboard_text(emission_result))
 end
-for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
     save_photoelectric_work_function(
         emission_result,
         baseline_result,
@@ -764,8 +785,9 @@ for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
         emission_mask,
         "photoelectric_threshold";
         reference_frequency=reference_frequency_THz,
-        style=style,
+        style=variant.style,
         appearance=appearance,
+        show_panel=variant.show_panel,
     )
 end
 
@@ -1000,14 +1022,14 @@ if render_asset_group("constraints_profiles")
         max_refinements=1,
     )
 
-    for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
+    for style in (:sans, :tex), appearance in (:light, :dark)
         profile_figure = plot_profile(
             prof;
             theme=style,
             appearance=appearance,
-            title=style == :article ? L"\mathrm{Profile\ cost\ versus\ local\ parabola}" :
+            title=style == :tex ? L"\mathrm{Profile\ cost\ versus\ local\ parabola}" :
                   "Profile cost versus local parabola",
-            xlabel=style == :article ? L"\mathrm{amplitude}\ A" : "amplitude A",
+            xlabel=style == :tex ? L"\mathrm{amplitude}\ A" : "amplitude A",
             local_sigma=saturation_result.param_stderr[1],
             delta_max=8,
         )
@@ -1017,18 +1039,18 @@ if render_asset_group("constraints_profiles")
             cont;
             theme=style,
             appearance=appearance,
-            title=style == :article ? L"\mathrm{Profile\ versus\ local\ covariance}" :
+            title=style == :tex ? L"\mathrm{Profile\ versus\ local\ covariance}" :
                   "Profile versus local covariance",
-            xlabel=style == :article ? L"\mathrm{amplitude}\ A" : "amplitude A",
-            ylabel=style == :article ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
+            xlabel=style == :tex ? L"\mathrm{amplitude}\ A" : "amplitude A",
+            ylabel=style == :tex ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
             local_covariance=saturation_result.param_covariance,
             local_center=saturation_result.params[[1, 2]],
             figure_size=(980, 720),
         )
         save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
-    for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
-        matrix_parameter_names = style == :article ? [L"A", L"\tau", L"c"] :
+    for style in (:sans, :tex), appearance in (:light, :dark)
+        matrix_parameter_names = style == :tex ? [L"A", L"\tau", L"c"] :
             profile_overview_names
         matrix_figure = plot_profile_matrix(
             profile_overview;
@@ -1070,15 +1092,16 @@ emit_doc_output_snapshot("poisson_decay") do
     @printf("P(D) = %.3f\n", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
-for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
     save_poisson_counts(
         poisson_result,
         x_counts,
         counts,
         poisson_model,
         "poisson_counts";
-        style=style,
+        style=variant.style,
         appearance=appearance,
+        show_panel=variant.show_panel,
     )
 end
 
@@ -1116,15 +1139,16 @@ emit_doc_output_snapshot("histogram_likelihood") do
     @printf("P(D) = %.3f\n", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
-for style in (:analysis, :presentation, :article), appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
     save_histogram_fit(
         hist_result,
         edges,
         hist_counts,
         expected_counts,
         "histogram_likelihood";
-        style=style,
+        style=variant.style,
         appearance=appearance,
+        show_panel=variant.show_panel,
     )
 end
 

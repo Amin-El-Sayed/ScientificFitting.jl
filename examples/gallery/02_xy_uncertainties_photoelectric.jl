@@ -88,8 +88,8 @@ end
 ax = Axis(
     fig[1, 1];
     title="Photoelectric threshold from two fitted regimes",
-    xlabel="frequency ν (THz)",
-    ylabel="stopping voltage U₀ (V)",
+    xlabel="frequency ν / THz",
+    ylabel="stopping voltage U₀ / V",
 )
 errorbars!(
     ax,
