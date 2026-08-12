@@ -860,6 +860,10 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   hygiene gate; keep extending that gate when new release-language risks are
   identified.
 - Dark-mode plots must be checked visually whenever a gallery asset changes.
+- Linear Calibration and XY Uncertainties now keep their measured uncertainty
+  values unchanged while using smaller observation markers and native Makie
+  whisker controls in the examples. The short y-error bars, and both x/y bars
+  in the XY example, were visually checked in sans/TeX and light/dark outputs.
 
 ## CI And Packaging Blockers
 
