@@ -185,6 +185,7 @@ sigma_work_function_eV = sqrt(work_variance)
 println("h = ", h_fit, " +/- ", sigma_h, " J s")
 println("Phi = ", work_function_eV, " +/- ", sigma_work_function_eV, " eV")
 println("nu0 = ", threshold_THz, " +/- ", sigma_threshold_THz, " THz")
+println()
 println("baseline")
 println(diagnostic_dashboard_text(baseline))
 println("emission")
@@ -193,7 +194,7 @@ println(diagnostic_dashboard_text(emission))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>h = 6.555274675779572e-34 +/- 4.8917557390531e-35 J s
 Phi = 2.2493272191613904 +/- 0.1635224112565016 eV
 nu0 = 549.7587349125077 +/- 10.954283817354472 THz
@@ -204,7 +205,6 @@ status = ok - no immediate issue
 critical = 0, warning = 0, info = 0
 No major diagnostic issues detected by the current checks.
 No next action required by the current diagnostic checks.
-
 emission
 Fit diagnostic dashboard
 status = ok - no immediate issue

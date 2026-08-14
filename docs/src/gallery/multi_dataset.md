@@ -202,7 +202,7 @@ println(diagnostic_dashboard_text(partial_shared_result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>All-shared-gain hypothesis
 Fit report
 backend = optimization
@@ -251,7 +251,6 @@ Statistics:
   pvalue = 0.650557
   AIC = 31.7427
   BIC = 38.7487
-
 gain C - gain A/B = 0.08279 +/- 0.01483
 nested test: delta chi2 = 31.16586 for 1 dof, p = 2.369e-08
 
@@ -264,7 +263,6 @@ critical = 0, warning = 2, info = 0
 Next actions:
   1. Check residual structure and uncertainty estimates. If residuals are structured, improve the model before tuning errors.
   2. Treat the result as suspicious unless you can explain the residual pattern or uncertainty model.
-
 Partial-sharing diagnostic dashboard
 Fit diagnostic dashboard
 status = ok - no immediate issue

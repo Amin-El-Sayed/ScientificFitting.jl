@@ -179,7 +179,7 @@ println(diagnostic_dashboard_text(constant_result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = optimization
 converged = true
@@ -202,7 +202,6 @@ Statistics:
   pvalue = 1.76695e-9
   AIC = -1681.59
   BIC = -1666.77
-
 Fit diagnostic dashboard
 status = critical - fix before use
 critical = 1, warning = 2, info = 0
@@ -298,7 +297,7 @@ println(diagnostic_dashboard_text(drift_result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = optimization
 converged = true
@@ -322,7 +321,6 @@ Statistics:
   pvalue = 1.0
   AIC = -2069.34
   BIC = -2050.82
-
 Fit diagnostic dashboard
 status = review - inspect diagnostics
 critical = 0, warning = 1, info = 0

@@ -204,7 +204,7 @@ println(diagnostic_dashboard_text(diagonal_result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = lsqfit
 converged = true
@@ -226,7 +226,6 @@ Statistics:
   pvalue = 0.766723
   AIC = -88.3457
   BIC = -85.0725
-
 Fit diagnostic dashboard
 status = ok - no immediate issue
 critical = 0, warning = 0, info = 0

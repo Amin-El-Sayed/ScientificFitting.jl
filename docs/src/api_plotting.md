@@ -32,7 +32,7 @@ composition examples. This page is the exact argument and failure contract.
 
 ## Fit And Plot In One Call
 
-```julia
+```text
 fitplot(model, x, y; p0, show_panel=true, print_report=false, kwargs...)
 fitplot(x, y; p0=nothing, show_panel=true, print_report=false, kwargs...)
 fitplot(result::FitResult; show_panel=true, print_report=false, kwargs...)
@@ -87,7 +87,7 @@ as an unsupported keyword.
 
 ## Plot An Existing Result
 
-```julia
+```text
 plot_fit(result::FitResult; kwargs...) -> Figure
 ```
 

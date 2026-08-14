@@ -111,7 +111,7 @@ println(diagnostic_dashboard_text(result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = lsqfit
 converged = true
@@ -119,20 +119,19 @@ iterations = unavailable
 message = Converged with LsqFit
 
 Parameters:
-  m = 1.70389 +/- 0.00973936
-  b = 0.890534 +/- 0.0448941
+  m = 1.70389 +/- 0.00973911
+  b = 0.890533 +/- 0.0448912
 
 Statistics:
   cost = chi2
-  cost_min = 18.2874
-  minus2loglik_min = -34.3551
-  chi2 = 18.2874
+  cost_min = 18.2808
+  minus2loglik_min = -34.3621
+  chi2 = 18.2808
   ndf = 26
-  chi2/ndf = 0.703363
-  pvalue = 0.865067
-  AIC = -30.3551
-  BIC = -27.6907
-
+  chi2/ndf = 0.703107
+  pvalue = 0.865321
+  AIC = -30.3621
+  BIC = -27.6977
 Fit diagnostic dashboard
 status = review - inspect diagnostics
 critical = 0, warning = 3, info = 0

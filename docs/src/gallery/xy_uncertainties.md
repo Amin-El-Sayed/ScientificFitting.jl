@@ -136,7 +136,7 @@ println(diagnostic_dashboard_text(result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = optimization
 converged = true
@@ -157,7 +157,6 @@ Statistics:
   pvalue = 0.505514
   AIC = -52.8681
   BIC = -51.0874
-
 Fit diagnostic dashboard
 status = ok - no immediate issue
 critical = 0, warning = 0, info = 0

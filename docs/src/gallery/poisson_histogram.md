@@ -168,12 +168,11 @@ println(diagnostic_dashboard_text(decay_result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>half-life = 4.234 +/- 0.863 min
 background = 0.792 +/- 2.189 counts per 10 s
 deviance/ndf = 1.015
 P(D) = 0.436
-
 Fit diagnostic dashboard
 status = ok - no immediate issue
 critical = 0, warning = 0, info = 0
@@ -307,14 +306,13 @@ println(diagnostic_dashboard_text(spectrum_result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>peak yield = 213.9 +/- 17.3 events
 centroid = 3.505 +/- 0.103 V
 width = 1.270 +/- 0.100 V
 background density = 2.572 +/- 1.035 events/V
 deviance/ndf = 1.139
 P(D) = 0.336
-
 Fit diagnostic dashboard
 status = ok - no immediate issue
 critical = 0, warning = 0, info = 0

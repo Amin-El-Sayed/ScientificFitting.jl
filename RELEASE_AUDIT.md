@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-08-12
+Status: 2026-08-14
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -118,7 +118,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   authoritative.
 - Fit plots, residuals, diagnostics, profiles, contours, profile matrices,
   information panels, and compound gallery figures consume the same style
-  tokens. All 94 current gallery PNGs were regenerated from real fits and match
+  tokens. All 96 current gallery PNGs were regenerated from real fits and match
   the tracked snapshot manifest; obsolete role assets were removed. Browser
   review at documentation scale verified the two style choices, both panel
   states, light/dark exclusivity, and custom Photoelectric composition. Final
@@ -697,13 +697,13 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## Release Blockers
 
-- The plotting redesign exposes `:analysis`, `:presentation`, and `:article`,
-  with former style names retained as compatibility aliases. The technical
-  remediation is complete: the roles differ in output job and composition,
-  meet explicit readability floors, and pass fixed-size ordinary, compound,
-  residual, profile-matrix, and browser-switching checks. This remains a release
-  block only until the maintainer accepts the rendered figures; the repository
-  must not be published on the strength of automated visual gates alone.
+- The plotting redesign exposes exactly two maintained visual grammars,
+  `:sans` and `:tex`; panel, legend, terminal output, and light/dark appearance
+  are orthogonal controls. Former style names remain compatibility aliases.
+  Fixed-size ordinary, compound, residual, profile-matrix, and
+  browser-switching checks pass. The remaining plotting release decision is
+  human acceptance of the rendered figures; automated visual gates cannot make
+  that decision for the maintainer.
 - Every page in the configured public navigation has completed a page-level
   source and contract pass. This is not a substitute for final human visual and
   subject-matter review, but private planning pages, the stale hosted roadmap,
@@ -877,6 +877,17 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   the same defaults, and per-element Makie kwargs remain authoritative. Sans
   uses solid observations without a white halo; TeX uses a fine open marker.
   Linear and XY assets were checked in both styles and light/dark appearances.
+- Public Julia fences are parsed by the documentation output gate, and each
+  complete Quickstart/Gallery workflow now runs from a clean directory in an
+  isolated module. Every visible output cell must match both that execution and
+  the corresponding plot-generator snapshot exactly; ordered-subset and
+  abridged-output acceptance has been removed. This audit found and removed a
+  real duplicate-data drift in the linear calibration page and a Quickstart
+  `contour` namespace ambiguity. The linear generator now uses the exact arrays
+  printed in the tutorial. The resulting gate passes 125 checks. All 96 gallery
+  assets were then regenerated from the tracked scripts; isolated repeat renders
+  of the XY and damped-oscillator groups were byte-identical, the visual-asset
+  gate passes 1765 checks, and the snapshot gate passes 96 checks.
 
 ## CI And Packaging Blockers
 

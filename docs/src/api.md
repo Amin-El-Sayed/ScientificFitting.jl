@@ -54,13 +54,13 @@ vector.
 
 The allocating model contract is:
 
-```julia
+```text
 model(x, p) -> vector with length(y)
 ```
 
 For allocation-sensitive fits, use:
 
-```julia
+```text
 model!(out, x, p)
 jacobian!(J, x, p)  # optional
 ```

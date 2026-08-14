@@ -25,11 +25,11 @@ The test suite is split by purpose, not by implementation file.
 - `docs_visual_snapshot_gate.jl`: byte-level snapshot gate for documentation
   gallery PNGs. It fails when a committed plot asset changes without an
   intentional manifest update and visual review.
-- `docs_output_snapshots.jl`: heavy release gate that executes the documented
-  gallery/quickstart examples with snapshot markers and verifies that every
-  documented `Real output` block is an ordered subset of real script output.
-  It sets `JUFITTER_DOC_SNAPSHOT_ONLY=1`, so example scripts compute the same
-  fit/report values but skip Makie asset rendering.
+- `docs_output_snapshots.jl`: release gate that parses every public Julia
+  fence, executes each complete Gallery/Quickstart workflow in isolation, and
+  requires every documented output cell to match both the visible code and its
+  plot-generator snapshot exactly. Snapshot mode computes the same fit/report
+  values while skipping Makie asset rendering.
 - `python_interop_gate.jl`: opt-in gate for calling JuFitter from Python through
   JuliaCall. The default run passes with an informational note; setting
   `JUFITTER_RUN_PYTHON_INTEROP=1` requires `python3` and `juliacall` and runs

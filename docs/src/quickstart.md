@@ -107,7 +107,7 @@ println(diagnostic_dashboard_text(result))
 
 ```@raw html
 <div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Real output (abridged)</div>
+<div class="jufitter-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = lsqfit
 converged = true
@@ -268,7 +268,7 @@ errors may be misleading. Use profile intervals and contours:
 ```julia
 prof = profile(result, 1; adaptive=true)
 interval = profile_interval(result, 1)
-cont = contour(result, 1, 2; adaptive=true)
+cont = JuFitter.contour(result, 1, 2; adaptive=true)
 ```
 
 ## Next Steps
