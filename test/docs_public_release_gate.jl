@@ -31,6 +31,7 @@ const PUBLIC_DOC_PAGES = [
     "api_results.md",
     "api_plotting.md",
     "overview.md",
+    "citation.md",
     "backend_design.md",
     "performance.md",
 ]

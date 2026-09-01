@@ -35,19 +35,24 @@ T_{1/2} = \frac{\log 2}{\lambda}.
 ```
 
 The observed points deliberately have no ``\sqrt n`` error bars. Such bars are
-only a large-count visual approximation, become asymmetric near zero, and
-cannot represent a zero-count observation. The shaded region is instead the
-central 68% interval of future Poisson counts predicted by the fitted model. It
-is a **prediction interval for discrete observations**, not a confidence band
-for the mean curve. It is conditional on the fitted mean and does not include
-parameter uncertainty.
+only a large-count visual approximation; near zero they cannot represent the
+strongly asymmetric sampling distribution and assign no visible uncertainty to
+a zero-count observation. The shaded region instead spans the 16th to 84th
+percentiles of future Poisson counts predicted by the fitted model. It is a
+**prediction interval for discrete observations**, not a confidence band for
+the mean curve. It is conditional on the fitted mean and does not include
+parameter uncertainty. Because counts are discrete, its actual coverage changes
+in steps and is generally not exactly 68%.
 
 The edges of this band are intentionally stepped. Poisson observations are
 integers, so the 16th and 84th percentiles can change only by whole counts as
-``\mu(t)`` varies. The plateaus and jumps are distributional, not optimizer
-noise. The renderer joins neighbouring evaluation points, so a mathematically
-vertical jump appears as a short slanted tooth. Smoothing the boundary would
-instead imply impossible fractional count quantiles.
+``\mu(t)`` varies. JuFitter therefore renders each change as a vertical edge,
+without interpolating through impossible fractional count quantiles. The
+plateaus become wider at late times because the exponential mean approaches
+the background more slowly: ``|\mathrm{d}\mu/\mathrm{d}t|`` decreases. The
+lower and upper edges jump at different times because the 16th and 84th
+percentiles cross different probability thresholds. All three features are
+properties of the fitted count distribution, not optimizer noise.
 
 ## Data
 

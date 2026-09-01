@@ -162,6 +162,20 @@ Known limitations are explicit:
 - Python interoperability is planned through JuliaCall/PythonCall and has an
   opt-in gate, but it is not a release claim yet.
 
+## Contributing
+
+Bug reports, scientific examples, documentation corrections, and focused code
+contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+information needed to reproduce a numerical issue and the evidence expected for
+statistical or performance changes.
+
+## License And Citation
+
+JuFitter is licensed under the [MIT License](LICENSE). If it contributes to
+published research, please cite the exact version using [CITATION.cff](CITATION.cff).
+The documentation explains [citation, related work, and method-specific
+attribution](docs/src/citation.md).
+
 ## Development Gates
 
 Fast checks:

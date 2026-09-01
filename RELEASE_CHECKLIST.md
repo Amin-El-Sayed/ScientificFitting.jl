@@ -164,3 +164,35 @@ Before public promotion:
   `Amin-El-Sayed <78275938+Amin-El-Sayed@users.noreply.github.com>`.
 - Do not register the package, publish docs, or announce on Reddit/Discourse
   until Amin_El_Sayed has manually approved the exact release candidate.
+
+After that explicit approval, perform the external steps in this order:
+
+1. Confirm the final package name before creating the repository. Renaming after
+   General registration is substantially more disruptive.
+2. Re-authenticate GitHub CLI if needed and verify that the active login is
+   exactly `Amin-El-Sayed`; do not rely on the configured Git author alone.
+3. Create the final `<PackageName>.jl` repository under `Amin-El-Sayed`, add it
+   as the first remote, and push only the reviewed release history.
+4. Observe the complete CI matrix on GitHub. Do not substitute an older local
+   run for the target repository's checks.
+5. In repository Pages settings, select GitHub Actions as the source and run the
+   manual `Documentation Pages` workflow. Verify the deployed URLs, styles,
+   plots, and mobile/desktop layout before linking them publicly.
+6. Install the Julia Registrator GitHub App, trigger `@JuliaRegistrator register`
+   on the approved release commit, and review the generated General pull
+   request. TagBot creates the corresponding tag and GitHub release after the
+   registry version is accepted; create the first tag manually if GitHub's
+   workflow-file token restriction blocks TagBot.
+7. Archive the accepted release with Zenodo, add its DOI and release date to
+   `CITATION.cff`, and verify GitHub's rendered citation before announcing it.
+8. Publish one consistent announcement first on GitHub Releases and Julia
+   Discourse's Package Announcements category. Link the registered package,
+   versioned documentation, DOI, contributor guide, and issue tracker. Let the
+   General registry's `new-packages-feed` cover Slack/Zulip automatically; use
+   `r/Julia` only after the canonical announcement is live.
+
+The announcement should state the supported workflows, Julia versions, and
+known v0 limits in plain language. Invite reproducible bug reports, real-world
+datasets that can be redistributed, documentation corrections, and focused
+contributions. Do not claim ecosystem dominance, universal robustness, or a
+portable speed factor; link reproducible benchmark methods instead.

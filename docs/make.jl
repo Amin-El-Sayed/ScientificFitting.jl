@@ -59,6 +59,7 @@ makedocs(;
                 "Plotting" => "api_plotting.md",
             ],
             "Reference Map" => "overview.md",
+            "Citation and Related Work" => "citation.md",
             "Technical Notes" => [
                 "Backend Design" => "backend_design.md",
                 "Performance" => "performance.md",

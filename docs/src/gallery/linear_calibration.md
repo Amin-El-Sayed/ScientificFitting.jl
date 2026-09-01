@@ -199,8 +199,8 @@ Do not treat the right-side parameter panel as a substitute for residual
 inspection. A small p-value, a very large p-value, or structured pulls can all
 indicate that the uncertainty model is incomplete.
 
-Do not increase plot margins, hide bands, or round numbers until the statistical
-meaning is clear. Plot polish comes after the measurement model is defensible.
+Plot formatting cannot repair an incomplete uncertainty model. Establish the
+statistical meaning before polishing the presentation.
 
 Next useful pages: [XY Uncertainties](@ref), [Full Covariance](@ref), and
 [Fitting for Practitioners](@ref).

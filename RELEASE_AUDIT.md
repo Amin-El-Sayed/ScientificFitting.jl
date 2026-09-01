@@ -10,6 +10,24 @@ Publication policy: do not push, publish, register, deploy documentation, or
 make the repository public without explicit manual approval from Amin_El_Sayed.
 Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
+- The release-preparation slice adds the maintainer-approved MIT license,
+  contribution guidance, citation/related-work documentation, root-level
+  `CITATION.cff`, and manual GitHub Pages/TagBot workflows. Repository URL,
+  release date, and DOI remain deliberately absent until the package name and
+  target repository are approved. No remote, deployment, registration, tag, or
+  announcement has been created.
+- Every visible Quickstart and Gallery output remains byte-for-byte tied to an
+  isolated execution of its public code: the strict output gate passes 125
+  checks. The final prose/math pass corrected the frequentist degrees-of-freedom
+  wording for auxiliary measurements versus subjective priors. Documenter
+  builds without warnings, and the rendered site passes 3,209 link checks.
+- The Poisson count prediction band now uses duplicated bin boundaries, so its
+  discrete 16th/84th-percentile changes render as vertical steps rather than
+  fractional-count ramps. The page explains why late-time plateaus widen and
+  why the lower and upper quantiles jump at different times. All eight affected
+  style/panel/light-dark assets were regenerated from the real gallery script
+  and pass the 96-check byte-level visual snapshot gate.
+
 - The two maintained plot styles now use the same smaller 8.5-unit observation
   marker contract, while preserving their solid Sans and hollow TeX grammars.
   Ordinary compound-gallery plots no longer enlarge data markers locally, so
@@ -750,11 +768,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - Documentation gallery PNGs now have byte-level snapshot coverage. This catches
   unintentional asset drift, but human visual review is still required for
   intentional plot style or renderer changes.
-- There is no documentation deployment workflow yet.
-- The repository still needs an explicitly chosen license and release citation
-  metadata before publication. Add the approved `LICENSE` and `CITATION.cff`
-  only after the maintainer has selected the license and reviewed the citation
-  fields; do not infer that policy from the source code.
+- A manual-only GitHub Pages workflow is prepared locally. It must not be run
+  until the target repository, final package name, and exact release candidate
+  are approved; its first deployment still requires remote observation and
+  browser review.
+- The MIT `LICENSE` and a minimal `CITATION.cff` are prepared locally. The
+  package/repository name, repository URL, release date, and DOI remain release
+  decisions and must be filled from the exact approved public release rather
+  than guessed in advance.
 - Browser screenshots can still time out on very large documentation pages.
   Use DOM/computed-style checks plus targeted static image inspection until a
   stable visual-regression workflow exists.
@@ -910,15 +931,17 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## CI And Packaging Blockers
 
-- Choose and add the release license and `CITATION.cff`; verify package name,
-  UUID, authorship, repository URL, and version metadata against the exact
-  repository that will be registered.
+- Approve the final package/repository name, then verify the existing MIT
+  license, `CITATION.cff`, UUID, authorship, repository URL, and version metadata
+  against the exact repository that will be registered.
 - Julia 1.10 is the intentional support floor. Local Julia 1.10 evidence covers
   the earlier 432-check core gate and 501-check full package suite plus the
   current 18-check in-place and 35-check structured-whitening reference slices;
   confirm the complete current 1.10/1.12 core and package matrix on GitHub
   Actions after pushing.
-- Add a docs-deploy job for GitHub Pages or the chosen static host.
+- Observe the prepared manual GitHub Pages workflow on the approved target
+  repository and review the deployed site before enabling any automatic update
+  trigger.
 - Confirm the new core/package/docs CI lanes on GitHub Actions after pushing.
 - Run the Python interoperability release gate in CI. The local opt-in gate now
   passes in an isolated `juliacall` environment, but public release claims need

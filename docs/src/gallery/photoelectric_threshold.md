@@ -416,9 +416,9 @@ For this workflow, the first checks are practical:
   is sparse, because local covariance can look too confident near a kink or
   bound.
 
-The figure uses a local 1σ band. If a diagnostic dashboard
-reports a review or stop condition, the next step is not styling the plot; it is
-checking the model range, uncertainty model, and profile intervals.
+The figure uses a local 1σ band. If a diagnostic dashboard reports a `review`
+or `critical` status, the next step is not styling the plot; it is checking the
+model range, uncertainty model, and profile intervals.
 
 ## What Can Go Wrong
 

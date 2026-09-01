@@ -245,9 +245,11 @@ parameters,
 \mathrm{ndf} \approx N-k.
 ```
 
-Independent Gaussian priors or correlated parameter constraints add genuine
-external observations to this count. Fixed parameters are not free parameters.
-When the assumptions are valid,
+Gaussian terms that represent independent auxiliary measurements add genuine
+observations to this count; a full-rank, ``q``-dimensional correlated auxiliary
+measurement adds ``q``. A subjective prior does not justify extra frequentist
+degrees of freedom. Fixed parameters are not free parameters. When the
+assumptions are valid,
 
 ```math
 E[\chi^2]=\mathrm{ndf},

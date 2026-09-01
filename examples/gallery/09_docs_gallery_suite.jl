@@ -176,6 +176,28 @@ function poisson_deviance_residuals(counts, expected)
     ]
 end
 
+# Duplicate each interval boundary so discrete quantiles jump vertically rather
+# than being linearly interpolated into fractional-count ramps by `band!`.
+function step_band_coordinates(x, lower, upper)
+    n = length(x)
+    n == length(lower) == length(upper) || throw(DimensionMismatch("step-band arrays must have equal lengths"))
+    n >= 2 || throw(ArgumentError("a step band needs at least two samples"))
+
+    x_step = Float64[x[1]]
+    lower_step = Float64[lower[1]]
+    upper_step = Float64[upper[1]]
+    for i in 1:(n - 1)
+        boundary = (x[i] + x[i + 1]) / 2
+        append!(x_step, (boundary, boundary))
+        append!(lower_step, (lower[i], lower[i + 1]))
+        append!(upper_step, (upper[i], upper[i + 1]))
+    end
+    push!(x_step, x[end])
+    push!(lower_step, lower[end])
+    push!(upper_step, upper[end])
+    return x_step, lower_step, upper_step
+end
+
 function save_poisson_counts(
     result,
     x,
@@ -201,7 +223,8 @@ function save_poisson_counts(
     yg = model(xg, result.params)
     lower = [quantile(Poisson(mu), 0.16) for mu in yg]
     upper = [quantile(Poisson(mu), 0.84) for mu in yg]
-    band!(ax, xg, lower, upper; color=band_color, label="central 68% count interval")
+    x_step, lower_step, upper_step = step_band_coordinates(xg, lower, upper)
+    band!(ax, x_step, lower_step, upper_step; color=band_color, label="Poisson 16-84% prediction interval")
     lines!(ax, xg, yg; color=fit_color, linewidth=palette.fit_linewidth, label="expected counts")
     scatter!(ax, x, counts; color=data_color, markersize=palette.data_markersize, label="observed counts")
     hidexdecorations!(ax; grid=false)
