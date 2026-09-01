@@ -293,6 +293,8 @@ using Test
         (sans_style, tex_style)) >= 1.5
     @test maximum(style.error_whiskerwidth for style in
         (sans_style, tex_style)) <= 6
+    @test all(style.data_markersize <= 9 for style in (sans_style, tex_style))
+    @test sans_style.data_markersize == tex_style.data_markersize
     @test sans_style.error_linewidth == tex_style.error_linewidth
     @test sans_style.error_linewidth <= 1.1
     @test sans_style.xerr_color == sans_style.axis_color

@@ -109,6 +109,12 @@ large time series or detector vector with known structure, use a verified
 Verify a custom whitening operation and its covariance log-determinant against
 a small dense reference before applying it to a large dataset.
 
+In concrete terms, a factorization ``V=LL^T`` turns the raw residuals into
+``z=L^{-1}r``. JuFitter then minimizes ``z^Tz``. These are whitened residuals:
+if the covariance model is correct, their covariance is the identity and a
+shared drift is no longer counted as many independent deviations. Whitening
+changes coordinates, not the observations or their statistical content.
+
 ### External systematic uncertainty
 
 Not every systematic effect belongs in `cov_y`. Suppose all measurements use a
@@ -195,6 +201,18 @@ println(diagnostic_dashboard_text(result))
 using CairoMakie
 fig = plot_fit(result; xlabel="x", ylabel="y")
 ```
+
+The two low-level problem types separate observation contracts rather than
+levels of sophistication:
+
+| problem type | what it stores | typical constructors |
+| --- | --- | --- |
+| `FitProblem` | x-y observations, model predictions, and a Gaussian residual covariance | `fit_model`, direct `FitProblem` |
+| `LikelihoodFitProblem` | a complete ``-2\log L`` objective, optional goodness-of-fit statistic, and observation count | Poisson, histogram, unbinned, indexed, multi-dataset, and `fit_custom` helpers |
+
+Use the specialized public helper that matches the measurement process. Direct
+construction is useful when a problem must be stored or inspected explicitly;
+`LikelihoodFitProblem` is not a more accurate replacement for `FitProblem`.
 
 Do not refit merely to change a label, add a threshold, or switch the side
 panel. Plot extensions operate on the existing `FitResult`; see

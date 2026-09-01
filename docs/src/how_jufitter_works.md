@@ -121,6 +121,14 @@ and multi-dataset likelihood workflows become a `LikelihoodFitProblem`.
 Convenience functions build these objects for common cases, but the normalized
 problem is what the solver receives.
 
+The distinction is the information available to the core. A `FitProblem`
+retains x-y observations, model predictions, residuals, and a Gaussian
+uncertainty model. A `LikelihoodFitProblem` retains an already defined scalar
+``-2\log L`` objective, an optional goodness-of-fit statistic, and the number of
+observations; a generic likelihood need not have a y residual or even a natural
+fit curve. Both support the same parameter controls, diagnostics, local
+covariance, profiles, and contours.
+
 The explicit core path is short. Assuming `model`, `x`, `y`, and `sigma_y` are
 the measured inputs from the [Quickstart](@ref):
 
@@ -143,6 +151,13 @@ deviation. Dense covariance is handled by factorization and whitening:
 V = L L^\mathsf{T}, \qquad
 \chi^2 = \lVert L^{-1}(y-f(x,p)) \rVert^2.
 ```
+
+Here ``V=LL^T`` is a Cholesky factorization and
+``z=L^{-1}(y-f(x,p))`` is the whitened residual vector. Multiplication by
+``L^{-1}`` removes the scale and correlation encoded by ``V``; under a correct
+Gaussian model, ``\operatorname{Cov}(z)=I`` and ``\chi^2=z^Tz``. Whitening is
+therefore a coordinate transformation of the residuals, not filtering or
+smoothing of the data.
 
 For scale, a residual of ``0.2`` with an independent standard deviation of
 ``0.1`` contributes ``(0.2/0.1)^2=4`` to ``\chi^2``. If several measurements

@@ -56,7 +56,9 @@ function _style_preset(style::Symbol, appearance::Symbol)
             grid_color=(grid, dark ? 0.34 : 0.46),
             data_color=ink,
             data_marker=:circle,
-            data_markersize=11.0,
+            # Keep observations subordinate to their measurement whiskers.
+            # Callers can still override this through `data_markersize`.
+            data_markersize=8.5,
             data_strokecolor=paper,
             data_strokewidth=0.0,
             fit_color=fit,
@@ -119,7 +121,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             # grayscale and in dense vector exports.
             data_color=paper,
             data_marker=:circle,
-            data_markersize=11.0,
+            data_markersize=8.5,
             data_strokecolor=ink,
             data_strokewidth=0.9,
             fit_color=fit,

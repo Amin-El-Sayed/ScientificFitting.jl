@@ -210,7 +210,7 @@ function save_multi_dataset_calibration(
             y_sets[i];
             color=colors[i],
             marker=markers[i],
-            markersize=palette.data_markersize + 1.2,
+            markersize=palette.data_markersize,
         )
     end
     hidexdecorations!(fit_axis; grid=false)

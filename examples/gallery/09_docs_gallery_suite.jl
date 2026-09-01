@@ -203,7 +203,7 @@ function save_poisson_counts(
     upper = [quantile(Poisson(mu), 0.84) for mu in yg]
     band!(ax, xg, lower, upper; color=band_color, label="central 68% count interval")
     lines!(ax, xg, yg; color=fit_color, linewidth=palette.fit_linewidth, label="expected counts")
-    scatter!(ax, x, counts; color=data_color, markersize=palette.data_markersize + 2.0, label="observed counts")
+    scatter!(ax, x, counts; color=data_color, markersize=palette.data_markersize, label="observed counts")
     hidexdecorations!(ax; grid=false)
 
     expected = model(x, result.params)
@@ -320,7 +320,7 @@ function save_histogram_fit(
         strokewidth=1.3,
         label="observed count density",
     )
-    scatter!(ax, centers, observed_density; color=data_color, markersize=palette.data_markersize + 1.4)
+    scatter!(ax, centers, observed_density; color=data_color, markersize=palette.data_markersize)
     hidexdecorations!(ax; grid=false)
 
     residuals = poisson_deviance_residuals(counts, expected)

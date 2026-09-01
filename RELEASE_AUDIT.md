@@ -1,6 +1,6 @@
 # JuFitter Release Audit
 
-Status: 2026-08-14
+Status: 2026-09-01
 
 This document tracks what must be true before JuFitter should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
@@ -9,6 +9,25 @@ sufficient.
 Publication policy: do not push, publish, register, deploy documentation, or
 make the repository public without explicit manual approval from Amin_El_Sayed.
 Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
+
+- The two maintained plot styles now use the same smaller 8.5-unit observation
+  marker contract, while preserving their solid Sans and hollow TeX grammars.
+  Ordinary compound-gallery plots no longer enlarge data markers locally, so
+  observations remain subordinate to measurement whiskers and explicit caller
+  overrides remain authoritative. The focused plotting gate passes 175 checks;
+  all 94 tracked gallery PNGs were regenerated from the real fit scripts and
+  pass 96 byte-level snapshot, 1765 visual-asset, 319 gallery-structure, and
+  776 public-documentation checks. Human review covered both styles plus the
+  Poisson and unequal-bin histogram figures.
+
+- The mathematics handbook now derives independent Gaussian chi-square from
+  the normalized product likelihood, derives whitening through
+  `V = L L^T` and `z = L^-1 r`, and derives local parameter covariance from
+  the Taylor expansion and weighted Jacobian. The architecture and practitioner
+  pages distinguish `FitProblem` from `LikelihoodFitProblem` by observation
+  contract rather than solver quality. The count gallery now states why a
+  central Poisson interval is stepped and why its example uses wider bins in a
+  sparse spectral tail. Documenter builds these additions without warnings.
 
 - Standalone profile and contour figures now share one diagnostic-legend
   layout policy. Their descriptive legends default below the full-width data

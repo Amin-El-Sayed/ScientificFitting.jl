@@ -86,7 +86,8 @@ list as an ownership map, not a second architecture chapter.
    aliases, not extra designs. Typography, markers, axes, grid, colors, bands,
    legends, and panel tokens come from one central preset; compound figures
    consume those tokens rather than branching on style or appearance locally.
-   Explicit Makie keyword overrides remain authoritative.
+   Default observation markers remain visually subordinate to their uncertainty
+   whiskers. Explicit Makie keyword overrides remain authoritative.
 6. Annotation helpers validate coordinates, return Makie plot objects, and do
    not trigger a fit. Non-finite residual, pull, ratio, curve, line, or band
    coordinates fail clearly instead of disappearing in a renderer. Full-axis

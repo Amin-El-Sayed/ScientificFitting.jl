@@ -8,8 +8,42 @@ into the response.
 
 ## Gaussian Least Squares
 
-Assume each ``d_i`` is an independent Gaussian measurement with known standard
-uncertainty ``\sigma_i`` and mean ``m_i(\theta)``. Then
+Start from the measurement equation, not from a least-squares algorithm:
+
+```math
+d_i=m_i(\theta)+\epsilon_i,
+\qquad
+\epsilon_i\sim\mathcal N(0,\sigma_i^2).
+```
+
+For independent observations, the probability density of the complete dataset
+is the product of the one-point densities,
+
+```math
+L(\theta)
+=
+\prod_{i=1}^{n}
+\frac{1}{\sqrt{2\pi}\,\sigma_i}
+\exp\!\left[
+-\frac{1}{2}
+\left(\frac{d_i-m_i(\theta)}{\sigma_i}\right)^2
+\right].
+```
+
+Taking ``-2\log`` turns the product into a sum:
+
+```math
+-2\log L(\theta)
+=
+\sum_i \log(2\pi\sigma_i^2)
++
+\sum_i
+\left(\frac{d_i-m_i(\theta)}{\sigma_i}\right)^2.
+```
+
+When the quoted ``\sigma_i`` are known and do not depend on ``\theta``, the
+first sum is constant. Maximizing the Gaussian likelihood is therefore
+equivalent to minimizing
 
 ```math
 \chi^2(\theta)
@@ -104,6 +138,26 @@ distribution inside the covariance.
 JuFitter never forms ``V^{-1}`` explicitly. Dense covariance is factorized and
 applied through triangular solves, which is both more stable and faster than
 materializing an inverse.
+
+For a Cholesky factorization ``V=LL^T``, define
+
+```math
+z=L^{-1}r.
+```
+
+Then
+
+```math
+r^T V^{-1}r
+=r^T L^{-T}L^{-1}r
+=z^Tz.
+```
+
+This transformation is **whitening**: it rotates and rescales the correlated
+residual vector so that, under a correct Gaussian model, ``z`` has covariance
+``I``. It does not smooth, average, or discard observations. It expresses the
+same covariance model in coordinates where ordinary squared pulls can be
+summed.
 
 ## Structured Whitening
 

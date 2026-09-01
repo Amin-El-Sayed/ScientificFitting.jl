@@ -167,7 +167,58 @@ pulls or residuals alongside the scalar test.
 
 ## Local Parameter Covariance
 
-For a locally linear least-squares problem with weighted Jacobian ``J_w``,
+The local error formula is a Taylor approximation, not an extra fit. For one
+parameter and a smooth cost ``C=-2\log L``, expand around the minimum
+``\hat\theta``:
+
+```math
+C(\hat\theta+\delta)
+=
+C(\hat\theta)
++C'(\hat\theta)\delta
++\frac{1}{2}C''(\hat\theta)\delta^2
++O(\delta^3).
+```
+
+At an interior minimum ``C'(\hat\theta)=0``. Matching the remaining quadratic
+term to ``\Delta C\approx(\delta/\sigma_\theta)^2`` gives
+
+```math
+\sigma_\theta^2
+\approx
+\frac{2}{C''(\hat\theta)}.
+```
+
+For several Gaussian-fit parameters, let ``W`` whiten the observations and
+define the weighted model Jacobian
+
+```math
+(J_w)_{ij}
+=
+\left[W\frac{\partial m}{\partial\theta_j}\right]_i.
+```
+
+Near the solution, the whitened residual vector obeys
+
+```math
+z(\hat\theta+\delta)
+\approx
+z(\hat\theta)-J_w\delta.
+```
+
+Substitution into ``\chi^2=z^Tz`` yields
+
+```math
+\Delta\chi^2
+\approx
+-2z(\hat\theta)^T J_w\delta
++\delta^T J_w^T J_w\delta.
+```
+
+The linear term vanishes at the least-squares optimum. Comparing the remaining
+quadratic form with
+``\Delta\chi^2\approx\delta^T\operatorname{Cov}(\hat\theta)^{-1}\delta``
+gives
 
 ```math
 \operatorname{Cov}(\hat\theta)
@@ -188,7 +239,9 @@ the local covariance is
 ```
 
 The factor two follows from the ``-2\log L`` convention. These formulas describe
-the curvature at one point. They are reliable when the estimator is well
+the same local curvature in two equivalent forms: ``J_w^TJ_w`` for a locally
+linear Gaussian residual problem, and the full objective Hessian otherwise.
+They describe the curvature at one point. They are reliable when the estimator is well
 identified, the minimum is interior, and the cost is approximately quadratic
 over the reported uncertainty region.
 

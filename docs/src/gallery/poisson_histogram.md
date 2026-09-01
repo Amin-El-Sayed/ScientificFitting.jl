@@ -42,6 +42,13 @@ is a **prediction interval for discrete observations**, not a confidence band
 for the mean curve. It is conditional on the fitted mean and does not include
 parameter uncertainty.
 
+The edges of this band are intentionally stepped. Poisson observations are
+integers, so the 16th and 84th percentiles can change only by whole counts as
+``\mu(t)`` varies. The plateaus and jumps are distributional, not optimizer
+noise. The renderer joins neighbouring evaluation points, so a mathematically
+vertical jump appears as a short slanted tooth. Smoothing the boundary would
+instead imply impossible fractional count quantiles.
+
 ## Data
 
 The count arrays are listed explicitly in the fit sections. They are controlled
@@ -216,8 +223,13 @@ not proof that the exponential-plus-background law is uniquely correct.
 
 A pulse-height spectrum contains a Gaussian-like detector peak above a uniform
 background. The bins are deliberately unequal, including one empty low-amplitude
-bin. The fitted quantities are peak yield ``N``, centroid ``m``, Gaussian width
-``s``, and background density ``\rho_B``.
+bin. Narrow bins retain shape resolution near the populated peak, while bins
+become wider in the sparse high-amplitude tail so that the display is not
+dominated by a long sequence of nearly empty intervals. This is a defensible
+analysis choice only when the edges are fixed independently of the observed
+fluctuations and the model is integrated over those exact edges. The fitted
+quantities are peak yield ``N``, centroid ``m``, Gaussian width ``s``, and
+background density ``\rho_B``.
 
 ```@raw html
 <img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/histogram_likelihood_sans_panel_light.png" alt="Histogram likelihood fit in sans style with result panel">
