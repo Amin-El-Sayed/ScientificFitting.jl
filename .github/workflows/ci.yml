@@ -24,8 +24,6 @@ jobs:
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Core tests without plot rendering
         run: julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'
-      - name: Release checklist gate
-        run: julia --project=. --startup-file=no test/release_checklist_gate.jl
       - name: Benchmark contract gate
         run: julia --project=. --startup-file=no test/benchmark_contract_gate.jl
       - name: Startup probe gate

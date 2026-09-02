@@ -12,32 +12,23 @@
 Scientific fitting for Julia: data, uncertainties, statistically explicit
 results, diagnostics, and Makie plots from one coherent workflow.
 
-ScientificFitting is built for laboratory, engineering, and scientific analysis where the
-fit result is only useful if the uncertainty model, diagnostics, and plot are
-understandable. Version 0.1 is the first public work-in-progress release: the
-core is tested and usable, while feedback from real analyses will shape the
-next interfaces and supported workflows.
+ScientificFitting combines weighted nonlinear least squares, likelihood fits,
+parameter constraints, profile diagnostics, and publication-ready Makie plots.
+Version 0.1 is the first public release; feedback from real analyses is welcome.
 
-## Why ScientificFitting
+## Install
 
-- Weighted nonlinear least squares with diagonal, full-covariance, x/y,
-  component-based, and matrix-free static whitening uncertainty models.
-- Poisson, histogram, unbinned, extended-unbinned, indexed, custom-objective,
-  and multi-dataset likelihood workflows.
-- Bounds, fixed parameters, Gaussian priors, correlated parameter constraints,
-  profile intervals, and two-parameter contours.
-- Structured fit reports and diagnostic dashboards that tell you what to
-  inspect next.
-- Optional CairoMakie plotting with robust default layouts, right-side reports,
-  residual/pull diagnostics, profile/contour plots, and post-fit annotation
-  helpers.
-- A documentation-first workflow: every serious feature should have a tested
-  explanation, not only an exported function.
+Until the first General-registry release is available:
 
-## Quick Start
+```julia
+using Pkg
+Pkg.add(url="https://github.com/Amin-El-Sayed/ScientificFitting.jl")
+```
 
-The fitting and reporting core does not load Makie. Load CairoMakie only when
-you want plots.
+After registration, use `Pkg.add("ScientificFitting")`. Add `CairoMakie`
+separately when plots are needed; fitting and reporting do not load Makie.
+
+## Quickstart
 
 ```julia
 using ScientificFitting
@@ -68,7 +59,7 @@ println(report_text(result; parameter_names=["m", "b"]))
 println(diagnostic_dashboard_text(result))
 ```
 
-For fitting without plotting:
+The same fit without plotting is simply:
 
 ```julia
 using ScientificFitting
@@ -77,53 +68,11 @@ result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
 report = fit_report(result; parameter_names=["m", "b"])
 ```
 
-## Installation
-
-ScientificFitting declares support for Julia 1.10 and later. CI tests Julia
-1.10 and Julia 1.12.
-
-Until the General registry accepts the first release, install directly from
-GitHub:
-
-```julia
-using Pkg
-Pkg.add(url="https://github.com/Amin-El-Sayed/ScientificFitting.jl")
-```
-
-After registration, the normal installation is:
-
-```julia
-using Pkg
-Pkg.add("ScientificFitting")
-```
-
-For plotting, add and load CairoMakie in the same environment:
-
-```julia
-using Pkg
-Pkg.add(["ScientificFitting", "CairoMakie"])
-
-using ScientificFitting
-using CairoMakie
-```
-
 ## Documentation
 
-The documentation is the main entry point:
-
-- `docs/src/quickstart.md` for the first complete fit.
-- `docs/src/gallery.md` for complete scientific examples.
-- `docs/src/fitting_for_practitioners.md` for practical fit judgement.
-- `docs/src/statistical_foundations.md` for the statistical assumptions and
-  formulas.
-- `docs/src/api.md` for the API overview and its focused fitting, results, and
-  plotting reference pages.
-- `docs/src/backend_design.md` and `docs/src/performance.md` for technical
-  architecture and scaling behavior.
-
-Contributors should additionally read `AGENTS.md`, `DEVELOPMENT.md`, and
-`MAINTAINERS.md`. Release evidence and commands live in `RELEASE_AUDIT.md` and
-`RELEASE_CHECKLIST.md`, respectively.
+Use the [online documentation](https://amin-el-sayed.github.io/ScientificFitting.jl/)
+for installation details, complete scientific examples, statistical methods,
+diagnostics, plotting, performance guidance, and the API reference.
 
 Build the local documentation from the repository root with:
 
@@ -133,45 +82,29 @@ julia --project=docs --startup-file=no docs/make.jl
 
 Then serve `docs/build` with any static file server.
 
-## Current Scope
+## Technical Notes
 
-ScientificFitting is intended to cover the common scientific fitting workflows before
-v1:
-
-- Gaussian XY fits with diagonal, dense, sparse-static, or custom
-  matrix-free static covariance whitening.
-- Effective x-uncertainty propagation, including a vectorized derivative hook
-  for large datasets.
-- Likelihood fits for counts, histograms, unbinned samples, and custom
-  objectives.
-- Profile and contour diagnostics for cases where local covariance is not
-  enough.
-- Makie plots that can be used as-is or extended through returned Makie figures
-  and ScientificFitting annotation helpers.
-
-Known limitations are explicit:
-
-- Dense covariance is exact but expensive: `O(n^2)` memory and `O(n^3)`
-  factorization. Static sparse `cov_y` is supported for unbounded least-squares
-  fits. Large correlated time series, spectra, images, and detector arrays can
-  use `WhiteningOperator` when their complete static covariance has an
-  application-specific fast whitening operation; built-in structured operator
-  families and structured x covariance remain future work.
-- Parameter covariance is a local Hessian approximation. Nonlinear models,
-  weak data, active bounds, and asymmetric likelihoods should be checked with
-  profiles or contours.
-- CairoMakie has a noticeable first-use compilation cost. Fitting and reporting
-  remain usable without loading Makie.
-- Python interoperability is planned through JuliaCall/PythonCall and has an
-  opt-in gate, but the current bridge is experimental. A first-class Python
-  interface is the primary planned post-v0.1 development block.
+- Julia 1.10 and later are supported. CI tests Julia 1.10 and Julia 1.12.
+- Gaussian fits accept diagonal, dense, sparse-static, component-based, and
+  custom matrix-free static whitening uncertainty models, including x/y
+  uncertainty propagation.
+- Likelihood workflows cover Poisson, histogram, unbinned,
+  extended-unbinned, indexed, custom-objective, and multi-dataset fits.
+- Dense covariance costs `O(n^2)` memory and `O(n^3)` factorization; use a
+  `WhiteningOperator` when a large structured problem has a fast whitening
+  operation.
+- Parameter covariance is a local Hessian approximation. Use profiles and
+  contours for nonlinear, weakly constrained, bounded, or asymmetric cases.
+- CairoMakie is an optional package extension. The numerical core, reports,
+  and diagnostics remain usable without it.
 
 ## Contributing
 
-Bug reports, scientific examples, documentation corrections, and focused code
-contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
-information needed to reproduce a numerical issue and the evidence expected for
-statistical or performance changes.
+Bug reports, scientific examples, documentation corrections, and focused pull
+requests are welcome. Include a minimal executable example, package versions,
+the uncertainty model, complete output, and the expected behavior. Numerical
+changes need an analytic or independent reference; performance claims need a
+reproducible benchmark on named hardware.
 
 ## License And Citation
 
@@ -179,40 +112,3 @@ ScientificFitting is licensed under the [MIT License](LICENSE). If it contribute
 published research, please cite the exact version using [CITATION.cff](CITATION.cff).
 The documentation explains [citation, related work, and method-specific
 attribution](docs/src/citation.md).
-
-## Development Gates
-
-Fast checks:
-
-```bash
-julia --project=. --startup-file=no test/docs_public_release_gate.jl
-julia --project=. --startup-file=no test/docs_gallery_gate.jl
-julia --project=. --startup-file=no test/docs_link_gate.jl
-```
-
-Core and package checks:
-
-```bash
-julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'
-julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'
-```
-
-Plot checks:
-
-```bash
-julia --project=docs --startup-file=no test/plots/fitplot.jl
-```
-
-Benchmarks:
-
-```bash
-julia --project=benchmarks benchmarks/runbenchmarks.jl --seconds=1
-```
-
-Benchmark output and generated plots are ignored by git.
-
-## Release Policy
-
-Do not push, publish, register, deploy documentation, or make the repository
-public without explicit manual approval from the maintainer. Local `codex/*`
-branch commits are review checkpoints, not release actions.

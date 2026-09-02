@@ -167,8 +167,7 @@ These are architectural rules, not implementation preferences.
 | A local covariance is not a coverage guarantee. | Diagnostics expose suspect curvature; profile and contour results remain first-class outputs. |
 | Plotting is optional. | `using ScientificFitting` provides fitting, reports, diagnostics, and profiles without loading Makie. |
 
-The durable review and ownership version of these rules lives in the root-level
-`MAINTAINERS.md` file in the source checkout.
+These invariants are the review contract for changes to the numerical core.
 
 ## Source Map
 

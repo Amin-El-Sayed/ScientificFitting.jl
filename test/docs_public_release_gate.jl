@@ -3,8 +3,6 @@ using Test
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCS_SRC = joinpath(ROOT, "docs", "src")
 const DOCS_MAKE = joinpath(ROOT, "docs", "make.jl")
-const MAINTAINERS = joinpath(ROOT, "MAINTAINERS.md")
-
 const PUBLIC_DOC_PAGES = [
     "index.md",
     "install.md",
@@ -165,10 +163,11 @@ end
         @test occursin(r"(?m)^\s{8}\"Developer\"\s*=>", documenter_make_text())
         @test !occursin("Maintenance Notes", documenter_make_text())
         @test !isfile(joinpath(DOCS_SRC, "maintenance.md"))
-        @test isfile(MAINTAINERS)
-        maintainers = read(MAINTAINERS, String)
-        @test occursin("## Numerical Invariants", maintainers)
-        @test occursin("## Plotting Invariants", maintainers)
+    end
+
+    @testset "Repository root stays package-facing" begin
+        root_markdown = sort(filter(name -> endswith(name, ".md"), readdir(ROOT)))
+        @test root_markdown == ["README.md"]
     end
 
     @testset "Configured public files exist" begin

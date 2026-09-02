@@ -3,9 +3,7 @@ using Test
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const BENCHMARK_RUNNER = joinpath(ROOT, "benchmarks", "runbenchmarks.jl")
 const STARTUP_PROBE = joinpath(ROOT, "benchmarks", "startup_probe.jl")
-const README = joinpath(ROOT, "README.md")
 const PERFORMANCE_DOC = joinpath(ROOT, "docs", "src", "performance.md")
-const RELEASE_CHECKLIST = joinpath(ROOT, "RELEASE_CHECKLIST.md")
 const CI_WORKFLOW = joinpath(ROOT, ".github", "workflows", "ci.yml")
 
 const CANONICAL_BENCHMARK_COMMAND =
@@ -54,18 +52,11 @@ end
 @testset "Benchmark contract gate" begin
     runner = file_text(BENCHMARK_RUNNER)
     startup_probe = file_text(STARTUP_PROBE)
-    readme = file_text(README)
     performance = file_text(PERFORMANCE_DOC)
-    checklist = file_text(RELEASE_CHECKLIST)
     workflow = file_text(CI_WORKFLOW)
 
-    @test occursin(CANONICAL_BENCHMARK_COMMAND, readme)
     @test occursin(CANONICAL_BENCHMARK_COMMAND, performance)
-    @test occursin(CANONICAL_BENCHMARK_COMMAND, checklist)
     @test occursin("benchmarks/startup_probe.jl", performance)
-    @test occursin("benchmarks/startup_probe.jl", checklist)
-    @test occursin("Do not use `--allow-metadata-mismatch` for release evidence", checklist)
-    @test !occursin("julia --project=. --startup-file=no benchmarks/runbenchmarks.jl", checklist)
 
     for case in REQUIRED_BENCHMARK_CASES
         group, name = split(case, "/"; limit=2)
