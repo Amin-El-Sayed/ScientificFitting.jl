@@ -63,7 +63,7 @@ jobs:
           version: "1.12"
       - uses: julia-actions/cache@v2
       - name: Instantiate docs
-        run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
+        run: julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
       - name: Source documentation gates
         run: |
           julia --project=. --startup-file=no test/docs_gallery_gate.jl
@@ -76,6 +76,8 @@ jobs:
         run: julia --project=docs --startup-file=no test/plots/fitplot.jl
       - name: Build docs
         run: julia --project=docs --startup-file=no docs/make.jl
+        env:
+          SCIENTIFICFITTING_DOCS_SKIP_DEVELOP: "1"
       - name: Rendered documentation link gate
         run: julia --project=. --startup-file=no test/docs_html_link_gate.jl
       - name: Documentation output snapshot gate

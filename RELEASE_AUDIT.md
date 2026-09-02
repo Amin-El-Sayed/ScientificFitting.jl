@@ -94,6 +94,13 @@ v0.1.0 release candidate on 2026-09-01.
 
 ## Current Verification
 
+- The first clean GitHub runner exposed that the standalone docs environment
+  listed the unregistered package UUID without binding it to the checked-out
+  source tree. CI and Pages now bootstrap that environment with
+  `Pkg.develop(path=".")` before instantiation; no machine-local manifest or
+  absolute path is committed. This bootstrap is required only until registry
+  installation can resolve ScientificFitting by UUID.
+
 - The final local v0.1.0 release gate on Julia 1.12.6 passes the Makie-free
   core suite with 544/544 checks and the isolated full-package suite with
   719/719 checks. The executable documentation-output gate passes 119/119
