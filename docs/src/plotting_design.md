@@ -82,8 +82,9 @@ The sans style defaults to `(1040, 640)` with a right-side panel and
 `(760, 520)` without it. Pass
 `figure_size=(width, height)` for a required
 export footprint. The requested size is preserved; report length does not
-silently resize the saved figure. `stats_panel_width=:auto` should remain the
-default unless an external journal template requires an explicit width.
+silently resize the saved figure. `stats_panel_width=:auto` uses Makie's natural
+layout width. An explicit width bounds and wraps an unusually detailed custom
+panel instead of allowing it to compress the data axis.
 
 ## Two Visual Styles
 
@@ -315,9 +316,10 @@ fig = with_theme(theme) do
 end
 ```
 
-The panel reports its natural width to Makie's `GridLayout` and does not dictate
-the height of the scientific row. Use `Auto()` sizing for normal layouts; pass
-an explicit panel width only when the external output format requires one.
+By default the panel reports its natural width to Makie's `GridLayout` and does
+not dictate the height of the scientific row. For a detailed custom report,
+pass `width=...`: the panel then keeps that width and wraps plain-text lines
+instead of compressing the scientific axes.
 
 ## Diagnostic Figures
 

@@ -249,6 +249,33 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
     return merge(font_theme, visual_theme, theme_override)
 end
 
+function _wrap_panel_text(value, panel_width::Real, fontsize::Real)
+    value isa AbstractString || return value
+    value isa LaTeXString && return value
+
+    # Makie's Label centers a word-wrapped text block. Pre-wrapping lets the
+    # block keep its natural width and therefore honor `halign=:left`.
+    max_columns = max(12, floor(Int, panel_width / (0.52 * fontsize)))
+    wrapped = String[]
+    for source_line in split(String(value), '\n'; keepempty=true)
+        words = split(source_line)
+        isempty(words) && (push!(wrapped, ""); continue)
+
+        line = String(first(words))
+        for word in Iterators.drop(words, 1)
+            candidate = string(line, ' ', word)
+            if textwidth(candidate) > max_columns
+                push!(wrapped, line)
+                line = String(word)
+            else
+                line = candidate
+            end
+        end
+        push!(wrapped, line)
+    end
+    return join(wrapped, '\n')
+end
+
 """
     plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
 
@@ -708,6 +735,7 @@ end
         model_label=nothing,
         parameter_lines=Any[],
         statistic_lines=Any[],
+        width=nothing,
         ...
     )
 
@@ -715,7 +743,9 @@ Add a compact, left-aligned information panel to a Makie layout cell. The
 panel is intended for custom scientific figures that should use the same
 legend, model, parameter, and statistic hierarchy as `plot_fit`. `theme` and
 `appearance` supply readable panel defaults from the same central style
-contract; explicit panel keywords remain authoritative.
+contract; explicit panel keywords remain authoritative. By default Makie
+chooses the panel width from its contents. Set `width` to bound a detailed
+panel and wrap long plain-text lines without compressing adjacent axes.
 """
 function plot_info_panel!(
     cell;
@@ -732,6 +762,7 @@ function plot_info_panel!(
     color=nothing,
     muted_color=nothing,
     legend_kwargs=NamedTuple(),
+    width::Union{Nothing, Real}=nothing,
     tellwidth::Bool=true,
     tellheight::Bool=false,
 )
@@ -740,16 +771,25 @@ function plot_info_panel!(
     fontsize = fontsize === nothing ? preset.stats_fontsize : Float64(fontsize)
     color = color === nothing ? preset.stats_color : color
     muted_color = muted_color === nothing ? preset.stats_muted_color : muted_color
+    panel_width = width === nothing ? nothing : Float64(width)
+    panel_width === nothing || panel_width > 0 ||
+        throw(ArgumentError("width must be positive"))
 
-    # The panel must not dictate the height of its parent row. Otherwise a
-    # compact report vertically centers and shrinks the adjacent data axis.
-    panel_grid = GridLayout(cell; tellwidth=tellwidth, tellheight=tellheight, valign=:top)
+    # An explicit width protects adjacent axes from long custom labels. With no
+    # width, Makie's natural sizing remains authoritative for ordinary panels.
+    panel_grid = GridLayout(
+        cell;
+        width=panel_width === nothing ? Auto() : panel_width,
+        tellwidth=tellwidth,
+        tellheight=tellheight,
+        valign=:top,
+    )
     row = 1
     generous_gaps = Int[]
 
     legend_defaults = (
         framevisible=false,
-        tellwidth=true,
+        tellwidth=panel_width === nothing,
         tellheight=true,
         halign=:left,
         valign=:top,
@@ -757,6 +797,8 @@ function plot_info_panel!(
         patchsize=preset.legend_patchsize,
         rowgap=preset.legend_rowgap,
     )
+    panel_width === nothing ||
+        (legend_defaults = merge(legend_defaults, (width=panel_width,)))
     if legend_source !== nothing
         Legend(panel_grid[row, 1], legend_source; _merged_kwargs(legend_defaults, legend_kwargs)...)
         push!(generous_gaps, row)
@@ -775,9 +817,11 @@ function plot_info_panel!(
     if title !== nothing && !isempty(string(title))
         Label(
             panel_grid[row, 1],
-            title;
+            panel_width === nothing ? title :
+                _wrap_panel_text(title, panel_width, fontsize + 1);
             halign=:left,
-            tellwidth=true,
+            justification=:left,
+            tellwidth=panel_width === nothing,
             fontsize=fontsize + 1,
             color=color,
         )
@@ -787,9 +831,11 @@ function plot_info_panel!(
     if model_label !== nothing && !isempty(string(model_label))
         Label(
             panel_grid[row, 1],
-            model_label;
+            panel_width === nothing ? model_label :
+                _wrap_panel_text(model_label, panel_width, fontsize + 1);
             halign=:left,
-            tellwidth=true,
+            justification=:left,
+            tellwidth=panel_width === nothing,
             fontsize=fontsize + 1,
             color=color,
         )
@@ -800,9 +846,11 @@ function plot_info_panel!(
     for line in parameter_lines
         Label(
             panel_grid[row, 1],
-            line;
+            panel_width === nothing ? line :
+                _wrap_panel_text(line, panel_width, fontsize);
             halign=:left,
-            tellwidth=true,
+            justification=:left,
+            tellwidth=panel_width === nothing,
             fontsize=fontsize,
             color=color,
         )
@@ -813,9 +861,11 @@ function plot_info_panel!(
     for line in statistic_lines
         Label(
             panel_grid[row, 1],
-            line;
+            panel_width === nothing ? line :
+                _wrap_panel_text(line, panel_width, fontsize);
             halign=:left,
-            tellwidth=true,
+            justification=:left,
+            tellwidth=panel_width === nothing,
             fontsize=fontsize,
             color=muted_color,
         )
@@ -839,6 +889,7 @@ function _draw_right_stats!(
 )
     plot_info_panel!(
         fig[1, 2];
+        width=panel_width_px,
         parameter_lines=stats_lines[1:parameter_count],
         statistic_lines=stats_lines[(parameter_count + 1):end],
         kwargs...,

@@ -361,13 +361,29 @@ using Test
     panel_figure = with_theme(plot_theme(:sans)) do
         Figure(size=(720, 420))
     end
-    @test plot_info_panel!(
+    panel = plot_info_panel!(
         panel_figure[1, 1];
         theme=:sans,
         model_label="y = m x + b",
         parameter_lines=["m = 1.0 +/- 0.1"],
         statistic_lines=["chi2/ndf = 1.0"],
-    ) !== nothing
+    )
+    @test panel !== nothing
+    @test panel.width[] isa Auto
+    bounded_panel = plot_info_panel!(
+        panel_figure[1, 2];
+        width=320,
+        parameter_lines=["a deliberately long parameter description that must wrap"],
+    )
+    @test bounded_panel.width[] == 320
+    plotting_extension = Base.get_extension(ScientificFitting, :ScientificFittingCairoMakieExt)
+    @test plotting_extension !== nothing
+    @test occursin('\n', plotting_extension._wrap_panel_text(
+        "a deliberately long parameter description that must wrap",
+        100,
+        20,
+    ))
+    @test_throws ArgumentError plot_info_panel!(panel_figure[1, 1]; width=0)
     latex_figure = plot_fit(
         quick.result;
         theme=:tex,
@@ -391,8 +407,6 @@ using Test
         @test occursin("Fit report", read(report_stream, String))
     end
 
-    plotting_extension = Base.get_extension(ScientificFitting, :ScientificFittingCairoMakieExt)
-    @test plotting_extension !== nothing
     @test isnothing(plotting_extension._validate_panel_status_mode(:issues))
     @test isnothing(plotting_extension._validate_panel_status_mode(:all))
     tex_dark_diagnostics = plotting_extension._diagnostic_colors(:tex, :dark)

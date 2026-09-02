@@ -138,8 +138,11 @@ function save_multi_dataset_calibration(
 
     base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
-    figure_width = show_panel ? base_size[1] : max(base_size[1], 960)
+    # Three stacked axes need a landscape canvas. The shared panel contract
+    # keeps the report bounded instead of allowing it to compress these axes.
+    figure_width = show_panel ? max(base_size[1], 1240) : max(base_size[1], 960)
     figure_height = show_panel ? 860 : 1040
+    panel_width = article ? 460 : 420
     figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
@@ -273,7 +276,7 @@ function save_multi_dataset_calibration(
     legend_labels = Any[
         labels...,
         article ? L"\mathrm{partial-sharing\ model}" : "partial-sharing model",
-        article ? L"\mathrm{all-shared-gain\ hypothesis}" : "all-shared-gain hypothesis",
+        article ? L"\mathrm{all-shared\ hypothesis}" : "all-shared hypothesis",
         article ? L"\mathrm{local\ }1\sigma\mathrm{\ fit\ band}" : "local 1σ fit band",
     ]
     if !show_panel
@@ -297,7 +300,6 @@ function save_multi_dataset_calibration(
             figure[1:3, 2];
             legend_plots=legend_elements,
             legend_labels=legend_labels,
-            legend_kwargs=(nbanks=2,),
             title="Partial-sharing result",
             parameter_lines=[
                 "gain A/B = $(fmt(partial_shared_result.params[1], 6)) ± $(fmt(partial_shared_result.param_stderr[1], 2))",
@@ -306,14 +308,15 @@ function save_multi_dataset_calibration(
                 "difference = $(fmt(gain_gap / sigma_gain_gap, 3))σ from zero",
             ],
             statistic_lines=[
-                "all-shared: χ²/ndf = $(fmt(all_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(all_shared_result.stats.pvalue, 4))",
-                "all-shared: AIC = $(fmt(all_shared_result.stats.aic, 5))",
-                "partial-sharing: χ²/ndf = $(fmt(partial_shared_result.stats.chi2_ndf, 4)), P(χ²) = $(fmt(partial_shared_result.stats.pvalue, 4))",
-                "partial-sharing: AIC = $(fmt(partial_shared_result.stats.aic, 5))",
+                "all shared: χ²/ndf = $(fmt(all_shared_result.stats.chi2_ndf, 4))",
+                "P(χ²) = $(fmt(all_shared_result.stats.pvalue, 4)), AIC = $(fmt(all_shared_result.stats.aic, 5))",
+                "partial sharing: χ²/ndf = $(fmt(partial_shared_result.stats.chi2_ndf, 4))",
+                "P(χ²) = $(fmt(partial_shared_result.stats.pvalue, 4)), AIC = $(fmt(partial_shared_result.stats.aic, 5))",
                 "nested test: Δχ² = $(fmt(delta_chi2, 5)), p = $(fmt(nested_pvalue, 3))",
                 "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))",
                 "Do not transfer channel C's gain.",
             ],
+            width=panel_width,
             theme=style,
             appearance=appearance,
         )

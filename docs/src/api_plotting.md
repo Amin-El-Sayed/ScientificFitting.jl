@@ -138,7 +138,7 @@ remains available.
 | `show_panel` | `true` | Show the structured right panel or compact in-axis panel. Independent of visual style. |
 | `stats_position` | `:right` | `:right` or `:inside`. |
 | `inside_stats_position` | `:lt` | `:lt`, `:lb`, `:rt`, `:rb` and their long aliases. |
-| `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive pixel width. Fractions are clamped to 300--560 px. |
+| `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive pixel width. Fractions are clamped to 300--560 px; explicit widths wrap long plain-text lines. |
 | `panel_gap` | style-dependent | Gap between data axis and right panel. |
 | `stats_mode` | `:compact` | `:compact` or `:full`. |
 | `stats_sigdigits` | `5` | Significant digits used only for displayed values. |
@@ -235,7 +235,9 @@ plot_info_panel!(
 
 The alternative `legend_source=axis` builds the legend from labeled content on
 an axis. `fontsize`, `color`, `muted_color`, and `legend_kwargs` override style
-defaults. `tellwidth=true` lets the panel report its natural width;
+defaults. With `width=nothing`, the panel reports its natural Makie width. Pass
+`width=...` to bound an unusually detailed panel and wrap long plain-text lines.
+`tellwidth=true` reports the selected width to the parent layout, while
 `tellheight=false` prevents a short report from shrinking or vertically
 centering the adjacent scientific axis. The function returns its `GridLayout`.
 
