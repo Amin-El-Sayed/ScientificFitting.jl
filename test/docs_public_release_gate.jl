@@ -74,6 +74,18 @@ function docs_source_markdown_pages()
     return sort(pages)
 end
 
+function markdown_outside_docs()
+    pages = String[]
+    for (directory, subdirectories, filenames) in walkdir(ROOT)
+        filter!(name -> name != ".git" && name != "docs", subdirectories)
+        for filename in filenames
+            endswith(filename, ".md") || continue
+            push!(pages, relpath(joinpath(directory, filename), ROOT))
+        end
+    end
+    return sort(pages)
+end
+
 function documenter_make_text()
     return read(DOCS_MAKE, String)
 end
@@ -168,6 +180,7 @@ end
     @testset "Repository root stays package-facing" begin
         root_markdown = sort(filter(name -> endswith(name, ".md"), readdir(ROOT)))
         @test root_markdown == ["README.md"]
+        @test markdown_outside_docs() == ["README.md"]
     end
 
     @testset "Configured public files exist" begin
