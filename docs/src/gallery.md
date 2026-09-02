@@ -1,53 +1,29 @@
-# Gallery
-
-The gallery is the fastest way to learn ScientificFitting. It is organized as a
-progression from ordinary laboratory fits to correlated uncertainties,
-nonlinear models, likelihoods, profiles, and multi-dataset hypotheses. Start
-near the top, run the complete script, and treat each page as a worked
-scientific analysis rather than a syntax sample.
-
-Every gallery page follows the same pattern:
-
-1. a concrete question,
-2. measured quantities with units and uncertainties,
-3. the model and its assumptions,
-4. complete executable code,
-5. a plot with visible uncertainty semantics,
-6. fit diagnostics,
-7. interpretation and realistic failure modes.
-
-If you only want the shortest path from two arrays to a polished fit, start with
-[Quickstart](@ref). If the fit looks suspicious, continue with
-[Fitting for Practitioners](@ref). If you need to justify the method in a
-report, read [Statistical Foundations](@ref).
-
-Each page contains the complete code used for its analysis and figure. From a
-source checkout, the corresponding script can also be run from the project
-root:
-
-```bash
-julia --project=docs examples/gallery/01_quickstart_linear.jl
-```
-
-The script writes its figure to `examples/output/` and prints the same fit
-summary and diagnostic messages shown on the page.
-
-## Recommended Path
+# ScientificFitting
 
 ```@raw html
-<ol class="scientificfitting-flow">
-  <li class="scientificfitting-flow-step"><strong>First fit</strong><span>Linear calibration teaches the default data-model-diagnosis loop.</span></li>
-  <li class="scientificfitting-flow-step"><strong>Measured x</strong><span>XY uncertainties show when horizontal error bars must enter the cost.</span></li>
-  <li class="scientificfitting-flow-step"><strong>Shared noise</strong><span>Full covariance replaces independent errors when observations move together.</span></li>
-  <li class="scientificfitting-flow-step"><strong>Model criticism</strong><span>Damped oscillation uses pull structure to expose missing nonlinear physics.</span></li>
-  <li class="scientificfitting-flow-step"><strong>Derived quantity</strong><span>Photoelectric threshold extraction propagates two fits into one physical result.</span></li>
-  <li class="scientificfitting-flow-step"><strong>Count data</strong><span>Poisson and histogram examples replace Gaussian residuals with count likelihoods.</span></li>
-  <li class="scientificfitting-flow-step"><strong>Nonlinear uncertainty</strong><span>Profiles and contours test whether local symmetric errors remain credible.</span></li>
-  <li class="scientificfitting-flow-step"><strong>Shared hypotheses</strong><span>A multi-dataset fit tests which parameters may be common across experiments.</span></li>
-</ol>
+<section class="scientificfitting-hero">
+  <div class="scientificfitting-kicker">Scientific model fitting for Julia</div>
+  <p class="scientificfitting-lede">
+    Simple fits stay simple. Difficult fits keep their statistics explicit.
+  </p>
+  <p>
+    One Julia-native workflow for least squares and likelihood fits, x/y and
+    correlated uncertainty, parameter constraints, profiles and contours,
+    actionable diagnostics, and editable Makie figures.
+  </p>
+  <div class="scientificfitting-hero-actions">
+    <a class="scientificfitting-button primary" href="gallery/linear_calibration.html">Start with a complete fit</a>
+    <a class="scientificfitting-button" href="install.html">Install</a>
+  </div>
+</section>
 ```
 
-## Examples
+Start with [Linear Calibration](gallery/linear_calibration.md) for the shortest
+complete analysis, or choose the example closest to your data below. Every page
+contains the measurements, assumptions, executable code, actual program output,
+diagnostics, and scientific interpretation.
+
+## Worked Examples
 
 ```@raw html
 <div class="scientificfitting-gallery-grid">
@@ -184,32 +160,6 @@ summary and diagnostic messages shown on the page.
 </div>
 ```
 
-## What Each Example Teaches
-
-| Page | Scientific use case | Statistical focus | Diagnosis to inspect |
-| --- | --- | --- | --- |
-| Linear calibration | sensor or scale calibration | weighted Gaussian least squares | residual structure, prediction band, chi-square per degree of freedom |
-| XY uncertainties | calibration with uncertain abscissa | effective-variance approximation | slope-dependent variance and approximation validity |
-| Full covariance | repeated readout with shared noise | whitening with dense covariance | correlation effect on uncertainty and p-value |
-| Damped oscillator | mechanical decay or resonance envelope | nonlinear least squares with correlated parameters | phase/frequency coupling, residual periodicity, profile asymmetry |
-| Photoelectric work function | threshold from two fitted regimes | x/y uncertainty and derived quantity propagation | regime choice, intersection uncertainty, model range |
-| Poisson and histograms | counts, rates, binned events | Poisson deviance and likelihood fits | low-count bins, deviance residuals, empty-bin behavior |
-| Constraints and profiles | early saturation measurement | bounds, prior information, profile intervals, non-elliptic contours | unseen plateau and amplitude-timescale degeneracy |
-| Multi-dataset fit | shared physics across runs | parameter mapping and joint costs | per-dataset residuals and shared-parameter tension |
-
-## Run An Example
-
-The page code is arranged in execution order: load the measurements, define the
-model, fit, inspect diagnostics, and construct the figure. It can be copied into
-a Julia script or a Pluto notebook without depending on hidden setup cells.
-
-If you are working from the ScientificFitting source tree, the matching scripts live in
-`examples/gallery/`. For example:
-
-```bash
-julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
-```
-
-The scripts use the same data files and statistical assumptions as the pages.
-They are useful when you want to modify an analysis end to end; the code blocks
-inside each page are better when you want to understand one step at a time.
+Need help judging a result? Continue with [Fitting for Practitioners](@ref).
+For derivations, use [Statistical Foundations](@ref); for exact signatures and
+defaults, use the [API Reference](@ref).

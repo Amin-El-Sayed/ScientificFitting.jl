@@ -69,13 +69,15 @@ end
 
     @testset "Rendered first-user path" begin
         home = read(joinpath(DOCS_BUILD, "index.html"), String)
+        gallery = read(joinpath(DOCS_BUILD, "gallery.html"), String)
         quickstart = read(joinpath(DOCS_BUILD, "quickstart.html"), String)
         architecture = read(joinpath(DOCS_BUILD, "how_scientificfitting_works.html"), String)
         css = read(joinpath(DOCS_BUILD, "assets", "scientificfitting.css"), String)
 
-        @test occursin("<section class=\"scientificfitting-hero\">", home)
-        @test !occursin("&lt;section", home)
-        @test occursin("data-scientificfitting-plot-group=\"home-first-fit\"", home)
+        @test occursin("url=gallery.html", home)
+        @test occursin("<section class=\"scientificfitting-hero\">", gallery)
+        @test !occursin("&lt;section", gallery)
+        @test occursin("data-scientificfitting-plot-group=\"gallery-linear\"", gallery)
         @test occursin("using CairoMakie", quickstart)
         @test occursin("iterations = unavailable", quickstart)
         @test occursin("data-flow-direction=\"top-to-bottom\"", architecture)

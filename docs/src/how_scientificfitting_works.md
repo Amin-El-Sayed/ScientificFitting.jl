@@ -251,5 +251,5 @@ parabolic, or a contour does not resemble the local covariance ellipse, report
 profile intervals or contour regions instead of treating symmetric local errors
 as the final uncertainty statement.
 
-Next useful pages: [Quickstart](@ref), [Gallery](@ref), and
+Next useful pages: [Quickstart](@ref), the [worked examples](gallery.md), and
 [Statistical Foundations](@ref).

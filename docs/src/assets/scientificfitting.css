@@ -147,20 +147,14 @@ html.theme--documenter-dark #documenter .docs-main header.docs-navbar {
 
 .scientificfitting-hero {
   border: 1px solid var(--scientificfitting-line);
-  border-radius: calc(var(--scientificfitting-radius) + 8px);
-  padding: clamp(1.4rem, 4vw, 3rem);
-  margin: 1rem 0 2rem;
-  background:
-    linear-gradient(135deg, var(--scientificfitting-panel), rgba(255, 255, 255, 0.72)),
-    radial-gradient(circle at 95% 12%, var(--scientificfitting-accent-soft), transparent 18rem);
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.08);
+  border-radius: var(--scientificfitting-radius);
+  padding: clamp(1.35rem, 3vw, 2.35rem);
+  margin: 0.75rem 0 1.6rem;
+  background: var(--scientificfitting-panel);
 }
 
 html.theme--documenter-dark .scientificfitting-hero {
-  background:
-    linear-gradient(135deg, var(--scientificfitting-panel), rgba(24, 28, 36, 0.74)),
-    radial-gradient(circle at 95% 12%, var(--scientificfitting-accent-soft), transparent 18rem);
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+  background: var(--scientificfitting-panel);
 }
 
 .scientificfitting-kicker {

@@ -145,18 +145,10 @@ end
     @test all(!isnothing, navigation_positions)
     @test issorted(first.(navigation_positions))
 
-    for step in (
-        "First fit",
-        "Measured x",
-        "Shared noise",
-        "Model criticism",
-        "Derived quantity",
-        "Count data",
-        "Nonlinear uncertainty",
-        "Shared hypotheses",
-    )
-        @test occursin("<strong>$(step)</strong>", overview)
-    end
+    @test occursin("Simple fits stay simple", overview)
+    @test occursin("actual program output", overview)
+    @test !occursin("## Recommended Path", overview)
+    @test !occursin("## What Each Example Teaches", overview)
 
     full_covariance = read(joinpath(GALLERY_SRC, "full_covariance.md"), String)
     @test occursin("exp(-p[2] * t)", full_covariance)

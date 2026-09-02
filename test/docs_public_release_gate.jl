@@ -167,12 +167,15 @@ end
 
 @testset "Public documentation release hygiene" begin
     @testset "Documenter navigation coverage" begin
-        @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
+        @test documenter_navigation_pages() == sort(setdiff(PUBLIC_DOC_PAGES, ["index.md"]))
         @test docs_source_markdown_pages() == sort(PUBLIC_DOC_PAGES)
+        @test occursin("collapselevel=1", documenter_make_text())
+        @test occursin("hide(\"Examples\" => \"gallery.md\"", documenter_make_text())
+        @test !occursin("\"Home\" => \"index.md\"", documenter_make_text())
         @test !occursin(r"(?m)^\s{8}\"Engineering Notes\"\s*=>", documenter_make_text())
         @test !occursin("Reference Map", documenter_make_text())
         @test !occursin("Technical Notes", documenter_make_text())
-        @test occursin(r"(?m)^\s{8}\"Developer\"\s*=>", documenter_make_text())
+        @test occursin("hide(\"Internals\" => \"backend_design.md\"", documenter_make_text())
         @test !occursin("Maintenance Notes", documenter_make_text())
         @test !isfile(joinpath(DOCS_SRC, "maintenance.md"))
     end
@@ -235,13 +238,18 @@ end
 
     @testset "First-user path is executable and honest" begin
         home = home_page_text()
+        gallery = gallery_page_text()
         quickstart = quickstart_page_text()
         install = install_page_text()
         readme = public_file_text(joinpath(ROOT, "README.md"))
 
-        @test occursin("```@raw html\n<section class=\"scientificfitting-hero\">", home)
-        @test occursin("data-scientificfitting-plot-group=\"home-first-fit\"", home)
-        @test occursin("<code>FitResult</code> or <code>LikelihoodFitResult</code>", home)
+        @test occursin("content=\"0; url=gallery.html\"", home)
+        @test occursin("```@raw html\n<section class=\"scientificfitting-hero\">", gallery)
+        @test occursin("Simple fits stay simple", gallery)
+        @test occursin("actual program output", gallery)
+        @test occursin("data-scientificfitting-plot-group=\"gallery-linear\"", gallery)
+        @test !occursin("## Recommended Path", gallery)
+        @test !occursin("## What Each Example Teaches", gallery)
         @test !occursin("collect(range", home)
         @test occursin("using CairoMakie", quickstart)
         @test !occursin("collect(range", quickstart)
@@ -259,8 +267,8 @@ end
 
     @testset "Gallery overview is user-facing" begin
         gallery = gallery_page_text()
-        @test occursin("Every gallery page follows the same pattern", gallery)
-        @test occursin("## Run An Example", gallery)
+        @test occursin("## Worked Examples", gallery)
+        @test occursin("Start with a complete fit", gallery)
         @test !occursin("## Editorial Standard", gallery)
         @test !occursin("docs_gallery_gate.jl", gallery)
         @test !occursin("docs_output_snapshots.jl", gallery)
