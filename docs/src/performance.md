@@ -1,6 +1,6 @@
 # Performance
 
-JuFitter optimizes the mathematically important paths first: avoid explicit
+ScientificFitting optimizes the mathematically important paths first: avoid explicit
 matrix inverses, reuse static covariance factorizations, keep simple
 least-squares fits on the fast backend, and make expensive choices explicit.
 
@@ -10,10 +10,10 @@ To check the first requirement for responsive command-line use, run:
 
 ```bash
 julia --project=. --startup-file=no benchmarks/startup_probe.jl \
-  --save=/tmp/jufitter-startup-probe.toml
+  --save=/tmp/scientificfitting-startup-probe.toml
 ```
 
-The probe starts a fresh Julia process, loads `JuFitter`, verifies that neither
+The probe starts a fresh Julia process, loads `ScientificFitting`, verifies that neither
 `Makie` nor `CairoMakie` was loaded, records elapsed wall time, and can write a
 small TOML summary. This is a startup smoke test, not a stable latency claim.
 Use it to catch regressions such as accidentally moving plotting dependencies
@@ -50,7 +50,7 @@ julia --project=benchmarks benchmarks/runbenchmarks.jl \
   --save=benchmarks/output/local-baseline.toml
 ```
 
-The saved TOML includes Julia, JuFitter, OS, CPU, Julia-thread, BLAS-thread,
+The saved TOML includes Julia, ScientificFitting, OS, CPU, Julia-thread, BLAS-thread,
 git-commit, benchmark-count, timing, memory, and allocation metadata. Keep the
 file with the reviewed release evidence, not as a generic repository artifact.
 
@@ -115,7 +115,7 @@ accidental slowdowns such as losing the `LsqFit` fast path or recomputing static
 covariance work inside the objective.
 
 For slow shared runners, the budgets can be scaled with
-`JUFITTER_PERFORMANCE_BUDGET_SCALE`. Any release claim still needs a proper
+`SCIENTIFICFITTING_PERFORMANCE_BUDGET_SCALE`. Any release claim still needs a proper
 `BenchmarkTools` run from `benchmarks/runbenchmarks.jl` and a recorded baseline.
 
 ## Fast Paths
@@ -123,11 +123,11 @@ For slow shared runners, the budgets can be scaled with
 Unbounded static chi-square fits use `LsqFit`. This includes fits without
 active bounds, constraints, priors, or parameter-dependent covariance. Bounds of
 the form `[-Inf, Inf]` are treated as no-op bounds and keep the fast path open.
-JuFitter rejects an explicit `backend=:lsqfit` request when that backend would
+ScientificFitting rejects an explicit `backend=:lsqfit` request when that backend would
 discard any part of the cost or parameter controls; selecting a fast backend
 must never change the statistical problem.
 
-When `LsqFit` computes a weighted Jacobian, JuFitter reuses it during
+When `LsqFit` computes a weighted Jacobian, ScientificFitting reuses it during
 `FitResult` construction. This avoids an unnecessary second automatic
 differentiation pass for common least-squares workflows.
 
@@ -155,7 +155,7 @@ An analytic in-place Jacobian uses `jacobian!(J, x, p)` and is passed with
 functions to LsqFit's native in-place interface. Bounds, constraints, and
 parameter-dependent covariance still use the general optimizer, but preserve
 the same mutating model contract with an output buffer of the correct AD type.
-JuFitter evaluates both mutating functions once at `p0` and rejects incomplete
+ScientificFitting evaluates both mutating functions once at `p0` and rejects incomplete
 or non-finite output buffers before solver dispatch. Keep their buffer and
 parameter signatures generic rather than restricting them to `Float64`; AD-based
 optimizer paths evaluate them with dual-number element types.
@@ -197,7 +197,7 @@ result = fit_model(
 )
 ```
 
-JuFitter validates that `x_derivative(x, p)` has the same length as `x` and
+ScientificFitting validates that `x_derivative(x, p)` has the same length as `x` and
 contains finite values. The derivative may depend on `p`; AD information is
 preserved when the Gaussian likelihood cost needs gradients or Hessians.
 
@@ -223,7 +223,7 @@ Then ``\lVert z\rVert^2=r^T C^{-1}r``. The corresponding determinant is
 \log\det C=2n\log\sigma+(n-1)\log(1-\rho^2).
 ```
 
-The complete JuFitter contract is therefore compact:
+The complete ScientificFitting contract is therefore compact:
 
 ```julia
 sigma = 0.20
@@ -248,7 +248,7 @@ whitening = WhiteningOperator(
 result = fit_model(model, x, y; p0=p0, whitening)
 ```
 
-`logdet_covariance` is required even for a chi-square fit because JuFitter also
+`logdet_covariance` is required even for a chi-square fit because ScientificFitting also
 reports the normalized Gaussian ``-2\log L`` value, AIC, and BIC.
 `marginal_sigma` is optional and affects only pointwise error bars and prediction
 bands; it does not enter the cost. Without it, use `band=:confidence` rather
@@ -256,12 +256,12 @@ than claiming a prediction band whose observation variance is unknown.
 
 The operator represents the **complete static observation covariance**. Do not
 also pass `sigma_y`, `cov_y`, x uncertainties, or active error components.
-JuFitter rejects those combinations because adding covariance models requires
+ScientificFitting rejects those combinations because adding covariance models requires
 an explicit scientific derivation. The function must accept `AbstractVector`
 views and generic element types. That is necessary for Jacobian whitening and
 for automatic differentiation on bounded or constrained optimizer paths.
 
-JuFitter can validate dimensions, finite output, and interface compatibility;
+ScientificFitting can validate dimensions, finite output, and interface compatibility;
 it cannot prove that a custom transformation really satisfies
 ``W^T W=C^{-1}`` or that its supplied determinant is correct. Reference the
 operator against a small dense covariance before using it at large scale.

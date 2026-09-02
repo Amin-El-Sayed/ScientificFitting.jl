@@ -1,13 +1,13 @@
-const SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
+const SNAPSHOT_ONLY = get(ENV, "SCIENTIFICFITTING_DOC_SNAPSHOT_ONLY", "0") == "1"
 const RENDER_PLOTS = !SNAPSHOT_ONLY
 const RENDER_DOC_ASSETS = RENDER_PLOTS &&
-    get(ENV, "JUFITTER_RENDER_DOC_ASSETS", "0") == "1"
+    get(ENV, "SCIENTIFICFITTING_RENDER_DOC_ASSETS", "0") == "1"
 
 if RENDER_PLOTS
     using CairoMakie
 end
 
-using JuFitter
+using ScientificFitting
 using LaTeXStrings
 using LinearAlgebra
 using Printf
@@ -15,7 +15,7 @@ using Printf
 const DATA_FILE = joinpath(@__DIR__, "..", "data", "damped_oscillator", "pohl_wheel_free_decay.csv")
 const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
-const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
+const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_PX_PER_UNIT = 2.0
 
 function load_damped_oscillator(path)
@@ -109,9 +109,9 @@ end
 function emit_doc_output_snapshot(body::Function, id::AbstractString)
     EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
 
-    println("=== JUFITTER_DOC_OUTPUT_BEGIN ", id, " ===")
+    println("=== SCIENTIFICFITTING_DOC_OUTPUT_BEGIN ", id, " ===")
     body()
-    println("=== JUFITTER_DOC_OUTPUT_END ", id, " ===")
+    println("=== SCIENTIFICFITTING_DOC_OUTPUT_END ", id, " ===")
     return nothing
 end
 

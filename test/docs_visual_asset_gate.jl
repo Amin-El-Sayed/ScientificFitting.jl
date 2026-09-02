@@ -65,9 +65,9 @@ function image_records()
             src_match = match(r"src=\"([^\"]+\.png)\"", tag)
             isnothing(src_match) && continue
 
-            group_match = match(r"data-jufitter-plot-group=\"([^\"]+)\"", tag)
-            style_match = match(r"data-jufitter-plot-style=\"([^\"]+)\"", tag)
-            panel_match = match(r"data-jufitter-plot-panel=\"([^\"]+)\"", tag)
+            group_match = match(r"data-scientificfitting-plot-group=\"([^\"]+)\"", tag)
+            style_match = match(r"data-scientificfitting-plot-style=\"([^\"]+)\"", tag)
+            panel_match = match(r"data-scientificfitting-plot-panel=\"([^\"]+)\"", tag)
             alt_match = match(r"alt=\"([^\"]+)\"", tag)
             src = src_match.captures[1]
             appearance = occursin("_dark", src) ? "dark" : occursin("_light", src) ? "light" : ""

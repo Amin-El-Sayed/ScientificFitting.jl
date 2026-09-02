@@ -25,7 +25,7 @@ jobs:
       - name: Cache Julia artifacts
         uses: julia-actions/cache@v2
       - name: Instantiate documentation environment
-        run: julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
       - name: Check public documentation sources
         run: |
           julia --project=. --startup-file=no test/docs_public_release_gate.jl
@@ -33,7 +33,7 @@ jobs:
       - name: Build documentation
         run: julia --project=docs --startup-file=no docs/make.jl
         env:
-          JUFITTER_DOCS_SKIP_DEVELOP: "1"
+          SCIENTIFICFITTING_DOCS_SKIP_DEVELOP: "1"
       - name: Check rendered links
         run: julia --project=. --startup-file=no test/docs_html_link_gate.jl
       - name: Configure GitHub Pages

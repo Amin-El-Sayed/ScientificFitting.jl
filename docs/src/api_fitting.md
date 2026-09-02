@@ -8,7 +8,7 @@ parameter ordering and solver conventions are listed in the
 
 ### Observation Uncertainty
 
-Choose one representation for each physical uncertainty source. JuFitter
+Choose one representation for each physical uncertainty source. ScientificFitting
 rejects contradictory combinations instead of guessing how they combine.
 
 | Keyword | Accepted value | Statistical role |
@@ -51,17 +51,17 @@ Non-finite observations, non-positive standard deviations, invalid bounds, and
 non-positive-definite covariance matrices raise `ArgumentError` before
 optimization.
 
-For multistart fits, JuFitter returns the converged candidate with the lowest
+For multistart fits, ScientificFitting returns the converged candidate with the lowest
 finite cost. If no candidate converges but one returns a finite result, it is
 returned with `converged == false`; inspect the status or use
 [`diagnostic_dashboard`](@ref). If every candidate fails, the underlying error
 is raised.
 
 ```@docs
-JuFitter.fit(::JuFitter.FitProblem)
-JuFitter.fit_model
-JuFitter.FitProblem
-JuFitter.FitOptions
+ScientificFitting.fit(::ScientificFitting.FitProblem)
+ScientificFitting.fit_model
+ScientificFitting.FitProblem
+ScientificFitting.FitOptions
 ```
 
 ## Likelihood And Count Fits
@@ -92,29 +92,29 @@ covariance, AIC, and BIC are to retain their standard interpretation. With an
 arbitrarily scaled loss, optimization still works, but these inferential fields
 are only arithmetic summaries. `nobs` must count statistically independent
 observations. If supplied, `gof(p)` is the data goodness-of-fit statistic;
-JuFitter adds quadratic contributions and dimensions from Gaussian parameter
+ScientificFitting adds quadratic contributions and dimensions from Gaussian parameter
 priors and constraints.
 
 ```@docs
-JuFitter.fit(::JuFitter.LikelihoodFitProblem)
-JuFitter.fit_custom
-JuFitter.fit_poisson_model
-JuFitter.fit_histogram_model
-JuFitter.fit_histogram_density
-JuFitter.fit_unbinned_model
-JuFitter.fit_extended_unbinned_model
-JuFitter.fit_indexed_model
-JuFitter.fit_multi_model
-JuFitter.LikelihoodFitProblem
+ScientificFitting.fit(::ScientificFitting.LikelihoodFitProblem)
+ScientificFitting.fit_custom
+ScientificFitting.fit_poisson_model
+ScientificFitting.fit_histogram_model
+ScientificFitting.fit_histogram_density
+ScientificFitting.fit_unbinned_model
+ScientificFitting.fit_extended_unbinned_model
+ScientificFitting.fit_indexed_model
+ScientificFitting.fit_multi_model
+ScientificFitting.LikelihoodFitProblem
 ```
 
 ## Constraints And Uncertainty Objects
 
 ```@docs
-JuFitter.ConstraintSpec
-JuFitter.ParameterPrior
-JuFitter.FixedParameter
-JuFitter.ParameterConstraint
-JuFitter.ErrorComponent
-JuFitter.WhiteningOperator
+ScientificFitting.ConstraintSpec
+ScientificFitting.ParameterPrior
+ScientificFitting.FixedParameter
+ScientificFitting.ParameterConstraint
+ScientificFitting.ErrorComponent
+ScientificFitting.WhiteningOperator
 ```

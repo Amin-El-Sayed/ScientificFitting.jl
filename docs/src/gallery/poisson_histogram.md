@@ -24,14 +24,14 @@ T_{1/2} = \frac{\log 2}{\lambda}.
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/poisson_counts_sans_panel_light.png" alt="Radioactive decay count fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/poisson_counts_sans_panel_dark.png" alt="Radioactive decay count fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/poisson_counts_sans_plot_light.png" alt="Radioactive decay count fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/poisson_counts_sans_plot_dark.png" alt="Radioactive decay count fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/poisson_counts_tex_panel_light.png" alt="Radioactive decay count fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/poisson_counts_tex_plot_light.png" alt="Radioactive decay count fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/poisson_counts_tex_panel_dark.png" alt="Radioactive decay count fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="poisson-counts" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/poisson_counts_tex_plot_dark.png" alt="Radioactive decay count fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_sans_panel_light.png" alt="Radioactive decay count fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_sans_panel_dark.png" alt="Radioactive decay count fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_sans_plot_light.png" alt="Radioactive decay count fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_sans_plot_dark.png" alt="Radioactive decay count fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_tex_panel_light.png" alt="Radioactive decay count fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_tex_plot_light.png" alt="Radioactive decay count fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_tex_panel_dark.png" alt="Radioactive decay count fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_tex_plot_dark.png" alt="Radioactive decay count fit in dark tex style without result panel">
 ```
 
 The observed points deliberately have no ``\sqrt n`` error bars. Such bars are
@@ -46,7 +46,7 @@ in steps and is generally not exactly 68%.
 
 The edges of this band are intentionally stepped. Poisson observations are
 integers, so the 16th and 84th percentiles can change only by whole counts as
-``\mu(t)`` varies. JuFitter therefore renders each change as a vertical edge,
+``\mu(t)`` varies. ScientificFitting therefore renders each change as a vertical edge,
 without interpolating through impossible fractional count quantiles. The
 plateaus become wider at late times because the exponential mean approaches
 the background more slowly: ``|\mathrm{d}\mu/\mathrm{d}t|`` decreases. The
@@ -140,7 +140,7 @@ irregular fluctuations and low-count tail expected in a short counting
 experiment.
 
 ```julia
-using JuFitter
+using ScientificFitting
 using Printf
 
 time_min = collect(0.0:1.0:18.0)
@@ -179,8 +179,8 @@ println(diagnostic_dashboard_text(decay_result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>half-life = 4.234 +/- 0.863 min
 background = 0.792 +/- 2.189 counts per 10 s
 deviance/ndf = 1.015
@@ -237,14 +237,14 @@ quantities are peak yield ``N``, centroid ``m``, Gaussian width ``s``, and
 background density ``\rho_B``.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/histogram_likelihood_sans_panel_light.png" alt="Histogram likelihood fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/histogram_likelihood_sans_panel_dark.png" alt="Histogram likelihood fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/histogram_likelihood_sans_plot_light.png" alt="Histogram likelihood fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/histogram_likelihood_sans_plot_dark.png" alt="Histogram likelihood fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/histogram_likelihood_tex_panel_light.png" alt="Histogram likelihood fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/histogram_likelihood_tex_plot_light.png" alt="Histogram likelihood fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/histogram_likelihood_tex_panel_dark.png" alt="Histogram likelihood fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="histogram-likelihood" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/histogram_likelihood_tex_plot_dark.png" alt="Histogram likelihood fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_sans_panel_light.png" alt="Histogram likelihood fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_sans_panel_dark.png" alt="Histogram likelihood fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_sans_plot_light.png" alt="Histogram likelihood fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_sans_plot_dark.png" alt="Histogram likelihood fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_tex_panel_light.png" alt="Histogram likelihood fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_tex_plot_light.png" alt="Histogram likelihood fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_tex_panel_dark.png" alt="Histogram likelihood fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_tex_plot_dark.png" alt="Histogram likelihood fit in dark tex style without result panel">
 ```
 
 The model must return the expected count in each bin, not the density evaluated
@@ -276,7 +276,7 @@ The lower-panel deviance residuals continue to use the original integer counts.
 ## Complete Histogram Fit
 
 ```julia
-using JuFitter
+using ScientificFitting
 using Printf
 using SpecialFunctions
 
@@ -322,8 +322,8 @@ println(diagnostic_dashboard_text(spectrum_result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>peak yield = 213.9 +/- 17.3 events
 centroid = 3.505 +/- 0.103 V
 width = 1.270 +/- 0.100 V

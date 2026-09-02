@@ -1,6 +1,6 @@
 using Distributions
 using ForwardDiff
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using Test
 
@@ -68,17 +68,17 @@ end
         )
         expected_norm = log(pi / 2) + 2 * log(sigma_minus + sigma_plus)
 
-        @test isapprox(JuFitter._prior_minus2loglik(problem, [mean]), expected_norm; atol=1e-14)
+        @test isapprox(ScientificFitting._prior_minus2loglik(problem, [mean]), expected_norm; atol=1e-14)
         @test isapprox(
-            JuFitter._prior_minus2loglik(problem, [mean - sigma_minus]),
-            JuFitter._prior_minus2loglik(problem, [mean + sigma_plus]);
+            ScientificFitting._prior_minus2loglik(problem, [mean - sigma_minus]),
+            ScientificFitting._prior_minus2loglik(problem, [mean + sigma_plus]);
             atol=1e-14,
         )
 
         epsilon = 1e-10
         @test isapprox(
-            JuFitter._prior_minus2loglik(problem, [mean - epsilon]),
-            JuFitter._prior_minus2loglik(problem, [mean + epsilon]);
+            ScientificFitting._prior_minus2loglik(problem, [mean - epsilon]),
+            ScientificFitting._prior_minus2loglik(problem, [mean + epsilon]);
             atol=1e-9,
         )
 
@@ -91,7 +91,7 @@ end
             parameter_priors=(index=1, mean=mean, sigma=0.4),
         )
         @test isapprox(
-            JuFitter._prior_minus2loglik(symmetric, [mean]),
+            ScientificFitting._prior_minus2loglik(symmetric, [mean]),
             log(2pi * 0.4^2);
             atol=1e-14,
         )
@@ -186,17 +186,17 @@ end
         @test isapprox(result.stats.chi2, expected_chi2; atol=2e-8, rtol=2e-8)
         @test result.stats.ndf == length(x)
 
-        cache = JuFitter._prepare_fit_cache(result.problem)
+        cache = ScientificFitting._prepare_fit_cache(result.problem)
         @test length(cache.parameter_constraints) == 1
         @test isapprox(
-            JuFitter._chi2_cost(cache, result.params),
-            JuFitter._chi2_cost(result.problem, result.params);
+            ScientificFitting._chi2_cost(cache, result.params),
+            ScientificFitting._chi2_cost(result.problem, result.params);
             atol=2e-12,
             rtol=2e-12,
         )
         @test isapprox(
-            JuFitter._gaussian_minus2loglik(cache, result.params),
-            JuFitter._gaussian_minus2loglik(result.problem, result.params);
+            ScientificFitting._gaussian_minus2loglik(cache, result.params),
+            ScientificFitting._gaussian_minus2loglik(result.problem, result.params);
             atol=2e-12,
             rtol=2e-12,
         )
@@ -214,9 +214,9 @@ end
         model(x, p) = @. p[1] * x + p[2]^2
         p = [0.9, 1.0]
 
-        problem = JuFitter.FitProblem(model, x, y; p0=p, sigma_y=sigma_y, cov_x=cov_x)
-        cache = JuFitter._prepare_fit_cache(problem)
-        minus2loglik = q -> JuFitter._gaussian_minus2loglik(cache, q)
+        problem = ScientificFitting.FitProblem(model, x, y; p0=p, sigma_y=sigma_y, cov_x=cov_x)
+        cache = ScientificFitting._prepare_fit_cache(problem)
+        minus2loglik = q -> ScientificFitting._gaussian_minus2loglik(cache, q)
 
         function reference_minus2loglik(q)
             dydx = fill(q[1], length(x))

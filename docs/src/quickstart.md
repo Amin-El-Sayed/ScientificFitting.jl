@@ -1,6 +1,6 @@
 # Quickstart
 
-This page is the first complete JuFitter workflow. It is deliberately small, but
+This page is the first complete ScientificFitting workflow. It is deliberately small, but
 it still follows the same logic as a real analysis:
 
 1. define the measured quantities and uncertainties,
@@ -41,7 +41,7 @@ The first model is a straight line:
 U(x) = m x + b.
 ```
 
-For independent Gaussian y uncertainties, JuFitter minimizes
+For independent Gaussian y uncertainties, ScientificFitting minimizes
 
 ```math
 \chi^2(m,b)
@@ -58,11 +58,11 @@ roughly Gaussian and structureless.
 
 ## Complete Code
 
-Run this from the repository root or from any Julia project where JuFitter is
+Run this from the repository root or from any Julia project where ScientificFitting is
 available:
 
 ```julia
-using JuFitter
+using ScientificFitting
 using CairoMakie
 
 # Measured calibration points. sigma_y is the one-standard-deviation
@@ -106,8 +106,8 @@ println(diagnostic_dashboard_text(result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = lsqfit
 converged = true
@@ -140,14 +140,14 @@ Next actions:
 ```
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Quickstart calibration fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_dark.png" alt="Quickstart calibration fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_light.png" alt="Quickstart calibration fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_dark.png" alt="Quickstart calibration fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_light.png" alt="Quickstart calibration fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_light.png" alt="Quickstart calibration fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_dark.png" alt="Quickstart calibration fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="quickstart-linear" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_dark.png" alt="Quickstart calibration fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Quickstart calibration fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_dark.png" alt="Quickstart calibration fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_light.png" alt="Quickstart calibration fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_dark.png" alt="Quickstart calibration fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_light.png" alt="Quickstart calibration fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_light.png" alt="Quickstart calibration fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_dark.png" alt="Quickstart calibration fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_dark.png" alt="Quickstart calibration fit in dark tex style without result panel">
 ```
 
 `show_panel=true` puts the numerical summary beside the axes;
@@ -268,14 +268,14 @@ errors may be misleading. Use profile intervals and contours:
 ```julia
 prof = profile(result, 1; adaptive=true)
 interval = profile_interval(result, 1)
-cont = JuFitter.contour(result, 1, 2; adaptive=true)
+cont = ScientificFitting.contour(result, 1, 2; adaptive=true)
 ```
 
 ## Next Steps
 
 - See [Linear Calibration](gallery/linear_calibration.md) for the same workflow
   as a polished gallery example with generated light/dark plots.
-- See [How JuFitter Works](how_jufitter_works.md) for the object flow behind
+- See [How ScientificFitting Works](how_scientificfitting_works.md) for the object flow behind
   the one-line interface.
 - See [Fitting for Practitioners](fitting_for_practitioners.md) for practical
   troubleshooting rules.

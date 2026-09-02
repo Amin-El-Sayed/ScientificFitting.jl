@@ -1,5 +1,5 @@
 using Distributions
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using SpecialFunctions
 using Statistics

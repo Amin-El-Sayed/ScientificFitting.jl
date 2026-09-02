@@ -101,7 +101,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
                  Int(getproperty(fit_result, :iterations)) : missing
     message = "Converged with LsqFit"
 
-    # LsqFit stores the weighted model Jacobian. JuFitter stores residual
+    # LsqFit stores the weighted model Jacobian. ScientificFitting stores residual
     # Jacobians, hence the sign flip at result construction.
     return params, converged, iterations, message, Matrix{Float64}(fit_result.jacobian)
 end

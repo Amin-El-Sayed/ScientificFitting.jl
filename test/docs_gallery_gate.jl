@@ -32,15 +32,15 @@ function style_groups(text)
     groups = Dict{String,Set{Tuple{String,String,String}}}()
     for img_match in eachmatch(r"<img([^>]+)>", text)
         tag = img_match.captures[1]
-        group_match = match(r"data-jufitter-plot-group=\"([^\"]+)\"", tag)
-        style_match = match(r"data-jufitter-plot-style=\"([^\"]+)\"", tag)
+        group_match = match(r"data-scientificfitting-plot-group=\"([^\"]+)\"", tag)
+        style_match = match(r"data-scientificfitting-plot-style=\"([^\"]+)\"", tag)
         src_match = match(r"src=\"([^\"]+)\"", tag)
         any(isnothing, (group_match, style_match, src_match)) && continue
 
         group = group_match.captures[1]
         style = style_match.captures[1]
         src = src_match.captures[1]
-        panel_match = match(r"data-jufitter-plot-panel=\"([^\"]+)\"", tag)
+        panel_match = match(r"data-scientificfitting-plot-panel=\"([^\"]+)\"", tag)
         panel = isnothing(panel_match) ? "" : panel_match.captures[1]
         appearance = occursin("_dark", src) ? "dark" : occursin("_light", src) ? "light" : ""
         get!(groups, group, Set{Tuple{String,String,String}}())
@@ -75,7 +75,7 @@ end
             @test has_any(text, [r"^## Data"m, r"^## The Measurement"m])
             @test has_any(text, [r"^## .*Model"m, r"^## .*Cost"m, r"^## Poisson Likelihood"m])
             @test has_any(text, [r"```julia"m, r"^## Complete .*Code"m, r"^## Complete .*Fit"m])
-            @test occursin("jufitter-cell-output", text)
+            @test occursin("scientificfitting-cell-output", text)
             @test occursin("Fit diagnostic dashboard", text)
             @test has_any(text, [r"^## Diagnostics"m, r"^## What To Inspect"m, r"^## Diagnose"m])
             @test has_any(text, [r"^## Interpretation"m, r"^## Decision"m, r"^## Read "m, r"^## Reading "m, r"^## Why Compare"m])
@@ -183,14 +183,14 @@ end
     @test occursin("1\\ \\mathrm{mm}", resonance)
     @test occursin("chi2/ndf = 0.248081", resonance)
     @test occursin("status = review - inspect diagnostics", resonance)
-    @test occursin("JUFITTER_RENDER_DOC_ASSETS", resonance_script)
+    @test occursin("SCIENTIFICFITTING_RENDER_DOC_ASSETS", resonance_script)
     @test !occursin("h_fit = me *", photoelectric)
     @test !occursin("examples/gallery/09_docs_gallery_suite.jl", photoelectric)
 
     constraints = read(joinpath(GALLERY_SRC, "constraints_profiles.md"), String)
     @test occursin("using CairoMakie", constraints)
     @test occursin("response = [", constraints)
-    @test occursin("JuFitter.contour(", constraints)
+    @test occursin("ScientificFitting.contour(", constraints)
     @test occursin("plot_profile_matrix(profile_overview)", constraints)
     @test occursin("amplitude_profile = amplitude_interval.profile_result", constraints)
     @test !occursin("residual_pattern", constraints)
@@ -204,8 +204,8 @@ end
         gallery_generator,
     )
     @test !occursin("h_fit = emission_slope *", gallery_generator)
-    @test occursin("JUFITTER_RENDER_DOC_ASSETS", gallery_generator)
-    @test occursin("JUFITTER_DOC_ASSET_GROUP", gallery_generator)
+    @test occursin("SCIENTIFICFITTING_RENDER_DOC_ASSETS", gallery_generator)
+    @test occursin("SCIENTIFICFITTING_DOC_ASSET_GROUP", gallery_generator)
     @test occursin("observed_density = counts ./ widths", gallery_generator)
     @test occursin("expected_density = expected ./ widths", gallery_generator)
     @test !occursin("background = result.params[4] .* widths", gallery_generator)
@@ -223,7 +223,7 @@ end
         String,
     )
     @test occursin("const MULTI_RENDER_DOC_ASSETS", multi_dataset_script)
-    @test occursin("get(ENV, \"JUFITTER_RENDER_DOC_ASSETS\", \"0\") == \"1\"", multi_dataset_script)
+    @test occursin("get(ENV, \"SCIENTIFICFITTING_RENDER_DOC_ASSETS\", \"0\") == \"1\"", multi_dataset_script)
     @test occursin("nested_pvalue = ccdf(Chisq(1), delta_chi2)", multi_dataset_script)
     @test !occursin("pattern_a", multi_dataset_script)
 
@@ -239,5 +239,5 @@ end
         joinpath(ROOT, "examples", "gallery", "05_constraints_priors_profiles.jl"),
         String,
     )
-    @test occursin("JuFitter.contour(", constraints_script)
+    @test occursin("ScientificFitting.contour(", constraints_script)
 end

@@ -1,4 +1,4 @@
-using JuFitter
+using ScientificFitting
 using CairoMakie: Axis, Figure, Label, errorbars!, save, scatter!, with_theme
 using LaTeXStrings
 using Test
@@ -379,7 +379,7 @@ using Test
     )
     @test latex_figure !== nothing
     @test fit_axis(quick.figure).xlabel[] == "x / s"
-    @test JuFitter._strip_math_delims(String(fit_axis(latex_figure).xlabel[])) ==
+    @test ScientificFitting._strip_math_delims(String(fit_axis(latex_figure).xlabel[])) ==
           "\\nu\\,/\\,\\mathrm{THz}"
 
     mktemp() do _, report_stream
@@ -391,7 +391,7 @@ using Test
         @test occursin("Fit report", read(report_stream, String))
     end
 
-    plotting_extension = Base.get_extension(JuFitter, :JuFitterCairoMakieExt)
+    plotting_extension = Base.get_extension(ScientificFitting, :ScientificFittingCairoMakieExt)
     @test plotting_extension !== nothing
     @test isnothing(plotting_extension._validate_panel_status_mode(:issues))
     @test isnothing(plotting_extension._validate_panel_status_mode(:all))

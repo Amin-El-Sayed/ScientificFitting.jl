@@ -1,8 +1,8 @@
 (function () {
   const allowedThemes = new Set(["documenter-light", "documenter-dark"]);
   const themeStorageKey = "documenter-theme";
-  const plotStyleStorageKey = "jufitter-plot-style";
-  const plotPanelStorageKey = "jufitter-plot-panel";
+  const plotStyleStorageKey = "scientificfitting-plot-style";
+  const plotPanelStorageKey = "scientificfitting-plot-panel";
   const themeLabels = {
     "documenter-light": "light",
     "documenter-dark": "dark",
@@ -74,14 +74,14 @@
   }
 
   function buildThemePicker(anchor) {
-    if (document.querySelector(".jufitter-theme-control")) return;
+    if (document.querySelector(".scientificfitting-theme-control")) return;
 
     const label = document.createElement("label");
-    label.className = "jufitter-toolbar-control jufitter-theme-control";
+    label.className = "scientificfitting-toolbar-control scientificfitting-theme-control";
     label.textContent = "Theme";
 
     const select = document.createElement("select");
-    select.className = "jufitter-toolbar-select jufitter-theme-select";
+    select.className = "scientificfitting-toolbar-select scientificfitting-theme-select";
     for (const theme of allowedThemes) {
       const option = document.createElement("option");
       option.value = theme;
@@ -141,14 +141,14 @@
   }
 
   function buildPlotStylePicker(anchor) {
-    if (document.querySelector(".jufitter-plot-style-control")) return;
+    if (document.querySelector(".scientificfitting-plot-style-control")) return;
 
     const label = document.createElement("label");
-    label.className = "jufitter-toolbar-control jufitter-plot-style-control";
+    label.className = "scientificfitting-toolbar-control scientificfitting-plot-style-control";
     label.textContent = "Plot style";
 
     const select = document.createElement("select");
-    select.className = "jufitter-toolbar-select jufitter-plot-style-select";
+    select.className = "scientificfitting-toolbar-select scientificfitting-plot-style-select";
     for (const style of plotStyles) {
       const option = document.createElement("option");
       option.value = style;
@@ -171,14 +171,14 @@
   }
 
   function buildPlotPanelPicker(anchor) {
-    if (document.querySelector(".jufitter-plot-panel-control")) return;
+    if (document.querySelector(".scientificfitting-plot-panel-control")) return;
 
     const label = document.createElement("label");
-    label.className = "jufitter-toolbar-control jufitter-plot-panel-control";
+    label.className = "scientificfitting-toolbar-control scientificfitting-plot-panel-control";
     label.textContent = "Result panel";
 
     const select = document.createElement("select");
-    select.className = "jufitter-toolbar-select jufitter-plot-panel-select";
+    select.className = "scientificfitting-toolbar-select scientificfitting-plot-panel-select";
     for (const panel of plotPanels) {
       const option = document.createElement("option");
       option.value = panel;
@@ -203,42 +203,42 @@
   function applyPlotSelection(style, panel) {
     const selected = plotStyles.includes(style) ? style : defaultPlotStyle;
     const selectedPanel = plotPanels.includes(panel) ? panel : defaultPlotPanel;
-    document.documentElement.dataset.jufitterPlotStyle = selected;
-    document.documentElement.dataset.jufitterPlotPanel = selectedPanel;
-    document.documentElement.classList.add("jufitter-js-plot-style-ready");
+    document.documentElement.dataset.scientificfittingPlotStyle = selected;
+    document.documentElement.dataset.scientificfittingPlotPanel = selectedPanel;
+    document.documentElement.classList.add("scientificfitting-js-plot-style-ready");
 
-    document.querySelectorAll(".jufitter-plot-style-select").forEach((select) => {
+    document.querySelectorAll(".scientificfitting-plot-style-select").forEach((select) => {
       select.value = selected;
     });
-    document.querySelectorAll(".jufitter-plot-panel-select").forEach((select) => {
+    document.querySelectorAll(".scientificfitting-plot-panel-select").forEach((select) => {
       select.value = selectedPanel;
     });
 
     const groups = new Map();
-    document.querySelectorAll("[data-jufitter-plot-group][data-jufitter-plot-style]").forEach((node) => {
-      const group = node.getAttribute("data-jufitter-plot-group");
+    document.querySelectorAll("[data-scientificfitting-plot-group][data-scientificfitting-plot-style]").forEach((node) => {
+      const group = node.getAttribute("data-scientificfitting-plot-group");
       if (!groups.has(group)) groups.set(group, []);
       groups.get(group).push(node);
     });
 
     groups.forEach((nodes) => {
       const selectedNodes = nodes.filter((node) => {
-        const nodePanel = node.getAttribute("data-jufitter-plot-panel");
-        return node.getAttribute("data-jufitter-plot-style") === selected &&
+        const nodePanel = node.getAttribute("data-scientificfitting-plot-panel");
+        return node.getAttribute("data-scientificfitting-plot-style") === selected &&
           (!nodePanel || nodePanel === selectedPanel);
       });
       const fallbackNodes = selectedNodes.length
         ? selectedNodes
         : nodes.filter((node) => {
-            const nodePanel = node.getAttribute("data-jufitter-plot-panel");
-            return node.getAttribute("data-jufitter-plot-style") === defaultPlotStyle &&
+            const nodePanel = node.getAttribute("data-scientificfitting-plot-panel");
+            return node.getAttribute("data-scientificfitting-plot-style") === defaultPlotStyle &&
               (!nodePanel || nodePanel === defaultPlotPanel);
           });
       const visibleNodes = fallbackNodes.length ? fallbackNodes : [nodes[0]];
       const visibleSet = new Set(visibleNodes);
 
       nodes.forEach((node) => {
-        node.classList.toggle("jufitter-style-visible", visibleSet.has(node));
+        node.classList.toggle("scientificfitting-style-visible", visibleSet.has(node));
       });
     });
   }

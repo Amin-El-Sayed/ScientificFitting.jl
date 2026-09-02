@@ -1,6 +1,6 @@
 # Backend Design
 
-This page is the contributor map for JuFitter's numerical core. It explains
+This page is the contributor map for ScientificFitting's numerical core. It explains
 where statistical meaning is established, where numerical work happens, and
 which boundaries must not be blurred. User-facing signatures and defaults are
 documented in the [API Reference](api.md); the statistical derivations are in
@@ -23,7 +23,7 @@ the statistical problem behind it.
 
 ## Two Problem Families
 
-JuFitter has two normalized problem types because a residual vector and a
+ScientificFitting has two normalized problem types because a residual vector and a
 general likelihood do not expose the same information.
 
 | Normalized problem | Scientific payload and public path |
@@ -160,12 +160,12 @@ These are architectural rules, not implementation preferences.
 |---|---|
 | Statistical semantics precede solver choice. | An optimizer cannot silently drop bounds, priors, constraints, or covariance terms. |
 | Covariance is applied by factorization, solves, or a validated whitening operation. | Production cost evaluation does not form an explicit covariance inverse. |
-| Numerical repairs are visible. | Invalid inputs fail; JuFitter does not add hidden diagonal jitter to make a covariance appear usable. |
+| Numerical repairs are visible. | Invalid inputs fail; ScientificFitting does not add hidden diagonal jitter to make a covariance appear usable. |
 | Static work stays outside the hot objective. | Repeated evaluations reuse factors, determinants, and prepared constraint state. |
 | Full and free parameter order have one mapping. | Fixed parameters, callbacks, covariance dimensions, ndf, profiles, and reports remain consistent. |
 | ``-2\log L`` is the likelihood scale. | Hessian covariance, likelihood-ratio thresholds, AIC, and BIC use one convention. |
 | A local covariance is not a coverage guarantee. | Diagnostics expose suspect curvature; profile and contour results remain first-class outputs. |
-| Plotting is optional. | `using JuFitter` provides fitting, reports, diagnostics, and profiles without loading Makie. |
+| Plotting is optional. | `using ScientificFitting` provides fitting, reports, diagnostics, and profiles without loading Makie. |
 
 The durable review and ownership version of these rules lives in the root-level
 `MAINTAINERS.md` file in the source checkout.
@@ -187,7 +187,7 @@ stacks.
 | `diagnostics.jl` | structured findings, severity, evidence, and next actions |
 | `report.jl` | Makie-free report objects and text formatting |
 | `plotting_api.jl` | public plotting boundary and informative fallback methods |
-| `ext/JuFitterCairoMakieExt.jl` plus `plotting.jl` | CairoMakie rendering only |
+| `ext/ScientificFittingCairoMakieExt.jl` plus `plotting.jl` | CairoMakie rendering only |
 
 This map is also a review rule. For example, a plotting feature should not add a
 second statistical calculation, and a new optimizer should not own covariance

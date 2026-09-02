@@ -94,11 +94,11 @@ view. It is computed from the same constrained saturation fit used in the
 the selector in the documentation header changes only the rendering style.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in sans style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark sans style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in tex style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="statistics-profile-matrix" data-jufitter-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark tex style">
-<p class="jufitter-figure-note">Diagonal: refitted one-parameter profiles against the local parabolic approximation. Lower triangle: filled one- and two-sigma profiled regions against dashed local covariance ellipses. Upper triangle: local correlation coefficients.</p>
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in sans style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark sans style">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in tex style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark tex style">
+<p class="scientificfitting-figure-note">Diagonal: refitted one-parameter profiles against the local parabolic approximation. Lower triangle: filled one- and two-sigma profiled regions against dashed local covariance ellipses. Upper triangle: local correlation coefficients.</p>
 ```
 
 Read it in this order:
@@ -129,14 +129,14 @@ signals can invalidate nominal coverage. In critical analyses, calibrate the
 likelihood-ratio statistic with simulation or use a problem-specific exact
 construction.
 
-## JuFitter Workflow
+## ScientificFitting Workflow
 
 Compute profiles and contours from the fitted result so every scan reuses the
 same normalized problem:
 
 ```julia
 interval = profile_interval(result, 1; threshold=1.0)
-pair = JuFitter.contour(result, 1, 2; levels=[2.30, 6.18], adaptive=true)
+pair = ScientificFitting.contour(result, 1, 2; levels=[2.30, 6.18], adaptive=true)
 matrix = profile_matrix(result; parameters=[1, 2, 3], adaptive=true)
 
 profile_findings = diagnose(interval.profile_result)

@@ -1,6 +1,6 @@
 # Documentation Contract
 
-This document defines the durable editorial contract for JuFitter. Current
+This document defines the durable editorial contract for ScientificFitting. Current
 page-level evidence belongs in `RELEASE_AUDIT.md`; this file should not become a
 second progress report.
 
@@ -24,8 +24,8 @@ The site order follows that priority:
    diagnostics and multi-dataset workflows.
 3. Guides.
 4. Mathematics and Statistics.
-5. Reference: API and task-oriented lookup.
-6. Technical Notes: architecture and performance for advanced readers.
+5. Reference: compact API contracts and citation information.
+6. Developer: architecture and performance for maintainers and advanced readers.
 
 The Gallery comes before Guides because many scientists learn fitting by
 recognizing a workflow close to their own experiment. Guides explain general

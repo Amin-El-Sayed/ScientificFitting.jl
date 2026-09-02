@@ -1,4 +1,4 @@
-# JuFitter Test Layout
+# ScientificFitting Test Layout
 
 The test suite is split by purpose, not by implementation file.
 
@@ -30,9 +30,9 @@ The test suite is split by purpose, not by implementation file.
   requires every documented output cell to match both the visible code and its
   plot-generator snapshot exactly. Snapshot mode computes the same fit/report
   values while skipping Makie asset rendering.
-- `python_interop_gate.jl`: opt-in gate for calling JuFitter from Python through
+- `python_interop_gate.jl`: opt-in gate for calling ScientificFitting from Python through
   JuliaCall. The default run passes with an informational note; setting
-  `JUFITTER_RUN_PYTHON_INTEROP=1` requires `python3` and `juliacall` and runs
+  `SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1` requires `python3` and `juliacall` and runs
   `examples/python/fit_from_python.py`.
 - `performance_budget_gate.jl`: steady-state performance gate for representative
   hot paths. It warms compilation first and uses deliberately broad budgets to
@@ -80,7 +80,7 @@ include("test/docs_output_snapshots.jl")
 Run the Python interoperability gate after installing JuliaCall with:
 
 ```bash
-JUFITTER_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_interop_gate.jl
+SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_interop_gate.jl
 ```
 
 If `juliacall` is not installed, leave the environment variable unset; the gate
@@ -97,7 +97,7 @@ Run the performance budget gate with:
 julia --project=. --startup-file=no test/performance_budget_gate.jl
 ```
 
-On intentionally slow CI runners, set `JUFITTER_PERFORMANCE_BUDGET_SCALE` to a
+On intentionally slow CI runners, set `SCIENTIFICFITTING_PERFORMANCE_BUDGET_SCALE` to a
 larger value. Do not use this gate for marketing numbers; use
 `benchmarks/runbenchmarks.jl` for measured benchmark reports.
 

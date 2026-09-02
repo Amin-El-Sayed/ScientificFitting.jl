@@ -1,4 +1,4 @@
-# JuFitter Example Gallery
+# ScientificFitting Example Gallery
 
 Run examples from the repository root:
 
@@ -36,22 +36,22 @@ The damped-oscillator script writes its normal user output only to
 documentation variants with:
 
 ```bash
-JUFITTER_RENDER_DOC_ASSETS=1 \
+SCIENTIFICFITTING_RENDER_DOC_ASSETS=1 \
     julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
 ```
 
 Regenerate the remaining tracked gallery assets intentionally with:
 
 ```bash
-JUFITTER_RENDER_DOC_ASSETS=1 \
+SCIENTIFICFITTING_RENDER_DOC_ASSETS=1 \
     julia --project=docs examples/gallery/09_docs_gallery_suite.jl
 ```
 
 During a page-level review, restrict rendering to one named group, for example:
 
 ```bash
-JUFITTER_RENDER_DOC_ASSETS=1 \
-JUFITTER_DOC_ASSET_GROUP=histogram_likelihood \
+SCIENTIFICFITTING_RENDER_DOC_ASSETS=1 \
+SCIENTIFICFITTING_DOC_ASSET_GROUP=histogram_likelihood \
     julia --project=docs examples/gallery/09_docs_gallery_suite.jl
 ```
 
@@ -63,7 +63,7 @@ JUFITTER_DOC_ASSET_GROUP=histogram_likelihood \
   `diagnostic_dashboard_text(...)`, and verifies that fitting/reporting did not
   load CairoMakie or Makie.
 
-This path is intentionally Julia-backed. JuFitter is not reimplemented in
+This path is intentionally Julia-backed. ScientificFitting is not reimplemented in
 Python; Python calls the Julia fitting/reporting engine through
 `juliacall`.
 

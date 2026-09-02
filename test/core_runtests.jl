@@ -1,6 +1,6 @@
 using Test
 
-@testset "JuFitter core test suite" begin
+@testset "ScientificFitting core test suite" begin
     include("regression/current_api.jl")
     include("statistics/covariance_semantics_reference.jl")
     include("statistics/diagnostics_reference.jl")

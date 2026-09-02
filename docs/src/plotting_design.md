@@ -1,6 +1,6 @@
 # Plotting And Customization
 
-JuFitter's plotting layer is an optional CairoMakie extension. Fitting,
+ScientificFitting's plotting layer is an optional CairoMakie extension. Fitting,
 reporting, diagnostics, profiles, and contours work without Makie; loading
 `CairoMakie` adds the visual interface. A plot always reads an existing fit
 result, so changing a label, style, band, or annotation never changes the
@@ -11,7 +11,7 @@ numerical analysis.
 `fitplot` combines fitting and plotting for notebook work:
 
 ```julia
-using JuFitter
+using ScientificFitting
 using CairoMakie
 
 out = fitplot(
@@ -106,9 +106,9 @@ Both images below contain the same observations, errors, fit, one-sigma
 prediction band, labels, and panel state. Only visual style changes.
 
 ```@raw html
-<div class="jufitter-gallery-grid jufitter-style-grid">
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_sans.png" alt="Calibration plot with sans-serif typography, open axes, and grid guides"><div><h3>sans</h3><p>Sans-serif typography, open axes, filled observations, and light grid guides.</p></div></div>
-<div class="jufitter-gallery-item"><img src="assets/gallery/plot_style_tex.png" alt="Calibration plot with TeX typography, full frame, and hollow observations"><div><h3>tex</h3><p>TeX typography, a full frame, inward ticks, hollow observations, and no grid.</p></div></div>
+<div class="scientificfitting-gallery-grid scientificfitting-style-grid">
+<div class="scientificfitting-gallery-item"><img src="assets/gallery/plot_style_sans.png" alt="Calibration plot with sans-serif typography, open axes, and grid guides"><div><h3>sans</h3><p>Sans-serif typography, open axes, filled observations, and light grid guides.</p></div></div>
+<div class="scientificfitting-gallery-item"><img src="assets/gallery/plot_style_tex.png" alt="Calibration plot with TeX typography, full frame, and hollow observations"><div><h3>tex</h3><p>TeX typography, a full frame, inward ticks, hollow observations, and no grid.</p></div></div>
 </div>
 ```
 
@@ -211,7 +211,7 @@ plot_fit(result; fit_range=:data)             # first to last measured x
 plot_fit(result; xgrid=collect(0.0:0.01:8.0)) # exact requested domain
 ```
 
-With `auto_limits=true`, JuFitter includes data, x/y error bars, the sampled
+With `auto_limits=true`, ScientificFitting includes data, x/y error bars, the sampled
 model curve, and the selected band when it computes limits. `limit_padding`
 controls the fractional breathing room around that content. Use
 `auto_limits=false` only when supplying limits through Makie axis options or
@@ -225,7 +225,7 @@ meaning.
 
 ## Customize Through Makie, Not Around It
 
-The style supplies defaults. Explicit JuFitter keywords override those defaults,
+The style supplies defaults. Explicit ScientificFitting keywords override those defaults,
 and each Makie `*_kwargs` container is applied last:
 
 ```julia
@@ -252,7 +252,7 @@ fig = plot_fit(
 `axis_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`,
 `xerrorbars_kwargs`, `yerrorbars_kwargs`, and `legend_kwargs` accept a
 `NamedTuple` or dictionary of ordinary Makie attributes. `theme_override`
-merges a Makie `Theme` into the selected JuFitter theme when a project needs a
+merges a Makie `Theme` into the selected ScientificFitting theme when a project needs a
 consistent font or axis convention across many figures.
 
 ## Add Scientific Objects After Fitting

@@ -16,14 +16,14 @@ an adequate description of the recorded motion, or whether the data require a
 small additional frequency drift.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator model comparison in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_sans_panel_dark.png" alt="Damped oscillator model comparison in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_sans_plot_light.png" alt="Damped oscillator model comparison in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_sans_plot_dark.png" alt="Damped oscillator model comparison in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_tex_panel_light.png" alt="Damped oscillator model comparison in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_tex_plot_light.png" alt="Damped oscillator model comparison in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_tex_panel_dark.png" alt="Damped oscillator model comparison in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="damped-oscillator" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_tex_plot_dark.png" alt="Damped oscillator model comparison in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator model comparison in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_sans_panel_dark.png" alt="Damped oscillator model comparison in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_sans_plot_light.png" alt="Damped oscillator model comparison in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_sans_plot_dark.png" alt="Damped oscillator model comparison in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_tex_panel_light.png" alt="Damped oscillator model comparison in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_tex_plot_light.png" alt="Damped oscillator model comparison in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_tex_panel_dark.png" alt="Damped oscillator model comparison in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_tex_plot_dark.png" alt="Damped oscillator model comparison in dark tex style without result panel">
 ```
 
 The main panel alone barely distinguishes the two models. The pull panels do:
@@ -130,7 +130,7 @@ narrower cloud indicates conservative uncertainties or correlations between
 samples.
 
 ```julia
-using JuFitter
+using ScientificFitting
 
 function load_damped_oscillator(path)
     rows = readlines(path)[2:end]
@@ -178,8 +178,8 @@ println(diagnostic_dashboard_text(constant_result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = optimization
 converged = true
@@ -227,7 +227,7 @@ P(\chi^2) = 1.77\times 10^{-9}.
 ```
 
 Under the stated independent Gaussian uncertainty model, residuals this
-incompatible with the fit would be extraordinarily unlikely. JuFitter therefore
+incompatible with the fit would be extraordinarily unlikely. ScientificFitting therefore
 returns a critical dashboard status, not `ok`.
 
 The first pull panel explains why. The deviations change coherently over time
@@ -296,8 +296,8 @@ println(diagnostic_dashboard_text(drift_result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = optimization
 converged = true
@@ -379,7 +379,7 @@ P(\chi^2_\mathrm{drift})\approx 1.
 
 That is not evidence of an exceptionally perfect experiment. It suggests that
 the assigned angle uncertainty is conservative, that neighboring samples are
-not independent, or both. JuFitter therefore returns `review`, not `ok`. The
+not independent, or both. ScientificFitting therefore returns `review`, not `ok`. The
 data strongly support an accumulated phase correction, but the local parameter
 errors should not be treated as final until the uncertainty model has been
 validated with instrument specifications or repeated decay records.

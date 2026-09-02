@@ -33,7 +33,7 @@ jobs:
       - name: Performance budget gate
         run: julia --project=. --startup-file=no test/performance_budget_gate.jl
         env:
-          JUFITTER_PERFORMANCE_BUDGET_SCALE: "4.0"
+          SCIENTIFICFITTING_PERFORMANCE_BUDGET_SCALE: "4.0"
 
   package:
     name: Full package test - Julia ${{ matrix.version }} - ubuntu
@@ -63,7 +63,7 @@ jobs:
           version: "1.12"
       - uses: julia-actions/cache@v2
       - name: Instantiate docs
-        run: julia --project=docs -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        run: julia --project=docs -e 'using Pkg; Pkg.instantiate()'
       - name: Source documentation gates
         run: |
           julia --project=. --startup-file=no test/docs_gallery_gate.jl

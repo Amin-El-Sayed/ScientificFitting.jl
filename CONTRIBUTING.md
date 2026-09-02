@@ -1,6 +1,6 @@
 # Contributing
 
-JuFitter welcomes bug reports, scientific examples, documentation corrections,
+ScientificFitting welcomes bug reports, scientific examples, documentation corrections,
 performance evidence, and focused code contributions. The package treats
 statistical meaning and failure behavior as part of the public API.
 
@@ -9,7 +9,7 @@ statistical meaning and failure behavior as part of the public API.
 Please include:
 
 - a minimal executable Julia example;
-- Julia and JuFitter versions;
+- Julia and ScientificFitting versions;
 - the fit entry point, uncertainty model, and solver controls used;
 - the complete error or diagnostic output;
 - small redistributable data, or a synthetic reproduction when the original

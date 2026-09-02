@@ -1,14 +1,14 @@
-const _JF_PAPER = "#ffffff"
-const _JF_PAPER_SOFT = "#fbfcfd"
-const _JF_INK = "#17191f"
-const _JF_MUTED = "#303842"
-const _JF_GRID = "#c8cdd3"
-const _JF_DARK_PAPER = "#111318"
-const _JF_DARK_INK = "#edf2f4"
-const _JF_DARK_MUTED = "#d3dae0"
-const _JF_DARK_GRID = "#73808d"
+const _SF_PAPER = "#ffffff"
+const _SF_PAPER_SOFT = "#fbfcfd"
+const _SF_INK = "#17191f"
+const _SF_MUTED = "#303842"
+const _SF_GRID = "#c8cdd3"
+const _SF_DARK_PAPER = "#111318"
+const _SF_DARK_INK = "#edf2f4"
+const _SF_DARK_MUTED = "#d3dae0"
+const _SF_DARK_GRID = "#73808d"
 
-const _JF_STYLE_ALIASES = Dict(
+const _SF_STYLE_ALIASES = Dict(
     :analysis => :sans,
     :presentation => :sans,
     :screen => :sans,
@@ -28,7 +28,7 @@ function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     appearance in (:auto, :light, :dark) ||
         throw(ArgumentError("appearance must be :auto, :light, or :dark"))
 
-    style = get(_JF_STYLE_ALIASES, theme, theme)
+    style = get(_SF_STYLE_ALIASES, theme, theme)
     style in (:sans, :tex) ||
         throw(ArgumentError(
             "theme must be :sans, :tex, or a supported legacy alias",
@@ -38,11 +38,11 @@ end
 
 function _style_preset(style::Symbol, appearance::Symbol)
     dark = appearance == :dark
-    paper = dark ? _JF_DARK_PAPER : _JF_PAPER
-    ink = dark ? _JF_DARK_INK : _JF_INK
-    grid = dark ? _JF_DARK_GRID : _JF_GRID
-    box = dark ? "#1b2027" : _JF_PAPER_SOFT
-    box_stroke = dark ? "#65717d" : _JF_GRID
+    paper = dark ? _SF_DARK_PAPER : _SF_PAPER
+    ink = dark ? _SF_DARK_INK : _SF_INK
+    grid = dark ? _SF_DARK_GRID : _SF_GRID
+    box = dark ? "#1b2027" : _SF_PAPER_SOFT
+    box_stroke = dark ? "#65717d" : _SF_GRID
 
     if style == :sans
         # Screen-oriented sans typography, open axes, and light grid guides.
@@ -252,7 +252,7 @@ end
 """
     plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
 
-Return the Makie theme used by JuFitter plots. Use this when composing a custom
+Return the Makie theme used by ScientificFitting plots. Use this when composing a custom
 Makie figure that should remain visually consistent with `plot_fit`.
 """
 function plot_theme(
@@ -267,7 +267,7 @@ end
 """
     plot_palette(theme=:sans; appearance=:auto)
 
-Return the visual tokens used by a JuFitter plot style. Besides data, fit,
+Return the visual tokens used by a ScientificFitting plot style. Besides data, fit,
 uncertainty-band, and error-bar defaults, the result exposes typography,
 layout, and color-safe multi-series tokens for custom Makie figures.
 """
@@ -661,11 +661,11 @@ function _draw_inside_stats!(
     stats_lines;
     position::Symbol=:lt,
     fontsize::Real=16,
-    box_color=_JF_PAPER_SOFT,
+    box_color=_SF_PAPER_SOFT,
     box_alpha::Real=0.90,
-    box_strokecolor=_JF_GRID,
+    box_strokecolor=_SF_GRID,
     box_strokewidth::Real=1.0,
-    text_color=_JF_INK,
+    text_color=_SF_INK,
 )
     x, y, width, height, halign, valign = _stats_box_geometry(stats_lines; position=position)
     rect = Point2f[
@@ -1358,7 +1358,7 @@ end
 """
     fit_axis(figure; index=1)
 
-Return the `index`-th Makie `Axis` stored in a JuFitter figure.
+Return the `index`-th Makie `Axis` stored in a ScientificFitting figure.
 
 This is a small convenience for post-fit annotation workflows:
 `fig = plot_fit(result); ax = fit_axis(fig); add_vline!(ax, x0)`. It searches
@@ -1440,7 +1440,7 @@ end
     add_vline!(axis, x; label=nothing, kwargs...)
 
 Add vertical reference line(s) to an existing axis. This wraps Makie's
-`vlines!` with JuFitter-style argument validation.
+`vlines!` with ScientificFitting-style argument validation.
 """
 function add_vline!(axis::Axis, x; label=nothing, kwargs...)
     xs = _finite_annotation_vector("x", x; min_length=1)
@@ -1451,7 +1451,7 @@ end
     add_hline!(axis, y; label=nothing, kwargs...)
 
 Add horizontal reference line(s) to an existing axis. This wraps Makie's
-`hlines!` with JuFitter-style argument validation.
+`hlines!` with ScientificFitting-style argument validation.
 """
 function add_hline!(axis::Axis, y; label=nothing, kwargs...)
     ys = _finite_annotation_vector("y", y; min_length=1)
@@ -1515,7 +1515,7 @@ function _panel_status_color(status::Symbol, appearance::Symbol)
     dark = appearance == :dark
     status == :stop && return dark ? "#ff8a80" : "#a33a2b"
     status == :review && return dark ? "#d3dae0" : "#4b5560"
-    return dark ? _JF_DARK_MUTED : _JF_MUTED
+    return dark ? _SF_DARK_MUTED : _SF_MUTED
 end
 
 function _panel_status_label(status::Symbol)

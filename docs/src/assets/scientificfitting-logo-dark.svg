@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" role="img" aria-labelledby="title">
+  <title id="title">ScientificFitting</title>
+  <g transform="translate(8 8) scale(.80)">
+    <g transform="rotate(-25 128 128)">
+      <ellipse cx="128" cy="128" rx="90" ry="51" fill="#8fb4ff" fill-opacity="0.16"/>
+      <ellipse cx="128" cy="128" rx="55" ry="29" fill="#8fb4ff" fill-opacity="0.34"/>
+    </g>
+    <g fill="none" stroke="#edf2f4" stroke-width="7.5" stroke-linecap="butt">
+      <path d="M54 128 H202 M54 114 V142 M202 114 V142"/>
+      <path d="M128 78 V178 M114 78 H142 M114 178 H142"/>
+    </g>
+    <circle cx="128" cy="128" r="11" fill="#8fb4ff" stroke="#111318" stroke-width="4.5"/>
+  </g>
+  <text x="225" y="142" fill="#edf2f4" font-family="Lato, Avenir Next, Helvetica Neue, Arial, sans-serif"
+        font-size="91" letter-spacing="-3">
+    <tspan font-weight="600">Scientific</tspan><tspan font-weight="800">Fitting</tspan>
+  </text>
+</svg>

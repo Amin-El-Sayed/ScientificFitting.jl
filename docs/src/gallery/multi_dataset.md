@@ -9,14 +9,14 @@ channels may use one common gain. The answer is no: channels A and B are
 compatible, while channel C requires a separate gain.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_sans_panel_light.png" alt="Multi-dataset calibration transfer in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_sans_panel_dark.png" alt="Multi-dataset calibration transfer in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_sans_plot_light.png" alt="Multi-dataset calibration transfer in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_sans_plot_dark.png" alt="Multi-dataset calibration transfer in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_tex_panel_light.png" alt="Multi-dataset calibration transfer in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_tex_plot_light.png" alt="Multi-dataset calibration transfer in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_tex_panel_dark.png" alt="Multi-dataset calibration transfer in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="multi-dataset" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_tex_plot_dark.png" alt="Multi-dataset calibration transfer in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_sans_panel_light.png" alt="Multi-dataset calibration transfer in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_sans_panel_dark.png" alt="Multi-dataset calibration transfer in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_sans_plot_light.png" alt="Multi-dataset calibration transfer in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_sans_plot_dark.png" alt="Multi-dataset calibration transfer in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_tex_panel_light.png" alt="Multi-dataset calibration transfer in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_tex_plot_light.png" alt="Multi-dataset calibration transfer in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_tex_panel_dark.png" alt="Multi-dataset calibration transfer in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_tex_plot_dark.png" alt="Multi-dataset calibration transfer in dark tex style without result panel">
 ```
 
 The solid lines show the accepted partial-sharing model. The dashed lines show
@@ -120,7 +120,7 @@ Channels A and B share ``g_{AB}``; channel C has its own ``g_C``.
 
 ```julia
 using Distributions
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using Printf
 
@@ -201,8 +201,8 @@ println(diagnostic_dashboard_text(partial_shared_result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>All-shared-gain hypothesis
 Fit report
 backend = optimization

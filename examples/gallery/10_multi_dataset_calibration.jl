@@ -1,29 +1,29 @@
-const MULTI_SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
+const MULTI_SNAPSHOT_ONLY = get(ENV, "SCIENTIFICFITTING_DOC_SNAPSHOT_ONLY", "0") == "1"
 const MULTI_RENDER_PLOTS = !MULTI_SNAPSHOT_ONLY
 const MULTI_RENDER_DOC_ASSETS = MULTI_RENDER_PLOTS &&
-    get(ENV, "JUFITTER_RENDER_DOC_ASSETS", "0") == "1"
+    get(ENV, "SCIENTIFICFITTING_RENDER_DOC_ASSETS", "0") == "1"
 
 if MULTI_RENDER_PLOTS
     using CairoMakie
 end
 
 using Distributions
-using JuFitter
+using ScientificFitting
 using LaTeXStrings
 using LinearAlgebra
 using Printf
 
 const MULTI_OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
 const MULTI_DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
-const MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
+const MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const MULTI_PX_PER_UNIT = 2.0
 
 function emit_multi_doc_output_snapshot(body::Function, id::AbstractString)
     MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
 
-    println("=== JUFITTER_DOC_OUTPUT_BEGIN ", id, " ===")
+    println("=== SCIENTIFICFITTING_DOC_OUTPUT_BEGIN ", id, " ===")
     body()
-    println("=== JUFITTER_DOC_OUTPUT_END ", id, " ===")
+    println("=== SCIENTIFICFITTING_DOC_OUTPUT_END ", id, " ===")
     return nothing
 end
 

@@ -1,100 +1,100 @@
-# How JuFitter Works
+# How ScientificFitting Works
 
-JuFitter is built around one rule: statistical assumptions become explicit
+ScientificFitting is built around one rule: statistical assumptions become explicit
 problem objects before a solver is selected. Reports, diagnostics, profiles,
 and plots then read the fitted result instead of reconstructing the analysis.
 This makes the one-line interface and the low-level API two views of the same
 pipeline.
 
 ```@raw html
-<div class="jufitter-fit-flow" aria-label="JuFitter fit pipeline" data-flow-direction="top-to-bottom">
-  <div class="jufitter-fit-track">
-    <section class="jufitter-fit-stage api">
-      <div class="jufitter-fit-stage-head">
-        <span class="jufitter-fit-step">01</span>
-        <div><div class="jufitter-fit-stage-title">Define the scientific problem</div><span>Public API</span></div>
+<div class="scientificfitting-fit-flow" aria-label="ScientificFitting fit pipeline" data-flow-direction="top-to-bottom">
+  <div class="scientificfitting-fit-track">
+    <section class="scientificfitting-fit-stage api">
+      <div class="scientificfitting-fit-stage-head">
+        <span class="scientificfitting-fit-step">01</span>
+        <div><div class="scientificfitting-fit-stage-title">Define the scientific problem</div><span>Public API</span></div>
       </div>
-      <div class="jufitter-fit-stage-body">
-        <div class="jufitter-fit-branch four">
-          <div class="jufitter-fit-node">observations <span>x/y values, counts, bins, or samples</span></div>
-          <div class="jufitter-fit-node">model <span>Julia function and starting parameters</span></div>
-          <div class="jufitter-fit-node">uncertainty or sampling law <span>standard deviations, covariance, whitening, or likelihood</span></div>
-          <div class="jufitter-fit-node">parameter control <span>fixed values, bounds, priors, and constraints</span></div>
+      <div class="scientificfitting-fit-stage-body">
+        <div class="scientificfitting-fit-branch four">
+          <div class="scientificfitting-fit-node">observations <span>x/y values, counts, bins, or samples</span></div>
+          <div class="scientificfitting-fit-node">model <span>Julia function and starting parameters</span></div>
+          <div class="scientificfitting-fit-node">uncertainty or sampling law <span>standard deviations, covariance, whitening, or likelihood</span></div>
+          <div class="scientificfitting-fit-node">parameter control <span>fixed values, bounds, priors, and constraints</span></div>
         </div>
-        <div class="jufitter-fit-merge">normalized problem <span><code>FitProblem</code> or <code>LikelihoodFitProblem</code></span></div>
+        <div class="scientificfitting-fit-merge">normalized problem <span><code>FitProblem</code> or <code>LikelihoodFitProblem</code></span></div>
       </div>
     </section>
-    <div class="jufitter-fit-arrow" aria-hidden="true">↓</div>
-    <section class="jufitter-fit-stage check">
-      <div class="jufitter-fit-stage-head">
-        <span class="jufitter-fit-step">02</span>
-        <div><div class="jufitter-fit-stage-title">Validate before optimization</div><span>Scientific input checks</span></div>
+    <div class="scientificfitting-fit-arrow" aria-hidden="true">↓</div>
+    <section class="scientificfitting-fit-stage check">
+      <div class="scientificfitting-fit-stage-head">
+        <span class="scientificfitting-fit-step">02</span>
+        <div><div class="scientificfitting-fit-stage-title">Validate before optimization</div><span>Scientific input checks</span></div>
       </div>
-      <div class="jufitter-fit-stage-body">
-        <div class="jufitter-fit-branch">
-          <div class="jufitter-fit-node">dimensions and mappings <span>matching observations, model output, and parameter indices</span></div>
-          <div class="jufitter-fit-node">finite physical inputs <span>data, starts, bounds, errors, and model predictions</span></div>
-          <div class="jufitter-fit-node">valid uncertainty structures <span>positive σ and factorizable covariance or operator output</span></div>
+      <div class="scientificfitting-fit-stage-body">
+        <div class="scientificfitting-fit-branch">
+          <div class="scientificfitting-fit-node">dimensions and mappings <span>matching observations, model output, and parameter indices</span></div>
+          <div class="scientificfitting-fit-node">finite physical inputs <span>data, starts, bounds, errors, and model predictions</span></div>
+          <div class="scientificfitting-fit-node">valid uncertainty structures <span>positive σ and factorizable covariance or operator output</span></div>
         </div>
-        <div class="jufitter-fit-stop">Invalid scientific input stops here with an actionable error.</div>
+        <div class="scientificfitting-fit-stop">Invalid scientific input stops here with an actionable error.</div>
       </div>
     </section>
-    <div class="jufitter-fit-arrow" aria-hidden="true">↓</div>
-    <section class="jufitter-fit-stage stats">
-      <div class="jufitter-fit-stage-head">
-        <span class="jufitter-fit-step">03</span>
-        <div><div class="jufitter-fit-stage-title">Construct one objective</div><span>Statistical model</span></div>
+    <div class="scientificfitting-fit-arrow" aria-hidden="true">↓</div>
+    <section class="scientificfitting-fit-stage stats">
+      <div class="scientificfitting-fit-stage-head">
+        <span class="scientificfitting-fit-step">03</span>
+        <div><div class="scientificfitting-fit-stage-title">Construct one objective</div><span>Statistical model</span></div>
       </div>
-      <div class="jufitter-fit-stage-body">
-        <div class="jufitter-fit-branch">
-          <div class="jufitter-fit-node">Gaussian residual cost <span>diagonal weights, covariance factorization, or whitening operator</span></div>
-          <div class="jufitter-fit-node">likelihood cost <span>Poisson, histogram, unbinned, extended, indexed, or custom</span></div>
-          <div class="jufitter-fit-node">additive parameter information <span>Gaussian priors and correlated parameter constraints</span></div>
+      <div class="scientificfitting-fit-stage-body">
+        <div class="scientificfitting-fit-branch">
+          <div class="scientificfitting-fit-node">Gaussian residual cost <span>diagonal weights, covariance factorization, or whitening operator</span></div>
+          <div class="scientificfitting-fit-node">likelihood cost <span>Poisson, histogram, unbinned, extended, indexed, or custom</span></div>
+          <div class="scientificfitting-fit-node">additive parameter information <span>Gaussian priors and correlated parameter constraints</span></div>
         </div>
-        <div class="jufitter-fit-merge">objective <span><code>C(p)</code>; bounds and fixed parameters restrict the parameter space rather than adding a penalty</span></div>
+        <div class="scientificfitting-fit-merge">objective <span><code>C(p)</code>; bounds and fixed parameters restrict the parameter space rather than adding a penalty</span></div>
       </div>
     </section>
-    <div class="jufitter-fit-arrow" aria-hidden="true">↓</div>
-    <section class="jufitter-fit-stage solver">
-      <div class="jufitter-fit-stage-head">
-        <span class="jufitter-fit-step">04</span>
-        <div><div class="jufitter-fit-stage-title">Dispatch a compatible solver</div><span>Numerical backend</span></div>
+    <div class="scientificfitting-fit-arrow" aria-hidden="true">↓</div>
+    <section class="scientificfitting-fit-stage solver">
+      <div class="scientificfitting-fit-stage-head">
+        <span class="scientificfitting-fit-step">04</span>
+        <div><div class="scientificfitting-fit-stage-title">Dispatch a compatible solver</div><span>Numerical backend</span></div>
       </div>
-      <div class="jufitter-fit-stage-body">
-        <div class="jufitter-fit-branch two">
-          <div class="jufitter-fit-node"><code>LsqFit</code> fast path <span>static, unconstrained Gaussian least squares</span></div>
-          <div class="jufitter-fit-node"><code>Optimization.jl</code> path <span>bounds, parameter-dependent uncertainty, priors, constraints, and likelihoods</span></div>
+      <div class="scientificfitting-fit-stage-body">
+        <div class="scientificfitting-fit-branch two">
+          <div class="scientificfitting-fit-node"><code>LsqFit</code> fast path <span>static, unconstrained Gaussian least squares</span></div>
+          <div class="scientificfitting-fit-node"><code>Optimization.jl</code> path <span>bounds, parameter-dependent uncertainty, priors, constraints, and likelihoods</span></div>
         </div>
-        <div class="jufitter-fit-note">Explicitly incompatible backend requests fail instead of silently dropping statistical terms.</div>
+        <div class="scientificfitting-fit-note">Explicitly incompatible backend requests fail instead of silently dropping statistical terms.</div>
       </div>
     </section>
-    <div class="jufitter-fit-arrow" aria-hidden="true">↓</div>
-    <section class="jufitter-fit-stage result">
-      <div class="jufitter-fit-stage-head">
-        <span class="jufitter-fit-step">05</span>
-        <div><div class="jufitter-fit-stage-title">Build the fitted result</div><span>Single source of truth</span></div>
+    <div class="scientificfitting-fit-arrow" aria-hidden="true">↓</div>
+    <section class="scientificfitting-fit-stage result">
+      <div class="scientificfitting-fit-stage-head">
+        <span class="scientificfitting-fit-step">05</span>
+        <div><div class="scientificfitting-fit-stage-title">Build the fitted result</div><span>Single source of truth</span></div>
       </div>
-      <div class="jufitter-fit-stage-body">
-        <div class="jufitter-fit-branch">
-          <div class="jufitter-fit-node">minimum and parameters <span>solver status and best-fit values</span></div>
-          <div class="jufitter-fit-node">local uncertainty <span>Jacobian/Hessian covariance and correlations</span></div>
-          <div class="jufitter-fit-node">fit statistics <span>residuals, cost, ndf, p-value, AIC/BIC where meaningful</span></div>
+      <div class="scientificfitting-fit-stage-body">
+        <div class="scientificfitting-fit-branch">
+          <div class="scientificfitting-fit-node">minimum and parameters <span>solver status and best-fit values</span></div>
+          <div class="scientificfitting-fit-node">local uncertainty <span>Jacobian/Hessian covariance and correlations</span></div>
+          <div class="scientificfitting-fit-node">fit statistics <span>residuals, cost, ndf, p-value, AIC/BIC where meaningful</span></div>
         </div>
-        <div class="jufitter-fit-merge"><code>FitResult</code> or <code>LikelihoodFitResult</code></div>
+        <div class="scientificfitting-fit-merge"><code>FitResult</code> or <code>LikelihoodFitResult</code></div>
       </div>
     </section>
-    <div class="jufitter-fit-arrow" aria-hidden="true">↓</div>
-    <section class="jufitter-fit-stage output">
-      <div class="jufitter-fit-stage-head">
-        <span class="jufitter-fit-step">06</span>
-        <div><div class="jufitter-fit-stage-title">Inspect and communicate</div><span>Post-fit tools</span></div>
+    <div class="scientificfitting-fit-arrow" aria-hidden="true">↓</div>
+    <section class="scientificfitting-fit-stage output">
+      <div class="scientificfitting-fit-stage-head">
+        <span class="scientificfitting-fit-step">06</span>
+        <div><div class="scientificfitting-fit-stage-title">Inspect and communicate</div><span>Post-fit tools</span></div>
       </div>
-      <div class="jufitter-fit-stage-body">
-        <div class="jufitter-fit-branch four">
-          <div class="jufitter-fit-node"><code>report_text</code> <span>reproducible numerical summary</span></div>
-          <div class="jufitter-fit-node"><code>diagnose</code> <span>structured findings and next actions</span></div>
-          <div class="jufitter-fit-node"><code>profile</code> / <code>contour</code> <span>controlled refits away from the minimum</span></div>
-          <div class="jufitter-fit-node optional"><code>plot_fit</code> and Makie tools <span>optional CairoMakie extension</span></div>
+      <div class="scientificfitting-fit-stage-body">
+        <div class="scientificfitting-fit-branch four">
+          <div class="scientificfitting-fit-node"><code>report_text</code> <span>reproducible numerical summary</span></div>
+          <div class="scientificfitting-fit-node"><code>diagnose</code> <span>structured findings and next actions</span></div>
+          <div class="scientificfitting-fit-node"><code>profile</code> / <code>contour</code> <span>controlled refits away from the minimum</span></div>
+          <div class="scientificfitting-fit-node optional"><code>plot_fit</code> and Makie tools <span>optional CairoMakie extension</span></div>
         </div>
       </div>
     </section>
@@ -143,7 +143,7 @@ summary = report_text(result)
 
 ## What Happens Internally
 
-For Gaussian fits, JuFitter builds residuals and turns uncertainty assumptions
+For Gaussian fits, ScientificFitting builds residuals and turns uncertainty assumptions
 into a weighted cost. Independent errors divide residuals by their standard
 deviation. Dense covariance is handled by factorization and whitening:
 
@@ -169,7 +169,7 @@ For large structured covariance, a `WhiteningOperator` supplies the equivalent
 ``L^{-1}`` action without storing the dense matrix. The statistical cost is the
 same; only the representation and asymptotic scaling change.
 
-For likelihood fits, JuFitter minimizes the appropriate ``-2\log L`` objective
+For likelihood fits, ScientificFitting minimizes the appropriate ``-2\log L`` objective
 or deviance. This common scale makes likelihood-ratio thresholds, Hessian
 covariance, and information criteria use one convention throughout the
 package. Poisson and histogram workflows do not invent Gaussian error bars for

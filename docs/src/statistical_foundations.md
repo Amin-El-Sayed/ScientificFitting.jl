@@ -2,7 +2,7 @@
 
 Fitting is not primarily an optimization problem. The optimizer finds a
 minimum; the probability model determines what that minimum means. This section
-derives the statistical quantities used by JuFitter, states their assumptions,
+derives the statistical quantities used by ScientificFitting, states their assumptions,
 and explains what must be checked before a result is reported.
 
 ## Choose A Reading Path
@@ -29,12 +29,12 @@ For complete executable analyses, use the [Gallery](gallery.md).
 Every fit combines five distinct objects:
 
 ```@raw html
-<div class="jufitter-flow">
-  <div class="jufitter-flow-step"><strong>Observations</strong><span>What was recorded, and under which sampling process?</span></div>
-  <div class="jufitter-flow-step"><strong>Model</strong><span>What mean, density, or event rate does physics predict?</span></div>
-  <div class="jufitter-flow-step"><strong>Uncertainty</strong><span>Which fluctuations are independent, correlated, or external?</span></div>
-  <div class="jufitter-flow-step"><strong>Cost</strong><span>Which likelihood or quadratic form follows from those assumptions?</span></div>
-  <div class="jufitter-flow-step"><strong>Inference</strong><span>Which estimates, intervals, tests, and diagnostics are justified?</span></div>
+<div class="scientificfitting-flow">
+  <div class="scientificfitting-flow-step"><strong>Observations</strong><span>What was recorded, and under which sampling process?</span></div>
+  <div class="scientificfitting-flow-step"><strong>Model</strong><span>What mean, density, or event rate does physics predict?</span></div>
+  <div class="scientificfitting-flow-step"><strong>Uncertainty</strong><span>Which fluctuations are independent, correlated, or external?</span></div>
+  <div class="scientificfitting-flow-step"><strong>Cost</strong><span>Which likelihood or quadratic form follows from those assumptions?</span></div>
+  <div class="scientificfitting-flow-step"><strong>Inference</strong><span>Which estimates, intervals, tests, and diagnostics are justified?</span></div>
 </div>
 ```
 
@@ -42,7 +42,7 @@ Changing the optimizer should not change the statistical model. Changing
 ``\sigma_y`` to a covariance matrix, or a Gaussian cost to a Poisson
 likelihood, does.
 
-JuFitter uses the convention
+ScientificFitting uses the convention
 
 ```math
 C(\theta) = -2\log L(\theta)
@@ -53,7 +53,7 @@ differences, Gaussian chi-square, local curvature, and profile thresholds share
 the same scale.
 
 For a static Gaussian covariance, the optimizer may minimize only ``\chi^2``
-because the omitted normalization is constant in the parameters. JuFitter keeps
+because the omitted normalization is constant in the parameters. ScientificFitting keeps
 the two quantities separate: `stats.cost_min` is the objective that was
 minimized, while `stats.minus2loglik_min` also includes the Gaussian
 normalization ``n\log(2\pi)+\log\det V`` and normalized auxiliary terms. They
@@ -86,7 +86,7 @@ small total cost cannot replace the pattern check: alternating residuals, long
 same-sign runs, or a frequency-dependent drift can reveal model failure even
 when one summary number looks acceptable.
 
-## What JuFitter Reports
+## What ScientificFitting Reports
 
 The result fields follow these conventions:
 

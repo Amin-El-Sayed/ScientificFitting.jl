@@ -7,14 +7,14 @@ fitted separately, and the threshold is the intersection of those two fitted
 lines with uncertainty propagated from both covariance matrices.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_dark.png" alt="Photoelectric work-function fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_light.png" alt="Photoelectric work-function fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_dark.png" alt="Photoelectric work-function fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_light.png" alt="Photoelectric work-function fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_light.png" alt="Photoelectric work-function fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_dark.png" alt="Photoelectric work-function fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="photoelectric-threshold" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_dark.png" alt="Photoelectric work-function fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_dark.png" alt="Photoelectric work-function fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_light.png" alt="Photoelectric work-function fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_dark.png" alt="Photoelectric work-function fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_light.png" alt="Photoelectric work-function fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_light.png" alt="Photoelectric work-function fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_dark.png" alt="Photoelectric work-function fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_dark.png" alt="Photoelectric work-function fit in dark tex style without result panel">
 ```
 
 ## Question
@@ -88,7 +88,7 @@ x_0 =
 
 This formula also explains the uncertainty problem. The denominator is the
 difference of two fitted slopes. If the two lines were nearly parallel, the
-same voltage noise would move the intersection by a large amount. JuFitter does
+same voltage noise would move the intersection by a large amount. ScientificFitting does
 not read the threshold error from either fit line alone; it propagates the
 covariance matrices of both fitted lines through this intersection formula.
 
@@ -106,7 +106,7 @@ constructed from the same two `FitResult`s in the next section; no refit occurs
 during rendering.
 
 ```julia
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 
 const elementary_charge = 1.602176634e-19
@@ -193,8 +193,8 @@ println(diagnostic_dashboard_text(emission))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>h = 6.555274675779572e-34 +/- 4.8917557390531e-35 J s
 Phi = 2.2493272191613904 +/- 0.1635224112565016 eV
 nu0 = 549.7587349125077 +/- 10.954283817354472 THz
@@ -246,14 +246,14 @@ constant or evidence for a particular photocathode material.
 The plot is not a separate fitting workflow. The numerical work is already in
 `baseline`, `emission`, and the propagated intersection quantities. The figure
 then layers experiment-specific Makie annotations on top while still using
-JuFitter's style contract and information panel. This is the intended pattern
+ScientificFitting's style contract and information panel. This is the intended pattern
 for lab notebooks: fit once, keep the `FitResult`s, then add the threshold,
 accepted region, literature line, or derived quantity marker as visual
 annotations.
 
 ```julia
 using CairoMakie
-using JuFitter
+using ScientificFitting
 
 style = :sans
 appearance = :light
@@ -334,7 +334,7 @@ save("photoelectric_threshold.pdf", fig)
 ```
 
 All colors, error bars, line widths, and report typography come from the
-selected JuFitter plot style. Switching to
+selected ScientificFitting plot style. Switching to
 `style=:tex` or `appearance=:dark` therefore
 changes the whole figure coherently instead of requiring manual restyling.
 

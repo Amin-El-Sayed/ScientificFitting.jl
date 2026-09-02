@@ -36,7 +36,7 @@ const REQUIRED_SUMMARY_FIELDS = [
     "machine",
     "git_commit",
     "created_utc",
-    "jufitter_version",
+    "scientificfitting_version",
     "seconds_per_benchmark",
     "benchmark_case_count",
     "unit_time",

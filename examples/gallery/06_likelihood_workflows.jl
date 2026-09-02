@@ -1,5 +1,5 @@
 using CairoMakie
-using JuFitter
+using ScientificFitting
 using SpecialFunctions
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 

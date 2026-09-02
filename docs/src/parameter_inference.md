@@ -42,7 +42,7 @@ the fit. If several calibration quantities share a reference, use one
 correlated parameter constraint rather than independent scalar terms that count
 the common information more than once.
 
-For asymmetric scales ``\tau_-`` and ``\tau_+``, JuFitter uses the continuous,
+For asymmetric scales ``\tau_-`` and ``\tau_+``, ScientificFitting uses the continuous,
 normalized split-normal cost
 
 ```math
@@ -66,8 +66,8 @@ silently:
 - **Prior information:** the term expresses prior belief. The optimum is then a
   penalized or MAP-like estimate, not a pure maximum-likelihood estimate.
 
-JuFitter evaluates the same numerical term in either case; the scientific
-interpretation belongs in the analysis. JuFitter does not turn that term into a
+ScientificFitting evaluates the same numerical term in either case; the scientific
+interpretation belongs in the analysis. ScientificFitting does not turn that term into a
 full Bayesian posterior or produce Bayesian posterior intervals.
 
 ### Fixed Parameters And Bounds
@@ -95,7 +95,7 @@ and ``k`` free parameters,
 \mathrm{ndf}=n-k.
 ```
 
-Fixed parameters do not count toward ``k``. JuFitter treats scalar Gaussian
+Fixed parameters do not count toward ``k``. ScientificFitting treats scalar Gaussian
 parameter terms as one auxiliary observation and a correlated constraint on
 ``q`` parameters as ``q`` auxiliary observations. This is the natural counting
 when those terms represent independent calibration measurements. If they are
@@ -114,7 +114,7 @@ their dimensions to `ndf`. Counting the calibration observation without its
 discrepancy, or vice versa, would produce an internally inconsistent p-value.
 
 When ``\mathrm{ndf}\le 0``, reduced statistics and chi-square p-values are not
-meaningful. JuFitter returns `NaN` for them and reports the problem rather than
+meaningful. ScientificFitting returns `NaN` for them and reports the problem rather than
 inventing a number.
 
 ## Goodness Of Fit
@@ -145,7 +145,7 @@ deviation of about ``\sqrt{2/28}=0.27``. A universal rule such as
 ``0.9<\chi^2/\mathrm{ndf}<1.1`` would therefore be absurdly strict for a small
 dataset and too weak for a very large one.
 
-JuFitter reports the upper-tail p-value
+ScientificFitting reports the upper-tail p-value
 
 ```math
 p=P\!\left(\chi^2_{\mathrm{ndf}}\ge\chi^2_\mathrm{observed}\right).
@@ -247,7 +247,7 @@ over the reported uncertainty region.
 
 They can fail for weak data, highly nonlinear parameterizations, degeneracies,
 multiple minima, active bounds, or asymmetric likelihoods. A negative local
-curvature is not an uncertainty. JuFitter marks materially invalid covariance
+curvature is not an uncertainty. ScientificFitting marks materially invalid covariance
 geometry as critical and returns `NaN` rather than fabricating a zero standard
 error.
 
@@ -258,7 +258,7 @@ covariance by ``\chi^2/\mathrm{ndf}`` changes their stated meaning and should no
 be automatic. If instead the residual scale is unknown and estimated from the
 same data, the classical least-squares estimate includes that factor.
 
-JuFitter makes the policy explicit through
+ScientificFitting makes the policy explicit through
 `scale_covariance=:auto | :never | :always`. Report which interpretation was
 used; do not rescale merely to make reduced chi-square look closer to one.
 

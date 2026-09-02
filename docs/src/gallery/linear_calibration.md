@@ -1,18 +1,18 @@
 # Linear Calibration
 
-This is the smallest useful JuFitter workflow: explicit calibration points,
+This is the smallest useful ScientificFitting workflow: explicit calibration points,
 point-by-point uncertainties, a weighted fit, and a plot that states exactly
 what its uncertainty band means.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/linear_calibration_sans_panel_light.png" alt="Linear calibration fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/linear_calibration_sans_panel_dark.png" alt="Linear calibration fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/linear_calibration_sans_plot_light.png" alt="Linear calibration fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/linear_calibration_sans_plot_dark.png" alt="Linear calibration fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/linear_calibration_tex_panel_light.png" alt="Linear calibration fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/linear_calibration_tex_plot_light.png" alt="Linear calibration fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/linear_calibration_tex_panel_dark.png" alt="Linear calibration fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="linear-calibration" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/linear_calibration_tex_plot_dark.png" alt="Linear calibration fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/linear_calibration_sans_panel_light.png" alt="Linear calibration fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/linear_calibration_sans_panel_dark.png" alt="Linear calibration fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/linear_calibration_sans_plot_light.png" alt="Linear calibration fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/linear_calibration_sans_plot_dark.png" alt="Linear calibration fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/linear_calibration_tex_panel_light.png" alt="Linear calibration fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/linear_calibration_tex_plot_light.png" alt="Linear calibration fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/linear_calibration_tex_panel_dark.png" alt="Linear calibration fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="linear-calibration" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/linear_calibration_tex_plot_dark.png" alt="Linear calibration fit in dark tex style without result panel">
 ```
 
 ## Question
@@ -26,7 +26,7 @@ U(x) = m x + b.
 
 The slope ``m`` is the sensitivity of the sensor and ``b`` is the electronic or
 mechanical zero offset. Even this simple case is useful because it contains the
-complete JuFitter loop: explicit data, stated uncertainties, weighted fit,
+complete ScientificFitting loop: explicit data, stated uncertainties, weighted fit,
 diagnostics, and a plot whose band has a defined statistical meaning.
 
 ## Data
@@ -45,7 +45,7 @@ U(x) = m x + b
 ```
 
 The uncertainty is heteroscedastic: points at larger ``x`` are measured with a
-slightly larger standard uncertainty. JuFitter therefore minimizes
+slightly larger standard uncertainty. ScientificFitting therefore minimizes
 
 ```math
 \chi^2(m,b)=\sum_i
@@ -61,7 +61,7 @@ mean curve.
 
 ```julia
 using CairoMakie
-using JuFitter
+using ScientificFitting
 using LaTeXStrings
 
 # Calibration data: position in mm, sensor voltage in V, and individual
@@ -110,8 +110,8 @@ println(diagnostic_dashboard_text(result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = lsqfit
 converged = true
@@ -166,7 +166,7 @@ calibration notebook the next quick checks are:
   readout chain was used for all points.
 
 The lesson is intentionally modest: an `ok`-looking line plot is not the same
-as a completed measurement. JuFitter surfaces the first suspicious pattern
+as a completed measurement. ScientificFitting surfaces the first suspicious pattern
 without hiding the fitted numbers.
 
 ## Interpretation

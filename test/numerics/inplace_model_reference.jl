@@ -1,4 +1,4 @@
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using SparseArrays
 using Test

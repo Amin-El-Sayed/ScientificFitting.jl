@@ -1,5 +1,5 @@
 using CairoMakie
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
@@ -74,7 +74,7 @@ work_variance =
     dot(work_gradient_baseline, baseline.param_covariance * work_gradient_baseline)
 sigma_work_function_eV = sqrt(work_variance)
 
-# JuFitter returns Makie objects, so derived quantities and annotations remain
+# ScientificFitting returns Makie objects, so derived quantities and annotations remain
 # ordinary Makie operations rather than a special plotting mini-language.
 style = :analysis
 appearance = :light

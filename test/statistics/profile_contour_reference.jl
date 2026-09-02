@@ -1,4 +1,4 @@
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using Test
 
@@ -40,7 +40,7 @@ using Test
         slope_values = result.params[1] .+ slope_sigma .* [-2.0, 0.0, 2.0]
         coarse = profile(result, 1; values=slope_values, threshold=1.0)
         refined = profile(result, 1; values=slope_values, threshold=1.0, adaptive=true, max_refinements=3)
-        lower, upper = JuFitter._profile_crossings(refined)
+        lower, upper = ScientificFitting._profile_crossings(refined)
 
         @test length(refined.values) > length(coarse.values)
         @test issorted(refined.values)
@@ -207,11 +207,11 @@ using Test
             Dict((1, 2) => warped_contour),
             Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
             Dict((1, 2) => contour_report),
-            JuFitter._profile_matrix_panel_status(
+            ScientificFitting._profile_matrix_panel_status(
                 Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
                 Dict((1, 2) => contour_report),
             ),
-            JuFitter._combine_profile_matrix_findings(
+            ScientificFitting._combine_profile_matrix_findings(
                 Dict(1 => diagnose(warped_profile; local_sigma=1.0), 2 => diagnose(warped_profile_2; local_sigma=1.0)),
                 Dict((1, 2) => contour_report),
             ),

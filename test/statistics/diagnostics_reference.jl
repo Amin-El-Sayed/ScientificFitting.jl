@@ -1,4 +1,4 @@
-using JuFitter
+using ScientificFitting
 using Test
 
 @testset "Statistical diagnostic warnings" begin

@@ -1,12 +1,12 @@
-# JuFitter Pre-Release Checklist
+# ScientificFitting Pre-Release Checklist
 
-This checklist is the local release gate before JuFitter is advertised,
+This checklist is the local release gate before ScientificFitting is advertised,
 registered, deployed, pushed to a public repository, or announced. It is
 deliberately stricter than the normal edit-test loop.
 
 Publication policy: do not push, publish, register, deploy documentation, or
 make the repository public without explicit manual approval from
-Amin_El_Sayed.
+Amin El Sayed (`Amin-El-Sayed`).
 
 ## 1. Repository State
 
@@ -90,7 +90,7 @@ Run the startup probe to verify that the fitting/reporting core still starts
 without loading Makie:
 
 ```bash
-julia --project=. --startup-file=no benchmarks/startup_probe.jl --save=/tmp/jufitter-startup-probe.toml
+julia --project=. --startup-file=no benchmarks/startup_probe.jl --save=/tmp/scientificfitting-startup-probe.toml
 julia --project=. --startup-file=no test/startup_probe_gate.jl
 ```
 
@@ -143,7 +143,7 @@ Python use is intended through JuliaCall/PythonCall, but it is not a default
 Julia test dependency. If Python support is claimed for the release, run:
 
 ```bash
-JUFITTER_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_interop_gate.jl
+SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_interop_gate.jl
 ```
 
 If that gate is not run in a clean `juliacall` environment, document Python
@@ -163,16 +163,18 @@ Before public promotion:
 - Confirm Git identity before any public push:
   `Amin-El-Sayed <78275938+Amin-El-Sayed@users.noreply.github.com>`.
 - Do not register the package, publish docs, or announce on Reddit/Discourse
-  until Amin_El_Sayed has manually approved the exact release candidate.
+  until Amin El Sayed (`Amin-El-Sayed`) has manually approved the exact release
+  candidate.
 
 After that explicit approval, perform the external steps in this order:
 
-1. Confirm the final package name before creating the repository. Renaming after
-   General registration is substantially more disruptive.
+1. Confirm that the reviewed package identity is exactly `ScientificFitting`
+   and the target repository is `ScientificFitting.jl`. Renaming after General
+   registration is substantially more disruptive.
 2. Re-authenticate GitHub CLI if needed and verify that the active login is
    exactly `Amin-El-Sayed`; do not rely on the configured Git author alone.
-3. Create the final `<PackageName>.jl` repository under `Amin-El-Sayed`, add it
-   as the first remote, and push only the reviewed release history.
+3. Create `Amin-El-Sayed/ScientificFitting.jl`, add it as the first remote, and
+   push only the reviewed release history.
 4. Observe the complete CI matrix on GitHub. Do not substitute an older local
    run for the target repository's checks.
 5. In repository Pages settings, select GitHub Actions as the source and run the

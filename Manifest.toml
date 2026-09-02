@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "a62c3cf2d3b32f2bb1fe31a2cd406e990e08e6d4"
+project_hash = "de1211c0309e1d2c0f9ac963ba4a0cd77501896e"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "f7304359109c768cf32dc5fa2d371565bb63b68a"
@@ -416,16 +416,16 @@ git-tree-sha1 = "2f05ed29618da60c06a87e9c033982d4f71d0b6c"
 uuid = "ae98c720-c025-4a4a-838c-29b094483192"
 version = "0.2.1"
 
-[[deps.JuFitter]]
+[[deps.ScientificFitting]]
 deps = ["ADTypes", "DifferentiationInterface", "Distributions", "ForwardDiff", "LaTeXStrings", "LinearAlgebra", "LsqFit", "Optimization", "OptimizationOptimJL", "QuadGK", "SparseArrays", "SpecialFunctions", "Statistics", "StatsAPI"]
 path = "."
 uuid = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
 version = "0.1.0"
 
-    [deps.JuFitter.extensions]
-    JuFitterCairoMakieExt = "CairoMakie"
+    [deps.ScientificFitting.extensions]
+    ScientificFittingCairoMakieExt = "CairoMakie"
 
-    [deps.JuFitter.weakdeps]
+    [deps.ScientificFitting.weakdeps]
     CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 
 [[deps.JuliaSyntaxHighlighting]]

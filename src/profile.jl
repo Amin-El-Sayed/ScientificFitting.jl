@@ -293,7 +293,7 @@ end
 Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
 
-With `adaptive=true`, JuFitter refines grid intervals that bracket the requested
+With `adaptive=true`, ScientificFitting refines grid intervals that bracket the requested
 profile threshold. This improves interval extraction without forcing a dense
 grid over the full scan range. `on_failure=:inf` records failed refits as
 infinite cost so diagnostics can expose them; `:throw` stops at the first
@@ -790,7 +790,7 @@ Compute a two-parameter profile-likelihood contour grid. At each grid point,
 parameters `i` and `j` are fixed and all remaining free parameters are
 re-minimized.
 
-With `adaptive=true`, JuFitter refines grid cells whose corner values bracket a
+With `adaptive=true`, ScientificFitting refines grid cells whose corner values bracket a
 requested contour level. This concentrates expensive refits near meaningful
 contour geometry instead of spreading them uniformly across the full rectangle.
 `on_failure=:inf` preserves failed cells for diagnostics; `:throw` stops at the

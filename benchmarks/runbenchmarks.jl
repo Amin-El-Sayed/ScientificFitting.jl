@@ -10,7 +10,7 @@ end
 
 using BenchmarkTools
 using Dates
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using SparseArrays
 using TOML
@@ -173,7 +173,7 @@ function _try_enable_plot_benchmarks!(suite)
     end
 
     suite["plot"] = BenchmarkGroup()
-    plot_file = joinpath(tempdir(), "jufitter_benchmark_fit.png")
+    plot_file = joinpath(tempdir(), "scientificfitting_benchmark_fit.png")
     suite["plot"]["fit_png"] = @benchmarkable plot_fit($baseline; filename=$plot_file, format=:png)
     return true
 end
@@ -286,7 +286,7 @@ function _summarize_results(results::BenchmarkGroup; seconds::Float64)
     benchmark_names = first.(_flatten_benchmarks(results))
     summary["metadata"] = Dict{String, Any}(
         "created_utc" => string(now(UTC)),
-        "jufitter_version" => _project_version(),
+        "scientificfitting_version" => _project_version(),
         "julia_version" => string(VERSION),
         "os" => string(Sys.KERNEL),
         "cpu_name" => _cpu_name(),

@@ -35,7 +35,7 @@ end
 
 function _core_probe_code()
     return """
-        using JuFitter
+        using ScientificFitting
         loaded_plot_modules = sort!(
             String[
                 string(nameof(mod))
@@ -63,7 +63,7 @@ function _summary(result)
     return Dict{String, Any}(
         "metadata" => Dict{String, Any}(
             "created_utc" => string(now(UTC)),
-            "jufitter_version" => _project_version(),
+            "scientificfitting_version" => _project_version(),
             "julia_version" => string(VERSION),
             "machine" => Sys.MACHINE,
             "git_commit" => _git_commit(),

@@ -1,6 +1,6 @@
 # API Reference
 
-This reference defines JuFitter's public contracts. Start with
+This reference defines ScientificFitting's public contracts. Start with
 [Quickstart](quickstart.md) for a first fit or
 [Statistical Foundations](statistical_foundations.md) to choose the method
 chapter that matches the observation process.
@@ -41,7 +41,7 @@ the contract in the first table, and every placeholder must be replaced by data
 of matching dimensions. Complete analyses are in the [Gallery](gallery.md).
 
 For reusable low-level workflows, construct [`FitProblem`](@ref) or
-[`LikelihoodFitProblem`](@ref) and call [`fit`](@ref). `JuFitter.fit` extends
+[`LikelihoodFitProblem`](@ref) and call [`fit`](@ref). `ScientificFitting.fit` extends
 the `StatsAPI.fit` generic, so it coexists with StatsBase and Distributions.
 
 ## Common Conventions
@@ -65,7 +65,7 @@ model!(out, x, p)
 jacobian!(J, x, p)  # optional
 ```
 
-and pass `inplace=true`. JuFitter validates that the callbacks fill every
+and pass `inplace=true`. ScientificFitting validates that the callbacks fill every
 output. On automatic-differentiation paths, `p`, `out`, and `J` may contain
 non-`Float64` scalar types; mutating functions must not hard-code `Float64`
 buffers internally.
@@ -87,7 +87,7 @@ The following controls are accepted by `fit_model` and the likelihood wrappers.
 | `constraints` | General nonlinear constraints; `ineq(p) <= 0` and `eq(p) == 0`. |
 
 Constraint callbacks receive the complete parameter vector in `p0` order,
-including fixed entries. JuFitter maps it to reduced free-parameter coordinates
+including fixed entries. ScientificFitting maps it to reduced free-parameter coordinates
 internally.
 
 `FixedParameter(..., sigma)` stores that uncertainty in reports and in the fixed
@@ -126,4 +126,5 @@ parameter-dependent covariance.
 |---|---|
 | Fit inputs, uncertainty objects, constraints, likelihoods, and solver behavior | [Fitting](api_fitting.md) |
 | Result fields, covariance, profiles, contours, diagnostics, and reports | [Results And Diagnostics](api_results.md) |
-| Optional Makie boundary, fit figures, annotations, and diagnostic plots | [Plotting](api_plotting.md) |
+| Optional Makie boundary, fit figures, annotations, and visual contracts | [Fit Plotting](api_plotting.md) |
+| Residual, pull, profile, contour, and profile-matrix figures | [Diagnostic Plotting](api_plotting_diagnostics.md) |

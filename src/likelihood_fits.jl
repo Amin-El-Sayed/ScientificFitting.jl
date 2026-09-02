@@ -4,11 +4,11 @@
 Low-level public problem representation for likelihood and custom-objective
 fits. `objective(p)` is minimized directly, while optional `gof(p)` supplies a
 chi-square-like data goodness-of-fit statistic for reduced statistics and
-p-values. JuFitter adds the chi-square contributions from Gaussian parameter
+p-values. ScientificFitting adds the chi-square contributions from Gaussian parameter
 terms to that statistic, matching their treatment as auxiliary observations in
 the degrees of freedom.
 Nonlinear constraint callbacks receive the same complete `p` vector, including
-fixed parameters; JuFitter handles the reduced optimizer coordinates
+fixed parameters; ScientificFitting handles the reduced optimizer coordinates
 internally.
 Starting values must be finite. Fixed values are validated against declared
 bounds while the problem is constructed.
@@ -229,7 +229,7 @@ count, and cost name are already stored in `problem`.
 
 `initial_guesses` may contain additional complete parameter vectors.
 `multistart > 1` adds deterministic bounded candidates when finite bounds are
-available. JuFitter returns the converged candidate with the lowest finite cost;
+available. ScientificFitting returns the converged candidate with the lowest finite cost;
 if only non-converged finite candidates remain, the best one is returned with
 `converged == false`. If no candidate produces a finite result, the last
 objective, validation, or solver error is raised.
@@ -297,7 +297,7 @@ p-values; otherwise these fields are `NaN`. `nobs` controls degrees of freedom
 and the BIC sample-size term, and must represent the number of statistically
 independent observations used by the objective.
 
-JuFitter computes local covariance as `2 * inv(H)`, where `H` is the objective
+ScientificFitting computes local covariance as `2 * inv(H)`, where `H` is the objective
 Hessian. AIC, BIC, and that covariance therefore have their standard
 interpretation only when `objective` is a normalized `-2log(L)` cost (Gaussian
 chi-square is on the same scale). For an arbitrary loss, the optimizer result
@@ -456,7 +456,7 @@ must contain finite non-negative integer-valued observations.
 
 The objective is normalized Poisson `-2 log(L)` and `stats.chi2` is Poisson
 deviance. The caller is responsible for integrating any continuous density over
-the bins; use `fit_histogram_density` when JuFitter should perform that
+the bins; use `fit_histogram_density` when ScientificFitting should perform that
 integration. Common parameter-control and solver keywords are listed under
 `fit_custom`. Invalid edges, counts, expectations, or controls raise
 `ArgumentError`. Returns `LikelihoodFitResult`.
@@ -511,7 +511,7 @@ end
 
 Fit binned counts from a probability density. Expected bin counts are computed
 with adaptive Gauss-Kronrod quadrature. `pdf(x, p)` must be normalized on its
-intended physical domain; JuFitter does not renormalize it over the supplied
+intended physical domain; ScientificFitting does not renormalize it over the supplied
 bins. `total_count` and `rtol` must be finite and positive.
 
 Each expectation is `total_count * integral(pdf, edge[i], edge[i+1])`.
@@ -572,7 +572,7 @@ end
     fit_unbinned_model(pdf, data; p0, kwargs...) -> LikelihoodFitResult
 
 Fit independent unbinned observations with a normalized positive density
-`pdf(x, p)`. JuFitter checks positivity at the observations but cannot infer or
+`pdf(x, p)`. ScientificFitting checks positivity at the observations but cannot infer or
 verify the normalization domain. Observations must be finite.
 
 The objective is `-2 * sum(log(pdf(x_i, p)))`. No universal chi-square

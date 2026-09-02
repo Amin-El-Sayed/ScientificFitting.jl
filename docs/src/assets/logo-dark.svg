@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">ScientificFitting logo mark</title>
+  <g transform="rotate(-25 128 128)">
+    <ellipse cx="128" cy="128" rx="90" ry="51" fill="#8fb4ff" fill-opacity="0.16"/>
+    <ellipse cx="128" cy="128" rx="55" ry="29" fill="#8fb4ff" fill-opacity="0.34"/>
+  </g>
+  <g fill="none" stroke="#edf2f4" stroke-width="7.5" stroke-linecap="butt">
+    <path d="M54 128 H202 M54 114 V142 M202 114 V142"/>
+    <path d="M128 78 V178 M114 78 H142 M114 178 H142"/>
+  </g>
+  <circle cx="128" cy="128" r="11" fill="#8fb4ff" stroke="#111318" stroke-width="4.5"/>
+</svg>

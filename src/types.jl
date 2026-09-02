@@ -45,7 +45,7 @@ ParameterPrior(index::Integer, mean::Real, sigma_minus::Real, sigma_plus::Real) 
     FixedParameter(index, value, sigma_minus, sigma_plus)
 
 Fix one parameter to `value` during the fit. Optional uncertainties describe
-the externally known value. JuFitter stores them in reports and in that fixed
+the externally known value. ScientificFitting stores them in reports and in that fixed
 parameter's diagonal covariance entry with zero fitted cross-covariances. They
 do not change the objective, make the parameter free, or propagate uncertainty
 into the fitted parameters; use `ParameterPrior` or `ParameterConstraint` for
@@ -163,7 +163,7 @@ const CovarianceLike = Union{Matrix{Float64}, SparseMatrixCSC{Float64, Int}}
 Represent a complete static data covariance without materializing it.
 `whiten!(out, residual)` must apply a linear operator `W` satisfying
 `W'W = inv(C)`, where `C` is the observation covariance. The required
-`logdet_covariance` is `log(det(C))`; JuFitter uses it for the normalized
+`logdet_covariance` is `log(det(C))`; ScientificFitting uses it for the normalized
 Gaussian `-2 log(L)` cost, AIC, and BIC.
 
 `marginal_sigma` is optional scalar or pointwise marginal standard deviation.
@@ -173,7 +173,7 @@ prediction band would not have enough information.
 
 The mutating function must write every element of `out` and support the element
 types used by automatic differentiation when the general optimizer is needed.
-It must accept `AbstractVector` views because JuFitter applies the same operator
+It must accept `AbstractVector` views because ScientificFitting applies the same operator
 columnwise to analytic Jacobians.
 """
 struct WhiteningOperator{F, MS}
@@ -270,7 +270,7 @@ function _validate_whitening_operator(operator::WhiteningOperator, n::Int)
     return nothing
 end
 
-# These adapters keep one model contract inside JuFitter while allowing the
+# These adapters keep one model contract inside ScientificFitting while allowing the
 # least-squares backend to call allocation-free user functions directly.
 struct _InPlaceModel{F}
     f!::F
@@ -422,7 +422,7 @@ The parameter covariance is a local quadratic approximation. For nonlinear
 models, active bounds, weak data, or asymmetric likelihoods, inspect
 `profile(...)` or `contour(...)` before treating symmetric errors as final.
 `iterations` is `missing` when a backend does not expose an iteration count;
-JuFitter never substitutes the configured iteration limit for an unknown value.
+ScientificFitting never substitutes the configured iteration limit for an unknown value.
 """
 struct FitResult
     problem::FitProblem
@@ -755,7 +755,7 @@ single NamedTuple or vector of NamedTuples:
 - `(index=i, value=value, sigma_minus=sminus, sigma_plus=splus)`
 
 `x_derivative(x, p)` optionally supplies the vector derivative `dy/dx` used for
-effective x-uncertainty propagation. If omitted, JuFitter differentiates the
+effective x-uncertainty propagation. If omitted, ScientificFitting differentiates the
 model with respect to each x value by automatic differentiation.
 
 `whitening=WhiteningOperator(...)` supplies the complete static observation
@@ -764,7 +764,7 @@ with y/x uncertainties and active `error_components`; combining covariance
 models without an explicit derivation would change the statistical model.
 
 Set `inplace=true` when the model has the signature `model!(out, x, p)`. On the
-unbounded least-squares path, JuFitter forwards this contract to LsqFit's native
+unbounded least-squares path, ScientificFitting forwards this contract to LsqFit's native
 in-place solver interface. Other solver paths use the same model through a
 type-preserving output buffer. If `jacobian` is also supplied, its in-place
 signature must be `jacobian!(J, x, p)`. Mutating functions used with bounds,

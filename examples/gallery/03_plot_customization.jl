@@ -1,5 +1,5 @@
 using CairoMakie
-using JuFitter
+using ScientificFitting
 using LaTeXStrings
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
@@ -9,7 +9,7 @@ sigma_y = 0.07 .+ 0.025 .* abs.(x)
 y = model(x, [0.72, -0.38, 0.2]) .+ sigma_y .* sin.(3.4 .* x)
 
 # Theme overrides should change only the intended Makie attributes. Typography,
-# layout, and the remaining marks continue to follow JuFitter's style contract.
+# layout, and the remaining marks continue to follow ScientificFitting's style contract.
 custom_theme = Theme(Axis=(xgridvisible=false, ygridvisible=true))
 
 fit = fitplot(

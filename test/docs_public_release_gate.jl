@@ -9,7 +9,7 @@ const PUBLIC_DOC_PAGES = [
     "index.md",
     "install.md",
     "quickstart.md",
-    "how_jufitter_works.md",
+    "how_scientificfitting_works.md",
     "gallery.md",
     "gallery/linear_calibration.md",
     "gallery/xy_uncertainties.md",
@@ -30,7 +30,7 @@ const PUBLIC_DOC_PAGES = [
     "api_fitting.md",
     "api_results.md",
     "api_plotting.md",
-    "overview.md",
+    "api_plotting_diagnostics.md",
     "citation.md",
     "backend_design.md",
     "performance.md",
@@ -97,7 +97,7 @@ function gallery_page_text()
 end
 
 function architecture_page_text()
-    return public_file_text(joinpath(DOCS_SRC, "how_jufitter_works.md"))
+    return public_file_text(joinpath(DOCS_SRC, "how_scientificfitting_works.md"))
 end
 
 function practitioner_page_text()
@@ -127,8 +127,15 @@ function profiles_page_text()
     return public_file_text(joinpath(DOCS_SRC, "profiles_contours.md"))
 end
 
-function reference_map_page_text()
-    return public_file_text(joinpath(DOCS_SRC, "overview.md"))
+function api_reference_text()
+    pages = (
+        "api.md",
+        "api_fitting.md",
+        "api_results.md",
+        "api_plotting.md",
+        "api_plotting_diagnostics.md",
+    )
+    return join((public_file_text(joinpath(DOCS_SRC, page)) for page in pages), "\n")
 end
 
 function docs_asset_text(name)
@@ -153,7 +160,9 @@ end
         @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
         @test docs_source_markdown_pages() == sort(PUBLIC_DOC_PAGES)
         @test !occursin(r"(?m)^\s{8}\"Engineering Notes\"\s*=>", documenter_make_text())
-        @test occursin(r"(?m)^\s{12}\"Technical Notes\"\s*=>", documenter_make_text())
+        @test !occursin("Reference Map", documenter_make_text())
+        @test !occursin("Technical Notes", documenter_make_text())
+        @test occursin(r"(?m)^\s{8}\"Developer\"\s*=>", documenter_make_text())
         @test !occursin("Maintenance Notes", documenter_make_text())
         @test !isfile(joinpath(DOCS_SRC, "maintenance.md"))
         @test isfile(MAINTAINERS)
@@ -169,16 +178,16 @@ end
     end
 
     @testset "Plot controls stay orthogonal" begin
-        script = docs_asset_text("jufitter.js")
-        stylesheet = docs_asset_text("jufitter.css")
+        script = docs_asset_text("scientificfitting.js")
+        stylesheet = docs_asset_text("scientificfitting.css")
 
         @test occursin("const plotStyles = [\"sans\", \"tex\"]", script)
         @test occursin("const plotPanels = [\"show\", \"hide\"]", script)
         @test occursin("const defaultPlotPanel = \"show\"", script)
         @test occursin("buildPlotStylePicker(anchor)", script)
         @test occursin("buildPlotPanelPicker(anchor)", script)
-        @test occursin("data-jufitter-plot-panel", script)
-        @test occursin("data-jufitter-plot-panel=\"hide\"", stylesheet)
+        @test occursin("data-scientificfitting-plot-panel", script)
+        @test occursin("data-scientificfitting-plot-panel=\"hide\"", stylesheet)
     end
 
     for path in PUBLIC_TEXT_FILES
@@ -208,7 +217,7 @@ end
         text = install_page_text()
         @test occursin("juliacall", text)
         @test occursin("examples/python/fit_from_python.py", text)
-        @test occursin("JUFITTER_RUN_PYTHON_INTEROP=1", text)
+        @test occursin("SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1", text)
         @test occursin("experimental or deferred", text)
     end
 
@@ -218,8 +227,8 @@ end
         install = install_page_text()
         readme = public_file_text(joinpath(ROOT, "README.md"))
 
-        @test occursin("```@raw html\n<section class=\"jufitter-hero\">", home)
-        @test occursin("data-jufitter-plot-group=\"home-first-fit\"", home)
+        @test occursin("```@raw html\n<section class=\"scientificfitting-hero\">", home)
+        @test occursin("data-scientificfitting-plot-group=\"home-first-fit\"", home)
         @test occursin("<code>FitResult</code> or <code>LikelihoodFitResult</code>", home)
         @test !occursin("collect(range", home)
         @test occursin("using CairoMakie", quickstart)
@@ -228,11 +237,11 @@ end
         @test occursin("print_report=true", quickstart)
         @test !occursin("println(report_text", quickstart)
         @test !occursin("Pkg.test()", install)
-        @test occursin(r"CI workflow is\s+configured", install)
-        @test occursin(r"must pass\s+before public release", install)
+        @test occursin(r"CI runs the core\s+and full-package gates on Julia 1\.10 and Julia 1\.12", install)
+        @test occursin("Pkg.add(url=\"https://github.com/Amin-El-Sayed/ScientificFitting.jl\")", install)
         @test !occursin("are exercised by the release test matrix", install)
-        @test occursin(r"CI workflow is\s+configured", readme)
-        @test occursin(r"must pass\s+before publication", readme)
+        @test occursin(r"CI tests Julia\s+1\.10 and Julia 1\.12", readme)
+        @test occursin("Pkg.add(\"ScientificFitting\")", readme)
         @test !occursin("canonical=", documenter_make_text())
     end
 
@@ -282,7 +291,7 @@ end
         @test occursin("cost=:auto", guide)
         @test occursin("profile_interval", guide)
         @test occursin("interval.profile_result", guide)
-        @test occursin("cont = JuFitter.contour(", guide)
+        @test occursin("cont = ScientificFitting.contour(", guide)
         @test !occursin(r"cont = contour\(", guide)
         @test !occursin("0.5 \\lesssim", guide)
     end
@@ -290,9 +299,9 @@ end
     @testset "Statistics guide makes profile geometry readable" begin
         guide = profiles_page_text()
 
-        @test occursin("data-jufitter-plot-group=\"statistics-profile-matrix\"", guide)
+        @test occursin("data-scientificfitting-plot-group=\"statistics-profile-matrix\"", guide)
         for style in ("sans", "tex")
-            @test occursin("data-jufitter-plot-style=\"$(style)\"", guide)
+            @test occursin("data-scientificfitting-plot-style=\"$(style)\"", guide)
             @test occursin("saturation_profile_matrix_$(style)_light.png", guide)
             @test occursin("saturation_profile_matrix_$(style)_dark.png", guide)
         end
@@ -348,27 +357,24 @@ end
             foundations,
         )
         @test occursin("fit_histogram_density", foundations)
-        @test occursin("JuFitter therefore returns `NaN`", foundations)
+        @test occursin("ScientificFitting therefore returns `NaN`", foundations)
         @test occursin("Wilks thresholds are asymptotic", foundations)
         @test occursin("same observations and event-selection domain", foundations)
         @test occursin("scale_covariance=:auto | :never | :always", foundations)
         @test !occursin("credible intervals", foundations)
     end
 
-    @testset "Reference map preserves the public workflow boundaries" begin
-        reference = reference_map_page_text()
+    @testset "API reference preserves public workflow boundaries" begin
+        reference = api_reference_text()
 
-        @test occursin("The data-generating process determines the objective", reference)
-        @test occursin("named tuple `(result, figure)`", reference)
-        @test occursin("actual additive covariance contributions", reference)
-        @test occursin("A `WhiteningOperator` is the complete", reference)
-        @test occursin("zero fitted", reference)
+        @test occursin("fit_poisson_model", reference)
+        @test occursin("`WhiteningOperator`", reference)
+        @test occursin("zero fitted cross-covariances", reference)
         @test occursin("complete parameter vector", reference)
-        @test occursin("`plot_fit` does not accept `LikelihoodFitResult`", reference)
-        @test occursin("profile_matrix_triage(matrix)", reference)
-        @test occursin("does not rerun the", reference)
-        @test occursin(r"do\s+not require Makie", reference)
-        @test occursin("`print_report` independently controls terminal output", reference)
+        @test occursin("profile_matrix_triage", reference)
+        @test occursin("does not depend on Makie", reference)
+        @test occursin("`print_report::Bool`", reference)
+        @test occursin("[Diagnostic Plotting](api_plotting_diagnostics.md)", reference)
         @test !occursin("report=:plot", reference)
     end
 end

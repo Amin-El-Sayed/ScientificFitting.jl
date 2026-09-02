@@ -2,7 +2,7 @@
 
 Counts, histogram bins, and individual events do not automatically carry
 Gaussian error bars. Their sampling process defines a likelihood. This chapter
-derives JuFitter's Poisson, histogram, unbinned, and extended likelihood costs,
+derives ScientificFitting's Poisson, histogram, unbinned, and extended likelihood costs,
 then separates parameter estimation, goodness of fit, and model comparison.
 
 ## Poisson Counts And Histograms
@@ -16,7 +16,7 @@ P(n_i\mid\mu_i)
 e^{-\mu_i}\frac{\mu_i^{n_i}}{n_i!}.
 ```
 
-JuFitter minimizes the normalized cost
+ScientificFitting minimizes the normalized cost
 
 ```math
 C(\theta)
@@ -63,7 +63,7 @@ D(\theta)
 \right],
 ```
 
-with the logarithmic term defined as zero for ``n_i=0``. JuFitter stores this
+with the logarithmic term defined as zero for ``n_i=0``. ScientificFitting stores this
 deviance in the chi-square-like statistics fields for Poisson and histogram
 fits.
 
@@ -113,7 +113,7 @@ uses an event intensity and numerically integrates it over the declared domain.
 
 An unbinned likelihood value is not, by itself, a universal goodness-of-fit
 statistic. Its absolute scale depends on the density and measurement units.
-JuFitter therefore returns `NaN` rather than inventing chi-square, reduced
+ScientificFitting therefore returns `NaN` rather than inventing chi-square, reduced
 chi-square, or a p-value for generic unbinned and extended fits.
 
 Goodness of fit then needs a separate statistic appropriate to the scientific
@@ -140,7 +140,7 @@ BIC is a large-sample approximation with a stronger complexity penalty and
 additional assumptions. Neither is a p-value, proof of a model, or a substitute
 for residual inspection.
 
-JuFitter uses its stored observation count `nobs` in the BIC arithmetic;
+ScientificFitting uses its stored observation count `nobs` in the BIC arithmetic;
 Gaussian auxiliary dimensions are included in that count. For strongly
 correlated data there may be no unique iid-like effective sample size, so a BIC
 number can be algebraically defined without having the usual model-selection
@@ -156,7 +156,7 @@ Only compare values when all candidates use:
 Do not compare AIC from a Gaussian fit to AIC from an unnormalized custom cost,
 or models fitted to different subsets of data. When Gaussian parameter terms
 are interpreted as priors rather than auxiliary observations, ordinary AIC/BIC
-no longer have their standard maximum-likelihood interpretation. JuFitter still
+no longer have their standard maximum-likelihood interpretation. ScientificFitting still
 reports the arithmetic values from its normalized joint cost; the analyst must
 not overstate them.
 

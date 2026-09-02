@@ -50,10 +50,10 @@ when no normalized Gaussian parameter terms are present. See
 or BIC across different data or uncertainty models.
 
 ```@docs
-JuFitter.FitResult
-JuFitter.LikelihoodFitResult
-JuFitter.FitStatistics
-JuFitter.FitDiagnostics
+ScientificFitting.FitResult
+ScientificFitting.LikelihoodFitResult
+ScientificFitting.FitStatistics
+ScientificFitting.FitDiagnostics
 ```
 
 ## [Parameter Covariance](@id parameter-covariance-reference)
@@ -106,16 +106,16 @@ A side that is not bracketed is returned as `NaN`, not silently extrapolated.
 and `contour_tolerance` compare scans with local quadratic geometry.
 
 ```@docs
-JuFitter.profile
-JuFitter.profile_interval
-JuFitter.contour
-JuFitter.profile_matrix
-JuFitter.profile_matrix_triage
-JuFitter.ProfileResult
-JuFitter.ProfileInterval
-JuFitter.ContourResult
-JuFitter.ProfileMatrixResult
-JuFitter.ProfileMatrixPanelTriage
+ScientificFitting.profile
+ScientificFitting.profile_interval
+ScientificFitting.contour
+ScientificFitting.profile_matrix
+ScientificFitting.profile_matrix_triage
+ScientificFitting.ProfileResult
+ScientificFitting.ProfileInterval
+ScientificFitting.ContourResult
+ScientificFitting.ProfileMatrixResult
+ScientificFitting.ProfileMatrixPanelTriage
 ```
 
 ## Diagnostics And Reports
@@ -140,15 +140,15 @@ profile intervals and therefore performs additional fits. Its
 those scans. `report_text(...; sigdigits=6)` controls numerical formatting only.
 
 ```@docs
-JuFitter.DiagnosticFinding
-JuFitter.DiagnosticReport
-JuFitter.DiagnosticDashboard
-JuFitter.diagnose
-JuFitter.diagnose_text
-JuFitter.diagnostic_dashboard
-JuFitter.diagnostic_dashboard_text
-JuFitter.ParameterEstimate
-JuFitter.FitReport
-JuFitter.fit_report
-JuFitter.report_text
+ScientificFitting.DiagnosticFinding
+ScientificFitting.DiagnosticReport
+ScientificFitting.DiagnosticDashboard
+ScientificFitting.diagnose
+ScientificFitting.diagnose_text
+ScientificFitting.diagnostic_dashboard
+ScientificFitting.diagnostic_dashboard_text
+ScientificFitting.ParameterEstimate
+ScientificFitting.FitReport
+ScientificFitting.fit_report
+ScientificFitting.report_text
 ```

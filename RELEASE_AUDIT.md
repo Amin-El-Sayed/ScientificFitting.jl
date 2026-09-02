@@ -1,21 +1,29 @@
-# JuFitter Release Audit
+# ScientificFitting Release Audit
 
 Status: 2026-09-01
 
-This document tracks what must be true before JuFitter should be advertised as a
+This document tracks what must be true before ScientificFitting should be advertised as a
 serious scientific fitting library. Passing tests is necessary, but not
 sufficient.
 
 Publication policy: do not push, publish, register, deploy documentation, or
-make the repository public without explicit manual approval from Amin_El_Sayed.
-Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
+make the repository public without explicit manual approval from Amin El Sayed
+(`Amin-El-Sayed`). Local commits on `codex/*` branches are allowed only as
+reviewable checkpoints. The maintainer approved publication of the reviewed
+v0.1.0 release candidate on 2026-09-01.
 
+- The package identity is now `ScientificFitting` with repository name
+  `ScientificFitting.jl`; module, extension, docs, examples, tests, Python
+  bridge, environment variables, and web assets were renamed atomically while
+  preserving the package UUID. The Docs and benchmark manifests use portable
+  relative package paths rather than exposing a machine-local checkout path.
 - The release-preparation slice adds the maintainer-approved MIT license,
   contribution guidance, citation/related-work documentation, root-level
-  `CITATION.cff`, and manual GitHub Pages/TagBot workflows. Repository URL,
-  release date, and DOI remain deliberately absent until the package name and
-  target repository are approved. No remote, deployment, registration, tag, or
-  announcement has been created.
+  `CITATION.cff`, and GitHub Pages/TagBot workflows. Release metadata names the
+  approved repository and documentation URLs and the v0.1.0 release date. A DOI
+  remains absent until an archival record exists; General registry acceptance
+  and the public Pages deployment are external release checks, not local test
+  claims.
 - Every visible Quickstart and Gallery output remains byte-for-byte tied to an
   isolated execution of its public code: the strict output gate passes 125
   checks. The final prose/math pass corrected the frequentist degrees-of-freedom
@@ -80,11 +88,21 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   `review` drift diagnostics instead of tuning the uncertainty scale to obtain
   an attractive p-value. Its public script writes to `examples/output/` by
   default; regenerating the eight tracked documentation assets requires the
-  explicit `JUFITTER_RENDER_DOC_ASSETS=1` maintainer flag. The style/panel
+  explicit `SCIENTIFICFITTING_RENDER_DOC_ASSETS=1` maintainer flag. The style/panel
   contract now produces eight tracked light/dark variants for this compound
   figure.
 
 ## Current Verification
+
+- The final local v0.1.0 release gate on Julia 1.12.6 passes the Makie-free
+  core suite with 544/544 checks and the isolated full-package suite with
+  719/719 checks. The executable documentation-output gate passes 119/119
+  checks, the focused CairoMakie plotting gate passes 175/175 checks, and the
+  rendered site passes 3,411/3,411 link checks. The core startup probe confirms
+  that no Makie module is loaded; startup, benchmark-contract, and performance
+  budget gates pass 12/12, 63/63, and 14/14 checks respectively. The remaining
+  release evidence is the remote Julia 1.10/1.12 CI matrix on the public
+  repository.
 
 - The mathematics and statistics handbook now has five focused public pages
   instead of one 788-line chapter: an overview/reading path, Gaussian fits and
@@ -120,8 +138,8 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   the public documentation source cleanup and the focused API, likelihood,
   torture, plotting, gallery, output-snapshot, and documentation gates listed
   below.
-- JuFitter's low-level methods extend `StatsAPI.fit` rather than creating a
-  competing generic. A local namespace check with `JuFitter`, `Distributions`,
+- ScientificFitting's low-level methods extend `StatsAPI.fit` rather than creating a
+  competing generic. A local namespace check with `ScientificFitting`, `Distributions`,
   and `StatsAPI` loaded together confirms the shared binding and executes a
   converged `fit(problem)` call without ambiguity.
 - Solver iteration counts are no longer invented when a backend does not expose
@@ -221,7 +239,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   flat. The real terminal output is compact and snapshot-checked. The public
   likelihood example now loads CairoMakie before calling `plot_profile` and
   executes to completion. The constraints example does the same and qualifies
-  `JuFitter.contour` to avoid the Makie export collision; its fit, profile,
+  `ScientificFitting.contour` to avoid the Makie export collision; its fit, profile,
   interval, contour matrix, and both plot exports execute to completion.
   Tracked gallery regeneration requires the explicit maintainer flag and can be
   limited to one asset group instead of recomputing unrelated profile matrices.
@@ -410,7 +428,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   stricter: the gate extracts and executes the exact Julia block displayed under
   `Complete Code` in a temporary directory, so its report cannot drift behind a
   merely equivalent maintainer script. The remaining gallery checks use
-  `JUFITTER_DOC_SNAPSHOT_ONLY=1`, so it verifies computations and terminal
+  `SCIENTIFICFITTING_DOC_SNAPSHOT_ONLY=1`, so it verifies computations and terminal
   output without re-rendering Makie assets.
 - `test/performance_budget_gate.jl` now covers representative steady-state hot
   paths with deliberately broad budgets: out-of-place and in-place 10k-point
@@ -453,14 +471,14 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   cases including profile-matrix diagnostics, records the required summary
   fields, and README, performance docs, pre-release checklist, and CI all point
   to the same `--project=benchmarks` workflow.
-- `JUFITTER_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no
+- `SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no
   test/python_interop_gate.jl` passes locally with 13 checks in an isolated
   `/tmp` Python virtual environment after installing `juliacall`. The example
   keeps JuliaCall's managed Julia project active, develops this checkout into
   that environment, verifies Python access to fit parameters, `report_text`,
   and `diagnostic_dashboard_text`, and checks that fitting/reporting does not
   load Makie or CairoMakie. This also fixed the earlier SciMLBase/PythonCall
-  extension warning caused by activating the JuFitter project after JuliaCall
+  extension warning caused by activating the ScientificFitting project after JuliaCall
   had started.
 - `RELEASE_CHECKLIST.md` now defines the local pre-release gate: clean
   repository state, core/package/statistical/torture tests, documentation gates,
@@ -474,7 +492,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   versus profile/contour intervals, and finite-difference AD references for
   parameter-dependent dense `cov_x` propagation.
 - `benchmarks/runbenchmarks.jl` can now write TOML baselines with `--save` and
-  compare later runs with `--compare`. Saved summaries include Julia, JuFitter,
+  compare later runs with `--compare`. Saved summaries include Julia, ScientificFitting,
   OS, CPU, Julia-thread, BLAS-thread, git-commit, timing, memory, and allocation
   metadata. Baseline comparison fails if benchmark cases are missing from either
   side, so benchmark-set drift cannot pass as a valid performance comparison.
@@ -488,21 +506,21 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - A real benchmark-runner smoke test passed locally at the corresponding
   earlier revision with
   `julia --project=benchmarks --startup-file=no benchmarks/runbenchmarks.jl
-  --seconds=0.01 --save=/tmp/jufitter-benchmark-smoke.toml
-  --compare=/tmp/jufitter-benchmark-smoke.toml --tolerance=0.25`. This verified
+  --seconds=0.01 --save=/tmp/scientificfitting-benchmark-smoke.toml
+  --compare=/tmp/scientificfitting-benchmark-smoke.toml --tolerance=0.25`. This verified
   the full save/compare path for that revision's nine benchmark cases, including
   `diagnostics/saturation_profile_matrix`, and metadata serialization. It is
   deliberately not release benchmark evidence because `--seconds=0.01` is too
   short for stable performance claims and no reference runner has been
   selected.
 - `benchmarks/startup_probe.jl` now provides a dedicated startup smoke path for
-  the core package. It starts a fresh Julia process, loads `JuFitter`, verifies
+  the core package. It starts a fresh Julia process, loads `ScientificFitting`, verifies
   that neither `Makie` nor `CairoMakie` was loaded, and can write a TOML summary
   of elapsed wall time and metadata. This supports the release claim that
   fitting/reporting stays Makie-free without turning startup timing into an
   unreviewed benchmark claim.
 - `julia --project=. --startup-file=no benchmarks/startup_probe.jl
-  --save=/tmp/jufitter-startup-probe.toml` passed locally. The fresh-process
+  --save=/tmp/scientificfitting-startup-probe.toml` passed locally. The fresh-process
   output included `loaded_plot_modules=` and `core_without_makie=true`, then the
   temporary TOML artifact was removed.
 - `julia --project=. --startup-file=no test/startup_probe_gate.jl` passes with
@@ -514,18 +532,18 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   the same diagnostic-dashboard sections that the Multi-Dataset gallery page
   shows. This fixed a documentation/example sync defect where the page
   contained dashboard output that was not produced by the executable example.
-- `julia --project=. --startup-file=no -e 'using JuFitter; ...'` verifies that
+- `julia --project=. --startup-file=no -e 'using ScientificFitting; ...'` verifies that
   fitting and `report_text(...)` work without loading `CairoMakie` or `Makie`.
   The public plotting API now lives behind the optional CairoMakie package
   extension and reports a clear error if plot functions are called before
   `using CairoMakie`.
-- `julia --project=docs --startup-file=no -e 'using JuFitter, CairoMakie; ...'`
+- `julia --project=docs --startup-file=no -e 'using ScientificFitting, CairoMakie; ...'`
   verifies that the CairoMakie extension loads and `plot_fit(...)` returns a
   Makie `Figure` with the expected default footprint.
 - `julia --project=docs docs/make.jl` passes after the strict gallery gate was
   added and the gallery pages were brought to the gated structure. The generated
   `docs/build` directory was removed after verification.
-- The documentation build passes after adding the `How JuFitter Works` page,
+- The documentation build passes after adding the `How ScientificFitting Works` page,
   reordering the gallery path, replacing beginner-facing generated data blocks
   on the first pages with explicit arrays, and adding the asset-based plot-style
   selector.
@@ -538,7 +556,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   instead of hiding light/dark mode behind Documenter's settings menu.
 - The unused Documenter settings and article-toggle controls are removed from
   the documentation toolbar; light/dark and plot-style selection now use the
-  JuFitter controls directly.
+  ScientificFitting controls directly.
 - Diagnostic dashboard status labels now use reader-facing actions:
   `ok - no immediate issue`, `review - inspect diagnostics`, and
   `critical - fix before use`. Critical summaries now say to fix the issue
@@ -551,7 +569,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   narrow pull distribution remains visible evidence that the instrument-based
   uncertainty assignment is conservative or that the samples are correlated.
 - The photoelectric gallery and executable example now present the threshold
-  plot as a modular JuFitter/Makie extension: the fit results remain the source
+  plot as a modular ScientificFitting/Makie extension: the fit results remain the source
   of truth, while the intersection band, marker, legend, and right-side report
   use the public style, palette, annotation, and information-panel APIs.
 - Public documentation navigation now separates user documentation from
@@ -568,7 +586,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   constraints/profile/contour plots, damped oscillator, and multi-dataset
   calibration all render real Makie assets for all maintained roles and both
   appearances.
-- The `How JuFitter Works` page now follows the implemented architecture in a
+- The `How ScientificFitting Works` page now follows the implemented architecture in a
   bounded top-to-bottom flow: typed problem construction, validation, objective
   construction, compatible solver dispatch, result construction, and optional
   post-fit analysis. It distinguishes Gaussian and likelihood problem types,
@@ -593,7 +611,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   propagation as `V_eff = V_y + D V_x D'`, states that uncertainty metadata on
   a `FixedParameter` is not propagated, and includes the actual public profile
   and contour plotting calls. An execution check caught and fixed the
-  `CairoMakie.contour`/`JuFitter.contour` export ambiguity by qualifying the
+  `CairoMakie.contour`/`ScientificFitting.contour` export ambiguity by qualifying the
   documented call. The full docs build, public-hygiene, source-link, and
   rendered-link gates pass.
 - The `Statistical Foundations` audit found and corrected a joint
@@ -769,7 +787,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
   unintentional asset drift, but human visual review is still required for
   intentional plot style or renderer changes.
 - A manual-only GitHub Pages workflow is prepared locally. It must not be run
-  until the target repository, final package name, and exact release candidate
+  until the target repository and exact release candidate
   are approved; its first deployment still requires remote observation and
   browser review.
 - The MIT `LICENSE` and a minimal `CITATION.cff` are prepared locally. The
@@ -817,7 +835,7 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - `WhiteningOperator` supplies matrix-free static residual and Jacobian
   whitening plus the covariance log determinant required for normalized ``-2\log L`` and
   information criteria. It is deliberately a low-level scientific contract:
-  JuFitter can validate its interface and finite output, but cannot prove that
+  ScientificFitting can validate its interface and finite output, but cannot prove that
   a custom operator satisfies `W'W = inv(C)` or that its determinant is correct.
   Built-in banded, Toeplitz, low-rank-plus-diagonal, sparse-precision,
   parameter-dependent, and structured x-covariance operators remain future
@@ -897,16 +915,17 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 - The executable output-snapshot gate is intentionally strict, but still slow
   enough to belong in a documentation/release CI lane rather than the default
   edit-test loop. It now avoids Makie asset rendering via
-  `JUFITTER_DOC_SNAPSHOT_ONLY=1`; further speedups require reducing expensive
+  `SCIENTIFICFITTING_DOC_SNAPSHOT_ONLY=1`; further speedups require reducing expensive
   fits or caching documented snapshot computations.
 - The math section now starts with a beginner path, model-choice table, and
   minimal mental model before the formal likelihood/covariance reference. It
   still needs human subject-matter review before broad promotion.
-- Public technical notes are limited to architecture and performance under
-  `Reference > Technical Notes`. Durable contributor invariants live in
-  `MAINTAINERS.md`; release status and commands remain in `RELEASE_AUDIT.md` and
-  `RELEASE_CHECKLIST.md` rather than leaking a changing maintenance log into the
-  user website.
+- Public architecture and performance notes now live under a separate
+  `Developer` navigation group. The duplicate Reference Map was removed, and
+  plotting contracts are split into fit-figure and diagnostic-figure pages.
+  Reference now contains only API lookup and current citation facts. Durable
+  contributor invariants remain in `MAINTAINERS.md`; changing release status
+  remains outside the public website.
 - Private/local dataset language is now covered by the public documentation
   hygiene gate; keep extending that gate when new release-language risks are
   identified.
@@ -931,9 +950,9 @@ Local commits on `codex/*` branches are allowed only as reviewable checkpoints.
 
 ## CI And Packaging Blockers
 
-- Approve the final package/repository name, then verify the existing MIT
-  license, `CITATION.cff`, UUID, authorship, repository URL, and version metadata
-  against the exact repository that will be registered.
+- `ScientificFitting.jl` is the selected package and repository name. Verify the
+  existing MIT license, `CITATION.cff`, UUID, authorship, repository URL, and
+  version metadata against the exact repository that will be registered.
 - Julia 1.10 is the intentional support floor. Local Julia 1.10 evidence covers
   the earlier 432-check core gate and 501-check full package suite plus the
   current 18-check in-place and 35-check structured-whitening reference slices;

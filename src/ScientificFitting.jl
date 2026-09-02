@@ -1,4 +1,4 @@
-module JuFitter
+module ScientificFitting
 
 using ADTypes
 import StatsAPI: fit
@@ -89,4 +89,4 @@ export diagnostic_dashboard
 export diagnostic_dashboard_text
 export report_text
 
-end # module JuFitter
+end # module ScientificFitting

@@ -1,5 +1,5 @@
 using Test
-using JuFitter
+using ScientificFitting
 
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const API_PAGES = [
@@ -7,8 +7,9 @@ const API_PAGES = [
     joinpath(ROOT, "docs", "src", "api_fitting.md"),
     joinpath(ROOT, "docs", "src", "api_results.md"),
     joinpath(ROOT, "docs", "src", "api_plotting.md"),
+    joinpath(ROOT, "docs", "src", "api_plotting_diagnostics.md"),
 ]
-const PUBLIC_API_DOC_EXEMPTIONS = Set([:JuFitter])
+const PUBLIC_API_DOC_EXEMPTIONS = Set([:ScientificFitting])
 const FIT_ENTRYPOINTS = [
     :fit_model,
     :fit_custom,
@@ -22,11 +23,11 @@ const FIT_ENTRYPOINTS = [
 ]
 
 function _public_exports()
-    return sort!(setdiff(names(JuFitter; all=false), collect(PUBLIC_API_DOC_EXEMPTIONS)); by=string)
+    return sort!(setdiff(names(ScientificFitting; all=false), collect(PUBLIC_API_DOC_EXEMPTIONS)); by=string)
 end
 
 function _doc_text(name::Symbol)
-    doc = @eval JuFitter (@doc $(name))
+    doc = @eval ScientificFitting (@doc $(name))
     return sprint(show, MIME("text/plain"), doc)
 end
 
@@ -55,7 +56,9 @@ end
     @test missing == Symbol[]
 
     overview_text = _api_page_text(first(API_PAGES))
-    plotting_text = _api_page_text(last(API_PAGES))
+    fit_plotting_text = _api_page_text(API_PAGES[end - 1])
+    diagnostic_plotting_text = _api_page_text(last(API_PAGES))
+    plotting_text = fit_plotting_text * "\n" * diagnostic_plotting_text
     api_text = _api_reference_text()
     undocumented_on_page = Symbol[name for name in exports if !occursin(string(name), api_text)]
     @test undocumented_on_page == Symbol[]
@@ -69,7 +72,8 @@ end
             "## Results",
             "## Profiles And Contours",
             "## Diagnostics And Reports",
-            "# Plotting",
+            "# Fit Plotting",
+            "# Diagnostic Plotting",
         ]
         @test all(section -> occursin(section, api_text), required_sections)
 
@@ -94,7 +98,8 @@ end
         @test occursin("zero fitted", api_text)
         @test occursin("[Fitting](api_fitting.md)", overview_text)
         @test occursin("[Results And Diagnostics](api_results.md)", overview_text)
-        @test occursin("[Plotting](api_plotting.md)", overview_text)
+        @test occursin("[Fit Plotting](api_plotting.md)", overview_text)
+        @test occursin("[Diagnostic Plotting](api_plotting_diagnostics.md)", overview_text)
     end
 
     @testset "Plotting reference states the complete public contract" begin
@@ -104,8 +109,10 @@ end
             "## Plot An Existing Result",
             "## Extend A Finished Figure",
             "## Reuse The Visual Contract",
-            "## Residual, Pull, And Ratio Figures",
-            "## Profile And Contour Figures",
+            "## Residuals, Pulls, And Ratios",
+            "## One-Parameter Profiles",
+            "## Two-Parameter Contours",
+            "## Profile Matrices",
             "## Export Semantics",
             "## Failure Summary",
         ]
@@ -150,11 +157,11 @@ end
             :plot_contour,
             :plot_profile_matrix,
         )
-            @test occursin("JuFitter.$name", plotting_text)
+            @test occursin("ScientificFitting.$name", plotting_text)
         end
 
         @test occursin("does not depend on Makie", plotting_text)
-        @test occursin("does not perform another scan", plotting_text)
+        @test occursin("renders stored numerical results", plotting_text)
         @test occursin("None of these helpers changes or reruns the fit", plotting_text)
         @test occursin("nsigma`, negative/non-finite `limit_padding`", plotting_text)
     end

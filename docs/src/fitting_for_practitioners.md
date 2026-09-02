@@ -76,7 +76,7 @@ every point may have a different uncertainty.
 
 ### Correlated uncertainty
 
-For correlated Gaussian measurements, JuFitter evaluates
+For correlated Gaussian measurements, ScientificFitting evaluates
 
 ```math
 \chi^2(p)=r(p)^T V^{-1}r(p),
@@ -101,7 +101,7 @@ points moving together is more plausible than the same points moving in
 opposite directions. Replacing this matrix by its diagonal would assign
 ``\chi^2=2`` to both patterns and erase that experimental information.
 
-Use `cov_y` for a moderate dense covariance. JuFitter factorizes the matrix and
+Use `cov_y` for a moderate dense covariance. ScientificFitting factorizes the matrix and
 solves linear systems; it does not form ``V^{-1}`` explicitly. Dense covariance
 still requires roughly ``O(n^2)`` memory and ``O(n^3)`` factorization. For a
 large time series or detector vector with known structure, use a verified
@@ -110,7 +110,7 @@ Verify a custom whitening operation and its covariance log-determinant against
 a small dense reference before applying it to a large dataset.
 
 In concrete terms, a factorization ``V=LL^T`` turns the raw residuals into
-``z=L^{-1}r``. JuFitter then minimizes ``z^Tz``. These are whitened residuals:
+``z=L^{-1}r``. ScientificFitting then minimizes ``z^Tz``. These are whitened residuals:
 if the covariance model is correct, their covariance is the identity and a
 shared drift is no longer counted as many independent deviations. Whitening
 changes coordinates, not the observations or their statistical content.
@@ -132,7 +132,7 @@ prior when that uncertainty must affect the fit result.
 
 ### X uncertainty
 
-For a smooth one-dimensional model and small x uncertainty, JuFitter uses the
+For a smooth one-dimensional model and small x uncertainty, ScientificFitting uses the
 first-order effective variance
 
 ```math
@@ -263,7 +263,7 @@ deviation of the ratio is about ``0.45``. At ``\mathrm{ndf}=1000``, it is only
 about ``0.045``. The same ratio can therefore be ordinary in a small fit and
 decisive evidence of mismatch in a large one.
 
-JuFitter reports the upper-tail probability
+ScientificFitting reports the upper-tail probability
 
 ```math
 p = P\!\left(\chi^2_{\nu}\geq\chi^2_{\mathrm{observed}}\right).
@@ -290,7 +290,7 @@ u_i=\frac{y_i-f(x_i,\hat p)}{\sigma_i}.
 ```
 
 Plausible pulls fluctuate around zero with a scale near one. With correlated
-data, JuFitter uses whitened residuals so the covariance is accounted for.
+data, ScientificFitting uses whitened residuals so the covariance is accounted for.
 Inspect the original residuals as well: whitening tests statistical scale,
 while the data-space residuals show where a physical pattern occurs.
 
@@ -360,7 +360,7 @@ parameter it assumes
 \right)^2,
 ```
 
-where JuFitter uses a cost convention compatible with ``-2\log L``. This gives
+where ScientificFitting uses a cost convention compatible with ``-2\log L``. This gives
 compact symmetric errors, but it can fail near bounds, with weak data, in a
 nonlinear model, or for asymmetric likelihoods.
 
@@ -404,7 +404,7 @@ A contour fixes two parameters on a grid and refits all remaining nuisance
 parameters:
 
 ```julia
-cont = JuFitter.contour(
+cont = ScientificFitting.contour(
     result,
     1,
     2;

@@ -135,7 +135,7 @@ of fit are computed. If its size is not probabilistically quantified, vary
 defensible alternatives and report the sensitivity instead of hiding a guessed
 distribution inside the covariance.
 
-JuFitter never forms ``V^{-1}`` explicitly. Dense covariance is factorized and
+ScientificFitting never forms ``V^{-1}`` explicitly. Dense covariance is factorized and
 applied through triangular solves, which is both more stable and faster than
 materializing an inverse.
 
@@ -202,7 +202,7 @@ If
 d\sim\mathcal N\!\left(m(\theta),V(\theta)\right),
 ```
 
-then JuFitter evaluates
+then ScientificFitting evaluates
 
 ```math
 C(\theta)
@@ -225,7 +225,7 @@ specified as a fraction of its prediction: increasing the prediction increases
 both the residual scale and ``\det V``. Keeping only the quadratic residual
 term would reward arbitrarily inflated uncertainties.
 
-JuFitter selects `cost=:gaussian_likelihood` for parameter-dependent covariance
+ScientificFitting selects `cost=:gaussian_likelihood` for parameter-dependent covariance
 when `cost=:auto`. This occurs for effective x-uncertainty propagation and
 active model-relative uncertainty components.
 
@@ -257,7 +257,7 @@ x and y errors,
 \sigma_{x,i}^2.
 ```
 
-JuFitter's pointwise propagation uses the diagonal matrix
+ScientificFitting's pointwise propagation uses the diagonal matrix
 ``J_x=\operatorname{diag}(\partial f(x_i,\theta)/\partial x_i)``. Correlations
 within ``V_x`` are retained, but cross-covariance between measured x and y is
 not represented by this approximation.

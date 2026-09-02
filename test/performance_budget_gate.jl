@@ -1,9 +1,9 @@
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using Statistics
 using Test
 
-const PERFORMANCE_BUDGET_SCALE = parse(Float64, get(ENV, "JUFITTER_PERFORMANCE_BUDGET_SCALE", "1.0"))
+const PERFORMANCE_BUDGET_SCALE = parse(Float64, get(ENV, "SCIENTIFICFITTING_PERFORMANCE_BUDGET_SCALE", "1.0"))
 
 function _median_elapsed(f; samples::Int=5)
     f() # compile and warm caches before measuring steady-state behavior
@@ -62,7 +62,7 @@ function _structured_covariance_problem(n::Int)
 end
 
 @testset "Performance budget gate" begin
-    @test Base.get_extension(JuFitter, :JuFitterCairoMakieExt) === nothing
+    @test Base.get_extension(ScientificFitting, :ScientificFittingCairoMakieExt) === nothing
 
     model, jacobian, x, y, sigma_y = _linear_problem(10_000)
     fast_result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y, jacobian=jacobian)

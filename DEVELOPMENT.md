@@ -1,6 +1,6 @@
 # Development Workflow
 
-JuFitter is developed as a scientific package. The repository workflow is built
+ScientificFitting is developed as a scientific package. The repository workflow is built
 around keeping `main` clean and making every merged block testable,
 understandable, and documented.
 
@@ -17,7 +17,7 @@ A **worktree** is an additional checkout of the same repository. It lets two
 branches exist in two directories at the same time:
 
 ```bash
-git worktree add ../JuFitter-adaptive codex/adaptive-profile-contours
+git worktree add ../ScientificFitting-adaptive codex/adaptive-profile-contours
 ```
 
 Use branches for sequential work. Use worktrees when two independent milestones

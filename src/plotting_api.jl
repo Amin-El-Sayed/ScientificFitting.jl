@@ -35,7 +35,7 @@ function fitplot end
     fit_axis(figure; index=1)
 
 Return axis number `index` from a Makie `Figure`. The default returns the first
-axis, which is the primary data axis of a standard JuFitter fit figure. Invalid
+axis, which is the primary data axis of a standard ScientificFitting fit figure. Invalid
 indices raise `ArgumentError`. This is the stable hook for adding custom Makie
 content after `plot_fit` without rebuilding the fit.
 """
@@ -47,7 +47,7 @@ function fit_axis end
 
 Add a function-valued or precomputed curve to an existing fit axis. A function
 is sampled on `xgrid`, `xspan`, or the current visible axis range. Style
-defaults follow the active JuFitter plot contract unless Makie keyword
+defaults follow the active ScientificFitting plot contract unless Makie keyword
 arguments such as `color` or `linewidth` are explicitly supplied.
 """
 function add_curve! end
@@ -94,7 +94,7 @@ function add_hband! end
 """
     plot_theme(style=:sans; appearance=:auto)
 
-Return the Makie `Theme` used by JuFitter for a named plot style. The maintained
+Return the Makie `Theme` used by ScientificFitting for a named plot style. The maintained
 visual styles are `:sans` (sans-serif typography, open axes, grid) and `:tex`
 (TeX typography, full frame, no grid). Panel visibility is deliberately not a
 style property. Former style names remain compatibility aliases. `appearance`
@@ -105,7 +105,7 @@ function plot_theme end
 """
     plot_palette(style=:sans; appearance=:auto)
 
-Return the visual tokens used by JuFitter's plot helpers, including color-safe
+Return the visual tokens used by ScientificFitting's plot helpers, including color-safe
 series colors, markers, line weights, typography, and layout defaults. Use this
 when building compound Makie figures that should respond to a selected style.
 """
@@ -122,7 +122,7 @@ return its `GridLayout`. `theme` and `appearance` use the same readable panel
 defaults as `plot_fit`; explicit keywords override them. Supply either
 `legend_source` or matching
 `legend_plots`/`legend_labels`, plus already formatted model, parameter, and
-statistic lines. This low-level helper lets compound figures follow JuFitter's
+statistic lines. This low-level helper lets compound figures follow ScientificFitting's
 information hierarchy without coupling the panel to one `FitResult`.
 """
 function plot_info_panel! end
@@ -141,7 +141,7 @@ function plot_residuals end
     plot_diagnostics(result; kwargs...)
 
 Create a residual, pull, and ratio diagnostic figure. All panels inherit the
-selected JuFitter style; `scatter_kwargs`, `errorbars_kwargs`, and
+selected ScientificFitting style; `scatter_kwargs`, `errorbars_kwargs`, and
 `reference_line_kwargs` provide explicit Makie overrides.
 """
 function plot_diagnostics end
@@ -186,7 +186,7 @@ function plot_profile_matrix end
 function _plotting_unavailable(name::Symbol)
     throw(ArgumentError(
         "`$name` requires the optional CairoMakie plotting extension. " *
-        "Run `using CairoMakie` before calling JuFitter plotting functions, " *
+        "Run `using CairoMakie` before calling ScientificFitting plotting functions, " *
         "or use the fitting/reporting APIs without plotting.",
     ))
 end

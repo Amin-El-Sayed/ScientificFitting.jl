@@ -19,7 +19,7 @@ Do not duplicate those documents here.
 - `profile.jl` owns profile, contour, interval, and profile-matrix computation.
 - `report.jl` owns Makie-free structured and text output.
 - `plotting_api.jl` defines the optional public plotting boundary.
-- `plotting.jl` is loaded only by `ext/JuFitterCairoMakieExt.jl`.
+- `plotting.jl` is loaded only by `ext/ScientificFittingCairoMakieExt.jl`.
 
 `Backend Design` in the documentation explains the full data flow. Keep this
 list as an ownership map, not a second architecture chapter.
@@ -65,7 +65,7 @@ list as an ownership map, not a second architecture chapter.
 
 ## Plotting Invariants
 
-1. `using JuFitter` must not load Makie or CairoMakie. Fitting, reports,
+1. `using ScientificFitting` must not load Makie or CairoMakie. Fitting, reports,
    diagnostics, profiles, and profile-matrix computation remain usable without
    plotting dependencies.
 2. Rendering never refits or mutates a result. `plot_profile_matrix(matrix)`

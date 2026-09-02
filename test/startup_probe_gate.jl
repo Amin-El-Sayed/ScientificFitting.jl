@@ -22,7 +22,7 @@ const STARTUP_PROBE = joinpath(ROOT, "benchmarks", "startup_probe.jl")
         metadata = summary["metadata"]
         startup = summary["startup"]["core_without_makie"]
 
-        @test metadata["jufitter_version"] == "0.1.0"
+        @test metadata["scientificfitting_version"] == "0.1.0"
         @test metadata["unit_time"] == "seconds"
         @test haskey(metadata, "git_commit")
         @test startup["elapsed_seconds"] > 0

@@ -1,5 +1,5 @@
 using Distributions
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using SparseArrays
 using Test
@@ -124,7 +124,7 @@ end
             jacobian=jacobian,
             scale_covariance=:never,
         )
-        cache = JuFitter._prepare_fit_cache(result.problem)
+        cache = ScientificFitting._prepare_fit_cache(result.problem)
 
         @test result.backend == :lsqfit
         @test result.problem.cov_y isa SparseMatrixCSC
@@ -132,7 +132,7 @@ end
         @test isapprox(result.params, ref.params; atol=2e-8, rtol=2e-8)
         @test isapprox(result.param_covariance, ref.cov; atol=2e-7, rtol=2e-7)
         @test isapprox(result.stats.chi2, ref.chi2; atol=2e-8, rtol=2e-8)
-        @test isapprox(JuFitter._yerror_for_plot(result.problem), sqrt.(diag(covariance)); atol=1e-14)
+        @test isapprox(ScientificFitting._yerror_for_plot(result.problem), sqrt.(diag(covariance)); atol=1e-14)
 
         @test_throws ArgumentError fit_model(
             model,

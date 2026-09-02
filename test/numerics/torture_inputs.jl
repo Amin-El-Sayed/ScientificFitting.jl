@@ -1,4 +1,4 @@
-using JuFitter
+using ScientificFitting
 using LinearAlgebra
 using Test
 
@@ -81,7 +81,7 @@ using Test
         )
 
         likelihood = fit_custom(p -> abs2(p[1] - 1.0); p0=[0.0], nobs=2)
-        @test_throws MethodError JuFitter.fit(
+        @test_throws MethodError ScientificFitting.fit(
             likelihood.problem;
             unsupported_keyword=true,
         )

@@ -1,6 +1,6 @@
-# JuFitter Roadmap
+# ScientificFitting Roadmap
 
-JuFitter is developed as a scientific fitting package with three non-negotiable
+ScientificFitting is developed as a scientific fitting package with three non-negotiable
 goals:
 
 1. Beautiful, reliable plots from minimal input.
@@ -13,14 +13,14 @@ The external ecosystem has strong individual tools, but no single Julia package
 currently combines a kafe2-like statistical model, Minuit-style profiling,
 Makie-quality plotting, and a modern documentation experience.
 
-JuFitter should compete by combining:
+ScientificFitting should compete by combining:
 
 - the one-liner convenience expected from SciPy/lmfit workflows,
 - the explicit covariance and constraint semantics expected from kafe2/Minuit,
 - Julia-native performance and composability,
 - a documented Python interoperability path through JuliaCall/PythonCall for
   users who want to call the fitting/reporting engine from Python without
-  rewriting JuFitter,
+  rewriting ScientificFitting,
 - publication-grade plots as a default outcome, not a later styling step,
 - documentation that teaches both usage and statistical meaning.
 
@@ -228,7 +228,7 @@ Current evidence:
   constraints, active error components, parameter-dependent covariance, or a
   non-chi-square cost would be discarded. Solver controls are validated before
   dispatch, and unknown likelihood-fit keywords are no longer ignored.
-- JuFitter's low-level `fit(problem)` methods extend `StatsAPI.fit`, avoiding an
+- ScientificFitting's low-level `fit(problem)` methods extend `StatsAPI.fit`, avoiding an
   ambiguous second `fit` generic when scientific workflows also load
   `Distributions` or `StatsBase`.
 - Local parameter covariance is checked for negative eigenvalues. Invalid
@@ -242,7 +242,7 @@ Post-v0 hardening work:
 
 - Improve adaptive contour refinement for strongly curved/non-elliptic regions
   beyond simple level-bracketing cells.
-- Improve the kafe2-inspired but JuFitter-native profile/contour matrix beyond
+- Improve the kafe2-inspired but ScientificFitting-native profile/contour matrix beyond
   the current tested core object: stronger non-elliptic visual examples,
   clearer plot labels, stronger panel-level severity styling, and
   documentation that explains what a scientist should conclude rather than
@@ -333,7 +333,7 @@ Acceptance criteria:
 
 The maintained preset layer describes visual grammar, not intended use or
 information density. Keep Makie's native layout and styling machinery wherever
-it already solves the problem; JuFitter adds only fitting-specific defaults and
+it already solves the problem; ScientificFitting adds only fitting-specific defaults and
 composition.
 
 - `:sans` uses readable sans-serif typography, filled observations, visible
@@ -428,13 +428,13 @@ Acceptance criteria:
 - Gallery examples include simple, dense-data, XY-uncertainty, full-covariance,
   profile/contour, histogram, likelihood, and multi-fit workflows.
 
-## Phase 4.5: Python Interoperability
+## Phase 5: First-Class Python Interface
 
-Status: locally validated through JuliaCall for the minimal fitting/reporting
-path; CI confirmation and broader array-conversion documentation remain open.
+Status: primary planned post-v0.1 development block. A minimal JuliaCall path
+is locally validated for fitting and reports, but remains experimental.
 
-Goal: Python users can call the mature JuFitter fitting/reporting engine without
-the project becoming a second Python implementation.
+Goal: Python users get a polished, Python-native entry point to the mature
+ScientificFitting engine without creating a second statistical implementation.
 
 Key deliverables:
 
@@ -446,6 +446,10 @@ Key deliverables:
 - Document array conversion and ownership rules for NumPy inputs and Julia
   outputs. Plain Python lists are covered by the current gate; NumPy ownership
   and zero-copy expectations still need explicit tests and documentation.
+- Provide Pythonic problem, result, diagnostic, and exception wrappers instead
+  of exposing Julia implementation details as the primary interface.
+- Make environment setup, Julia startup, package installation, and version
+  selection predictable from an ordinary Python workflow.
 - Keep plotting optional: Python interoperability must work for fitting and
   reports even when CairoMakie is not installed.
 - Add a CI or release-gate job that runs the Python interoperability example

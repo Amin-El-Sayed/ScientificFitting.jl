@@ -6,14 +6,14 @@ statistical problem. A covariance matrix is not a prettier way to draw error
 bars; it tells the fit which residual patterns are plausible together.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance exponential fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_dark.png" alt="Full covariance exponential fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_light.png" alt="Full covariance exponential fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_dark.png" alt="Full covariance exponential fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_light.png" alt="Full covariance exponential fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_light.png" alt="Full covariance exponential fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_dark.png" alt="Full covariance exponential fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="full-covariance" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_dark.png" alt="Full covariance exponential fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance exponential fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_dark.png" alt="Full covariance exponential fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_light.png" alt="Full covariance exponential fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_dark.png" alt="Full covariance exponential fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_light.png" alt="Full covariance exponential fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_light.png" alt="Full covariance exponential fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_dark.png" alt="Full covariance exponential fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_dark.png" alt="Full covariance exponential fit in dark tex style without result panel">
 ```
 
 ## Question
@@ -109,7 +109,7 @@ With a full covariance matrix ``V``, the Gaussian cost uses the quadratic form
 r_i = y_i - f(t_i,p).
 ```
 
-JuFitter does not form an explicit inverse for this calculation. It factors the
+ScientificFitting does not form an explicit inverse for this calculation. It factors the
 covariance and evaluates the whitened residuals, which is numerically safer:
 
 ```math
@@ -128,7 +128,7 @@ structured or problem-specific `WhiteningOperator` rather than a dense matrix.
 This is the complete code for the documentation example:
 
 ```julia
-using JuFitter
+using ScientificFitting
 using CairoMakie
 using LinearAlgebra
 
@@ -203,8 +203,8 @@ println(diagnostic_dashboard_text(diagonal_result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = lsqfit
 converged = true

@@ -33,7 +33,7 @@ end
 
 function documented_output_blocks(relative_page::AbstractString)
     page = read(joinpath(DOCS_SRC, relative_page), String)
-    pattern = r"<div class=\"jufitter-cell-output\">.*?<pre>(.*?)</pre>.*?</div>"s
+    pattern = r"<div class=\"scientificfitting-cell-output\">.*?<pre>(.*?)</pre>.*?</div>"s
     return [match.captures[1] for match in eachmatch(pattern, page)]
 end
 
@@ -54,7 +54,7 @@ function markdown_pages()
 end
 
 function marker_outputs(text::AbstractString)
-    pattern = r"=== JUFITTER_DOC_OUTPUT_BEGIN ([^\n]+?) ===\n(.*?)\n=== JUFITTER_DOC_OUTPUT_END \1 ==="s
+    pattern = r"=== SCIENTIFICFITTING_DOC_OUTPUT_BEGIN ([^\n]+?) ===\n(.*?)\n=== SCIENTIFICFITTING_DOC_OUTPUT_END \1 ==="s
     outputs = Dict{String,String}()
     for match in eachmatch(pattern, text)
         id, body = match.captures
@@ -68,15 +68,15 @@ function run_snapshot_script(script::AbstractString)
     return read(
         setenv(
             cmd,
-            "JUFITTER_DOC_OUTPUT_SNAPSHOTS" => "1",
-            "JUFITTER_DOC_SNAPSHOT_ONLY" => "1",
+            "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS" => "1",
+            "SCIENTIFICFITTING_DOC_SNAPSHOT_ONLY" => "1",
         ),
         String,
     )
 end
 
 function documented_page_outputs(text::AbstractString)
-    pattern = r"=== JUFITTER_DOC_PAGE_BEGIN ([^\n]+?) ===\n(.*?)\n=== JUFITTER_DOC_PAGE_END \1 ==="s
+    pattern = r"=== SCIENTIFICFITTING_DOC_PAGE_BEGIN ([^\n]+?) ===\n(.*?)\n=== SCIENTIFICFITTING_DOC_PAGE_END \1 ==="s
     outputs = Dict{String,String}()
     for match in eachmatch(pattern, text)
         page, body = match.captures
@@ -110,17 +110,17 @@ function run_documented_pages(relative_pages)
             push!(entries, (; index, relative_page, directory, script))
         end
 
-        # One Julia process loads JuFitter and Makie once. A fresh module and
+        # One Julia process loads ScientificFitting and Makie once. A fresh module and
         # working directory still isolate names and generated files per page.
         driver = joinpath(root, "run_documented_pages.jl")
         open(driver, "w") do io
             println(io, "function run_page(index, page, directory, script)")
-            println(io, "    println(\"=== JUFITTER_DOC_PAGE_BEGIN \", page, \" ===\")")
-            println(io, "    page_module = Module(Symbol(\"JuFitterDocsPage\", index))")
+            println(io, "    println(\"=== SCIENTIFICFITTING_DOC_PAGE_BEGIN \", page, \" ===\")")
+            println(io, "    page_module = Module(Symbol(\"ScientificFittingDocsPage\", index))")
             println(io, "    cd(directory) do")
             println(io, "        Base.include(page_module, script)")
             println(io, "    end")
-            println(io, "    println(\"=== JUFITTER_DOC_PAGE_END \", page, \" ===\")")
+            println(io, "    println(\"=== SCIENTIFICFITTING_DOC_PAGE_END \", page, \" ===\")")
             println(io, "end")
             for entry in entries
                 println(

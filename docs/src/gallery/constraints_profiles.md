@@ -6,14 +6,14 @@ answer is not enough. The fitted curve looks well determined over the measured
 interval, but two physical parameters remain strongly and nonlinearly coupled.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained saturation fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/constraints_priors_sans_panel_dark.png" alt="Constrained saturation fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/constraints_priors_sans_plot_light.png" alt="Constrained saturation fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/constraints_priors_sans_plot_dark.png" alt="Constrained saturation fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/constraints_priors_tex_panel_light.png" alt="Constrained saturation fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/constraints_priors_tex_plot_light.png" alt="Constrained saturation fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/constraints_priors_tex_panel_dark.png" alt="Constrained saturation fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="constraints-priors" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/constraints_priors_tex_plot_dark.png" alt="Constrained saturation fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained saturation fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_sans_panel_dark.png" alt="Constrained saturation fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_sans_plot_light.png" alt="Constrained saturation fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_sans_plot_dark.png" alt="Constrained saturation fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_tex_panel_light.png" alt="Constrained saturation fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_tex_plot_light.png" alt="Constrained saturation fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_tex_panel_dark.png" alt="Constrained saturation fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_tex_plot_dark.png" alt="Constrained saturation fit in dark tex style without result panel">
 ```
 
 ## Scientific Question
@@ -129,7 +129,7 @@ is needed when the first-order approximation is not adequate.
 
 ```julia
 using CairoMakie
-using JuFitter
+using ScientificFitting
 using Printf
 
 t = [
@@ -173,7 +173,7 @@ result = fit_model(
 
 amplitude_interval = profile_interval(result, 1; npoints=81, nsigma=4)
 amplitude_profile = amplitude_interval.profile_result
-amplitude_timescale = JuFitter.contour(
+amplitude_timescale = ScientificFitting.contour(
     result,
     1,
     2;
@@ -220,8 +220,8 @@ println(diagnostic_dashboard_text(result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>amplitude = 4.750 -0.629 +1.018 V
 profile interval = [4.121, 5.768] V
 corr(A, tau) = 0.9928
@@ -263,10 +263,10 @@ approximation near the minimum.
 ## Profile: Is The One-Parameter Error Symmetric?
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="sans" src="../assets/gallery/saturation_profile_sans_light.png" alt="Saturation amplitude profile in sans style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="sans" src="../assets/gallery/saturation_profile_sans_dark.png" alt="Saturation amplitude profile in dark sans style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="tex" src="../assets/gallery/saturation_profile_tex_light.png" alt="Saturation amplitude profile in tex style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile" data-jufitter-plot-style="tex" src="../assets/gallery/saturation_profile_tex_dark.png" alt="Saturation amplitude profile in dark tex style">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_sans_light.png" alt="Saturation amplitude profile in sans style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_sans_dark.png" alt="Saturation amplitude profile in dark sans style">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_tex_light.png" alt="Saturation amplitude profile in tex style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_tex_dark.png" alt="Saturation amplitude profile in dark tex style">
 ```
 
 For every fixed amplitude, the profile scan refits ``\tau`` and ``c`` and
@@ -305,14 +305,14 @@ interval construction rather than a qualitative curve inspection.
 ## Contour: Which Parameter Combinations Survive?
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="sans" src="../assets/gallery/amplitude_timescale_contour_sans_light.png" alt="Amplitude-timescale contour in sans style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="sans" src="../assets/gallery/amplitude_timescale_contour_sans_dark.png" alt="Amplitude-timescale contour in dark sans style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="tex" src="../assets/gallery/amplitude_timescale_contour_tex_light.png" alt="Amplitude-timescale contour in tex style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="amplitude-timescale-contour" data-jufitter-plot-style="tex" src="../assets/gallery/amplitude_timescale_contour_tex_dark.png" alt="Amplitude-timescale contour in dark tex style">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="sans" src="../assets/gallery/amplitude_timescale_contour_sans_light.png" alt="Amplitude-timescale contour in sans style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="sans" src="../assets/gallery/amplitude_timescale_contour_sans_dark.png" alt="Amplitude-timescale contour in dark sans style">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="tex" src="../assets/gallery/amplitude_timescale_contour_tex_light.png" alt="Amplitude-timescale contour in tex style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="tex" src="../assets/gallery/amplitude_timescale_contour_tex_dark.png" alt="Amplitude-timescale contour in dark tex style">
 ```
 
 The filled regions are the actual profiled one- and two-sigma regions. At every
-grid point in ``(A,\tau)``, JuFitter refits the baseline. The dashed curves are
+grid point in ``(A,\tau)``, ScientificFitting refits the baseline. The dashed curves are
 the local covariance ellipses.
 
 For two parameters under the same regular likelihood-ratio assumptions, the
@@ -344,10 +344,10 @@ codes, and the first recommended action. That is the text-first route when you
 want a run to fail or warn before anyone opens the figure.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="sans" src="../assets/gallery/saturation_profile_matrix_sans_light.png" alt="Saturation profile matrix in sans style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="sans" src="../assets/gallery/saturation_profile_matrix_sans_dark.png" alt="Saturation profile matrix in dark sans style">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="tex" src="../assets/gallery/saturation_profile_matrix_tex_light.png" alt="Saturation profile matrix in tex style">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="saturation-profile-matrix" data-jufitter-plot-style="tex" src="../assets/gallery/saturation_profile_matrix_tex_dark.png" alt="Saturation profile matrix in dark tex style">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_matrix_sans_light.png" alt="Saturation profile matrix in sans style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_matrix_sans_dark.png" alt="Saturation profile matrix in dark sans style">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_matrix_tex_light.png" alt="Saturation profile matrix in tex style">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_matrix_tex_dark.png" alt="Saturation profile matrix in dark tex style">
 ```
 
 The useful reading order is mechanical:

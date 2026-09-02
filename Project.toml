@@ -1,4 +1,4 @@
-name = "JuFitter"
+name = "ScientificFitting"
 uuid = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
 authors = ["Amin El Sayed"]
 version = "0.1.0"
@@ -23,7 +23,7 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 
 [extensions]
-JuFitterCairoMakieExt = "CairoMakie"
+ScientificFittingCairoMakieExt = "CairoMakie"
 
 [compat]
 ADTypes = "1.21"

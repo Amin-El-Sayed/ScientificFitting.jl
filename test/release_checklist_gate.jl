@@ -32,7 +32,7 @@ const REQUIRED_RELEASE_CHECKLIST_STRINGS = [
     "profile/contour intervals",
     "Parameter-dependent dense `cov_x` propagation",
     "finite-difference value, gradient, and Hessian",
-    "JUFITTER_RUN_PYTHON_INTEROP=1",
+    "SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1",
     "Amin-El-Sayed <78275938+Amin-El-Sayed@users.noreply.github.com>",
     "manual approval",
 ]

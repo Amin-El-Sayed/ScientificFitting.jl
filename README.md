@@ -1,14 +1,24 @@
-# JuFitter
+# ScientificFitting
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/src/assets/scientificfitting-logo-dark.svg">
+  <img alt="ScientificFitting" src="docs/src/assets/scientificfitting-logo.svg" width="560">
+</picture>
+
+[![CI](https://github.com/Amin-El-Sayed/ScientificFitting.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/Amin-El-Sayed/ScientificFitting.jl/actions/workflows/ci.yml)
+[![Documentation](https://github.com/Amin-El-Sayed/ScientificFitting.jl/actions/workflows/pages.yml/badge.svg)](https://amin-el-sayed.github.io/ScientificFitting.jl/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Scientific fitting for Julia: data, uncertainties, statistically explicit
 results, diagnostics, and Makie plots from one coherent workflow.
 
-JuFitter is built for laboratory, engineering, and scientific analysis where the
+ScientificFitting is built for laboratory, engineering, and scientific analysis where the
 fit result is only useful if the uncertainty model, diagnostics, and plot are
-understandable. The package is currently pre-release; the repository is being
-hardened before broad public promotion or Julia package registration.
+understandable. Version 0.1 is the first public work-in-progress release: the
+core is tested and usable, while feedback from real analyses will shape the
+next interfaces and supported workflows.
 
-## Why JuFitter
+## Why ScientificFitting
 
 - Weighted nonlinear least squares with diagonal, full-covariance, x/y,
   component-based, and matrix-free static whitening uncertainty models.
@@ -30,7 +40,7 @@ The fitting and reporting core does not load Makie. Load CairoMakie only when
 you want plots.
 
 ```julia
-using JuFitter
+using ScientificFitting
 using CairoMakie
 
 x = [0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5]
@@ -61,7 +71,7 @@ println(diagnostic_dashboard_text(result))
 For fitting without plotting:
 
 ```julia
-using JuFitter
+using ScientificFitting
 
 result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
 report = fit_report(result; parameter_names=["m", "b"])
@@ -69,38 +79,31 @@ report = fit_report(result; parameter_names=["m", "b"])
 
 ## Installation
 
-JuFitter declares support for Julia 1.10 and later. The CI workflow is
-configured for Julia 1.10 and Julia 1.12; the complete current matrix must pass
-before publication.
+ScientificFitting declares support for Julia 1.10 and later. CI tests Julia
+1.10 and Julia 1.12.
 
-During active development, use a checked-out repository:
-
-```julia
-using Pkg
-Pkg.activate("/path/to/JuFitter")
-Pkg.instantiate()
-```
-
-From the repository root:
-
-```bash
-julia --project=.
-```
-
-After registration, the intended user-facing path is:
+Until the General registry accepts the first release, install directly from
+GitHub:
 
 ```julia
 using Pkg
-Pkg.add("JuFitter")
+Pkg.add(url="https://github.com/Amin-El-Sayed/ScientificFitting.jl")
+```
+
+After registration, the normal installation is:
+
+```julia
+using Pkg
+Pkg.add("ScientificFitting")
 ```
 
 For plotting, add and load CairoMakie in the same environment:
 
 ```julia
 using Pkg
-Pkg.add(["JuFitter", "CairoMakie"])
+Pkg.add(["ScientificFitting", "CairoMakie"])
 
-using JuFitter
+using ScientificFitting
 using CairoMakie
 ```
 
@@ -132,7 +135,7 @@ Then serve `docs/build` with any static file server.
 
 ## Current Scope
 
-JuFitter is intended to cover the common scientific fitting workflows before
+ScientificFitting is intended to cover the common scientific fitting workflows before
 v1:
 
 - Gaussian XY fits with diagonal, dense, sparse-static, or custom
@@ -144,7 +147,7 @@ v1:
 - Profile and contour diagnostics for cases where local covariance is not
   enough.
 - Makie plots that can be used as-is or extended through returned Makie figures
-  and JuFitter annotation helpers.
+  and ScientificFitting annotation helpers.
 
 Known limitations are explicit:
 
@@ -160,7 +163,8 @@ Known limitations are explicit:
 - CairoMakie has a noticeable first-use compilation cost. Fitting and reporting
   remain usable without loading Makie.
 - Python interoperability is planned through JuliaCall/PythonCall and has an
-  opt-in gate, but it is not a release claim yet.
+  opt-in gate, but the current bridge is experimental. A first-class Python
+  interface is the primary planned post-v0.1 development block.
 
 ## Contributing
 
@@ -171,7 +175,7 @@ statistical or performance changes.
 
 ## License And Citation
 
-JuFitter is licensed under the [MIT License](LICENSE). If it contributes to
+ScientificFitting is licensed under the [MIT License](LICENSE). If it contributes to
 published research, please cite the exact version using [CITATION.cff](CITATION.cff).
 The documentation explains [citation, related work, and method-specific
 attribution](docs/src/citation.md).

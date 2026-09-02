@@ -6,14 +6,14 @@ feature: if the model is steep enough, uncertainty in ``x`` contributes to the
 statistical cost and to the fitted parameter errors.
 
 ```@raw html
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="sans" data-jufitter-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_dark.png" alt="XY uncertainty fit in dark sans style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_light.png" alt="XY uncertainty fit in sans style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="sans" data-jufitter-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_dark.png" alt="XY uncertainty fit in dark sans style without result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_light.png" alt="XY uncertainty fit in tex style with result panel">
-<img class="jufitter-plot jufitter-plot-light" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_light.png" alt="XY uncertainty fit in tex style without result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="tex" data-jufitter-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_dark.png" alt="XY uncertainty fit in dark tex style with result panel">
-<img class="jufitter-plot jufitter-plot-dark" data-jufitter-plot-group="xy-uncertainties" data-jufitter-plot-style="tex" data-jufitter-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_dark.png" alt="XY uncertainty fit in dark tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_dark.png" alt="XY uncertainty fit in dark sans style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_light.png" alt="XY uncertainty fit in sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_dark.png" alt="XY uncertainty fit in dark sans style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_light.png" alt="XY uncertainty fit in tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_light.png" alt="XY uncertainty fit in tex style without result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_dark.png" alt="XY uncertainty fit in dark tex style with result panel">
+<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_dark.png" alt="XY uncertainty fit in dark tex style without result panel">
 ```
 
 ## Question
@@ -76,7 +76,7 @@ The size of the effect is easy to estimate before fitting. If
 than ``\sigma_U=0.033\,\mathrm{V}``. Drawing horizontal error bars while fitting
 as if x were exact would therefore understate the parameter uncertainty.
 
-JuFitter uses this effective variance when `sigma_x` is supplied. This is a
+ScientificFitting uses this effective variance when `sigma_x` is supplied. This is a
 local first-order approximation. It is appropriate for smooth models and
 moderate x errors; it is not a full errors-in-variables model.
 
@@ -86,7 +86,7 @@ This is the complete code for the documentation example:
 
 ```julia
 using CairoMakie
-using JuFitter
+using ScientificFitting
 
 # Both coordinates are measured. sigma_x and sigma_U are standard
 # uncertainties, not visual-only error-bar lengths.
@@ -135,8 +135,8 @@ println(diagnostic_dashboard_text(result))
 ```
 
 ```@raw html
-<div class="jufitter-cell-output">
-<div class="jufitter-cell-output-label">Output from this code</div>
+<div class="scientificfitting-cell-output">
+<div class="scientificfitting-cell-output-label">Output from this code</div>
 <pre>Fit report
 backend = optimization
 converged = true

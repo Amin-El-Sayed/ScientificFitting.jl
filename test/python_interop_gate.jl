@@ -26,7 +26,7 @@ function juliacall_available(cmd::AbstractString)
 end
 
 @testset "Python interoperability" begin
-    run_interop = get(ENV, "JUFITTER_RUN_PYTHON_INTEROP", "0") == "1"
+    run_interop = get(ENV, "SCIENTIFICFITTING_RUN_PYTHON_INTEROP", "0") == "1"
     py = python3_cmd()
 
     @test isfile(PYTHON_INTEROP_SCRIPT)
@@ -35,13 +35,13 @@ end
         @test true
         @info(
             "Python interoperability gate is opt-in. Set " *
-            "JUFITTER_RUN_PYTHON_INTEROP=1 after installing juliacall."
+            "SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1 after installing juliacall."
         )
     else
         @test command_available(py)
         @test juliacall_available(py)
         output = read(pipeline(Cmd([py, PYTHON_INTEROP_SCRIPT]); stderr=stdout), String)
-        @test occursin("JuFitter from Python", output)
+        @test occursin("ScientificFitting from Python", output)
         @test occursin("Fit report", output)
         @test occursin("Fit diagnostic dashboard", output)
         @test occursin("slope", output)

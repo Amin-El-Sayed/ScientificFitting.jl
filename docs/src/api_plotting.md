@@ -1,11 +1,11 @@
-# Plotting
+# Fit Plotting
 
-JuFitter's numerical core does not depend on Makie. Fitting, profiles,
+ScientificFitting's numerical core does not depend on Makie. Fitting, profiles,
 diagnostics, and text reports do not require Makie; the plotting methods are
 activated by CairoMakie:
 
 ```julia
-using JuFitter
+using ScientificFitting
 using CairoMakie
 ```
 
@@ -21,10 +21,6 @@ compilation cost.
 | Fit arrays and plot immediately | [`fitplot`](@ref) | `(result, figure)` | yes |
 | Plot an existing x-y fit | [`plot_fit`](@ref) | `Figure` | no |
 | Add content to the data axis | [`fit_axis`](@ref), `add_*!` | `Axis` or Makie plot object | no |
-| Inspect residuals, pulls, or ratios | [`plot_residuals`](@ref), [`plot_diagnostics`](@ref) | `Figure` | no |
-| Render an existing profile or contour | [`plot_profile`](@ref), [`plot_contour`](@ref) | `Figure` | no |
-| Compute and render a profile matrix | [`plot_profile_matrix`](@ref)`(result)` | `Figure` | yes, repeatedly |
-| Render a stored profile matrix | [`plot_profile_matrix`](@ref)`(matrix)` | `Figure` | no |
 | Compose a custom themed figure | [`plot_theme`](@ref), [`plot_palette`](@ref), [`plot_info_panel!`](@ref) | `Theme`, style tokens, or `GridLayout` | no |
 
 The [Plotting And Customization](plotting_design.md) guide develops complete
@@ -42,26 +38,6 @@ All methods return the named tuple `(result=result, figure=figure)`. The
 two-array method fits the straight line ``y=p_1x+p_2`` and derives an initial
 slope and intercept from the first and last observations unless `p0` is given.
 The `FitResult` method only renders; it never repeats the fit.
-
-```julia
-x = [0.0, 1.0, 2.0, 3.0]
-y = [0.14, 1.08, 2.16, 3.03]
-sigma_y = [0.10, 0.12, 0.11, 0.13]
-
-out = fitplot(
-    x,
-    y;
-    sigma_y=sigma_y,
-    xlabel="position",
-    xunit="mm",
-    ylabel="voltage",
-    yunit="V",
-    show_panel=true,
-)
-
-result = out.result
-figure = out.figure
-```
 
 ### Output selection
 
@@ -103,7 +79,7 @@ optional uncertainty band, and optional result panel. It does not modify
 | `format` | `:pdf` | Extension appended only when `filename` has no extension. |
 | `theme` | `:sans` | Maintained visual style: `:sans` or `:tex`. |
 | `appearance` | `:auto` | `:light`, `:dark`, or `:auto`; `:auto` currently resolves to light. |
-| `theme_override` | `Theme()` | Makie theme merged after the selected JuFitter style. |
+| `theme_override` | `Theme()` | Makie theme merged after the selected ScientificFitting style. |
 | `figure_size` | style/panel-dependent | Logical Makie canvas `(width, height)`; it does not set raster density. |
 | `tight_layout` | `true` | Trim layout whitespace while preserving the declared figure footprint. |
 
@@ -128,7 +104,7 @@ color appearance are separate arguments.
 | `auto_limits` | `true` | Include data, errors, model, and displayed band in both axis limits. |
 | `limit_padding` | `0.08` | Finite non-negative fractional padding around automatic content limits. |
 | `plot_aspect` | `nothing` | Optional numeric `AxisAspect`; leave unset unless geometry carries meaning. |
-| `axis_kwargs` | `NamedTuple()` | Makie `Axis` attributes applied after JuFitter's title/label defaults. |
+| `axis_kwargs` | `NamedTuple()` | Makie `Axis` attributes applied after ScientificFitting's title/label defaults. |
 
 `fit_range` must be `:axis` or `:data`. `limit_padding` must be finite and
 non-negative. If `auto_limits=false`, provide limits through `axis_kwargs` or
@@ -142,7 +118,7 @@ resample the model; use a matching `xgrid` when extrapolation is intentional.
 | `band` | `:confidence` | `:confidence`, `:prediction`, or `:none`. |
 | `nsigma` | `1.0` | Finite positive multiplier for the displayed standard-deviation scale. |
 | `band_label` | `"1-sigma band"` | Legend text; update it whenever `nsigma` or the band meaning changes. |
-| `band_color`, `band_alpha` | style-dependent | Direct JuFitter-level overrides. |
+| `band_color`, `band_alpha` | style-dependent | Direct ScientificFitting-level overrides. |
 | `band_kwargs` | `NamedTuple()` | Makie `band!` attributes applied last. |
 
 `band=:confidence` propagates the local parameter covariance to the fitted
@@ -187,7 +163,7 @@ see [Results And Diagnostics](api_results.md#Results-And-Diagnostics).
 Role defaults are used whenever a scalar keyword is `nothing`. The associated
 Makie keyword container is merged last and therefore has final authority.
 
-| Layer | JuFitter-level keywords | Final Makie container |
+| Layer | ScientificFitting-level keywords | Final Makie container |
 |---|---|---|
 | Observations | `data_color`, `data_marker`, `data_markersize`, `data_strokecolor`, `data_strokewidth`, `data_label` | `scatter_kwargs` |
 | Fit curve | `fit_color`, `fit_linewidth`, `fit_label` | `line_kwargs` |
@@ -234,7 +210,7 @@ style = plot_palette(:sans; appearance=:dark)
 ```
 
 `plot_theme(style; appearance, theme_override)` returns the Makie `Theme` used
-by JuFitter. `plot_palette(style; appearance)` returns the corresponding named
+by ScientificFitting. `plot_palette(style; appearance)` returns the corresponding named
 tuple of visual tokens: data/fit/band colors, multi-series colors, marker and
 line sizes, typography, grids and spines, report-panel spacing, and default
 figure sizes. These functions let a custom Makie layout inherit the same style
@@ -263,118 +239,11 @@ defaults. `tellwidth=true` lets the panel report its natural width;
 `tellheight=false` prevents a short report from shrinking or vertically
 centering the adjacent scientific axis. The function returns its `GridLayout`.
 
-## Residual, Pull, And Ratio Figures
+## Diagnostic Figures
 
-```julia
-plot_residuals(result; kind=:pull)
-plot_diagnostics(result)
-```
-
-`plot_residuals` creates one axis. `kind` is:
-
-| `kind` | Displayed value | Reference line |
-|---|---|---:|
-| `:residual` | ``y_i-f_i`` with available y errors | 0 |
-| `:pull` | weighted or whitened residual coordinate | 0 |
-| `:ratio` | ``y_i/f_i`` with propagated y-error ratio | 1 |
-
-For dense covariance, whitened residual coordinates are not pointwise pulls in
-the original measurement order. A ratio is undefined when any fitted model
-value is zero and raises `ArgumentError` rather than plotting an infinity.
-Non-finite coordinates, values, or errors are rejected.
-
-Shared `plot_residuals` keywords are `filename=nothing`, `format=:pdf`,
-`theme=:sans`, `appearance=:auto`, `theme_override=Theme()`,
-`figure_size=(900, 520)`, `xlabel="x"`, `color=nothing`,
-`reference_color=nothing`, `marker=nothing`, `markersize=nothing`,
-`error_whiskerwidth=nothing`, `axis_kwargs`, `scatter_kwargs`, and
-`errorbars_kwargs`.
-
-`plot_diagnostics` stacks residual, pull, and ratio panels. It uses the same
-keywords, defaults to `figure_size=(900, 900)`, and adds
-`reference_line_kwargs`. All style containers are applied to every panel.
-
-## Profile And Contour Figures
-
-The numerical scans are defined in [Results And Diagnostics](api_results.md#Profiles-And-Contours).
-Plotting a stored `ProfileResult`, `ContourResult`, or `ProfileMatrixResult`
-does not perform another scan.
-
-### One-parameter profile
-
-```julia
-plot_profile(profile_result; local_sigma=result.param_stderr[i])
-```
-
-| Keyword group | Keywords and defaults |
-|---|---|
-| Output and style | `filename=nothing`, `format=:pdf`, `theme=:sans`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(900, 620)` |
-| Labels | `title="Profile"`, `xlabel="parameter"`, `ylabel="Delta cost"` |
-| Profile | `line_color=nothing`, `line_width=nothing`, `profile_label="profile cost"`, `line_kwargs` |
-| Local approximation | `local_sigma=nothing`, `local_color=nothing`, `local_linewidth=nothing`, `local_linestyle=:dash`, `local_label="local covariance parabola"`, `local_line_kwargs` |
-| Threshold | `threshold_color=nothing`, `threshold_label=nothing`, `threshold_kwargs` |
-| Layout | `show_legend=true`, `legend_position=:below`, `delta_max=nothing`, `axis_kwargs`, `legend_kwargs` |
-
-`local_sigma` must be positive. `delta_max` must be positive when supplied; it
-changes only the displayed y range, not the profile scan or interval.
-The default vertical legend occupies its own row below the data axis, so a long
-threshold description cannot reduce the scientific plotting width.
-`legend_position=:right` requests a bounded side column instead. Explicit Makie
-legend attributes in `legend_kwargs` take precedence.
-
-### Two-parameter contour
-
-```julia
-plot_contour(
-    contour_result;
-    local_covariance=result.param_covariance,
-    local_center=result.params[[i, j]],
-)
-```
-
-| Keyword group | Keywords and defaults |
-|---|---|
-| Output and style | `filename=nothing`, `format=:pdf`, `theme=:sans`, `appearance=:auto`, `theme_override=Theme()`, `figure_size=(820, 700)` |
-| Labels | `title="Contour"`, `xlabel="parameter 1"`, `ylabel="parameter 2"`, `axis_kwargs` |
-| Profile surface | `show_regions=true`, `show_profile_lines=false`, `level_colors=nothing`, `region_colors=nothing`, `line_color=nothing`, `contour_kwargs` |
-| Optional heatmap | `show_heatmap=false`, `colormap=:viridis`, `heatmap_kwargs` |
-| Local approximation | `local_covariance=nothing`, `local_center=nothing`, `local_line_color=nothing`, `local_linewidth=nothing`, `local_linestyle=:dash`, `local_contour_kwargs` |
-| Legend | `show_legend=true`, `legend_position=:below`, `legend_kwargs` |
-
-The default uses filled profile regions and labels the common two-parameter
-thresholds 2.30 and 6.18 as one- and two-sigma regions. A heatmap is opt-in.
-`local_covariance` may be the relevant 2x2 matrix or the full fitted covariance;
-`local_center` must contain exactly two values. Empty/non-positive contour
-levels, an empty color collection, incompatible covariance dimensions, or a
-surface with no finite cost value raise `ArgumentError`.
-The default vertical legend occupies its own row below the contour. This keeps
-the contour width independent of descriptive confidence-region labels.
-`legend_position=:right` requests a bounded side column instead.
-
-### Profile/contour matrix
-
-```julia
-plot_profile_matrix(result; parameters=[1, 2, 3])
-plot_profile_matrix(matrix_result; parameter_names=["A", "lambda", "offset"])
-```
-
-The first method computes all required profile and contour refits, then renders
-them. Its scan controls are `parameters=nothing`, `parameter_names=nothing`,
-`npoints_profile=61`, `npoints_contour=25`, `nsigma=3`,
-`profile_threshold=1.0`, `contour_levels=[2.30, 6.18]`, `adaptive=false`,
-`max_refinements=2`, and `max_points=1200`.
-
-Both methods accept `filename=nothing`, `format=:pdf`, `theme=:sans`,
-`appearance=:auto`, `theme_override=Theme()`, `panel_status_mode=:issues`,
-`delta_max=nothing`, and `figure_size=nothing`. The precomputed-result method
-also accepts replacement `parameter_names` but no scan controls.
-
-`panel_status_mode=:issues` labels panels requiring attention. `:all` or
-`:none` changes that choice independently of visual style. Invalid modes,
-mismatched display-name counts, or
-inconsistent stored matrix dimensions raise `ArgumentError`. Compute
-[`profile_matrix`](@ref) separately when scans should run headlessly, be
-triaged before rendering, or be reused in several exports.
+Residual, pull, ratio, profile, contour, and profile-matrix figures are listed
+separately in [Diagnostic Plotting](api_plotting_diagnostics.md). This page
+covers fit figures and reusable Makie composition only.
 
 ## Export Semantics
 
@@ -403,27 +272,20 @@ text; it is not a substitute for export resolution.
 | Prediction band without matrix-free marginal errors | `ArgumentError` with the required remedy |
 | Wrong number of `parameter_names` | `ArgumentError` |
 | Non-finite or dimensionally inconsistent annotation data | `ArgumentError` |
-| Ratio plot with a zero/non-finite model prediction | `ArgumentError` |
-| Invalid profile/contour display geometry | `ArgumentError` rather than a misleading plot |
 
 ## API Documentation
 
 ```@docs
-JuFitter.fitplot
-JuFitter.plot_fit
-JuFitter.fit_axis
-JuFitter.add_curve!
-JuFitter.add_points!
-JuFitter.add_vline!
-JuFitter.add_hline!
-JuFitter.add_vband!
-JuFitter.add_hband!
-JuFitter.plot_theme
-JuFitter.plot_palette
-JuFitter.plot_info_panel!
-JuFitter.plot_residuals
-JuFitter.plot_diagnostics
-JuFitter.plot_profile
-JuFitter.plot_contour
-JuFitter.plot_profile_matrix
+ScientificFitting.fitplot
+ScientificFitting.plot_fit
+ScientificFitting.fit_axis
+ScientificFitting.add_curve!
+ScientificFitting.add_points!
+ScientificFitting.add_vline!
+ScientificFitting.add_hline!
+ScientificFitting.add_vband!
+ScientificFitting.add_hband!
+ScientificFitting.plot_theme
+ScientificFitting.plot_palette
+ScientificFitting.plot_info_panel!
 ```

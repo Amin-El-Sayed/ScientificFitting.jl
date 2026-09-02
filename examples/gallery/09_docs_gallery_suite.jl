@@ -1,12 +1,12 @@
-const SNAPSHOT_ONLY = get(ENV, "JUFITTER_DOC_SNAPSHOT_ONLY", "0") == "1"
+const SNAPSHOT_ONLY = get(ENV, "SCIENTIFICFITTING_DOC_SNAPSHOT_ONLY", "0") == "1"
 const RENDER_DOC_ASSETS = !SNAPSHOT_ONLY &&
-    get(ENV, "JUFITTER_RENDER_DOC_ASSETS", "0") == "1"
-const DOC_ASSET_GROUP = strip(get(ENV, "JUFITTER_DOC_ASSET_GROUP", ""))
+    get(ENV, "SCIENTIFICFITTING_RENDER_DOC_ASSETS", "0") == "1"
+const DOC_ASSET_GROUP = strip(get(ENV, "SCIENTIFICFITTING_DOC_ASSET_GROUP", ""))
 
 if !SNAPSHOT_ONLY && !RENDER_DOC_ASSETS
     throw(ArgumentError(
         "this maintainer script updates tracked documentation assets; " *
-        "set JUFITTER_RENDER_DOC_ASSETS=1 to run it intentionally",
+        "set SCIENTIFICFITTING_RENDER_DOC_ASSETS=1 to run it intentionally",
     ))
 end
 
@@ -15,14 +15,14 @@ if RENDER_DOC_ASSETS
 end
 
 using Distributions
-using JuFitter
+using ScientificFitting
 using LaTeXStrings
 using LinearAlgebra
 using Printf
 using SpecialFunctions
 
 const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
-const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "JUFITTER_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
+const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
 const DOC_PLOT_VARIANTS = (
@@ -57,9 +57,9 @@ end
 function emit_doc_output_snapshot(body::Function, id::AbstractString)
     EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
 
-    println("=== JUFITTER_DOC_OUTPUT_BEGIN ", id, " ===")
+    println("=== SCIENTIFICFITTING_DOC_OUTPUT_BEGIN ", id, " ===")
     body()
-    println("=== JUFITTER_DOC_OUTPUT_END ", id, " ===")
+    println("=== SCIENTIFICFITTING_DOC_OUTPUT_END ", id, " ===")
     return nothing
 end
 
@@ -1043,7 +1043,7 @@ emit_doc_output_snapshot("constraints_profiles") do
 end
 if render_asset_group("constraints_profiles")
     prof = amplitude_interval.profile_result
-    cont = JuFitter.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
+    cont = ScientificFitting.contour(saturation_result, 1, 2; npoints=121, nsigma=4)
     profile_overview_parameters = [1, 2, 3]
     profile_overview_names = ["A", "tau", "c"]
     profile_overview = profile_matrix(

@@ -1,5 +1,5 @@
 using CairoMakie
-using JuFitter
+using ScientificFitting
 using Printf
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
@@ -48,7 +48,7 @@ fit = fitplot(
 result = fit.result
 interval = profile_interval(result, 1; npoints=81, nsigma=4)
 prof = interval.profile_result
-cont = JuFitter.contour(result, 1, 2; npoints=121, nsigma=4)
+cont = ScientificFitting.contour(result, 1, 2; npoints=121, nsigma=4)
 
 plot_profile(
     prof;

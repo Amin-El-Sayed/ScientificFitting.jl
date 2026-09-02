@@ -1,4 +1,4 @@
-using JuFitter
+using ScientificFitting
 using LaTeXStrings
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 

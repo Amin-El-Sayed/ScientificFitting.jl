@@ -1,13 +1,13 @@
-module JuFitterCairoMakieExt
+module ScientificFittingCairoMakieExt
 
 using CairoMakie
 using LaTeXStrings
 using LinearAlgebra
 using Statistics
 
-using JuFitter
+using ScientificFitting
 
-import JuFitter:
+import ScientificFitting:
     add_curve!,
     add_hband!,
     add_hline!,

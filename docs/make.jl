@@ -1,33 +1,33 @@
 using Pkg
 
-const DOCS_ROOT = @__DIR__
-const PROJECT_ROOT = dirname(DOCS_ROOT)
-
-if get(ENV, "JUFITTER_DOCS_SKIP_DEVELOP", "0") != "1"
-    Pkg.develop(PackageSpec(path=PROJECT_ROOT))
+if get(ENV, "SCIENTIFICFITTING_DOCS_SKIP_DEVELOP", "0") != "1"
     Pkg.instantiate()
 end
 
 using Documenter
-using JuFitter
+using ScientificFitting
 using CairoMakie
 
 makedocs(;
-    modules=[JuFitter],
-    sitename="JuFitter",
+    modules=[ScientificFitting],
+    sitename="ScientificFitting",
     format=Documenter.HTML(;
         # Keep raw gallery-card links identical for local and hosted static builds.
         prettyurls=false,
         edit_link=nothing,
         repolink=nothing,
-        assets=["assets/jufitter.css", "assets/jufitter.js"],
+        assets=[
+            "assets/favicon.ico",
+            "assets/scientificfitting.css",
+            "assets/scientificfitting.js",
+        ],
     ),
     pages=[
         "Home" => "index.md",
         "Getting Started" => [
             "Install" => "install.md",
             "Quickstart" => "quickstart.md",
-            "How JuFitter Works" => "how_jufitter_works.md",
+            "How ScientificFitting Works" => "how_scientificfitting_works.md",
         ],
         "Gallery" => [
             "Overview" => "gallery.md",
@@ -52,18 +52,16 @@ makedocs(;
             "Likelihoods and Model Comparison" => "likelihood_models.md",
         ],
         "Reference" => [
-            "API Reference" => [
-                "Overview" => "api.md",
-                "Fitting" => "api_fitting.md",
-                "Results and Diagnostics" => "api_results.md",
-                "Plotting" => "api_plotting.md",
-            ],
-            "Reference Map" => "overview.md",
-            "Citation and Related Work" => "citation.md",
-            "Technical Notes" => [
-                "Backend Design" => "backend_design.md",
-                "Performance" => "performance.md",
-            ],
+            "API Overview" => "api.md",
+            "Fitting" => "api_fitting.md",
+            "Results and Diagnostics" => "api_results.md",
+            "Fit Plotting" => "api_plotting.md",
+            "Diagnostic Plotting" => "api_plotting_diagnostics.md",
+            "Citation" => "citation.md",
+        ],
+        "Developer" => [
+            "Architecture" => "backend_design.md",
+            "Performance" => "performance.md",
         ],
     ],
     checkdocs=:none,

@@ -1,50 +1,39 @@
-# Citation, License, And Related Work
+# Citation And Related Work
 
-## Cite The Exact Software Release
+## Citation
 
-Scientific results should identify the software version that produced them.
-JuFitter ships a root-level `CITATION.cff`; GitHub can render it as a citation
-and export BibTeX. The first archived public release should also receive a
-Zenodo DOI, which will become the preferred stable citation target.
+ScientificFitting includes a root-level `CITATION.cff` with the author, package
+version, and license. If the software contributes to a scientific result,
+citation is requested. Record the exact release or commit together with the
+Julia version and the uncertainty or likelihood model used in the analysis.
 
-At minimum, record:
+Citation is a request for scientific attribution, not a condition of use.
 
-- the JuFitter version or exact Git commit;
-- the Julia version;
-- the fit entry point and cost or likelihood;
-- the uncertainty, covariance, and parameter-constraint model;
-- whether reported intervals came from local covariance or profiles.
+## License
 
-This information is more useful for reproducibility than citing an unversioned
-repository homepage.
-
-## MIT License And Citation
-
-JuFitter is released under the [MIT License](https://opensource.org/license/mit).
-The license permits use, modification, and redistribution subject to preserving
-its copyright and permission notice. Academic citation is requested as
-scientific attribution, but it is not an additional license condition.
+ScientificFitting is distributed under the
+[MIT License](https://opensource.org/license/mit). The copyright and permission
+notice must remain with copies or substantial portions of the software.
 
 ## Related Work
 
-JuFitter is an independent Julia implementation. Its emphasis on readable fit
-reports, practical diagnostics, and profile-versus-local-covariance comparisons
-was informed in part by kafe2 and its documentation:
+Part of the motivation for ScientificFitting came from kafe2, especially its
+practical treatment of measurement uncertainties, readable fit reports, and
+profile/contour diagnostics:
 
 - J. Gäßler, G. Quast, D. Savoiu, and C. Verstege,
   [*kafe2 -- a Modern Tool for Model Fitting in Physics Lab Courses*](https://arxiv.org/abs/2210.12768),
   arXiv:2210.12768 (2022).
 
-JuFitter does not contain kafe2 code. Its numerical implementation builds on
-Julia packages including LsqFit, Optimization.jl, DifferentiationInterface,
-ForwardDiff, Distributions, QuadGK, and the optional Makie plotting ecosystem.
-A publication that depends materially on a particular upstream algorithm should
-also follow that project's citation guidance; citing JuFitter does not replace
-method-specific attribution.
+kafe2 provides Python and YAML interfaces and uses Matplotlib for plotting.
+ScientificFitting provides native Julia problem and result types, with plotting
+supplied separately through CairoMakie so that fitting, diagnostics, profiles,
+and text reports remain usable without loading a plotting backend.
 
-## Software Paper
+ScientificFitting also uses established Julia packages for optimization,
+automatic differentiation, probability distributions, quadrature, and
+plotting. When a publication depends materially on a particular numerical
+method, follow that upstream project's citation guidance as well.
 
-A peer-reviewed software paper is useful once the public package has external
-users, a stable interface, and an open development record. Until then, a
-versioned software DOI provides an honest citation target without implying that
-the scientific and software review has already happened.
+ScientificFitting was made with care and with assistance from AI tools; every
+released change remains subject to human review and approval.
