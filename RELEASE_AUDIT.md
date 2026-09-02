@@ -94,6 +94,15 @@ v0.1.0 release candidate on 2026-09-01.
 
 ## Current Verification
 
+- The first public Julia-version matrix exposed that the tracked root
+  `Manifest.toml`, resolved on Julia 1.12, was not portable to Julia 1.10 and
+  caused missing stdlib-extension/JLL sources before ScientificFitting loaded.
+  The package now follows the registry convention: `Project.toml` is the
+  versioned dependency contract, while the root manifest is local and ignored.
+  Each CI target resolves and instantiates its own Julia-compatible environment;
+  documentation jobs also instantiate the root environment before running
+  package-level source gates.
+
 - The first clean GitHub runner exposed that the standalone docs environment
   listed the unregistered package UUID without binding it to the checked-out
   source tree. CI and Pages now bootstrap that environment with

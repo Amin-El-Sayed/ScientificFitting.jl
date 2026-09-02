@@ -24,6 +24,8 @@ jobs:
           version: "1.12"
       - name: Cache Julia artifacts
         uses: julia-actions/cache@v2
+      - name: Instantiate package
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Instantiate documentation environment
         run: julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
       - name: Check public documentation sources

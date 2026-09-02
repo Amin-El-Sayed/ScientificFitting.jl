@@ -3,6 +3,7 @@
 
 # Julia build/test caches
 .julia/
+/Manifest.toml
 
 # Generated example and demo output
 /output/

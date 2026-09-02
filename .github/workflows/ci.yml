@@ -62,6 +62,8 @@ jobs:
         with:
           version: "1.12"
       - uses: julia-actions/cache@v2
+      - name: Instantiate package
+        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Instantiate docs
         run: julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
       - name: Source documentation gates
