@@ -131,6 +131,7 @@ This is the complete code for the documentation example:
 using ScientificFitting
 using CairoMakie
 using LinearAlgebra
+using Printf
 
 # Measured decay samples. The values are listed explicitly because the fit
 # should read like an analysis notebook, not like a data simulator.
@@ -196,9 +197,12 @@ println(report_text(result; parameter_names=["A", "lambda", "C"]))
 println(diagnostic_dashboard_text(result))
 println()
 println("Diagonal-only comparison")
-println("lambda = ", diagonal_result.params[2],
-        " +/- ", diagonal_result.param_stderr[2], " s^-1")
-println("chi2/ndf = ", diagonal_result.stats.chi2_ndf)
+@printf(
+    "lambda = %.6g +/- %.6g s^-1\n",
+    diagonal_result.params[2],
+    diagonal_result.param_stderr[2],
+)
+@printf("chi2/ndf = %.6g\n", diagonal_result.stats.chi2_ndf)
 println(diagnostic_dashboard_text(diagonal_result))
 ```
 
@@ -233,8 +237,8 @@ No major diagnostic issues detected by the current checks.
 No next action required by the current diagnostic checks.
 
 Diagonal-only comparison
-lambda = 1.003076358513358 +/- 0.05572527436830675 s^-1
-chi2/ndf = 0.5297614781491077
+lambda = 1.00308 +/- 0.0557253 s^-1
+chi2/ndf = 0.529761
 Fit diagnostic dashboard
 status = review - inspect diagnostics
 critical = 0, warning = 1, info = 0

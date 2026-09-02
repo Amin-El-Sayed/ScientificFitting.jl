@@ -114,6 +114,9 @@ For the constant-coefficient model,
 The fit uses a Gaussian likelihood with the assigned angle uncertainty and
 effective-variance propagation of timestamp uncertainty. Multiple initial
 guesses are important because phase-periodic models have repeated local minima.
+The explicit `tol=1e-7` is a numerical stopping tolerance, not a measurement
+uncertainty. Tightening it further does not change the reported digits here,
+but can make LBFGS chase floating-point changes below that precision.
 
 For this diagonal uncertainty model, the plotted pulls are
 
@@ -168,6 +171,7 @@ constant_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060],
     ],
     maxiters=3000,
+    tol=1e-7,
 )
 
 println(report_text(
@@ -183,7 +187,7 @@ println(diagnostic_dashboard_text(constant_result))
 <pre>Fit report
 backend = optimization
 converged = true
-iterations = 84
+iterations = 35
 message = Success
 
 Parameters:
@@ -286,6 +290,7 @@ drift_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
     maxiters=4000,
+    tol=1e-7,
 )
 
 println(report_text(
@@ -301,7 +306,7 @@ println(diagnostic_dashboard_text(drift_result))
 <pre>Fit report
 backend = optimization
 converged = true
-iterations = 82
+iterations = 41
 message = Success
 
 Parameters:

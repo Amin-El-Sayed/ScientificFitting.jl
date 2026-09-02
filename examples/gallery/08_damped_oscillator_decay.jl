@@ -60,6 +60,7 @@ constant_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060],
     ],
     maxiters=3000,
+    tol=1e-7,
 )
 
 drift_result = fit_model(
@@ -76,6 +77,7 @@ drift_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
     maxiters=4000,
+    tol=1e-7,
 )
 
 function drift_prediction_sigma(result, t, sigma_y, sigma_t)

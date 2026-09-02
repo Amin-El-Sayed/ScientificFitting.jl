@@ -22,6 +22,13 @@ const EXECUTABLE_PAGES = unique(first.(OUTPUT_EXPECTATIONS))
 function normalize_output(text::AbstractString)
     cleaned = replace(text, "\r\n" => "\n", "\r" => "\n")
     lines = String.(split(cleaned, '\n'))
+    # Iteration counts are real run metadata, but may differ across solver and
+    # platform patch versions even when every scientific result is identical.
+    map!(
+        line -> replace(line, r"^iterations = \d+$" => "iterations = <solver-dependent>"),
+        lines,
+        lines,
+    )
     while !isempty(lines) && isempty(strip(first(lines)))
         popfirst!(lines)
     end
@@ -147,6 +154,12 @@ function run_documented_pages(relative_pages)
 end
 
 @testset "Documentation output snapshots" begin
+    @testset "Only volatile solver metadata is normalized" begin
+        @test normalize_output("iterations = 12") == normalize_output("iterations = 29")
+        @test normalize_output("converged = true") != normalize_output("converged = false")
+        @test normalize_output("chi2 = 1.0") != normalize_output("chi2 = 1.1")
+    end
+
     @testset "Every Julia fence parses" begin
         for relative_page in markdown_pages()
             for (index, block) in enumerate(documented_julia_blocks(relative_page))

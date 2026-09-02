@@ -855,9 +855,12 @@ emit_doc_output_snapshot("full_covariance") do
     println(diagnostic_dashboard_text(cov_result))
     println()
     println("Diagonal-only comparison")
-    println("lambda = ", diagonal_cov_result.params[2],
-            " +/- ", diagonal_cov_result.param_stderr[2], " s^-1")
-    println("chi2/ndf = ", diagonal_cov_result.stats.chi2_ndf)
+    @printf(
+        "lambda = %.6g +/- %.6g s^-1\n",
+        diagonal_cov_result.params[2],
+        diagonal_cov_result.param_stderr[2],
+    )
+    @printf("chi2/ndf = %.6g\n", diagonal_cov_result.stats.chi2_ndf)
     println(diagnostic_dashboard_text(diagonal_cov_result))
 end
 style_variant_plot(
