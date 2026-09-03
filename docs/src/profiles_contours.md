@@ -1,5 +1,9 @@
 # Profiles And Contours
 
+*Chapter 4 of 5 · Previous:
+[Parameters and Fit Quality](parameter_inference.md) · Next:
+[Likelihoods and Model Comparison](likelihood_models.md)*
+
 Local parameter covariance describes the curvature at the fitted minimum. A
 profile asks a stronger question: how much worse can the best possible fit
 become when one parameter is forced away from that minimum and every nuisance
@@ -157,6 +161,11 @@ matrix_fig = plot_profile_matrix(matrix; theme=:tex)
 
 The executable [Constraints and Profiles](gallery/constraints_profiles.md)
 example shows the complete fit, asymmetric interval, two-parameter contour,
-matrix, diagnostics, and interpretation. Return to
-[Parameters and Fit Quality](parameter_inference.md) for the local
-covariance approximation these scans are testing.
+matrix, diagnostics, and interpretation.
+
+---
+
+**Previous chapter:** [Parameters and Fit Quality](parameter_inference.md), for
+the local covariance approximation these scans test · **Next chapter:**
+[Likelihoods and Model Comparison](likelihood_models.md), for count data,
+event likelihoods, and comparisons between models.

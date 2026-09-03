@@ -171,6 +171,12 @@ end
         @test docs_source_markdown_pages() == sort(PUBLIC_DOC_PAGES)
         @test occursin("collapselevel=1", documenter_make_text())
         @test occursin("hide(\"Examples\" => \"gallery.md\"", documenter_make_text())
+        @test occursin("\"Mathematics and Statistics\" => [", documenter_make_text())
+        @test !occursin("hide(\"Mathematics and Statistics\"", documenter_make_text())
+        @test occursin(
+            r"(?s)Chapter 1: Statistical Foundations.*Chapter 2: Gaussian Fits and Covariance.*Chapter 3: Parameters and Fit Quality.*Chapter 4: Profiles and Contours.*Chapter 5: Likelihoods and Model Comparison",
+            documenter_make_text(),
+        )
         @test !occursin("\"Home\" => \"index.md\"", documenter_make_text())
         @test !occursin(r"(?m)^\s{8}\"Engineering Notes\"\s*=>", documenter_make_text())
         @test !occursin("Reference Map", documenter_make_text())
@@ -353,7 +359,13 @@ end
         overview = statistical_foundations_page_text()
         foundations = statistics_pages_text()
 
-        @test occursin("## Choose A Reading Path", overview)
+        @test occursin("## The Five-Chapter Sequence", overview)
+        @test occursin("## Topic Index", overview)
+        @test !occursin("Start here", overview)
+        @test occursin("*Chapter 1 of 5", overview)
+        for chapter in 1:5
+            @test occursin("*Chapter $(chapter) of 5", foundations)
+        end
         @test occursin("Gaussian Fits and Covariance", overview)
         @test occursin("Parameters and Fit Quality", overview)
         @test occursin("Profiles and Contours", overview)

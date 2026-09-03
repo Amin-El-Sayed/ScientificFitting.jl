@@ -1,5 +1,9 @@
 # Gaussian Fits And Covariance
 
+*Chapter 2 of 5 · Previous:
+[Statistical Foundations](statistical_foundations.md) · Next:
+[Parameters and Fit Quality](parameter_inference.md)*
+
 Use a Gaussian measurement model when the recorded quantity is continuous and
 its uncertainty describes a standard deviation or covariance. This chapter
 starts with independent errors, then shows what changes when observations move
@@ -278,7 +282,12 @@ errors, strong curvature across an error bar, latent true x values, selection
 effects, or correlated x-y measurement errors require a more explicit
 measurement model.
 
-Continue with [Parameters and Fit Quality](parameter_inference.md)
-for auxiliary measurements, degrees of freedom, goodness of fit, and local
-parameter uncertainty. See [Full Covariance](gallery/full_covariance.md) and
+See [Full Covariance](gallery/full_covariance.md) and
 [XY Uncertainties](gallery/xy_uncertainties.md) for executable examples.
+
+---
+
+**Previous chapter:** [Statistical Foundations](statistical_foundations.md) ·
+**Next chapter:** [Parameters and Fit Quality](parameter_inference.md), for
+auxiliary measurements, degrees of freedom, goodness of fit, and local
+parameter uncertainty.

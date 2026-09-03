@@ -41,12 +41,13 @@ makedocs(;
         hide("Guides" => "fitting_for_practitioners.md", [
             "Plotting and Customization" => "plotting_design.md",
         ]),
-        hide("Mathematics and Statistics" => "statistical_foundations.md", [
-            "Gaussian Fits and Covariance" => "gaussian_models.md",
-            "Parameters and Fit Quality" => "parameter_inference.md",
-            "Profiles and Contours" => "profiles_contours.md",
-            "Likelihoods and Model Comparison" => "likelihood_models.md",
-        ]),
+        "Mathematics and Statistics" => [
+            "Chapter 1: Statistical Foundations" => "statistical_foundations.md",
+            "Chapter 2: Gaussian Fits and Covariance" => "gaussian_models.md",
+            "Chapter 3: Parameters and Fit Quality" => "parameter_inference.md",
+            "Chapter 4: Profiles and Contours" => "profiles_contours.md",
+            "Chapter 5: Likelihoods and Model Comparison" => "likelihood_models.md",
+        ],
         hide("API Reference" => "api.md", [
             "Fitting" => "api_fitting.md",
             "Results and Diagnostics" => "api_results.md",

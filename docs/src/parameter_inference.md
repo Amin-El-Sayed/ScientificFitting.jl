@@ -1,5 +1,9 @@
 # Parameters And Fit Quality
 
+*Chapter 3 of 5 · Previous:
+[Gaussian Fits and Covariance](gaussian_models.md) · Next:
+[Profiles and Contours](profiles_contours.md)*
+
 A fit often combines the primary dataset with external calibration information,
 fixed values, or physical bounds. Those choices change both the objective and
 the interpretation of uncertainty. This chapter separates those mechanisms,
@@ -262,8 +266,13 @@ ScientificFitting makes the policy explicit through
 `scale_covariance=:auto | :never | :always`. Report which interpretation was
 used; do not rescale merely to make reduced chi-square look closer to one.
 
-Local covariance is deliberately a local summary. Continue with
-[Profiles and Contours](profiles_contours.md) when bounds, nonlinearity,
-asymmetry, or strong correlation make the quadratic approximation doubtful.
-For a complete nonlinear workflow, see
+Local covariance is deliberately a local summary. For a complete nonlinear
+workflow, see
 [Constraints and Profiles](gallery/constraints_profiles.md).
+
+---
+
+**Previous chapter:** [Gaussian Fits and Covariance](gaussian_models.md) ·
+**Next chapter:** [Profiles and Contours](profiles_contours.md), when bounds,
+nonlinearity, asymmetry, or strong correlation make the quadratic approximation
+doubtful.

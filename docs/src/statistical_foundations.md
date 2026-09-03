@@ -1,16 +1,38 @@
 # Statistical Foundations
 
+*Chapter 1 of 5 · Next: [Gaussian Fits and Covariance](gaussian_models.md)*
+
 Fitting is not primarily an optimization problem. The optimizer finds a
 minimum; the probability model determines what that minimum means. This section
 derives the statistical quantities used by ScientificFitting, states their assumptions,
 and explains what must be checked before a result is reported.
 
-## Choose A Reading Path
+## The Five-Chapter Sequence
 
-The chapters are organized by scientific question rather than package type.
-You do not need to read all of them for every fit.
+Read these chapters in order the first time. Each one supplies the assumptions
+used by the next, from residuals and probability models to nonlinear intervals
+and model comparison.
 
-| Your data or question | Start here | Continue with |
+1. **Statistical Foundations** defines the statistical contract, residuals,
+   costs, and reporting rules shared by every fit.
+2. [**Gaussian Fits and Covariance**](gaussian_models.md) derives weighted
+   least squares, correlated errors, whitening, and x uncertainty.
+3. [**Parameters and Fit Quality**](parameter_inference.md) covers external
+   parameter information, degrees of freedom, goodness of fit, and local
+   covariance.
+4. [**Profiles and Contours**](profiles_contours.md) replaces the local
+   quadratic approximation with constrained refits when the geometry is
+   nonlinear or asymmetric.
+5. [**Likelihoods and Model Comparison**](likelihood_models.md) treats counts,
+   events, likelihood-based inference, and comparisons between candidate
+   models.
+
+Experts can use the topic index below to jump directly to a derivation without
+turning each topic into a competing starting point.
+
+## Topic Index
+
+| Your data or question | Relevant method | Applied follow-up |
 | --- | --- | --- |
 | measured values with known standard uncertainties | [Gaussian Fits and Covariance](gaussian_models.md) | [goodness of fit](parameter_inference.md#Goodness-Of-Fit) |
 | correlated measurements or long time series | [correlated measurements](gaussian_models.md#Correlated-Measurements-And-Whitening) | [structured whitening](gaussian_models.md#Structured-Whitening) |
@@ -127,7 +149,7 @@ A reproducible result should state:
 - [Wilks, *The Large-Sample Distribution of the Likelihood Ratio*](https://doi.org/10.1214/aoms/1177732360) for the theorem behind common profile thresholds.
 - [Akaike, *A new look at the statistical model identification*](https://doi.org/10.1109/TAC.1974.1100705) for the information criterion and its predictive interpretation.
 
-Continue with [Gaussian Fits and Covariance](gaussian_models.md) for measured
-values, [Likelihoods and Model Comparison](likelihood_models.md) for counts or
-events, or [Fitting for Practitioners](fitting_for_practitioners.md) for a
-decision workflow.
+---
+
+**Next chapter:** [Gaussian Fits and Covariance](gaussian_models.md), beginning
+with the probability model behind weighted least squares.

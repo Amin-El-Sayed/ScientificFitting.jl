@@ -1,5 +1,7 @@
 # Likelihoods And Model Comparison
 
+*Chapter 5 of 5 · Previous: [Profiles and Contours](profiles_contours.md)*
+
 Counts, histogram bins, and individual events do not automatically carry
 Gaussian error bars. Their sampling process defines a likelihood. This chapter
 derives ScientificFitting's Poisson, histogram, unbinned, and extended likelihood costs,
@@ -167,6 +169,11 @@ best AIC in a poor candidate set.
 See [Poisson and Histograms](gallery/poisson_histogram.md) for two executable
 count workflows and [Damped Oscillator](gallery/resonance_decay.md) for a model
 comparison whose conclusion is supported by residual structure and a nested
-cost difference, not AIC alone. Return to
-[Statistical Foundations](statistical_foundations.md) for the common reporting
-contract.
+cost difference, not AIC alone.
+
+---
+
+**Previous chapter:** [Profiles and Contours](profiles_contours.md) · **End of
+the sequence.** Return to [Statistical Foundations](statistical_foundations.md)
+for the common reporting contract, or apply the methods in the
+[Gallery](gallery.md).
