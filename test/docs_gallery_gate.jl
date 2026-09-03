@@ -176,6 +176,8 @@ end
     @test occursin("chi2/ndf = 0.248081", resonance)
     @test occursin("status = review - inspect diagnostics", resonance)
     @test occursin("SCIENTIFICFITTING_RENDER_DOC_ASSETS", resonance_script)
+    @test occursin("SCIENTIFICFITTING_DOC_ASSET_DIR", resonance_script)
+    @test occursin("width=panel_width", resonance_script)
     @test !occursin("h_fit = me *", photoelectric)
     @test !occursin("examples/gallery/09_docs_gallery_suite.jl", photoelectric)
 

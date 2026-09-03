@@ -14,7 +14,11 @@ using Printf
 
 const DATA_FILE = joinpath(@__DIR__, "..", "data", "damped_oscillator", "pohl_wheel_free_decay.csv")
 const OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
-const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
+const DOC_ASSET_DIR = get(
+    ENV,
+    "SCIENTIFICFITTING_DOC_ASSET_DIR",
+    joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery"),
+)
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_PX_PER_UNIT = 2.0
 
@@ -159,8 +163,11 @@ function save_model_comparison(
 
     base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
-    figure_width = show_panel ? base_size[1] : max(base_size[1], 960)
+    # Three stacked axes need a landscape canvas. A bounded information panel
+    # keeps long model and diagnostic lines from compressing the data panels.
+    figure_width = show_panel ? max(base_size[1], 1360) : max(base_size[1], 960)
     figure_height = show_panel ? 860 : 1040
+    panel_width = article ? 520 : 460
     figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
@@ -328,6 +335,7 @@ function save_model_comparison(
             model_label="A exp(−λτ) cos(ωᵣτ + βτ²/2 + φ)",
             parameter_lines=parameter_lines,
             statistic_lines=statistic_lines,
+            width=panel_width,
             theme=style,
             appearance=appearance,
         )
@@ -337,7 +345,7 @@ function save_model_comparison(
     for (row, fraction) in enumerate(row_fractions)
         rowsize!(figure.layout, row, Relative(fraction))
     end
-    show_panel && colgap!(figure.layout, 18)
+    show_panel && colgap!(figure.layout, 24)
     save(filename, figure; px_per_unit=DOC_PX_PER_UNIT)
 end
 
