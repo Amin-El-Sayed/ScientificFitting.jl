@@ -1,5 +1,5 @@
 using ScientificFitting
-using CairoMakie: Axis, Figure, Label, errorbars!, save, scatter!, with_theme
+using CairoMakie: Auto, Axis, Figure, Label, errorbars!, save, scatter!, with_theme
 using LaTeXStrings
 using Test
 
