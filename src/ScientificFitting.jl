@@ -78,6 +78,7 @@ export add_hband!
 export plot_theme
 export plot_palette
 export plot_info_panel!
+export resize_plot_to_layout!
 export plot_residuals
 export plot_diagnostics
 export plot_profile

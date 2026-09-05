@@ -14,7 +14,11 @@ using LinearAlgebra
 using Printf
 
 const MULTI_OUTPUT_DIR = joinpath(@__DIR__, "..", "output")
-const MULTI_DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
+const MULTI_DOC_ASSET_DIR = get(
+    ENV,
+    "SCIENTIFICFITTING_DOC_ASSET_DIR",
+    joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery"),
+)
 const MULTI_EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const MULTI_PX_PER_UNIT = 2.0
 
@@ -138,14 +142,14 @@ function save_multi_dataset_calibration(
 
     base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
-    # Three stacked axes need a landscape canvas. The shared panel contract
-    # keeps the report bounded instead of allowing it to compress these axes.
+    # Three stacked axes need a landscape canvas. The information panel keeps
+    # its natural Makie width; the shared layout helper protects the data area.
     figure_width = show_panel ? max(base_size[1], 1240) : max(base_size[1], 960)
     figure_height = show_panel ? 860 : 1040
-    panel_width = article ? 460 : 420
     figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
+    colsize!(figure.layout, 1, Auto(1))
     fit_axis = Axis(
         figure[1, 1];
         title=article ? L"\mathrm{Three-channel\ calibration\ transfer}" :
@@ -285,7 +289,7 @@ function save_multi_dataset_calibration(
             legend_elements,
             legend_labels;
             framevisible=false,
-            tellwidth=false,
+            tellwidth=true,
             tellheight=true,
             halign=:left,
             valign=:center,
@@ -316,7 +320,6 @@ function save_multi_dataset_calibration(
                 "ΔAIC = $(fmt(all_shared_result.stats.aic - partial_shared_result.stats.aic, 5))",
                 "Do not transfer channel C's gain.",
             ],
-            width=panel_width,
             theme=style,
             appearance=appearance,
         )
@@ -327,6 +330,7 @@ function save_multi_dataset_calibration(
         rowsize!(figure.layout, row, Relative(fraction))
     end
     show_panel && colgap!(figure.layout, 24)
+    resize_plot_to_layout!(figure; minimum_axis_size=(420, nothing))
     save(filename, figure; px_per_unit=MULTI_PX_PER_UNIT)
 end
 

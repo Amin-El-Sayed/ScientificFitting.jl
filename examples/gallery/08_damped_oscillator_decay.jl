@@ -163,14 +163,14 @@ function save_model_comparison(
 
     base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
-    # Three stacked axes need a landscape canvas. A bounded information panel
-    # keeps long model and diagnostic lines from compressing the data panels.
+    # Three stacked axes need a landscape canvas. The information panel keeps
+    # its natural Makie width; the shared layout helper protects the data area.
     figure_width = show_panel ? max(base_size[1], 1360) : max(base_size[1], 960)
     figure_height = show_panel ? 860 : 1040
-    panel_width = article ? 520 : 460
     figure = with_theme(plot_theme(style; appearance=appearance)) do
         Figure(size=(figure_width, figure_height), backgroundcolor=palette.background_color)
     end
+    colsize!(figure.layout, 1, Auto(1))
     fit_axis = Axis(
         figure[1, 1];
         title=fit_title,
@@ -301,7 +301,7 @@ function save_model_comparison(
             figure[4, 1],
             fit_axis;
             framevisible=false,
-            tellwidth=false,
+            tellwidth=true,
             tellheight=true,
             halign=:left,
             valign=:center,
@@ -335,7 +335,6 @@ function save_model_comparison(
             model_label="A exp(−λτ) cos(ωᵣτ + βτ²/2 + φ)",
             parameter_lines=parameter_lines,
             statistic_lines=statistic_lines,
-            width=panel_width,
             theme=style,
             appearance=appearance,
         )
@@ -346,6 +345,7 @@ function save_model_comparison(
         rowsize!(figure.layout, row, Relative(fraction))
     end
     show_panel && colgap!(figure.layout, 24)
+    resize_plot_to_layout!(figure; minimum_axis_size=(420, nothing))
     save(filename, figure; px_per_unit=DOC_PX_PER_UNIT)
 end
 

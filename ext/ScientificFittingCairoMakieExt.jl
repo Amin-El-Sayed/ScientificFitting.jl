@@ -28,6 +28,7 @@ import ScientificFitting:
     plot_profile_matrix,
     plot_residuals,
     plot_theme,
+    resize_plot_to_layout!,
     profile,
     report_text,
     _fmt_value,

@@ -96,6 +96,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             panel_rowgap=2,
             panel_sectiongap=10,
             panel_gap=22,
+            minimum_axis_size=(420, 300),
             figure_padding=(14, 18, 14, 14),
             figure_size_with_panel=(1040, 640),
             figure_size_without_panel=(860, 560),
@@ -158,6 +159,7 @@ function _style_preset(style::Symbol, appearance::Symbol)
             panel_rowgap=2,
             panel_sectiongap=10,
             panel_gap=20,
+            minimum_axis_size=(420, 300),
             figure_padding=(14, 18, 13, 13),
             figure_size_with_panel=(1000, 640),
             figure_size_without_panel=(760, 520),
@@ -398,14 +400,104 @@ function _panel_width_px(stats_panel_width, fig_width::Int)
     return Int(round(stats_panel_width))
 end
 
-function _apply_right_panel_sizing!(fig, panel_width_px)
-    if panel_width_px === nothing
-        colsize!(fig.layout, 2, Auto())
-    else
-        colsize!(fig.layout, 2, Fixed(panel_width_px))
-    end
+function _apply_right_panel_sizing!(fig)
+    # The panel content determines its column width. Any remaining horizontal
+    # space belongs to the data axis, so a wider Figure enlarges the graph.
+    colsize!(fig.layout, 2, Auto())
     colsize!(fig.layout, 1, Auto(1))
     return nothing
+end
+
+"""
+    resize_plot_to_layout!(figure; axes=nothing, flexible_columns=(1,),
+                           minimum_axis_size=(420, 300),
+                           preferred_size=size(figure.scene))
+
+Fit a completed Makie layout to its contents while preserving a minimum data
+area and the requested canvas as lower bounds. See the public declaration in
+`plotting_api.jl` for the full contract.
+"""
+function resize_plot_to_layout!(
+    fig;
+    axes=nothing,
+    flexible_columns=(1,),
+    minimum_axis_size=(420, 300),
+    preferred_size=size(fig.scene),
+)
+    minimum_axis_size isa Tuple && length(minimum_axis_size) == 2 ||
+        throw(ArgumentError("minimum_axis_size must contain width and height"))
+    preferred_size isa Tuple && length(preferred_size) == 2 ||
+        throw(ArgumentError("preferred_size must contain width and height"))
+    all(value -> value === nothing ||
+                 (value isa Real && isfinite(value) && value > 0), minimum_axis_size) ||
+        throw(ArgumentError("minimum axis dimensions must be positive and finite or nothing"))
+    all(value -> value isa Real && isfinite(value) && value > 0, preferred_size) ||
+        throw(ArgumentError("preferred figure dimensions must be positive and finite"))
+
+    axis_list = if axes === nothing
+        [item for item in fig.content if item isa Axis]
+    elseif axes isa Axis
+        [axes]
+    else
+        try
+            collect(axes)
+        catch
+            throw(ArgumentError("axes must be a Makie Axis or a collection of Axis objects"))
+        end
+    end
+    all(axis -> axis isa Axis, axis_list) ||
+        throw(ArgumentError("axes must be a Makie Axis or a collection of Axis objects"))
+
+    column_indices = if flexible_columns isa Integer
+        (flexible_columns,)
+    else
+        try
+            Tuple(flexible_columns)
+        catch
+            throw(ArgumentError("flexible_columns must contain positive column indices"))
+        end
+    end
+    all(index -> index isa Integer && 1 <= index <= length(fig.layout.colsizes), column_indices) ||
+        throw(ArgumentError("flexible_columns must contain existing positive column indices"))
+    length(unique(column_indices)) == length(column_indices) ||
+        throw(ArgumentError("flexible_columns must not contain duplicate indices"))
+
+    original_sizes = [(axis.width[], axis.height[]) for axis in axis_list]
+    original_column_sizes = [(index, fig.layout.colsizes[index]) for index in column_indices]
+    for (index, column_size) in original_column_sizes
+        column_size isa Auto && colsize!(fig.layout, index, Auto(true, column_size.ratio))
+    end
+    minimum_width, minimum_height = minimum_axis_size
+    for (axis, (width, height)) in zip(axis_list, original_sizes)
+        width === nothing && minimum_width !== nothing && (axis.width[] = minimum_width)
+        height === nothing && minimum_height !== nothing && (axis.height[] = minimum_height)
+    end
+
+    # Makie's own layout solver measures all fixed-size content. The temporary
+    # axis minima prevent axes, which have no intrinsic size, from collapsing.
+    # Keep those minima active while restoring the preferred canvas; releasing
+    # them afterwards lets flexible grid tracks consume the available space.
+    completed = false
+    try
+        required_size = resize_to_layout!(fig)
+        final_size = (
+            max(ceil(Int, preferred_size[1]), ceil(Int, required_size[1])),
+            max(ceil(Int, preferred_size[2]), ceil(Int, required_size[2])),
+        )
+        resize!(fig, final_size...)
+        completed = true
+    finally
+        for (axis, (width, height)) in zip(axis_list, original_sizes)
+            axis.width[] = width
+            axis.height[] = height
+        end
+        for (index, column_size) in original_column_sizes
+            restored_size = completed && column_size isa Auto ?
+                Auto(false, column_size.ratio) : column_size
+            colsize!(fig.layout, index, restored_size)
+        end
+    end
+    return fig
 end
 
 function _label_with_unit(label, unit)
@@ -744,8 +836,9 @@ panel is intended for custom scientific figures that should use the same
 legend, model, parameter, and statistic hierarchy as `plot_fit`. `theme` and
 `appearance` supply readable panel defaults from the same central style
 contract; explicit panel keywords remain authoritative. By default Makie
-chooses the panel width from its contents. Set `width` to bound a detailed
-panel and wrap long plain-text lines without compressing adjacent axes.
+chooses the panel width from its contents. Set `width` to choose the wrapping
+width for detailed plain text. Legends and unbreakable TeX expressions retain
+their natural width so that the panel grows instead of clipping them.
 """
 function plot_info_panel!(
     cell;
@@ -764,7 +857,7 @@ function plot_info_panel!(
     legend_kwargs=NamedTuple(),
     width::Union{Nothing, Real}=nothing,
     tellwidth::Bool=true,
-    tellheight::Bool=false,
+    tellheight::Bool=true,
 )
     style, resolved_appearance = _resolve_plot_style(theme, appearance)
     preset = _style_preset(style, resolved_appearance)
@@ -775,11 +868,11 @@ function plot_info_panel!(
     panel_width === nothing || panel_width > 0 ||
         throw(ArgumentError("width must be positive"))
 
-    # An explicit width protects adjacent axes from long custom labels. With no
-    # width, Makie's natural sizing remains authoritative for ordinary panels.
+    # Keep the outer panel content-sized. `width` controls wrapping for plain
+    # labels, while unbreakable TeX and legend content may make it wider.
     panel_grid = GridLayout(
         cell;
-        width=panel_width === nothing ? Auto() : panel_width,
+        width=Auto(),
         tellwidth=tellwidth,
         tellheight=tellheight,
         valign=:top,
@@ -789,7 +882,7 @@ function plot_info_panel!(
 
     legend_defaults = (
         framevisible=false,
-        tellwidth=panel_width === nothing,
+        tellwidth=true,
         tellheight=true,
         halign=:left,
         valign=:top,
@@ -797,8 +890,6 @@ function plot_info_panel!(
         patchsize=preset.legend_patchsize,
         rowgap=preset.legend_rowgap,
     )
-    panel_width === nothing ||
-        (legend_defaults = merge(legend_defaults, (width=panel_width,)))
     if legend_source !== nothing
         Legend(panel_grid[row, 1], legend_source; _merged_kwargs(legend_defaults, legend_kwargs)...)
         push!(generous_gaps, row)
@@ -815,13 +906,15 @@ function plot_info_panel!(
     end
 
     if title !== nothing && !isempty(string(title))
+        title_width = panel_width === nothing || title isa LaTeXString ? Auto() : panel_width
         Label(
             panel_grid[row, 1],
             panel_width === nothing ? title :
                 _wrap_panel_text(title, panel_width, fontsize + 1);
+            width=title_width,
             halign=:left,
             justification=:left,
-            tellwidth=panel_width === nothing,
+            tellwidth=true,
             fontsize=fontsize + 1,
             color=color,
         )
@@ -829,13 +922,15 @@ function plot_info_panel!(
     end
 
     if model_label !== nothing && !isempty(string(model_label))
+        model_width = panel_width === nothing || model_label isa LaTeXString ? Auto() : panel_width
         Label(
             panel_grid[row, 1],
             panel_width === nothing ? model_label :
                 _wrap_panel_text(model_label, panel_width, fontsize + 1);
+            width=model_width,
             halign=:left,
             justification=:left,
-            tellwidth=panel_width === nothing,
+            tellwidth=true,
             fontsize=fontsize + 1,
             color=color,
         )
@@ -844,13 +939,15 @@ function plot_info_panel!(
     end
 
     for line in parameter_lines
+        line_width = panel_width === nothing || line isa LaTeXString ? Auto() : panel_width
         Label(
             panel_grid[row, 1],
             panel_width === nothing ? line :
                 _wrap_panel_text(line, panel_width, fontsize);
+            width=line_width,
             halign=:left,
             justification=:left,
-            tellwidth=panel_width === nothing,
+            tellwidth=true,
             fontsize=fontsize,
             color=color,
         )
@@ -859,13 +956,15 @@ function plot_info_panel!(
 
     !isempty(parameter_lines) && !isempty(statistic_lines) && push!(generous_gaps, row - 1)
     for line in statistic_lines
+        line_width = panel_width === nothing || line isa LaTeXString ? Auto() : panel_width
         Label(
             panel_grid[row, 1],
             panel_width === nothing ? line :
                 _wrap_panel_text(line, panel_width, fontsize);
+            width=line_width,
             halign=:left,
             justification=:left,
-            tellwidth=panel_width === nothing,
+            tellwidth=true,
             fontsize=fontsize,
             color=muted_color,
         )
@@ -887,15 +986,15 @@ function _draw_right_stats!(
     parameter_count::Int,
     kwargs...,
 )
-    plot_info_panel!(
+    panel = plot_info_panel!(
         fig[1, 2];
         width=panel_width_px,
         parameter_lines=stats_lines[1:parameter_count],
         statistic_lines=stats_lines[(parameter_count + 1):end],
         kwargs...,
     )
-    _apply_right_panel_sizing!(fig, panel_width_px)
-    return nothing
+    _apply_right_panel_sizing!(fig)
+    return panel
 end
 
 const _FITPLOT_FIT_KWARGS = Set([
@@ -1100,6 +1199,11 @@ independently controls the numerical result panel and defaults to `true` for
 both styles. Legacy style names remain compatibility aliases rather than
 additional cosmetic presets. `appearance=:light` or `:dark` controls the color
 scheme independently.
+`figure_size` requests a minimum logical canvas size. Makie keeps the data axis
+flexible, gives it a readable minimum size while measuring the layout, and
+enlarges the canvas if natural legend or panel content would otherwise be
+clipped. Increasing the requested width therefore widens the data axis once
+the panel has the space it needs.
 `band=:confidence`
 shows the propagated parameter-covariance band. `band=:prediction` additionally
 includes observation uncertainty in y and effective x uncertainty. With the
@@ -1381,10 +1485,13 @@ function plot_fit(
         )
     end
 
-    # Preserve the declared output footprint. Resizing to the layout makes a
-    # compact side panel collapse the figure height and destabilizes custom
-    # elements added after `plot_fit` returns.
     tight_layout && trim!(fig.layout)
+    resize_plot_to_layout!(
+        fig;
+        axes=ax,
+        preferred_size=fig_size,
+        minimum_axis_size=style.minimum_axis_size,
+    )
 
     if filename !== nothing
         outpath = String(filename)

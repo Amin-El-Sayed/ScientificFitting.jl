@@ -21,7 +21,7 @@ compilation cost.
 | Fit arrays and plot immediately | [`fitplot`](@ref) | `(result, figure)` | yes |
 | Plot an existing x-y fit | [`plot_fit`](@ref) | `Figure` | no |
 | Add content to the data axis | [`fit_axis`](@ref), `add_*!` | `Axis` or Makie plot object | no |
-| Compose a custom themed figure | [`plot_theme`](@ref), [`plot_palette`](@ref), [`plot_info_panel!`](@ref) | `Theme`, style tokens, or `GridLayout` | no |
+| Compose a custom themed figure | [`plot_theme`](@ref), [`plot_palette`](@ref), [`plot_info_panel!`](@ref), [`resize_plot_to_layout!`](@ref) | themed layout blocks or a fitted `Figure` | no |
 
 The [Plotting And Customization](plotting_design.md) guide develops complete
 composition examples. This page is the exact argument and failure contract.
@@ -80,8 +80,8 @@ optional uncertainty band, and optional result panel. It does not modify
 | `theme` | `:sans` | Maintained visual style: `:sans` or `:tex`. |
 | `appearance` | `:auto` | `:light`, `:dark`, or `:auto`; `:auto` currently resolves to light. |
 | `theme_override` | `Theme()` | Makie theme merged after the selected ScientificFitting style. |
-| `figure_size` | style/panel-dependent | Logical Makie canvas `(width, height)`; it does not set raster density. |
-| `tight_layout` | `true` | Trim layout whitespace while preserving the declared figure footprint. |
+| `figure_size` | style/panel-dependent | Minimum logical Makie canvas `(width, height)`; natural content may enlarge it to prevent clipping. It does not set raster density. |
+| `tight_layout` | `true` | Remove empty layout rows and columns before the automatic fit-to-content pass. |
 
 The former names `:analysis`, `:presentation`, `:screen`, `:lab`, `:workbench`,
 `:modern`, `:clean`, `:minimal`, and `:showcase` map to `:sans`; `:article`,
@@ -138,7 +138,7 @@ remains available.
 | `show_panel` | `true` | Show the structured right panel or compact in-axis panel. Independent of visual style. |
 | `stats_position` | `:right` | `:right` or `:inside`. |
 | `inside_stats_position` | `:lt` | `:lt`, `:lb`, `:rt`, `:rb` and their long aliases. |
-| `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive pixel width. Fractions are clamped to 300--560 px; explicit widths wrap long plain-text lines. |
+| `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive wrapping width. Fractions are clamped to 300--560 px; unbreakable TeX or legend content may expand the panel. |
 | `panel_gap` | style-dependent | Gap between data axis and right panel. |
 | `stats_mode` | `:compact` | `:compact` or `:full`. |
 | `stats_sigdigits` | `5` | Significant digits used only for displayed values. |
@@ -236,10 +236,27 @@ plot_info_panel!(
 The alternative `legend_source=axis` builds the legend from labeled content on
 an axis. `fontsize`, `color`, `muted_color`, and `legend_kwargs` override style
 defaults. With `width=nothing`, the panel reports its natural Makie width. Pass
-`width=...` to bound an unusually detailed panel and wrap long plain-text lines.
+`width=...` to wrap long plain-text lines at a preferred width.
 `tellwidth=true` reports the selected width to the parent layout, while
-`tellheight=false` prevents a short report from shrinking or vertically
-centering the adjacent scientific axis. The function returns its `GridLayout`.
+`tellheight=true` lets a long report enlarge its layout row. The function
+returns its `GridLayout`.
+
+After adding every custom layout block, fit the canvas once:
+
+```julia
+resize_plot_to_layout!(
+    fig;
+    minimum_axis_size=(420, nothing), # keep width; retain compound row ratios
+)
+```
+
+This delegates measurement to Makie's layout solver. Existing explicit axis
+sizes remain authoritative, the current figure size is a lower bound, and any
+additional requested width stays available to the first graph column. Pass
+`flexible_columns=(...)` when graph axes occupy other top-level columns. The
+helper first measures each listed `Auto` column, then uses Makie's
+`Auto(false, ratio)` mode so labels and legends cannot shrink that column.
+Explicit `Fixed` and `Relative` tracks remain authoritative.
 
 ## Diagnostic Figures
 
@@ -260,9 +277,11 @@ save("fit.svg", fig)
 save("fit.png", fig; px_per_unit=2)
 ```
 
-`figure_size` controls layout size. `px_per_unit` controls raster density.
-Increasing the former and scaling the image down later also scales down its
-text; it is not a substitute for export resolution.
+`figure_size` requests the minimum layout size. If fixed-width content needs
+more room, the canvas grows instead of clipping; requesting additional width
+widens the flexible data axis. `px_per_unit` controls raster density. Increasing
+the former and scaling the image down later also scales down its text; it is
+not a substitute for export resolution.
 
 ## Failure Summary
 
@@ -274,6 +293,7 @@ text; it is not a substitute for export resolution.
 | Prediction band without matrix-free marginal errors | `ArgumentError` with the required remedy |
 | Wrong number of `parameter_names` | `ArgumentError` |
 | Non-finite or dimensionally inconsistent annotation data | `ArgumentError` |
+| Non-positive/non-finite layout dimensions | `ArgumentError` |
 
 ## API Documentation
 
@@ -290,4 +310,5 @@ ScientificFitting.add_hband!
 ScientificFitting.plot_theme
 ScientificFitting.plot_palette
 ScientificFitting.plot_info_panel!
+ScientificFitting.resize_plot_to_layout!
 ```

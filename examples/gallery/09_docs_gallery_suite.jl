@@ -21,7 +21,11 @@ using LinearAlgebra
 using Printf
 using SpecialFunctions
 
-const DOC_ASSET_DIR = joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery")
+const DOC_ASSET_DIR = get(
+    ENV,
+    "SCIENTIFICFITTING_DOC_ASSET_DIR",
+    joinpath(@__DIR__, "..", "..", "docs", "src", "assets", "gallery"),
+)
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
@@ -119,7 +123,9 @@ function gallery_figure(
     # the role still controls typography, axis grammar, and information density.
     width = show_panel ? base_size[1] : max(base_size[1], 960)
     return with_theme(plot_theme(style; appearance=appearance)) do
-        Figure(size=(width, height), backgroundcolor=palette.background_color)
+        figure = Figure(size=(width, height), backgroundcolor=palette.background_color)
+        colsize!(figure.layout, 1, Auto(1))
+        figure
     end
 end
 
@@ -141,7 +147,7 @@ function gallery_output!(
         palette = plot_palette(style; appearance=appearance)
         defaults = (
             framevisible=false,
-            tellwidth=false,
+            tellwidth=true,
             tellheight=true,
             halign=:left,
             valign=:center,
@@ -278,6 +284,7 @@ function save_poisson_counts(
         rowsize!(fig.layout, row, Relative(fraction))
     end
     show_panel && colgap!(fig.layout, 24)
+    resize_plot_to_layout!(fig; minimum_axis_size=(420, nothing))
     save_gallery_figure(variant_name(name, style, show_panel, appearance), fig)
 end
 
@@ -392,6 +399,7 @@ function save_histogram_fit(
         rowsize!(fig.layout, row, Relative(fraction))
     end
     show_panel && colgap!(fig.layout, 24)
+    resize_plot_to_layout!(fig; minimum_axis_size=(420, nothing))
     save_gallery_figure(variant_name(name, style, show_panel, appearance), fig)
 end
 
@@ -600,6 +608,7 @@ function save_photoelectric_work_function(
         statistic_lines=statistic_lines,
     )
     show_panel && colgap!(fig.layout, 18)
+    resize_plot_to_layout!(fig; minimum_axis_size=(420, nothing))
     save_gallery_figure(variant_name(name, style, show_panel, appearance), fig)
 end
 

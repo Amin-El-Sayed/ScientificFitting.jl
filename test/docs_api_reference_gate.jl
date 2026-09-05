@@ -151,6 +151,7 @@ end
             :plot_theme,
             :plot_palette,
             :plot_info_panel!,
+            :resize_plot_to_layout!,
             :plot_residuals,
             :plot_diagnostics,
             :plot_profile,
@@ -171,6 +172,7 @@ end
         @test !occursin("plot_fit(model, x, y", _doc_text(:plot_fit))
         @test occursin("fit_axis(figure; index=1)", _doc_text(:fit_axis))
         @test occursin("plot_info_panel!(cell;", _doc_text(:plot_info_panel!))
+        @test occursin("resize_plot_to_layout!(figure;", _doc_text(:resize_plot_to_layout!))
     end
 
     @testset "Custom objectives state their inferential convention" begin
