@@ -18,15 +18,13 @@ Version 0.1 is the first public release; feedback from real analyses is welcome.
 
 ## Install
 
-Until the first General-registry release is available:
-
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/Amin-El-Sayed/ScientificFitting.jl")
+Pkg.add("ScientificFitting")
 ```
 
-After registration, use `Pkg.add("ScientificFitting")`. Add `CairoMakie`
-separately when plots are needed; fitting and reporting do not load Makie.
+Add `CairoMakie` separately when plots are needed; fitting and reporting do not
+load Makie.
 
 ## Quickstart
 

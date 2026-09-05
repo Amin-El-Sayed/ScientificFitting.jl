@@ -4,21 +4,13 @@ ScientificFitting declares support for Julia 1.10 and later. CI runs the core
 and full-package gates on Julia 1.10 and Julia 1.12. Julia 1.10 is the
 compatibility floor.
 
-!!! note "Registry submission in progress"
-    Version 0.1 is the first public work-in-progress release. Until the General
-    registry accepts it, use the GitHub installation below. The package name and
-    UUID are already final for this release.
+!!! note "First public release"
+    Version 0.1 is an early work-in-progress release. Please report unexpected
+    behavior with a minimal reproducer and the complete diagnostic output.
 
 ## Install The First Release
 
-Until registry acceptance, install the tagged GitHub release:
-
-```julia
-using Pkg
-Pkg.add(url="https://github.com/Amin-El-Sayed/ScientificFitting.jl")
-```
-
-After General accepts the package, use:
+Install the registered package from Julia's General registry:
 
 ```julia
 using Pkg
