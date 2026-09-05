@@ -108,6 +108,7 @@ during rendering.
 ```julia
 using ScientificFitting
 using LinearAlgebra
+using Printf
 
 const elementary_charge = 1.602176634e-19
 
@@ -182,9 +183,9 @@ work_variance =
         baseline.param_covariance * work_gradient_baseline)
 sigma_work_function_eV = sqrt(work_variance)
 
-println("h = ", h_fit, " +/- ", sigma_h, " J s")
-println("Phi = ", work_function_eV, " +/- ", sigma_work_function_eV, " eV")
-println("nu0 = ", threshold_THz, " +/- ", sigma_threshold_THz, " THz")
+@printf("h = %.5e +/- %.5e J s\n", h_fit, sigma_h)
+@printf("Phi = %.4f +/- %.4f eV\n", work_function_eV, sigma_work_function_eV)
+@printf("nu0 = %.3f +/- %.3f THz\n", threshold_THz, sigma_threshold_THz)
 println()
 println("baseline")
 println(diagnostic_dashboard_text(baseline))
@@ -195,9 +196,9 @@ println(diagnostic_dashboard_text(emission))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>h = 6.555274675779572e-34 +/- 4.8917557390531e-35 J s
-Phi = 2.2493272191613904 +/- 0.1635224112565016 eV
-nu0 = 549.7587349125077 +/- 10.954283817354472 THz
+<pre>h = 6.55527e-34 +/- 4.89176e-35 J s
+Phi = 2.2493 +/- 0.1635 eV
+nu0 = 549.759 +/- 10.954 THz
 
 baseline
 Fit diagnostic dashboard

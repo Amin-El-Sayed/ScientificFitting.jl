@@ -1,7 +1,7 @@
 name = "ScientificFitting"
 uuid = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
 authors = ["Amin El Sayed"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"

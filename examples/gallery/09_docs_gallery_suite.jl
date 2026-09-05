@@ -798,9 +798,13 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     h_fit = derived.photoelectric_slope * elementary_charge / 1e12
     sigma_h = derived.sigma_photoelectric_slope * elementary_charge / 1e12
 
-    println("h = ", h_fit, " +/- ", sigma_h, " J s")
-    println("Phi = ", derived.work_function_eV, " +/- ", derived.sigma_work_function_eV, " eV")
-    println("nu0 = ", derived.threshold, " +/- ", derived.sigma_threshold, " THz")
+    @printf("h = %.5e +/- %.5e J s\n", h_fit, sigma_h)
+    @printf(
+        "Phi = %.4f +/- %.4f eV\n",
+        derived.work_function_eV,
+        derived.sigma_work_function_eV,
+    )
+    @printf("nu0 = %.3f +/- %.3f THz\n", derived.threshold, derived.sigma_threshold)
     println()
     println("baseline")
     println(diagnostic_dashboard_text(baseline_result))
