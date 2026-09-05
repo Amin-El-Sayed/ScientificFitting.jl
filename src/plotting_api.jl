@@ -123,9 +123,32 @@ defaults as `plot_fit`; explicit keywords override them. Supply either
 `legend_source` or matching
 `legend_plots`/`legend_labels`, plus already formatted model, parameter, and
 statistic lines. This low-level helper lets compound figures follow ScientificFitting's
-information hierarchy without coupling the panel to one `FitResult`.
+information hierarchy without coupling the panel to one `FitResult`. `width`
+sets a wrapping width for plain text; legends and unbreakable TeX expressions
+retain their natural Makie width rather than being clipped.
 """
 function plot_info_panel! end
+
+"""
+    resize_plot_to_layout!(figure; axes=nothing, flexible_columns=(1,),
+                           minimum_axis_size=(420, 300),
+                           preferred_size=size(figure.scene))
+
+Resize a completed Makie figure to its natural layout without sacrificing a
+readable data area. `preferred_size` is a lower bound, so requesting a wider
+figure widens flexible plot columns after fixed-size labels, legends, and
+panels have the room they need. Automatic axes receive `minimum_axis_size`
+only while Makie measures the layout; explicit axis widths and heights remain
+authoritative. Columns listed in `flexible_columns` are measured with their
+current `Auto` ratio and then changed to `Auto(false, ratio)`, so labels and
+legends cannot shrink the plot after the final canvas is known. Explicit
+`Fixed` and `Relative` column sizes remain unchanged. Pass `nothing` for either
+minimum axis dimension when composing stacked or otherwise constrained axes.
+
+`plot_fit` applies this step automatically. Call it after adding custom layout
+content to a figure built with `plot_theme` and `plot_info_panel!`.
+"""
+function resize_plot_to_layout! end
 
 """
     plot_residuals(result; kind=:pull, theme=:sans, kwargs...)
@@ -203,6 +226,7 @@ add_hband!(args...; kwargs...) = _plotting_unavailable(:add_hband!)
 plot_theme(args...; kwargs...) = _plotting_unavailable(:plot_theme)
 plot_palette(args...; kwargs...) = _plotting_unavailable(:plot_palette)
 plot_info_panel!(args...; kwargs...) = _plotting_unavailable(:plot_info_panel!)
+resize_plot_to_layout!(args...; kwargs...) = _plotting_unavailable(:resize_plot_to_layout!)
 plot_residuals(args...; kwargs...) = _plotting_unavailable(:plot_residuals)
 plot_diagnostics(args...; kwargs...) = _plotting_unavailable(:plot_diagnostics)
 plot_profile(args...; kwargs...) = _plotting_unavailable(:plot_profile)

@@ -1,5 +1,5 @@
 using ScientificFitting
-using CairoMakie: Auto, Axis, Figure, Label, errorbars!, save, scatter!, with_theme
+using CairoMakie: Auto, Axis, Figure, Label, contents, errorbars!, save, scatter!, with_theme
 using LaTeXStrings
 using Test
 
@@ -358,6 +358,38 @@ using Test
     @test size(sans_without_panel.scene) == sans_style.figure_size_without_panel
     @test size(tex_without_panel.scene) == tex_style.figure_size_without_panel
 
+    # The requested canvas is a lower bound. Natural panel content may enlarge
+    # it, while extra requested width remains available to the data axis.
+    wide_tex = plot_fit(quick.result; theme=:tex, figure_size=(1400, 640))
+    @test size(wide_tex.scene) == (1400, 640)
+    @test fit_axis(wide_tex).layoutobservables.computedbbox[].widths[1] >
+          fit_axis(tex_default).layoutobservables.computedbbox[].widths[1] + 390
+
+    long_model_label = LaTeXString(
+        raw"h=6.555\times10^{-34}\pm4.9\times10^{-35}\,\mathrm{J\,s},\quad " *
+        raw"m=0.0040915\,\mathrm{V/THz},\quad\nu_0=549.76\pm11\,\mathrm{THz}",
+    )
+    fitted_canvas = plot_fit(
+        quick.result;
+        theme=:tex,
+        figure_size=(700, 420),
+        stats_panel_width=180,
+        model_label=long_model_label,
+        tight_layout=false,
+    )
+    @test size(fitted_canvas.scene)[1] > 700
+    @test size(fitted_canvas.scene)[2] >= 420
+    @test fit_axis(fitted_canvas).layoutobservables.computedbbox[].widths[1] >=
+          tex_style.minimum_axis_size[1]
+    model_labels = filter(
+        item -> item isa Label && item.text[] == long_model_label,
+        fitted_canvas.content,
+    )
+    @test length(model_labels) == 1
+    model_bbox = only(model_labels).layoutobservables.computedbbox[]
+    @test model_bbox.origin[1] >= 0
+    @test model_bbox.origin[1] + model_bbox.widths[1] <= size(fitted_canvas.scene)[1]
+
     panel_figure = with_theme(plot_theme(:sans)) do
         Figure(size=(720, 420))
     end
@@ -375,7 +407,9 @@ using Test
         width=320,
         parameter_lines=["a deliberately long parameter description that must wrap"],
     )
-    @test bounded_panel.width[] == 320
+    @test bounded_panel.width[] isa Auto
+    bounded_label = only(filter(item -> item isa Label, contents(bounded_panel)))
+    @test bounded_label.width[] == 320
     plotting_extension = Base.get_extension(ScientificFitting, :ScientificFittingCairoMakieExt)
     @test plotting_extension !== nothing
     @test occursin('\n', plotting_extension._wrap_panel_text(
@@ -384,6 +418,53 @@ using Test
         20,
     ))
     @test_throws ArgumentError plot_info_panel!(panel_figure[1, 1]; width=0)
+
+    custom_figure = with_theme(plot_theme(:sans)) do
+        Figure(size=(420, 280))
+    end
+    custom_axis = Axis(custom_figure[1, 1])
+    long_panel_label = Label(
+        custom_figure[1, 2],
+        "a deliberately wide, unbreakable result panel label";
+        tellwidth=true,
+    )
+    @test resize_plot_to_layout!(
+        custom_figure;
+        axes=custom_axis,
+        minimum_axis_size=(320, 180),
+    ) === custom_figure
+    @test size(custom_figure.scene)[1] > 420
+    @test custom_axis.layoutobservables.computedbbox[].widths[1] >= 320
+    long_label_bbox = long_panel_label.layoutobservables.computedbbox[]
+    @test long_label_bbox.origin[1] + long_label_bbox.widths[1] <= size(custom_figure.scene)[1]
+    @test_throws ArgumentError resize_plot_to_layout!(
+        custom_figure;
+        minimum_axis_size=(0, 180),
+    )
+    @test_throws ArgumentError resize_plot_to_layout!(
+        custom_figure;
+        preferred_size=(420, Inf),
+    )
+    @test_throws ArgumentError resize_plot_to_layout!(
+        custom_figure;
+        minimum_axis_size=180,
+    )
+    @test_throws ArgumentError resize_plot_to_layout!(custom_figure; axes=1)
+    @test_throws ArgumentError resize_plot_to_layout!(custom_figure; flexible_columns=(0,))
+    @test_throws ArgumentError resize_plot_to_layout!(custom_figure; flexible_columns=(1, 1))
+
+    flexible_figure = with_theme(plot_theme(:sans)) do
+        Figure(size=(960, 420))
+    end
+    flexible_axis = Axis(flexible_figure[1, 1])
+    Label(flexible_figure[2, 1], "legend-like content"; tellwidth=true)
+    resize_plot_to_layout!(
+        flexible_figure;
+        axes=flexible_axis,
+        minimum_axis_size=(320, 180),
+    )
+    @test flexible_axis.layoutobservables.computedbbox[].widths[1] > 850
+
     latex_figure = plot_fit(
         quick.result;
         theme=:tex,

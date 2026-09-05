@@ -79,12 +79,16 @@ panel entirely.
 
 The sans style defaults to `(1040, 640)` with a right-side panel and
 `(860, 560)` without one. The TeX style uses `(1000, 640)` with the panel and
-`(760, 520)` without it. Pass
-`figure_size=(width, height)` for a required
-export footprint. The requested size is preserved; report length does not
-silently resize the saved figure. `stats_panel_width=:auto` uses Makie's natural
-layout width. An explicit width bounds and wraps an unusually detailed custom
-panel instead of allowing it to compress the data axis.
+`(760, 520)` without it. `figure_size=(width, height)` requests a minimum
+logical canvas. Makie measures legends, labels, and panel content while
+preserving a readable data-axis area; if the request is too small, the canvas
+grows rather than clipping content. A larger requested width goes to the
+flexible data axis after the panel has reached its natural width.
+
+`stats_panel_width=:auto` uses that natural width. A numeric value is the
+preferred wrapping width for long plain text. Legends and unbreakable TeX
+expressions may make the panel wider, because preserving the expression is
+safer than silently cropping it.
 
 ## Two Visual Styles
 
@@ -154,13 +158,13 @@ it. Keep the figure at its intended display size and control raster density
 when saving:
 
 ```julia
-fig = plot_fit(result; figure_size=(960, 600))
+fig = plot_fit(result; figure_size=(1200, 600))
 save("fit.png", fig; px_per_unit=2)  # sharper raster, unchanged layout
 save("fit.svg", fig)                 # vector output for scalable documents
 ```
 
 The documentation gallery follows the same rule: compound figures use a
-declared browser-sized canvas, while `px_per_unit` supplies retina-resolution
+browser-sized logical canvas, while `px_per_unit` supplies retina-resolution
 pixels. Font-size checks therefore refer to the rendered page, not the raw PNG
 dimensions.
 
@@ -298,6 +302,7 @@ colors = plot_palette(:sans; appearance=:light)
 fig = with_theme(theme) do
     fig = Figure(size=(1200, 720))
     ax = Axis(fig[1, 1]; xlabel="time / s", ylabel="signal / V")
+    colsize!(fig.layout, 1, Auto(1)) # optional relative weight during measurement
 
     data_plot = scatter!(ax, x, y; color=colors.data_color)
     fit_plot = lines!(ax, xgrid, yfit; color=colors.fit_color)
@@ -312,14 +317,24 @@ fig = with_theme(theme) do
         parameter_lines=["A = ...", "lambda = ..."],
         statistic_lines=["chi2/ndf = ..."],
     )
+    resize_plot_to_layout!(
+        fig;
+        minimum_axis_size=(420, nothing),
+    )
     fig
 end
 ```
 
-By default the panel reports its natural width to Makie's `GridLayout` and does
-not dictate the height of the scientific row. For a detailed custom report,
-pass `width=...`: the panel then keeps that width and wraps plain-text lines
-instead of compressing the scientific axes.
+By default the panel reports its natural width and height to Makie's
+`GridLayout`. For a detailed custom report, pass `width=...` to wrap plain-text
+lines; unbreakable TeX content keeps its natural width. Call
+`resize_plot_to_layout!` once after adding every layout block. It uses Makie's
+layout solver, treats the current canvas as a minimum, and temporarily supplies
+only missing intrinsic axis dimensions. After measurement, the first `Auto`
+column becomes flexible and consumes the remaining width; use
+`flexible_columns=(...)` for a different top-level graph column. The `nothing`
+height above is useful for stacked plots whose row proportions already define
+their vertical hierarchy.
 
 ## Diagnostic Figures
 
