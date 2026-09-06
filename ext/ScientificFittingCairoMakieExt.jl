@@ -35,6 +35,7 @@ import ScientificFitting:
     _model_dydx,
     _model_values,
     _parameter_jacobian,
+    _prediction_band_sigma,
     _strip_math_delims,
     _weighted_data_residual,
     _xerror_for_plot,

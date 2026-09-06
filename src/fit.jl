@@ -132,7 +132,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     has_cons = has_constraints(free_constraints)
     if has_cons
         cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
-        ad = DifferentiationInterface.SecondOrder(Optimization.AutoForwardDiff(), Optimization.AutoForwardDiff())
+        ad = _optimization_ad(problem; second_order=true)
         optf = OptimizationFunction(objective, ad; cons=cons!)
         optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
         sol = solve(
@@ -143,7 +143,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
             reltol=options.tol,
         )
     else
-        optf = OptimizationFunction(objective, Optimization.AutoForwardDiff())
+        optf = OptimizationFunction(objective, _optimization_ad(problem))
         optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub)
         sol = solve(
             optprob,
@@ -221,7 +221,7 @@ function _build_fit_result(
         bic,
     )
     hessian = if _resolve_cost(problem, options.cost) == :gaussian_likelihood && !isempty(free_idx)
-        ForwardDiff.hessian(q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost), params[free_idx])
+        _derivative_hessian(problem, q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost), params[free_idx])
     else
         nothing
     end
@@ -279,7 +279,7 @@ function fit(
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(problem.derivatives),
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
@@ -371,6 +371,12 @@ Parameter control uses `bounds`, `constraints`, `parameter_priors`,
 to `fit(::FitProblem)` with defaults `backend=:auto`, `cost=:auto`,
 `maxiters=500`, `tol=1e-10`, `scale_covariance=:auto`, and `multistart=1`.
 
+Use `derivatives=:finite` for models implemented outside Julia or restricted to
+ordinary floating-point inputs. The policy also controls covariance, profiles,
+and predictions; see [`FitProblem`](@ref) for its numerical assumptions.
+In this mode, the default `tol` is `1e-6` rather than `1e-10`, accounting for
+differenced-gradient noise. An explicitly supplied tolerance is never relaxed.
+
 Returns a `FitResult`. Invalid dimensions, non-finite values, non-positive
 standard deviations, contradictory uncertainty inputs, invalid covariance,
 bounds, or parameter controls raise `ArgumentError` before a result is
@@ -403,10 +409,11 @@ function fit_model(
     jacobian=nothing,
     x_derivative=nothing,
     inplace::Bool=false,
+    derivatives::Symbol=:auto,
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
@@ -430,6 +437,7 @@ function fit_model(
         jacobian=jacobian,
         x_derivative=x_derivative,
         inplace=inplace,
+        derivatives=derivatives,
     )
 
     return fit(

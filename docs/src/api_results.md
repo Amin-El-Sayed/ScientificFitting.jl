@@ -30,6 +30,18 @@ Only `FitResult` has `model_y`, `residuals`, `weighted_residuals`, and
 supports that pointwise interpretation; with full whitening they are whitened
 coordinates.
 
+### Predictions Without A Plotting Backend
+
+`predict(result, x)` evaluates a Gaussian fit on new coordinates. With
+`uncertainty=true`, it also returns the local standard uncertainty of the
+fitted mean. This is `sqrt(diag(J * Cov(p) * J'))`, **not** the scatter of a
+future observation. No Makie installation is needed. The Jacobian follows the
+problem's differentiation mode, or the supplied analytic `jacobian` callback.
+
+```@docs
+ScientificFitting.predict
+```
+
 ### Fit Statistics
 
 | Field | Meaning |

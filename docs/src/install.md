@@ -83,26 +83,68 @@ julia --project=. --startup-file=no -e 'using ScientificFitting; println("Scient
 For plotting, run the tracked quickstart example shown above. It exercises the
 same API used by the first tutorial and confirms CairoMakie export.
 
-## Python Interoperability (Experimental)
+## Python Interface (Development Preview)
 
-Python can call the Julia implementation through JuliaCall. This path reuses
-ScientificFitting's fit results, reports, and diagnostics; it is not a separate Python
-rewrite.
-
-```bash
-python3 -m pip install juliacall
-python3 examples/python/fit_from_python.py
-```
-
-The tracked script develops the local checkout into JuliaCall's managed Julia
-environment and keeps plotting out of the process. The release gate is opt-in:
+The `python/` directory contains an unreleased wrapper, not yet a PyPI or conda
+release. It uses NumPy models, the same Julia numerical core, and optional
+native Matplotlib plots. It neither installs nor loads Makie. From this
+checkout, in a Python 3.10+ virtual environment:
 
 ```bash
-SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_interop_gate.jl
+python -m pip install -e './python[plot,test]'
+python python/develop.py
+python examples/python/numpy_matplotlib.py
+python -m pytest python/tests
 ```
 
-Python support remains experimental or deferred for public v0 claims until the
-same path is observed on the selected release CI or release machine.
+The development step selects this checkout because the registered v0.1.2 core
+does not contain the new finite-derivative API. JuliaCall manages Julia and
+its packages automatically; first use needs network access and compilation.
+This avoids a manual Julia installation, but does **not** remove the Julia
+runtime's disk footprint or startup cost.
+
+```python
+import numpy as np
+from scientificfitting import fit_model, plot_fit
+
+def line(x, slope, offset):
+    return slope * x + offset
+
+x = np.array([0., 1., 2., 3.])
+y = np.array([0.1, 1.2, 1.9, 3.2])
+result = fit_model(line, x, y, p0={"slope": 1., "offset": 0.}, sigma_y=0.2)
+print(result.report())
+
+fig, ax = plot_fit(result, xlabel="x / mm", ylabel="U / V")
+ax.axvline(1.5, color="black", linestyle="--")
+ax.legend()
+fig.savefig("calibration.pdf")
+```
+
+Models receive a read-only NumPy coordinate array and named float parameters.
+The keys of `p0` must match the model's parameter names; mapping order sets
+the order of result arrays, not how parameters bind to the model. Models must
+be deterministic and smooth around evaluated points. Finite differences are
+used consistently, including when bounds or profiles trigger a different
+solver. Optional analytic `jacobian` and `x_derivative` callbacks use the same
+Python argument convention.
+The default solver `tol=1e-6` accounts for differenced-gradient noise;
+`tol` remains configurable and is not a bound on parameter error.
+
+The preview covers Gaussian fits with x/y errors or dense covariance,
+Poisson counts, expected-count histograms, custom costs, parameter bounds,
+named fixed values and Gaussian priors, nonlinear constraints, profiles,
+contours, and core reports. `result.predict(x, uncertainty=True)` returns a
+Gaussian model mean and its local standard uncertainty, without observation
+noise. `plot_fit` accepts an existing Matplotlib `ax` and ordinary artist
+keyword dictionaries; it does not change global plotting settings or refit.
+
+Not yet covered by the Python facade: structured whitening, correlated
+parameter constraints, multi-dataset convenience calls, scalar-density
+quadrature/unbinned likelihoods, profile matrices, and the full diagnostic/
+report-panel plotting suite. The Julia APIs remain available; this preview is
+not a claim of v0.2 feature parity. Cross-platform clean-install checks and
+release dependency pins are also still required before publishing a wheel.
 
 ## Troubleshooting
 

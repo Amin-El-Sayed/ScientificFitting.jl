@@ -9,5 +9,6 @@ using Test
     include("statistics/likelihood_reference.jl")
     include("statistics/profile_contour_reference.jl")
     include("numerics/inplace_model_reference.jl")
+    include("numerics/finite_derivatives_reference.jl")
     include("numerics/torture_inputs.jl")
 end

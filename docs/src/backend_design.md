@@ -116,6 +116,26 @@ parameter space; they are not hidden penalty terms.
 
 ### 5. Dispatch only to a compatible solver
 
+Derivative selection is stored in the problem, not in the renderer.
+`derivatives=:auto` keeps the Julia defaults; `derivatives=:finite` uses central
+finite differences for foreign callbacks that accept ordinary floating-point
+values but not ForwardDiff dual numbers. It applies to optimization, constraint
+derivatives, post-fit covariance, predictions, and profile/contour refits.
+Explicit model Jacobians and x-derivatives take precedence where they apply.
+The solver stopping tolerance defaults to `1e-6` in finite mode and `1e-10`
+otherwise. This avoids demanding convergence below the noise floor of
+numerically differenced gradients; it is not an error bound on fitted
+parameters. Explicit `tol` values are preserved, including when they lead to
+a reported convergence failure.
+
+The finite mode differentiates the **whole** objective, including any
+parameter-dependent covariance and its log determinant. It is an approximation,
+not a claim of exact derivatives: noisy models, badly scaled parameters, and
+non-smooth/domain-limited callbacks still need care. Models must be evaluable
+in a neighborhood of each evaluation point, including near declared bounds.
+For pointwise x-error propagation, two vectorized model calls estimate all
+`df/dx` values instead of crossing a Python boundary once per observation.
+
 Solver selection follows the represented problem rather than a speed preference:
 
 | Condition | Backend |

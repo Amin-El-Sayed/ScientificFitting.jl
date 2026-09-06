@@ -316,14 +316,6 @@ function _merged_kwargs(defaults::NamedTuple, overrides)
     return merge(defaults, _normalize_kwargs(overrides))
 end
 
-function _prediction_band_sigma(result::FitResult, xgrid::AbstractVector)
-    J = _parameter_jacobian(result.problem, result.params; x=xgrid)
-    cov = result.param_covariance
-    tmp = J * cov
-    variances = vec(sum(tmp .* J; dims=2))
-    return sqrt.(clamp.(variances, 0.0, Inf))
-end
-
 function _interpolate_sigma_to_grid(x::AbstractVector, sigma::AbstractVector, xgrid::AbstractVector)
     length(x) == length(sigma) || throw(ArgumentError("uncertainty length must match x length"))
     order = sortperm(x)
@@ -1012,6 +1004,7 @@ const _FITPLOT_FIT_KWARGS = Set([
     :jacobian,
     :x_derivative,
     :inplace,
+    :derivatives,
     :backend,
     :cost,
     :maxiters,

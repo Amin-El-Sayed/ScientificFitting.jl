@@ -133,6 +133,14 @@ function _model_dydx(problem::FitProblem, p::AbstractVector; x::AbstractVector=p
         return collected
     end
 
+    if _derivative_mode(problem) == :finite
+        # Each prediction depends on its own x coordinate, as in _model_scalar.
+        # Perturb the whole vector at once to keep Python/NumPy calls batched.
+        step = cbrt(eps(Float64)) .* max.(abs.(x), 1.0)
+        above = _model_values(problem, p; x=x .+ step)
+        below = _model_values(problem, p; x=x .- step)
+        return (above .- below) ./ (2 .* step)
+    end
     return [ForwardDiff.derivative(t -> _model_scalar(problem, t, p), xi) for xi in x]
 end
 
@@ -410,24 +418,24 @@ function _parameter_jacobian(problem::FitProblem, p::AbstractVector; x::Abstract
         return Matrix{Float64}(J)
     end
 
-    jac = ForwardDiff.jacobian(pp -> _model_values(problem, pp; x=x), p)
+    jac = _derivative_jacobian(problem, pp -> _model_values(problem, pp; x=x), p)
     return Matrix{Float64}(jac)
 end
 
 function _weighted_jacobian(problem::FitProblem, p::AbstractVector)
-    jac = ForwardDiff.jacobian(pp -> _weighted_residual(problem, pp), p)
+    jac = _derivative_jacobian(problem, pp -> _weighted_residual(problem, pp), p)
     return Matrix{Float64}(jac)
 end
 
 function _weighted_jacobian(cache::FitEvaluationCache, p::AbstractVector)
-    jac = ForwardDiff.jacobian(pp -> _weighted_residual(cache, pp), p)
+    jac = _derivative_jacobian(cache.problem, pp -> _weighted_residual(cache, pp), p)
     return Matrix{Float64}(jac)
 end
 
 function _free_weighted_jacobian(cache::FitEvaluationCache, params::AbstractVector)
     problem = cache.problem
     free_idx = _free_indices(problem)
-    jac = ForwardDiff.jacobian(q -> _weighted_residual(cache, _expand_free_parameters(problem, q)), params[free_idx])
+    jac = _derivative_jacobian(problem, q -> _weighted_residual(cache, _expand_free_parameters(problem, q)), params[free_idx])
     return Matrix{Float64}(jac)
 end
 
@@ -472,7 +480,7 @@ end
 function _covariance_from_cost_hessian(problem::FitProblem, p::AbstractVector, cost::Symbol)
     free_idx = _free_indices(problem)
     q = p[free_idx]
-    H = ForwardDiff.hessian(qq -> _cost_value(problem, _expand_free_parameters(problem, qq), cost), q)
+    H = _derivative_hessian(problem, qq -> _cost_value(problem, _expand_free_parameters(problem, qq), cost), q)
     cov = 2.0 .* _stable_symmetric_inverse(H)
     return _embed_free_covariance(problem, cov)
 end
@@ -481,7 +489,7 @@ function _covariance_from_cost_hessian(cache::FitEvaluationCache, p::AbstractVec
     problem = cache.problem
     free_idx = _free_indices(problem)
     q = p[free_idx]
-    H = ForwardDiff.hessian(qq -> _cost_value(cache, _expand_free_parameters(problem, qq), cost), q)
+    H = _derivative_hessian(problem, qq -> _cost_value(cache, _expand_free_parameters(problem, qq), cost), q)
     cov = 2.0 .* _stable_symmetric_inverse(H)
     return _embed_free_covariance(problem, cov)
 end

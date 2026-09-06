@@ -17,8 +17,13 @@ documented interpretation, `objective` must use the `-2 log(L)` scale.
 Most users should prefer `fit_poisson_model`, `fit_histogram_model`,
 `fit_unbinned_model`, `fit_extended_unbinned_model`, or `fit_custom`; construct
 this type directly when the objective must be stored, inspected, or refitted.
+`derivatives=:finite` selects numerical derivatives for foreign/Float64-only
+objectives and constraint callbacks, including the covariance Hessian and all
+profile refits. The default `:auto` uses ForwardDiff. Both modes require a
+smooth objective near the evaluation point. Fitting defaults to `tol=1e-6`
+in finite mode and `1e-10` otherwise; explicit tolerances are preserved.
 """
-struct LikelihoodFitProblem{TF, TG}
+struct LikelihoodFitProblem{TF, TG, DM}
     objective::TF
     gof::TG
     p0::Vector{Float64}
@@ -30,7 +35,10 @@ struct LikelihoodFitProblem{TF, TG}
     nobs::Int
     cost_name::Symbol
     parameter_names::Union{Nothing, Vector{String}}
+    derivatives::Symbol
 end
+
+_derivative_mode(::LikelihoodFitProblem{TF, TG, DM}) where {TF, TG, DM} = DM
 
 """
     LikelihoodFitResult
@@ -71,7 +79,9 @@ function LikelihoodFitProblem(
     nobs::Integer,
     cost_name::Symbol,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
 )
+    _validate_derivatives(derivatives)
     p0_vec = _float_vector(p0)
     length(p0_vec) > 0 || throw(ArgumentError("p0 must contain at least one parameter"))
     _assert_finite_vector("p0", p0_vec)
@@ -83,7 +93,7 @@ function LikelihoodFitProblem(
     normalized_fixed = _normalize_fixed_parameters(fixed_parameters, length(p0_vec))
     _assert_fixed_parameters_within_bounds(normalized_fixed, normalized_bounds)
 
-    return LikelihoodFitProblem(
+    return LikelihoodFitProblem{typeof(objective), typeof(gof), derivatives}(
         objective,
         gof,
         p0_vec,
@@ -95,6 +105,7 @@ function LikelihoodFitProblem(
         Int(nobs),
         cost_name,
         names,
+        derivatives,
     )
 end
 
@@ -111,6 +122,7 @@ function _with_p0(problem::LikelihoodFitProblem, p0::AbstractVector)
         nobs=problem.nobs,
         cost_name=problem.cost_name,
         parameter_names=problem.parameter_names,
+        derivatives=problem.derivatives,
     )
 end
 
@@ -154,12 +166,12 @@ function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOpti
 
     if has_constraints(free_constraints)
         cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
-        ad = DifferentiationInterface.SecondOrder(Optimization.AutoForwardDiff(), Optimization.AutoForwardDiff())
+        ad = _optimization_ad(problem; second_order=true)
         optf = OptimizationFunction(objective, ad; cons=cons!)
         optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
         sol = solve(optprob, OptimizationOptimJL.IPNewton(); maxiters=options.maxiters, abstol=options.tol, reltol=options.tol)
     else
-        optf = OptimizationFunction(objective, Optimization.AutoForwardDiff())
+        optf = OptimizationFunction(objective, _optimization_ad(problem))
         optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub)
         sol = solve(optprob, OptimizationOptimJL.LBFGS(); maxiters=options.maxiters, abstol=options.tol, reltol=options.tol)
     end
@@ -184,7 +196,7 @@ function _likelihood_covariance(cache::LikelihoodEvaluationCache, params::Vector
     end
 
     q = params[free_idx]
-    H = ForwardDiff.hessian(qq -> _likelihood_cost(cache, _expand_free_parameters(problem, qq)), q)
+    H = _derivative_hessian(problem, qq -> _likelihood_cost(cache, _expand_free_parameters(problem, qq)), q)
     free_cov = 2.0 .* _stable_symmetric_inverse(H)
     return _embed_free_covariance(problem, free_cov)
 end
@@ -213,7 +225,7 @@ function _build_likelihood_result(
     corr = _correlation_from_covariance(cov)
     stats = FitStatistics(problem.cost_name, cost_min, cost_min, gof, gof_ndf, ndf, pvalue, aic, bic)
     free_idx = _free_indices(problem)
-    hessian = isempty(free_idx) ? nothing : ForwardDiff.hessian(q -> _likelihood_cost(cache, _expand_free_parameters(problem, q)), params[free_idx])
+    hessian = isempty(free_idx) ? nothing : _derivative_hessian(problem, q -> _likelihood_cost(cache, _expand_free_parameters(problem, q)), params[free_idx])
     diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=gof)
 
     return LikelihoodFitResult(problem, options, :optimization, converged, iterations, message, params, stderr, cov, corr, stats, diagnostics)
@@ -241,7 +253,7 @@ cost follows the documented `-2 log(L)` convention.
 function fit(
     problem::LikelihoodFitProblem;
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(problem.derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -305,7 +317,7 @@ remains usable but those inferential fields are only arithmetic summaries.
 
 Common keywords are `bounds`, `constraints`, `parameter_priors`,
 `parameter_constraints`, `fixed_parameters`, `parameter_names`, `maxiters`,
-`tol`, `initial_guesses`, and `multistart`. Parameter callbacks receive the
+`tol`, `initial_guesses`, `multistart`, and `derivatives=:auto` (or `:finite`). Parameter callbacks receive the
 complete vector in `p0` order. `nobs` must be positive; invalid parameter
 controls or a non-finite objective fail with an error rather than producing a
 reportable result.
@@ -329,8 +341,9 @@ function fit_custom(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -346,6 +359,7 @@ function fit_custom(
         nobs=nobs,
         cost_name=cost_name,
         parameter_names=parameter_names,
+        derivatives=derivatives,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
@@ -417,8 +431,9 @@ function fit_poisson_model(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -442,6 +457,7 @@ function fit_poisson_model(
         nobs=length(counts_vec),
         cost_name=:poisson_likelihood,
         parameter_names=parameter_names,
+        derivatives=derivatives,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
@@ -472,8 +488,9 @@ function fit_histogram_model(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -501,6 +518,7 @@ function fit_histogram_model(
         nobs=length(counts_vec),
         cost_name=:histogram_poisson_likelihood,
         parameter_names=parameter_names,
+        derivatives=derivatives,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
@@ -533,8 +551,9 @@ function fit_histogram_density(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -561,6 +580,7 @@ function fit_histogram_density(
         parameter_constraints=parameter_constraints,
         fixed_parameters=fixed_parameters,
         parameter_names=parameter_names,
+        derivatives=derivatives,
         maxiters=maxiters,
         tol=tol,
         initial_guesses=initial_guesses,
@@ -591,8 +611,9 @@ function fit_unbinned_model(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -619,6 +640,7 @@ function fit_unbinned_model(
         nobs=length(data_vec),
         cost_name=:unbinned_likelihood,
         parameter_names=parameter_names,
+        derivatives=derivatives,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
@@ -650,8 +672,9 @@ function fit_extended_unbinned_model(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -687,6 +710,7 @@ function fit_extended_unbinned_model(
         nobs=length(data_vec),
         cost_name=:extended_unbinned_likelihood,
         parameter_names=parameter_names,
+        derivatives=derivatives,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
@@ -776,8 +800,9 @@ function fit_indexed_model(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -805,6 +830,7 @@ function fit_indexed_model(
         nobs=length(y_vec),
         cost_name=:indexed_chi2,
         parameter_names=parameter_names,
+        derivatives=derivatives,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end
@@ -842,9 +868,10 @@ function fit_multi_model(
     parameter_constraints=nothing,
     fixed_parameters=nothing,
     parameter_names=nothing,
+    derivatives::Symbol=:auto,
     parameter_map=nothing,
     maxiters::Int=1000,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
 )
@@ -897,6 +924,7 @@ function fit_multi_model(
         nobs=nobs,
         cost_name=:multi_chi2,
         parameter_names=parameter_names,
+        derivatives=derivatives,
     )
     return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
 end

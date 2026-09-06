@@ -126,6 +126,7 @@ function _refit_with_fixed(result::FitResult, fixed::Vector{FixedParameter})
         fixed_parameters=_merge_fixed_parameters(problem.fixed_parameters, fixed),
         jacobian=problem.jacobian,
         x_derivative=problem.x_derivative,
+        derivatives=problem.derivatives,
     )
 
     return fit(
@@ -157,6 +158,7 @@ function _refit_with_fixed(result::LikelihoodFitResult, fixed::Vector{FixedParam
         nobs=problem.nobs,
         cost_name=problem.cost_name,
         parameter_names=problem.parameter_names,
+        derivatives=problem.derivatives,
     )
 
     return fit(
