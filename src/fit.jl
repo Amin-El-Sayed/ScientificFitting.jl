@@ -125,7 +125,9 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     end
 
     cache = _prepare_fit_cache(problem)
-    objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(cache.problem, q), options.cost)
+    # Keep the model type in the objective: sharing a precompiled AD tag across
+    # unseen models can invert the tag order of their nested x derivatives.
+    objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)
 
     lb = nothing
     ub = nothing
@@ -277,7 +279,8 @@ Keyword contracts:
 - `scale_covariance`: `:auto`, `:never`, or `:always`. `:auto` estimates a
   residual scale only when no observation uncertainty was supplied.
 - `initial_guesses`: additional complete parameter vectors in `p0` order.
-- `multistart`: number of deterministic candidates, including `problem.p0`.
+- `multistart`: total candidate budget, including `problem.p0`. The default
+  of one uses only `p0`; two distinct additional guesses need `multistart=3`.
 
 The converged finite candidate with the lowest cost is returned. If no candidate
 converges but one remains finite, it is returned with `converged == false`; use

@@ -3,7 +3,7 @@ using Test
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const DOCS_SRC = joinpath(ROOT, "docs", "src")
 
-const OUTPUT_EXPECTATIONS = [
+const ALL_OUTPUT_EXPECTATIONS = [
     ("quickstart.md", "quickstart", 1),
     (joinpath("gallery", "linear_calibration.md"), "linear_calibration", 1),
     (joinpath("gallery", "xy_uncertainties.md"), "xy_uncertainties", 1),
@@ -17,6 +17,14 @@ const OUTPUT_EXPECTATIONS = [
     (joinpath("gallery", "multi_dataset.md"), "multi_dataset", 1),
 ]
 
+# Optional page paths keep an editorial check focused; CI runs every page.
+const KNOWN_PAGES = unique(first.(ALL_OUTPUT_EXPECTATIONS))
+all(page -> page in KNOWN_PAGES, ARGS) || error(
+    "expected documentation page paths, for example gallery/resonance_decay.md",
+)
+const OUTPUT_EXPECTATIONS = filter(ALL_OUTPUT_EXPECTATIONS) do expectation
+    isempty(ARGS) || expectation[1] in ARGS
+end
 const EXECUTABLE_PAGES = unique(first.(OUTPUT_EXPECTATIONS))
 
 function normalize_output(text::AbstractString)
@@ -73,7 +81,7 @@ end
 function run_snapshot_script(script::AbstractString)
     cmd = `$(Base.julia_cmd()) --project=docs --startup-file=no $script`
     return read(
-        setenv(
+        addenv(
             cmd,
             "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS" => "1",
             "SCIENTIFICFITTING_DOC_SNAPSHOT_ONLY" => "1",
@@ -145,8 +153,8 @@ function run_documented_pages(relative_pages)
             run(pipeline(command; stdout, stderr))
         catch
             message = String(take!(stderr))
-            isempty(strip(message)) || @info "Documented examples emitted stderr" message
-            rethrow(error)
+            isempty(strip(message)) || print(Base.stderr, message)
+            rethrow()
         end
         warnings = String(take!(stderr))
         return documented_page_outputs(String(take!(stdout))), warnings
@@ -171,10 +179,19 @@ end
     end
 
     page_outputs, page_stderr = run_documented_pages(EXECUTABLE_PAGES)
-    gallery_output = run_snapshot_script(joinpath(ROOT, "examples", "gallery", "09_docs_gallery_suite.jl"))
-    resonance_output = run_snapshot_script(joinpath(ROOT, "examples", "gallery", "08_damped_oscillator_decay.jl"))
-    snapshots = merge(marker_outputs(gallery_output), marker_outputs(resonance_output))
-    snapshots["quickstart"] = page_outputs["quickstart.md"]
+    snapshots = Dict{String,String}()
+    resonance_page = joinpath("gallery", "resonance_decay.md")
+    if any(page -> page ∉ ("quickstart.md", resonance_page), EXECUTABLE_PAGES)
+        output = run_snapshot_script(joinpath(ROOT, "examples", "gallery", "09_docs_gallery_suite.jl"))
+        merge!(snapshots, marker_outputs(output))
+    end
+    if resonance_page in EXECUTABLE_PAGES
+        output = run_snapshot_script(joinpath(ROOT, "examples", "gallery", "08_damped_oscillator_decay.jl"))
+        merge!(snapshots, marker_outputs(output))
+    end
+    if "quickstart.md" in EXECUTABLE_PAGES
+        snapshots["quickstart"] = page_outputs["quickstart.md"]
+    end
 
     @test isempty(strip(page_stderr))
 
@@ -184,7 +201,11 @@ end
 
     @testset "Every result cell has one real generator snapshot" begin
         expected_ids = Set(snapshot_id for (_, snapshot_id, _) in OUTPUT_EXPECTATIONS)
-        @test Set(keys(snapshots)) == expected_ids
+        if isempty(ARGS)
+            @test Set(keys(snapshots)) == expected_ids
+        else
+            @test expected_ids ⊆ Set(keys(snapshots))
+        end
 
         for relative_page in EXECUTABLE_PAGES
             expected_count = count(expectation -> expectation[1] == relative_page, OUTPUT_EXPECTATIONS)

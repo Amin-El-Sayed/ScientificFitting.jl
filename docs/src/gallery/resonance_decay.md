@@ -132,6 +132,11 @@ roughly unit width. Coherent waves indicate missing model structure; a much
 narrower cloud indicates conservative uncertainties or correlations between
 samples.
 
+Oscillatory models can have several local minima. Here `multistart=3` tries
+`p0` and two additional frequency/phase guesses, then keeps the converged fit
+with the lowest cost. This checks a few plausible starting points; it does not
+prove that the minimum is global.
+
 ```julia
 using ScientificFitting
 
@@ -166,10 +171,10 @@ constant_result = fit_model(
     sigma_x=sigma_time,
     bounds=([0.0, 2.0, -20.0, 0.0], [5.0, 5.0, 20.0, 0.05]),
     initial_guesses=[
-        [1.6, 3.26, 0.0, 0.0035],
         [1.8, 3.20, 2.0, 0.0020],
         [1.5, 3.35, -2.0, 0.0060],
     ],
+    multistart=3, # p0 and the two additional starts.
     maxiters=3000,
     tol=1e-7,
 )
@@ -285,10 +290,10 @@ drift_result = fit_model(
     sigma_x=sigma_time,
     bounds=([0.0, 2.0, -20.0, 0.0, -0.01], [5.0, 5.0, 20.0, 0.05, 0.01]),
     initial_guesses=[
-        [1.6, 3.26, 0.0, 0.0035, 0.0],
         [1.8, 3.20, 2.0, 0.0020, 0.0001],
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
+    multistart=3,
     maxiters=4000,
     tol=1e-7,
 )

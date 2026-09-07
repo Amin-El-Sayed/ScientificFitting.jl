@@ -186,6 +186,15 @@ outranks an unconverged one; within the same status, the lower cost wins. If
 every run stops early, return the best finite result with `converged=false`,
 not merely the first candidate.
 
+Both solver objectives retain the model/objective type even when their evaluation
+cache is passed as solver context. ForwardDiff tags must not be shared between
+precompiled fits and unseen models with nested x derivatives
+([ForwardDiff #714](https://github.com/JuliaDiff/ForwardDiff.jl/issues/714)).
+The startup gate compares automatic and analytic x derivatives in a fresh
+process, for diagonal and dense x covariance, and checks a custom objective
+with a nested derivative against its exact minimum and covariance. Python's
+typed finite-difference callbacks still share their precompiled solver path.
+
 CHOLMOD's sparse solves do not accept ForwardDiff dual numbers. Static sparse
 covariance therefore requires `derivatives=:finite` with the general optimizer,
 or an AD-compatible `WhiteningOperator` instead. The least-squares path remains
@@ -310,12 +319,20 @@ Architecture changes need evidence at the layer they affect:
 | Invalid scientific and numerical inputs | `test/numerics/torture_inputs.jl` |
 | Public compatibility and optional plotting boundary | `test/regression/current_api.jl` |
 | Steady-state hot-path budgets | `test/performance_budget_gate.jl` |
+| Fresh-process loading and nested automatic derivatives | `test/startup_probe_gate.jl` |
 | Plot composition and extension behavior | `test/plots/fitplot.jl` |
 | NumPy callback parity, native Matplotlib panels, profiles, and ownership | `python/tests` |
 
 The core gate is `julia --project=. test/core_runtests.jl`; the complete package
 gate is `julia --project=. test/runtests.jl`. Performance methodology and the
 benchmark runner are documented on the [Performance](performance.md) page.
+
+For a page-level output check, run
+`julia --project=docs test/docs_output_snapshots.jl gallery/resonance_decay.md`
+(additional page paths are accepted). Without page arguments the gate executes
+every documented workflow. It compares the displayed output with both the
+page's code cells and the example generator; only solver iteration counts are
+normalized across solver/platform versions.
 
 ## Planned Work
 
@@ -359,8 +376,10 @@ benchmark runner are documented on the [Performance](performance.md) page.
   histogram fits match independent likelihood/covariance references. The
   [callback benchmark](performance.md#Python-Model-Callbacks) records both the
   improvement and remaining per-bin quadrature overhead.
-  Remaining: the final numerical API-parity review, including explicit multistart
-  budgets in the Julia gallery (supplying `initial_guesses` alone does not run them).
+  Julia gallery examples now set explicit multistart budgets and omit duplicate
+  `p0` entries. Three starts confirm the displayed oscillator, saturation, count,
+  and histogram results; their code cells and output generators are cross-checked.
+  Remaining: the final numerical API-parity review.
   Do not add parallel plotting abstractions where native composition suffices. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,
   and passing installed-package CI results on supported platforms. The workflow

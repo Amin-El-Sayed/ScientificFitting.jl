@@ -158,7 +158,8 @@ end
 
 function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOptions)
     cache = _prepare_likelihood_cache(problem)
-    objective = (q, cache) -> _likelihood_cost(cache, _expand_free_parameters(cache.problem, q))
+    # Retain the objective type in its AD tag, just as for Gaussian fits.
+    objective = (q, cache) -> _likelihood_cost(cache, _expand_free_parameters(problem, q))
     free_constraints = _free_constraints(problem.constraints, problem)
     free_bounds = _free_bounds(problem)
     lb = free_bounds === nothing ? nothing : free_bounds[1]
