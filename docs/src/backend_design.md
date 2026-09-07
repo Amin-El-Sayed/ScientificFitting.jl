@@ -149,6 +149,14 @@ A small `PrecompileTools` workload caches Gaussian/Poisson numerical kernels,
 prediction, and reporting with ordinary Julia callbacks. It neither starts
 Python nor loads plotting during installation or package import.
 
+Event and histogram density helpers accept `vectorized=true` without changing
+their scalar default. Event log likelihoods use one density call per objective;
+integrals use QuadGK's `BatchIntegrand`, retaining adaptive error control for
+each bin. Batch buffers retain the parameter element type, including dual
+numbers, and are reused across bins within one objective evaluation. Profile
+refits retain the same density closure. An analytic bin integral can instead
+be supplied through `fit_histogram_model`, avoiding quadrature entirely.
+
 Solver selection follows the represented problem rather than a speed preference:
 
 | Condition | Backend |
@@ -290,6 +298,7 @@ Architecture changes need evidence at the layer they affect:
 |---|---|
 | Gaussian values, covariance, normalization, and constraints | `test/statistics/linear_gaussian_reference.jl` and `covariance_semantics_reference.jl` |
 | Poisson, histogram, unbinned, extended, indexed, and multi-fit semantics | `test/statistics/likelihood_reference.jl` |
+| Batched densities, adaptive integration, derivatives, and scalar parity | `test/statistics/vectorized_density_reference.jl` |
 | Profiles, contours, local approximations, and failed refits | `test/statistics/profile_contour_reference.jl` |
 | Structured matrix-free covariance | `test/statistics/structured_whitening_reference.jl` |
 | In-place models and Jacobians | `test/numerics/inplace_model_reference.jl` |
@@ -339,12 +348,16 @@ benchmark runner are documented on the [Performance](performance.md) page.
   inference boundary, and standard precompile workloads reduce the measured
   fresh-process Gaussian first fit from about 37 s to 15 s on the local ARM64
   installation; repeated fits remain millisecond-scale.
+  Batched NumPy densities now avoid per-event calls; event and adaptive
+  histogram fits match independent likelihood/covariance references. The
+  [callback benchmark](performance.md#Python-Model-Callbacks) records both the
+  improvement and remaining per-bin quadrature overhead.
   Remaining: the final numerical API-parity review, including explicit multistart
   budgets in the Julia gallery (supplying `initial_guesses` alone does not run them).
   Do not add parallel plotting abstractions where native composition suffices. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,
   and passing installed-package CI results on supported platforms. The workflow
-  is configured, not yet remotely verified. Measure numerical parity and callback
-  overhead (including scalar quadrature) and startup for the other fit families.
+  is configured, not yet remotely verified. Check first-use startup for the
+  other fit families, separately from warmed callback measurements.
   Repeat installation against the registered
   0.2 core without development overrides before any Python publication.

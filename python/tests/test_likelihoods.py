@@ -88,6 +88,63 @@ def test_histogram_density_integrates_unequal_width_bins():
     np.testing.assert_allclose(result.statistics["cost_min"], reference.fun, atol=1e-8)
 
 
+def test_vectorized_event_densities_and_profile_costs():
+    data = np.linspace(0.01, 4., 2000)
+    calls = 0
+
+    def density(x, tau):
+        nonlocal calls
+        assert isinstance(x, np.ndarray) and x.ndim == 1 and not x.flags.writeable
+        calls += 1
+        return np.exp(-x/tau)/tau
+
+    result = fit_unbinned_model(density, data, p0={"tau": 1.}, bounds={"tau": (0.1, 5.)},
+                               vectorized=True)
+    assert result.converged and calls < 1000
+    np.testing.assert_allclose(result.params, [data.mean()], atol=2e-6)
+    np.testing.assert_allclose(result.covariance, [[data.mean()**2/len(data)]], rtol=3e-5)
+    values = data.mean()*np.array([0.9, 1., 1.1])
+    scan = result.profile("tau", values=values)
+    expected = 2*len(data)*(np.log(values/data.mean())+data.mean()/values-1)
+    np.testing.assert_allclose(scan.delta_cost, expected, atol=2e-8)
+
+    extended = fit_extended_unbinned_model(lambda x, rate: np.full_like(x, rate),
+        [0.2, 0.5, 0.9, 1.2, 1.6], (0, 2), p0={"rate": 2.}, bounds={"rate": (0.1, 8.)},
+        vectorized=True)
+    assert extended.converged
+    np.testing.assert_allclose(extended.params, [2.5], atol=2e-5)
+    np.testing.assert_allclose(extended.covariance, [[1.25]], rtol=3e-5)
+
+
+def test_vectorized_histogram_matches_integrated_bin_probabilities():
+    edges, counts = np.array([0., 0.3, 0.9, 2., 5.]), [24, 35, 28, 12]
+    sizes = []
+
+    def density(x, tau):
+        assert isinstance(x, np.ndarray) and not x.flags.writeable
+        sizes.append(len(x))
+        return np.exp(-x/tau)/tau
+
+    options = dict(p0={"tau": 1.}, bounds={"tau": (0.1, 5.)})
+    result = fit_histogram_density(density, edges, counts, total_count=100,
+                                   vectorized=True, **options)
+    reference = fit_histogram_model(lambda e, tau: -100*np.diff(np.exp(-e/tau)),
+                                    edges, counts, **options)
+    assert result.converged and sizes and min(sizes) > 1
+    np.testing.assert_allclose(result.params, reference.params, atol=3e-6)
+    np.testing.assert_allclose(result.covariance, reference.covariance, rtol=3e-5)
+    np.testing.assert_allclose(result.statistics["cost_min"], reference.statistics["cost_min"], atol=1e-8)
+
+
+def test_vectorized_density_rejects_malformed_output_and_option():
+    for bad in (lambda x, tau: 1., lambda x, tau: np.ones(len(x)+1)):
+        with pytest.raises(Exception, match="vectorized density|one-dimensional numeric array"):
+            fit_unbinned_model(bad, [0.1, 0.5, 1.], p0={"tau": 1.}, vectorized=True)
+    with pytest.raises(TypeError, match="vectorized must be a boolean"):
+        fit_unbinned_model(lambda x, tau: np.exp(-x/tau)/tau, [0.1, 0.5],
+                           p0={"tau": 1.}, vectorized="yes")
+
+
 def test_indexed_data_and_correlated_parameter_constraint():
     indices = ["low", "middle", "high", "high"]
     coordinates = {"low": -1., "middle": 0., "high": 1.}

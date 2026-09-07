@@ -8,6 +8,7 @@ scalar_cost(f) = _TypedCallback{Float64}(p -> pyconvert(Float64, f(p)))
 vector_constraint(f) = _TypedCallback{Vector{Float64}}(p -> pyconvert(Vector{Float64}, f(p)))
 scalar_model(f) = _TypedCallback{Float64}((x, p) -> pyconvert(Float64, f(x, p)))
 mutating_model(f) = _TypedCallback{Nothing}((out, x, p) -> (f(out, x, p); nothing))
+density_model(f, options) = get(options, :vectorized, false) ? vector_model(f) : scalar_model(f)
 vector(x) = pyconvert(Vector{Float64}, Py(x))
 matrix(x) = pyconvert(Matrix{Float64}, Py(x))
 
@@ -78,7 +79,7 @@ function fit_keywords(options)
             _TypedCallback{Vector{Float64}}((y, mu, p) -> pyconvert(Vector{Float64}, value(y, mu, p)))
         elseif name in (:maxiters, :multistart, :nobs)
             pyconvert(Int, value)
-        elseif name == :inplace
+        elseif name in (:inplace, :vectorized)
             pyconvert(Bool, value)
         else
             pyconvert(Float64, value)
@@ -98,13 +99,13 @@ function run_fit(kind::String, callback::Py, x, y, p0, options)
     kwargs = fit_keywords(options)
     start = vector(p0)
     kind == "custom" && return Base.invokelatest(fit_custom, scalar_cost(callback); p0=start, kwargs...)
-    kind == "unbinned" && return Base.invokelatest(fit_unbinned_model, scalar_model(callback), vector(y); p0=start, kwargs...)
+    kind == "unbinned" && return Base.invokelatest(fit_unbinned_model, density_model(callback, kwargs), vector(y); p0=start, kwargs...)
     if kind == "extended_unbinned"
         domain = vector(x)
         length(domain) == 2 || throw(ArgumentError("domain must contain exactly two endpoints"))
-        return Base.invokelatest(fit_extended_unbinned_model, scalar_model(callback), vector(y), Tuple(domain); p0=start, kwargs...)
+        return Base.invokelatest(fit_extended_unbinned_model, density_model(callback, kwargs), vector(y), Tuple(domain); p0=start, kwargs...)
     end
-    kind == "histogram_density" && return Base.invokelatest(fit_histogram_density, scalar_model(callback), vector(x), vector(y); p0=start, kwargs...)
+    kind == "histogram_density" && return Base.invokelatest(fit_histogram_density, density_model(callback, kwargs), vector(x), vector(y); p0=start, kwargs...)
     kind in ("gaussian", "poisson", "histogram", "indexed", "likelihood") ||
         throw(ArgumentError("unknown fit family: $kind"))
     model = kind == "gaussian" && get(kwargs, :inplace, false) ? mutating_model(callback) : vector_model(callback)

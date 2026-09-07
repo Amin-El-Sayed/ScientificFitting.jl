@@ -23,6 +23,7 @@ def test_documented_python_cells_execute_in_order(tmp_path, monkeypatch):
         exec(compile(cell, str(source), "exec"), namespace)
     np.testing.assert_allclose(namespace["laplace_result"].params, [0.4], atol=1e-7)
     assert np.isnan(namespace["laplace_result"].stderr).all()
+    np.testing.assert_allclose(namespace["waiting_fit"].params, [namespace["waiting_times"].mean()], atol=2e-6)
 
 
 @pytest.fixture(scope="module")

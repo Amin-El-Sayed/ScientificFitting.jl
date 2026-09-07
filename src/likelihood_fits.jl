@@ -634,14 +634,45 @@ function fit_histogram_model(
     return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end
 
+"""Validate the vectorized density contract before reduction or buffer copying."""
+function _density_batch(pdf, x, p)
+    values = pdf(x, p)
+    values isa AbstractVector && axes(values) == axes(x) ||
+        throw(ArgumentError("vectorized density must return one value per input point"))
+    return values
+end
+
+"""Sum the same event log likelihood for scalar and batched model evaluation."""
+function _density_logcost(pdf, data, p, vectorized::Bool)
+    values = vectorized ? _density_batch(pdf, data, p) : (pdf(x, p) for x in data)
+    total = zero(eltype(p))
+    @inbounds for density in values
+        density isa Real && isfinite(density) && density > 0 ||
+            throw(ArgumentError("density must be finite and strictly positive at all data points"))
+        total -= 2 * log(density)
+    end
+    return total
+end
+
+"""Use QuadGK's native batching and adaptive error control, retaining parameter duals."""
+function _density_integrand(pdf, p, vectorized::Bool)
+    vectorized || return x -> pdf(x, p)
+    evaluate!(out, x) = copyto!(out, _density_batch(pdf, x, p))
+    return BatchIntegrand{eltype(p), Float64}(evaluate!)
+end
+
 """
     fit_histogram_density(pdf, edges, counts; p0, total_count=sum(counts),
-                          rtol=1e-8, kwargs...) -> LikelihoodFitResult
+                          rtol=1e-8, vectorized=false, kwargs...) -> LikelihoodFitResult
 
 Fit binned counts from a probability density. Expected bin counts are computed
 with adaptive Gauss-Kronrod quadrature. `pdf(x, p)` must be normalized on its
 intended physical domain; ScientificFitting does not renormalize it over the supplied
 bins. `total_count` and `rtol` must be finite and positive.
+
+With `vectorized=true`, `pdf(xs, p)` receives a vector of quadrature nodes and
+must return one value per node. QuadGK batches these evaluations while retaining
+adaptive error control for each bin; the scalar callback remains the default.
 
 Each expectation is `total_count * integral(pdf, edge[i], edge[i+1])`.
 Consequently, bins outside the supplied range still carry probability unless
@@ -656,6 +687,7 @@ function fit_histogram_density(
     p0::AbstractVector,
     total_count::Real=sum(counts),
     rtol::Real=1e-8,
+    vectorized::Bool=false,
     bounds=nothing,
     constraints=nothing,
     parameter_priors=nothing,
@@ -676,8 +708,10 @@ function fit_histogram_density(
 
     expected_counts = function (edge_values, p)
         mu = Vector{eltype(p)}(undef, length(edge_values) - 1)
+        # Reuse the batch buffers across bins within this objective evaluation.
+        integrand = _density_integrand(pdf, p, vectorized)
         @inbounds for i in eachindex(mu)
-            integral, _ = quadgk(x -> pdf(x, p), edge_values[i], edge_values[i + 1]; rtol=rtol)
+            integral, _ = quadgk(integrand, edge_values[i], edge_values[i + 1]; rtol=rtol)
             mu[i] = total * integral
         end
         return mu
@@ -704,11 +738,13 @@ function fit_histogram_density(
 end
 
 """
-    fit_unbinned_model(pdf, data; p0, kwargs...) -> LikelihoodFitResult
+    fit_unbinned_model(pdf, data; p0, vectorized=false, kwargs...) -> LikelihoodFitResult
 
 Fit independent unbinned observations with a normalized positive density
 `pdf(x, p)`. ScientificFitting checks positivity at the observations but cannot infer or
 verify the normalization domain. Observations must be finite.
+With `vectorized=true`, `pdf(data, p)` evaluates all observations in one call
+and must return one density per observation. The scalar callback is the default.
 
 The objective is `-2 * sum(log(pdf(x_i, p)))`. No universal chi-square
 goodness-of-fit statistic exists, so `chi2`, `chi2_ndf`, and `pvalue` are `NaN`.
@@ -720,6 +756,7 @@ function fit_unbinned_model(
     pdf,
     data::AbstractVector;
     p0::AbstractVector,
+    vectorized::Bool=false,
     bounds=nothing,
     constraints=nothing,
     parameter_priors=nothing,
@@ -736,15 +773,7 @@ function fit_unbinned_model(
 )
     data_vec = _float_vector(data)
     _assert_finite_observations("unbinned data", data_vec)
-    objective = function (p)
-        total = zero(eltype(p))
-        @inbounds for x in data_vec
-            density = pdf(x, p)
-            density > 0 || throw(ArgumentError("pdf must be strictly positive at all data points"))
-            total += -2.0 * log(density)
-        end
-        return total
-    end
+    objective = p -> _density_logcost(pdf, data_vec, p, vectorized)
     problem = LikelihoodFitProblem(
         objective,
         nothing,
@@ -764,12 +793,14 @@ end
 
 """
     fit_extended_unbinned_model(rate, data, domain; p0, rtol=1e-8,
-                                kwargs...) -> LikelihoodFitResult
+                                vectorized=false, kwargs...) -> LikelihoodFitResult
 
 Fit an inhomogeneous Poisson point process. `rate(x, p)` is the event intensity,
 not a normalized density. `domain=(a, b)` defines the integration range for the
 expected total event count. The domain endpoints must be finite, and all
 observations must lie inside the domain.
+With `vectorized=true`, `rate(xs, p)` returns one intensity per input point:
+all observations are evaluated together, and QuadGK batches the quadrature nodes.
 
 The objective is `2 * integral(rate, domain) - 2 * sum(log(rate(x_i, p)))`.
 No generic chi-square p-value is reported. `rtol` controls Gauss-Kronrod
@@ -783,6 +814,7 @@ function fit_extended_unbinned_model(
     domain::Tuple{<:Real, <:Real};
     p0::AbstractVector,
     rtol::Real=1e-8,
+    vectorized::Bool=false,
     bounds=nothing,
     constraints=nothing,
     parameter_priors=nothing,
@@ -806,15 +838,9 @@ function fit_extended_unbinned_model(
     all(x -> a <= x <= b, data_vec) || throw(ArgumentError("extended unbinned data must lie inside the domain"))
 
     objective = function (p)
-        expected, _ = quadgk(x -> rate(x, p), a, b; rtol=rtol)
+        expected, _ = quadgk(_density_integrand(rate, p, vectorized), a, b; rtol=rtol)
         expected > 0 || throw(ArgumentError("integrated rate must be positive"))
-        total = 2.0 * expected
-        @inbounds for x in data_vec
-            lambda = rate(x, p)
-            lambda > 0 || throw(ArgumentError("rate must be strictly positive at all data points"))
-            total -= 2.0 * log(lambda)
-        end
-        return total
+        return 2 * expected + _density_logcost(rate, data_vec, p, vectorized)
     end
 
     problem = LikelihoodFitProblem(

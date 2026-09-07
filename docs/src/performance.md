@@ -55,6 +55,39 @@ cache reusable code without executing Python during package precompilation or
 building platform-specific sysimages. They increase the installation cache and
 do not eliminate Julia's load time; see [Python installation](python.md#Installation-And-Packaging).
 
+## Python Model Callbacks
+
+Run `python python/benchmarks/callbacks.py --output=/tmp/callbacks.json` with
+NumPy, SciPy, and the installed Python preview. The probe compares Gaussian,
+unbinned exponential, and histogram fits with the same data, starts, bounds,
+solver tolerance, and local covariance calculation. Gaussian/event references
+are closed form; histogram bin probabilities and curvature are analytic, with
+an independent SciPy minimization. Every timed result must pass those checks.
+
+Local medians from three warmed repetitions on macOS ARM64, Python 3.12.4,
+NumPy 2.5.3, JuliaCall 0.9.35, and Julia 1.12.7, with 2,000 observations and
+40 histogram bins:
+
+| Case | Python scalar density | Python batched model | Julia finite derivatives |
+|---|---:|---:|---:|
+| Gaussian regression | not applicable | 1.11 ms | 0.45 ms |
+| Unbinned exponential | 1,020 ms | 5.75 ms | 2.59 ms |
+| Histogram density with quadrature | 216 ms | 46.8 ms | 0.78 ms |
+
+Python times include input conversion and result snapshots; native Julia times
+exclude Python conversion. All exclude first-use compilation, plotting, and
+report formatting. The JSON also records Julia's default derivative mode;
+these measurements are not cross-platform latency guarantees.
+
+`vectorized=True` reduces the unbinned case from 332,000 to 166 Python density
+calls per fit. Histogram quadrature still evaluates each bin adaptively and
+makes 4,640 batch calls here, so it remains noticeably slower than native Julia.
+Where available, supply analytic bin expectations to `fit_histogram_model`:
+the same exponential-bin likelihood then takes about 1.64 ms in Python without
+quadrature. See [batched density callbacks](python.md#Batched-Event-And-Histogram-Densities)
+for the array contract. Batching changes evaluation granularity, not the
+likelihood or the requested integration tolerance.
+
 ## Running BenchmarkTools Benchmarks
 
 The benchmark entry point is:

@@ -15,7 +15,10 @@ def _model_callback(function, names):
     def call(x, parameters):
         # Julia owns inputs during the callback; user code must not mutate them.
         values = _readonly(x)
-        return _real_array(function(values, **dict(zip(names, map(float, parameters)))))
+        result = _real_array(function(values, **dict(zip(names, map(float, parameters)))))
+        if result.ndim != 1:
+            raise ValueError("model must return a one-dimensional numeric array")
+        return result
 
     return call
 
@@ -58,7 +61,7 @@ _OPTIONS = {
     "backend", "cost", "scale_covariance", "maxiters", "tol",
     "optimizer", "parameter_covariance",
     "initial_guesses", "multistart", "nobs", "cost_name", "gof", "rtol", "total_count",
-    "whitening", "error_components", "inplace",
+    "whitening", "error_components", "inplace", "vectorized",
 }
 
 
@@ -67,6 +70,10 @@ def _options(options, names, nobs):
     if unknown:
         raise TypeError(f"unsupported fit options: {', '.join(sorted(unknown))}")
     converted = dict(options)
+    if "vectorized" in converted:
+        if not isinstance(converted["vectorized"], (bool, np.bool_)):
+            raise TypeError("vectorized must be a boolean")
+        converted["vectorized"] = bool(converted["vectorized"])
     for key in ("sigma_x", "sigma_y"):
         if converted.get(key) is not None:
             value = _real_array(converted[key])
@@ -279,7 +286,8 @@ def _fit(kind, model, x, y, p0, options, *, logprob=None):
     if kind == "custom":
         callback = _parameter_callback(model, names, scalar=True)
     elif kind in ("unbinned", "extended_unbinned", "histogram_density"):
-        callback = _density_callback(model, names)
+        wrap = _model_callback if keywords.get("vectorized", False) else _density_callback
+        callback = wrap(model, names)
     elif kind == "gaussian" and options.get("inplace", False):
         callback = _inplace_callback(model, names)
     else:
@@ -375,32 +383,40 @@ def fit_likelihood_model(model, x, y, *, logprob, p0, **options):
     return _fit("likelihood", model, x, y, p0, options, logprob=logprob)
 
 
-def fit_unbinned_model(pdf, data, *, p0, **options):
+def fit_unbinned_model(pdf, data, *, p0, vectorized=False, **options):
     """Fit independent samples using a normalized positive `pdf(x, **parameters)`.
 
-    `x` is a scalar float. Supply a density normalized on the observation
+    By default `x` is a scalar float. With `vectorized=True`, it is a read-only
+    NumPy vector of all observations; return one density per entry. This avoids
+    a Python call per event. Supply a density normalized on the observation
     domain; the core cannot infer that domain. No generic chi-square is assumed.
     """
-    return _fit("unbinned", pdf, [], data, p0, options)
+    return _fit("unbinned", pdf, [], data, p0, {**options, "vectorized": vectorized})
 
 
-def fit_extended_unbinned_model(rate, data, domain, *, p0, **options):
+def fit_extended_unbinned_model(rate, data, domain, *, p0, vectorized=False, **options):
     """Fit an event intensity, including its integral over a finite `(low, high)`.
 
-    `rate(x, **parameters)` receives a scalar and must be positive at the data.
+    By default, `rate(x, **parameters)` receives a scalar and must be positive at the data.
     The Julia core uses adaptive Gauss-Kronrod integration (`rtol` configurable).
     Unlike an ordinary density fit, the expected event count is fitted too.
+    With `vectorized=True`, return one intensity per read-only NumPy input
+    entry; event evaluation and adaptive quadrature nodes are batched in Julia.
     """
-    return _fit("extended_unbinned", rate, domain, data, p0, options)
+    return _fit("extended_unbinned", rate, domain, data, p0, {**options, "vectorized": vectorized})
 
 
-def fit_histogram_density(pdf, edges, counts, *, p0, total_count, **options):
-    """Integrate a normalized scalar density over bins, then fit Poisson counts.
+def fit_histogram_density(pdf, edges, counts, *, p0, total_count, vectorized=False, **options):
+    """Integrate a normalized density over bins, then fit Poisson counts.
 
     `total_count` scales the bin probabilities to expectations. Unequal bin
     widths are integrated, not approximated by midpoint density values.
+    With `vectorized=True`, `pdf` receives read-only NumPy vectors of quadrature
+    nodes and must return one density per node. Per-bin adaptive error control
+    is unchanged; do not replace the density with bin-center evaluations.
     """
-    return _fit("histogram_density", pdf, edges, counts, p0, {**options, "total_count": total_count})
+    return _fit("histogram_density", pdf, edges, counts, p0,
+                {**options, "total_count": total_count, "vectorized": vectorized})
 
 
 def fit_indexed_model(model, indices, y, *, p0, **options):

@@ -82,9 +82,9 @@ or log probability mass per independent observation. For example, SciPy's
 `stats.t.logpdf(y, df=4, loc=prediction, scale=scales)` describes Student-t
 errors; the scale is not their standard deviation. Capture known per-point
 scales in the callback. Unlike `fit_custom`, no manual likelihood summation or
-observation count is needed. Both callbacks are batched; scalar-density
-quadrature helpers cross the language boundary once per evaluation point and
-can be slower. Dependent observations require a joint likelihood.
+observation count is needed. Both callbacks are batched. For event or histogram
+density fits, use `vectorized=True` with NumPy-compatible densities to avoid
+one Python call per point. Dependent observations require a joint likelihood.
 
 ## Choose The Observation Distribution
 
@@ -218,6 +218,41 @@ The script propagates the **full** parameter covariance for the gain difference.
 Its nested-model test has one additional parameter, identical observations, and
 the same known Gaussian errors. These conditions justify that comparison;
 different likelihoods or uncertainty assumptions cannot be interchanged silently.
+
+## Batched Event And Histogram Densities
+
+An unbinned fit models the distribution of the observations themselves, not
+the scatter around a response curve. For uncensored positive waiting times,
+an exponential model has density ``f(t;\tau)=\exp(-t/\tau)/\tau``:
+
+```python
+from scientificfitting import fit_unbinned_model
+
+waiting_times = np.array([0.12, 0.28, 0.51, 0.62, 0.75, 1.3, 1.8])
+
+def waiting_pdf(t, tau):
+    return np.exp(-t/tau)/tau
+
+# One NumPy call evaluates all events at each trial parameter value.
+waiting_fit = fit_unbinned_model(
+    waiting_pdf, waiting_times, p0={"tau": 0.5}, bounds={"tau": (0.01, 5.)},
+    vectorized=True,
+)
+```
+
+Here the fitted `tau` equals the sample mean. If a detection threshold removes
+short waiting times, normalize a truncated density instead; the formula above
+does not describe that observation process unchanged.
+
+`vectorized=True` also works with `fit_histogram_density` and
+`fit_extended_unbinned_model`. Callbacks receive read-only, one-dimensional
+NumPy arrays and return one density/intensity per entry. For integrals, Julia
+uses [QuadGK's batched adaptive quadrature](https://juliamath.github.io/QuadGK.jl/stable/quadgk-examples/#Batched-integrand-evaluation);
+`rtol` still controls integration, separately for each histogram bin. This is
+not midpoint sampling or a fixed coarse grid. The scalar default remains
+available for callbacks using `math` functions or scalar conditionals.
+If an analytic bin integral is available, pass its expected counts directly to
+`fit_histogram_model` and avoid quadrature altogether.
 
 ## Large Gaussian Fits
 
