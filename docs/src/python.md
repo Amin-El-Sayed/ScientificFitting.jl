@@ -535,13 +535,14 @@ The core is constrained to `~0.2.0`; an explicitly overridden Julia environment
 is checked before the bridge loads. Package import alone does not start Julia.
 
 On macOS ARM64 with Python 3.12.4, JuliaCall 0.9.35, and Julia 1.12.7, a fresh
-Python process using an already installed environment needed about **15 s** for
-its first six-point Gaussian fit; another fit in the same process took **1-2 ms**.
-The same installation previously needed about 37 s for the first fit. Shared
-callback types and a small Julia precompile workload reduce compilation, without
-starting Julia at Python import. See [Performance](performance.md#Python-Startup)
-for the reproducible probe and what its stages include. These are local
-observations, not latency guarantees for every fit family or machine.
+Python process using an already installed environment needed **14-23 s** to
+import the backend and obtain its first fit result. This covers one small
+analytic case per fit family plus the in-place interface, each in its own
+process. A new fit in the same process took **1.1-3.3 ms**. Shared callback types
+and a small Julia precompile workload reduce compilation, without starting
+Julia at Python import. See [Performance](performance.md#Python-Startup) for
+the cases, reproducible probe, and timing boundaries. These are local
+observations, not latency guarantees for larger models or other machines.
 
 First-ever use also downloads Julia/dependencies and builds caches. A clean
 provisioning test before these precompile changes took about five minutes; that

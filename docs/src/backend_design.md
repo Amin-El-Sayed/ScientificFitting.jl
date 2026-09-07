@@ -349,41 +349,17 @@ normalized across solver/platform versions.
   exponential references verify minima and profile costs; worked guidance
   distinguishes successful minimization from valid interval coverage.
 - [ ] **v0.2: complete the native Python interface.** The preview now wraps
-  every high-level fitting family, including correlated parameter constraints
-  and named multi-dataset sharing, sparse/structured covariance, error
-  components, and in-place callbacks. Named result/report/diagnostic snapshots,
-  asymmetric profile intervals, and profile matrices now preserve core findings
-  and missing values. Stored profile/contour scans can be re-diagnosed with
-  different shape tolerances through Julia, without model calls or changes to
-  confidence thresholds. Allocating Jacobians retain their matrix shape; the
-  complete Python interface suite covers the shared callback adapter. Native
-  Matplotlib reports, Gaussian residual diagnostics,
-  and profile/contour matrices are implemented with panel visibility independent
-  of typography. Executable Student-t guidance and Poisson, unequal-bin, and
-  multi-dataset examples now use ordinary Matplotlib with numerical references
-  and export checks. Named additional starts follow `p0` order, and multi-dataset
-  errors use the same real-input validation as single-dataset fits.
-  Wheel/sdist metadata, license inclusion, and the 0.2 core pin are now checked;
-  a noarch Conda recipe reuses the same Python sources and requirements. An
-  installed-wheel check exercises fitting, covariance, profiles, and reports
-  without optional Python plotting packages. Local wheel provisioning and
-  Conda Python 3.14 reference fits pass on macOS ARM64; first use and
-  runtime size are not yet lightweight. Typed foreign callbacks, a fit-entry
-  inference boundary, and standard precompile workloads reduce the measured
-  fresh-process Gaussian first fit from about 37 s to 15 s on the local ARM64
-  installation; repeated fits remain millisecond-scale.
-  Batched NumPy densities now avoid per-event calls; event and adaptive
-  histogram fits match independent likelihood/covariance references. The
-  [callback benchmark](performance.md#Python-Model-Callbacks) records both the
-  improvement and remaining per-bin quadrature overhead.
-  Julia gallery examples now set explicit multistart budgets and omit duplicate
-  `p0` entries. Three starts confirm the displayed oscillator, saturation, count,
-  and histogram results; their code cells and output generators are cross-checked.
-  Remaining: the final numerical API-parity review.
-  Do not add parallel plotting abstractions where native composition suffices. Deliver
-  documented Python APIs, pip/conda installation without manual Julia setup,
-  and passing installed-package CI results on supported platforms. The workflow
-  is configured, not yet remotely verified. Check first-use startup for the
-  other fit families, separately from warmed callback measurements.
-  Repeat installation against the registered
-  0.2 core without development overrides before any Python publication.
+  every high-level fit family, named parameter controls, sparse/structured
+  covariance, in-place callbacks, and core reports/profiles/diagnostics.
+  [Python examples](python.md) use NumPy models and native Matplotlib; the
+  wrapper does not duplicate statistical algorithms or require Makie.
+  Numerical API review and eleven fresh-process cases verify parameters,
+  covariance, and cost against analytic references. [Startup and callback
+  measurements](performance.md#Python-Startup) distinguish first use from warm
+  fitting and record the remaining runtime and quadrature overhead.
+  Local installed-wheel provisioning and Conda Python 3.14 reference fits pass
+  on macOS ARM64. Wheel/sdist metadata, MIT license, and the 0.2 core pin are
+  checked; the noarch Conda recipe reuses the same Python sources.
+  **Remaining:** run the configured installed-package CI on Linux, macOS, and
+  Windows, then repeat clean wheel/Conda installation against the registered
+  0.2 core without development overrides before publishing Python packages.

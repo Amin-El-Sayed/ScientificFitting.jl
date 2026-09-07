@@ -22,28 +22,52 @@ back into the fitting/reporting core.
 ## Python Startup
 
 After installing the Python package and resolving its Julia environment, run
-this in a **fresh Python process**:
+this to measure each fit family in a **separate fresh Python process**:
 
 ```bash
-python python/benchmarks/startup.py --output=/tmp/scientificfitting-python-startup.json
+python python/benchmarks/startup.py --case all \
+  --output=/tmp/scientificfitting-python-startup.json
 ```
 
 It separates Python imports, JuliaCall initialization, bridge loading, the first
-Gaussian solve, result conversion, and report/diagnostic generation. It then
-fits a newly created Python callable in the same process. Both results and
-covariances are checked against a closed-form linear reference. Julia version,
-package source, NumPy/Python versions, and platform accompany the timings.
-The solve stage includes any outstanding compilation, not just optimization.
+public fit call (including result conversion), and report/diagnostic generation.
+It then fits a newly created Python callable in the same process. Parameters,
+covariances, and costs must match analytic references for both calls. The cases
+cover every high-level fit family plus the in-place Gaussian interface, using
+small linear, constant-rate, and exponential models. They isolate restart
+overhead, not realistic large-data throughput. `--case histogram_density`, for
+example, runs only that family; the default is `gaussian`.
+
+Julia and Python package versions, package source, and platform accompany the
+timings. The first fit includes outstanding compilation, not just optimization.
 With an empty environment, JuliaCall initialization also includes provisioning;
 do not compare that run with a previously installed environment.
 
-One macOS ARM64 run (Python 3.12.4, NumPy 2.5.3, JuliaCall 0.9.35, Julia 1.12.7)
-measured 3.5 s for JuliaCall, 6.5 s for the bridge, 5.2 s for the first solve,
-and 1.5 s for report/diagnostics. The full sequence took about 17 s, versus 46 s
-before the callback/precompile changes. A separate call through the public
-`fit_model` API took 15.3 s to its first result; repeated fits took 1-2 ms.
-These are local Gaussian measurements, not cross-library performance claims or
-promises about more complex first-use paths.
+One run per family on macOS ARM64, with Python 3.12.4, NumPy 2.5.3,
+JuliaCall 0.9.35, Julia 1.12.7, and the installed 0.2.0.dev0 wrapper against
+the development core:
+
+| Fit case | Imports + bridge + first fit / s | Next fit / ms |
+|---|---:|---:|
+| Gaussian | 16.8 | 1.56 |
+| Gaussian, in-place | 21.2 | 1.12 |
+| Custom objective | 16.1 | 1.10 |
+| User-defined observation likelihood | 15.9 | 1.60 |
+| Poisson counts | 14.2 | 1.69 |
+| Integrated bin-count model | 18.3 | 3.26 |
+| Histogram density with quadrature | 22.5 | 2.60 |
+| Unbinned density | 16.3 | 1.77 |
+| Extended-unbinned intensity | 19.3 | 2.24 |
+| Indexed observations | 15.9 | 1.67 |
+| Multiple datasets | 16.3 | 2.53 |
+
+The time in seconds sums the measured import, bridge, and first-fit stages; it
+excludes data/reference preparation and reports. Initial report/diagnostic
+formatting added 1.5-3.3 s. The next fit includes Python input conversion and
+result snapshots, but no imports or report formatting. Density callbacks use
+`vectorized=True`. These are individual local observations after installation
+and precompilation, not cross-platform guarantees or cross-library rankings.
+Millisecond repeated fits do not imply millisecond startup.
 
 The core uses [PrecompileTools](https://julialang.github.io/PrecompileTools.jl/stable/)
 with tiny deterministic Gaussian/Poisson fits and reports. The Python entry
