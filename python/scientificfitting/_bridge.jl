@@ -1,8 +1,5 @@
 using ScientificFitting, PythonCall, SparseArrays
 
-# Fail before fitting when an installed wheel is paired with the old core.
-supports_finite_derivatives = hasfield(LikelihoodFitProblem, :derivatives)
-
 """One vectorized foreign call; no dual numbers or per-observation Python loops."""
 vector_model(f) = (x, p) -> pyconvert(Vector{Float64}, f(x, p))
 matrix_model(f) = (x, p) -> pyconvert(Matrix{Float64}, f(x, p))

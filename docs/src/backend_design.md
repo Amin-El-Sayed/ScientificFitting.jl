@@ -320,10 +320,18 @@ benchmark runner are documented on the [Performance](performance.md) page.
   multi-dataset examples now use ordinary Matplotlib with numerical references
   and export checks. Named additional starts follow `p0` order, and multi-dataset
   errors use the same real-input validation as single-dataset fits.
+  Wheel/sdist metadata, license inclusion, and the 0.2 core pin are now checked;
+  a noarch Conda recipe reuses the same Python sources and requirements. An
+  installed-wheel check exercises fitting, covariance, profiles, and reports
+  without optional Python plotting packages. Local wheel provisioning and
+  Conda Python 3.14 reference fits pass on macOS ARM64; first use and
+  new-process startup are not yet lightweight.
   Remaining: the final numerical API-parity review, including explicit multistart
   budgets in the Julia gallery (supplying `initial_guesses` alone does not run them).
   Do not add parallel plotting abstractions where native composition suffices. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,
-  and clean-install tests on supported platforms. Measure numerical parity,
-  callback overhead (including scalar quadrature), startup time, and installed
-  size; automatic Julia provisioning does not eliminate its runtime footprint.
+  and passing installed-package CI results on supported platforms. The workflow
+  is configured, not yet remotely verified. Measure numerical parity and callback
+  overhead (including scalar quadrature); investigate new-process startup after
+  the now-measured runtime footprint. Repeat installation against the registered
+  0.2 core without development overrides before any Python publication.

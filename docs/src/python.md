@@ -14,8 +14,8 @@ python examples/python/multi_dataset_calibration.py
 python -m pytest python/tests
 ```
 
-The development step selects this checkout because the registered v0.1.2 core
-does not contain the new finite-derivative API. JuliaCall manages Julia and
+The development step selects this checkout because the wrapper requires the
+new **0.2.x core**, not the registered v0.1.2 API. JuliaCall manages Julia and
 its packages automatically; first use needs network access and compilation.
 This avoids a manual Julia installation, but does **not** remove the Julia
 runtime's disk footprint or startup cost.
@@ -73,8 +73,8 @@ renderer, `plot_fit` and x-y residual helpers target Gaussian results;
 likelihood observations and multiple datasets can be drawn using ordinary
 Matplotlib with `add_report` for the fit estimates. Worked examples of those
 compositions are included below. This preview is
-not a claim of v0.2 feature parity. Cross-platform clean-install checks and
-release dependency pins are also still required before publishing a wheel.
+not a claim of v0.2 release readiness. Platform results and a clean installation
+against the registered 0.2 core must be verified before publishing a wheel.
 
 For non-Gaussian regression, `fit_likelihood_model` accepts a vectorized
 `logprob(y, prediction, **parameters)` returning one normalized log density
@@ -470,3 +470,50 @@ label but does not alter results; detailed findings remain on `scan.diagnostics`
 The complete nonlinear decay example in `examples/python/numpy_matplotlib.py`
 exports both styles, with and without panels, plus residual and three-parameter
 profile plots. It fits once and computes its scans once before rendering.
+
+## Installation And Packaging
+
+The wheel contains Python code, a small Julia bridge, dependency metadata, and
+the MIT license. It does not contain a second numerical implementation, a Julia
+runtime, or Makie. [JuliaPkg](https://github.com/JuliaPy/pyjuliapkg) selects a
+compatible Julia executable or downloads one and installs the numerical core.
+The core is constrained to `~0.2.0`; an explicitly overridden Julia environment
+is checked before the bridge loads. Package import alone does not start Julia.
+
+A clean macOS ARM64 installation with Python 3.12.4, JuliaCall 0.9.35, and Julia
+1.12.7 took about **298 s** from the first fit call through automatic download,
+package setup, compilation, and the fit. A new Python process using the completed
+installation needed about **37 s** for its first fit; a repeated small fit in the
+same process took **1-2 ms**. These are single installation observations, not
+cross-library performance claims. The wheel was about 30 KB; `du` reported
+798 MiB for Julia and 364 MiB for packages/caches, excluding Python and optional
+plotting dependencies. First-use latency and runtime size remain material costs.
+
+The same sources build with standard tools:
+
+```bash
+python -m pip install build
+python -m build python --outdir python/dist
+conda build python/recipe -c conda-forge --no-anaconda-upload
+```
+
+The Conda recipe reads the Python version and requirements from `pyproject.toml`;
+only the dependency name changes from `juliacall` to conda-forge's `pyjuliacall`.
+Matplotlib and SciPy remain optional. No post-install scripts modify the user's
+Julia installation. This recipe is a local build, **not** an existing conda-forge
+release. Its installed-package reference fits also pass on macOS ARM64 with
+Conda Python 3.14.7 and NumPy 2.5.3, reusing the managed Julia runtime above.
+
+`python/tests/check_install.py` checks a base wheel in a fresh environment without
+Matplotlib or SciPy: fitted coefficients/covariance against linear algebra,
+profile costs, Poisson estimates, and text diagnostics. Before registration,
+`--source /path/to/checkout` selects the pending Julia core without providing a
+Julia executable. The Python CI workflow runs installed-wheel tests on Linux,
+macOS, and Windows; a workflow definition is not evidence that every platform
+has passed. Its reports retain first-fit and repeat-fit times.
+
+Release order matters: register the Julia 0.2 core first, then repeat the wheel
+installation check **in a new environment without** `--source`, and only then
+publish Python artifacts. A source selection persists in its JuliaPkg environment;
+omitting the argument on a later run does not turn it into a registry test.
+There is deliberately no fallback to the incompatible 0.1 core.

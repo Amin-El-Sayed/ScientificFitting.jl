@@ -3,7 +3,7 @@
   "packages": {
     "ScientificFitting": {
       "uuid": "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8",
-      "version": "~0.1.2"
+      "version": "~0.2.0"
     }
   }
 }

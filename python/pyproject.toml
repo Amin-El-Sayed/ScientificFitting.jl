@@ -1,20 +1,36 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "scientificfitting"
 version = "0.2.0.dev0"
 description = "Python interface to the ScientificFitting Julia numerical core"
+readme = "README.md"
 authors = [{name = "Amin El Sayed"}]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24", "juliacall>=0.9.35,<0.10"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.urls]
+Documentation = "https://amin-el-sayed.github.io/ScientificFitting.jl/python.html"
+Source = "https://github.com/Amin-El-Sayed/ScientificFitting.jl"
+Issues = "https://github.com/Amin-El-Sayed/ScientificFitting.jl/issues"
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.7"]
 sparse = ["scipy>=1.10"]
-test = ["pytest>=7", "matplotlib>=3.7", "scipy>=1.10"]
+test = ["pytest>=7", "matplotlib>=3.7", "scipy>=1.10", "build>=1", "setuptools>=77",
+        "tomli>=2; python_version<'3.11'"]
+
+[tool.setuptools]
+packages = ["scientificfitting"]
 
 [tool.setuptools.package-data]
 scientificfitting = ["*.jl", "juliapkg.json"]
