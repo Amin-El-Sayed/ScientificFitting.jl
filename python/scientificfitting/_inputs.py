@@ -26,6 +26,13 @@ def _readonly(values):
     return view
 
 
+def _snapshot(values):
+    """Own result arrays independently of Julia; never change backend storage."""
+    array = np.array(values, dtype=np.float64, copy=True)
+    array.flags.writeable = False
+    return array
+
+
 def _covariance(values):
     """Copy SciPy sparse input as canonical CSC buffers, never as a dense matrix."""
     if hasattr(values, "tocsc"):

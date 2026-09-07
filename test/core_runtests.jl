@@ -11,5 +11,6 @@ using Test
     include("statistics/profile_contour_reference.jl")
     include("numerics/inplace_model_reference.jl")
     include("numerics/finite_derivatives_reference.jl")
+    include("numerics/solver_status_reference.jl")
     include("numerics/torture_inputs.jl")
 end

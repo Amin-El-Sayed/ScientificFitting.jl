@@ -180,6 +180,8 @@ end
 function _profile_refit_cost(result, fixed::Vector{FixedParameter}; on_failure::Symbol)
     try
         profiled = _refit_with_fixed(result, fixed)
+        # A finite objective is not enough: nuisance parameters must be minimized.
+        profiled.converged || error("profile refit did not converge: $(profiled.message)")
         return Float64(profiled.stats.cost_min)
     catch err
         on_failure == :throw && rethrow(err)
@@ -361,6 +363,8 @@ function _profile_crossings(profile_result::ProfileResult)
 
     lower = NaN
     for i in (center - 1):-1:1
+        # Search only the connected finite region around the minimum.
+        isfinite(delta[i]) && isfinite(delta[i + 1]) || break
         if delta[i] >= threshold && delta[i + 1] <= threshold
             lower = _linear_crossing(values[i], delta[i], values[i + 1], delta[i + 1], threshold)
             break
@@ -369,6 +373,7 @@ function _profile_crossings(profile_result::ProfileResult)
 
     upper = NaN
     for i in center:(length(values) - 1)
+        isfinite(delta[i]) && isfinite(delta[i + 1]) || break
         if delta[i] <= threshold && delta[i + 1] >= threshold
             upper = _linear_crossing(values[i], delta[i], values[i + 1], delta[i + 1], threshold)
             break
@@ -410,11 +415,23 @@ function profile_interval(
         max_refinements=max_refinements,
         max_points=max_points,
     )
+    return profile_interval(prof)
+end
+
+"""
+    profile_interval(profile_result::ProfileResult)
+
+Extract threshold crossings from an existing scan without running more fits.
+The best value and threshold are those stored in the scan. Unbracketed sides
+remain `NaN`, just as for `profile_interval(result, index)`. A failed grid
+point stops that side's search; crossings are never interpolated across gaps.
+"""
+function profile_interval(prof::ProfileResult)
     lower, upper = _profile_crossings(prof)
-    center = result.params[index]
+    center = prof.best_value
     minus = isfinite(lower) ? center - lower : NaN
     plus = isfinite(upper) ? upper - center : NaN
-    return ProfileInterval(index, lower, upper, minus, plus, Float64(threshold), prof)
+    return ProfileInterval(prof.parameter_index, lower, upper, minus, plus, prof.threshold, prof)
 end
 
 function _profile_threshold_bracket_findings(profile_result::ProfileResult)
@@ -689,7 +706,7 @@ function diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance:
     return DiagnosticReport(findings, _diagnostic_summary(findings))
 end
 
-function _default_contour_grid(result::FitResult, index::Int; npoints::Int, nsigma::Real)
+function _default_contour_grid(result, index::Int; npoints::Int, nsigma::Real)
     return _default_profile_grid(result, index; npoints=npoints, nsigma=nsigma)
 end
 

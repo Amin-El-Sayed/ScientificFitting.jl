@@ -2,33 +2,13 @@
 
 from collections.abc import Mapping
 from copy import deepcopy
-from functools import cache
-from pathlib import Path
-from types import MappingProxyType, SimpleNamespace
+from types import MappingProxyType
 
 import numpy as np
 
-from ._inputs import ErrorComponent, WhiteningOperator, _array, _covariance, _readonly, _real_array
-
-
-@cache
-def _backend():
-    import juliacall
-
-    bridge = juliacall.newmodule("ScientificFittingPython")
-    bridge.include(str(Path(__file__).with_name("_bridge.jl")))
-    if not bridge.supports_finite_derivatives:
-        raise ImportError(
-            "This development wrapper needs the matching Julia checkout. "
-            "Run `python python/develop.py` from the repository, then restart Python."
-        )
-    return bridge
-
-
-def _snapshot(values):
-    array = np.array(values, dtype=np.float64, copy=True)
-    array.flags.writeable = False
-    return array
+from ._inputs import ErrorComponent, WhiteningOperator, _array, _covariance, _readonly, _real_array, _snapshot
+from ._runtime import _backend
+from ._results import _diagnostic, _fit_report, _profile, _contour, _interval, _profile_matrix, _numerical_diagnostics
 
 
 def _model_callback(function, names):
@@ -148,31 +128,59 @@ class Result:
 
     `params`, `stderr`, and `covariance` follow `parameter_names` order and are
     read-only snapshots. `statistics` is read-only. `report()` and `diagnose()`
-    return the actual core output; plotting never invokes another fit.
+    return actual core text; `structured=True` returns named report objects.
+    Gaussian fits additionally expose `x`, `y`, `model_y`, `residuals`,
+    `weighted_residuals`, and `jacobian`; these are None for general likelihoods.
+    With correlated errors, weighted residuals are whitened coordinates, not
+    independent pointwise pulls. None iterations means the solver did not
+    provide a count. All numerical work, including profile refits, stays in Julia.
     """
 
     def __init__(self, handle, names, kind):
         self._handle = handle
         self._kind = kind
         self.parameter_names = tuple(names)
-        fields = _backend().result_values(handle)
+        fields = _backend().result_values(handle, list(names))
         for name in ("params", "stderr", "covariance", "correlation"):
             setattr(self, name, _snapshot(fields[name]))
         self.converged = bool(fields["converged"])
         self.statistics = MappingProxyType(dict(fields["statistics"]))
+        self.options = MappingProxyType(dict(fields["options"]))
+        self.backend, self.iterations, self.message = fields["backend"], fields["iterations"], fields["message"]
+        self.numerical_diagnostics = _numerical_diagnostics(fields["numerical_diagnostics"])
+        data = fields["data"]
+        for name in ("x", "y", "model_y", "residuals", "weighted_residuals", "jacobian"):
+            setattr(self, name, None if data is None else _snapshot(data[name]))
 
     @property
     def values(self):
         """Named best-fit parameters; mutations cannot affect the retained fit."""
         return dict(zip(self.parameter_names, self.params))
 
-    def report(self):
-        """Core parameter/statistics report, not a reconstructed Python summary."""
-        return str(_backend().result_report(self._handle, list(self.parameter_names)))
+    def report(self, *, structured=False, sigdigits=6, errors="local",
+               profile_threshold=1.0, profile_npoints=121, profile_nsigma=5.0):
+        """Core fit report as text, or FitReport with structured=True.
 
-    def diagnose(self):
-        """Core diagnostic dashboard with concrete follow-up actions."""
-        return str(_backend().result_diagnose(self._handle))
+        errors="profile" performs additional scans for asymmetric parameter
+        errors. Missing crossings remain NaN; covariance remains local.
+        sigdigits affects formatting only. No new fit is run with errors="local".
+        """
+        if errors not in ("local", "profile"):
+            raise ValueError('errors must be "local" or "profile"')
+        handle = _backend().run_report(self._handle, list(self.parameter_names), errors,
+                                       float(profile_threshold), profile_npoints, float(profile_nsigma))
+        result = _fit_report(handle, list(self.parameter_names), sigdigits)
+        return result if structured else result.text
+
+    def diagnose(self, *, structured=False, max_actions=5):
+        """Core dashboard as text, or DiagnosticReport with structured=True.
+
+        Findings include severity, stable code, evidence, and recommendation.
+        max_actions limits the short action list, never the underlying findings.
+        This inspects the completed fit; it does not refit or run profile scans.
+        """
+        result = _diagnostic(_backend().result_diagnose(self._handle, max_actions))
+        return result if structured else result.dashboard_text
 
     def predict(self, x, *, uncertainty=False):
         """Gaussian model mean, optionally `(mean, sigma)` for local mean-fit uncertainty.
@@ -191,13 +199,24 @@ class Result:
     def profile(self, parameter, **options):
         """Re-optimize nuisance parameters at each point; parameter is a name.
 
-        Returns NumPy `values`, `delta_cost`, and the requested `threshold`.
-        Options follow Julia `profile`, e.g. `values`, `npoints`, `adaptive`.
+        Returns ProfileResult with actual costs, diagnostics against the local
+        parabola, and interval() extraction without more refits. Options follow
+        Julia profile, e.g. values, npoints, adaptive, threshold, on_failure.
         """
         index = self.parameter_names.index(parameter) + 1
         result = _backend().run_profile(self._handle, index, options)
-        return SimpleNamespace(values=_snapshot(result.values), delta_cost=_snapshot(result.delta_cost),
-                               threshold=float(result.threshold))
+        return _profile(result, parameter, self.stderr[index-1])
+
+    def profile_interval(self, parameter, **options):
+        """Scan and extract a ProfileInterval using the core's adaptive defaults.
+
+        Unbracketed endpoints remain NaN. The returned profile_result contains
+        all costs and findings. Use scan.interval() to reuse an existing scan.
+        """
+        index = self.parameter_names.index(parameter) + 1
+        result = _backend().run_interval(self._handle, index, options)
+        scan = _profile(result.profile_result, parameter, self.stderr[index-1])
+        return _interval(result, scan)
 
     def contour(self, first, second, **options):
         """Two-parameter profile grid; `delta_cost[i,j]` belongs to `x[i], y[j]`.
@@ -207,8 +226,22 @@ class Result:
         """
         indices = [self.parameter_names.index(name) + 1 for name in (first, second)]
         result = _backend().run_contour(self._handle, *indices, options)
-        return SimpleNamespace(x=_snapshot(result.x_values), y=_snapshot(result.y_values),
-                               delta_cost=_snapshot(result.delta_cost), levels=_snapshot(result.levels))
+        selected = np.array(indices) - 1
+        return _contour(result, (first, second), self.params[selected],
+                        self.covariance[np.ix_(selected, selected)])
+
+    def profile_matrix(self, parameters=None, **options):
+        """Compute named profiles and pairwise contours once, without plotting.
+
+        parameters selects names in display order (default: all parameters).
+        Options follow Julia profile_matrix, including npoints_profile,
+        npoints_contour, nsigma, contour_levels, and diagnostic tolerances.
+        There are k profiles and k*(k-1)/2 contours; each point can require a
+        nuisance-parameter refit. Prefer a small scientifically relevant subset.
+        """
+        names = list(self.parameter_names if parameters is None else parameters)
+        indices = [self.parameter_names.index(name) + 1 for name in names]
+        return _profile_matrix(_backend().run_matrix(self._handle, indices, names, options))
 
 
 def _start(p0):

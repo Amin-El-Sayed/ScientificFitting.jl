@@ -604,6 +604,7 @@ end
 
 function _diagnostic_next_actions(findings::Vector{DiagnosticFinding}; max_actions::Int)
     max_actions >= 0 || throw(ArgumentError("max_actions must be non-negative"))
+    max_actions == 0 && return String[]
     actions = String[]
     seen = Set{String}()
     for finding in _sort_findings(findings)

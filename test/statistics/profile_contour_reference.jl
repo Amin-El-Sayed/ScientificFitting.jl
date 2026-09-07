@@ -247,11 +247,57 @@ using Test
         narrow_report = diagnose(narrow; local_sigma=1.0)
 
         @test any(f -> f.code == :profile_threshold_not_bracketed, narrow_report.findings)
+        interval = profile_interval(narrow)
+        @test interval.profile_result === narrow
+        @test isnan(interval.lower) && isnan(interval.upper)
 
         failed = ProfileResult(1, values, [0.0, 0.5, Inf, 1.2, 2.0, Inf, 2.0, 1.2, 0.5], [0.0, 0.5, Inf, 1.2, 2.0, Inf, 2.0, 1.2, 0.5], 1.0, 0.0)
         failed_report = diagnose(failed; local_sigma=1.0)
 
         @test any(f -> f.code == :profile_refit_failed, failed_report.findings)
+    end
+
+    @testset "Profile report never substitutes local errors" begin
+        # Inf is a missing fit, not a high, known point on the profile curve.
+        gap = ProfileResult(1, [-2., -1., 0., 1., 2.], [4., Inf, 0., Inf, 4.],
+            [4., Inf, 0., Inf, 4.], 1.0, 0.0)
+        @test isnan(profile_interval(gap).lower) && isnan(profile_interval(gap).upper)
+        bracketed = ProfileResult(1, [-3., -2., -1., 0., 1., 2., 3.],
+            [Inf, 4., 1., 0., 1., 4., Inf], [Inf, 4., 1., 0., 1., 4., Inf], 1.0, 0.0)
+        @test profile_interval(bracketed).lower == -1.0
+        @test profile_interval(bracketed).upper == 1.0
+        x = collect(-2.0:1.0:2.0)
+        result = fit_model((x, p) -> fill(p[1], length(x)), x, [0.9, 1.1, 1.0, 1.1, 0.9];
+            p0=[0.5], sigma_y=fill(0.2, length(x)))
+        report = fit_report(result; errors=:profile, profile_nsigma=0.2, profile_npoints=5)
+        @test isnan(report.parameters[1].uncertainty_minus)
+        @test isnan(report.parameters[1].uncertainty_plus)
+        @test isfinite(result.param_stderr[1]) # Local errors still exist, but were not requested.
+        @test occursin("NaN", report_text(report))
+        scan = profile(result, 1; values=result.params[1] .+ result.param_stderr[1] .* [-2.0, -1.0, 0.0, 1.0, 2.0])
+        interval = profile_interval(scan)
+        @test interval.uncertainty_minus ≈ result.param_stderr[1]
+        @test interval.uncertainty_plus ≈ result.param_stderr[1]
+    end
+
+    @testset "Likelihood matrix uses the same automatic grid and profiled geometry" begin
+        center = [1.0, -1.2, 0.7]
+        covariance = [0.09 0.04 -0.015; 0.04 0.16 0.03; -0.015 0.03 0.25]
+        precision = inv(covariance)
+        objective(p) = dot(p - center, precision * (p - center))
+        result = fit_custom(objective; p0=zeros(3), nobs=20)
+        overview = profile_matrix(result; parameters=[3, 1, 2], parameter_names=["c", "a", "b"],
+            npoints_profile=7, npoints_contour=5, nsigma=2.5)
+        @test overview.parameters == [3, 1, 2]
+        @test overview.local_covariance ≈ covariance[[3, 1, 2], [3, 1, 2]]
+        @test Set(keys(overview.contours)) == Set([(3, 1), (3, 2), (1, 2)])
+        for ((i, j), scan) in overview.contours
+            pair_precision = inv(covariance[[i, j], [i, j]])
+            expected = [dot([u-center[i], v-center[j]], pair_precision * [u-center[i], v-center[j]])
+                for u in scan.x_values, v in scan.y_values]
+            @test scan.delta_cost ≈ expected atol=1e-7
+            @test isempty(overview.contour_diagnostics[(i, j)].findings)
+        end
     end
 
     @testset "Contour diagnosis catches non-elliptic and unbracketed scans" begin

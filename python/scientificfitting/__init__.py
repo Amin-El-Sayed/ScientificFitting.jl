@@ -10,6 +10,10 @@ from ._core import (
     fit_multi_model, fit_poisson_model, fit_unbinned_model,
 )
 from ._inputs import ErrorComponent, WhiteningOperator
+from ._results import (
+    ContourResult, DiagnosticFinding, DiagnosticReport, FitReport, ParameterEstimate,
+    ProfileInterval, ProfileMatrixPanelTriage, ProfileMatrixResult, ProfileResult,
+)
 
 
 def plot_fit(result, **kwargs):
@@ -27,4 +31,7 @@ __all__ = [
     "Result", "ErrorComponent", "WhiteningOperator", "fit_model", "fit_custom", "fit_likelihood_model", "fit_poisson_model",
     "fit_histogram_model", "fit_histogram_density", "fit_unbinned_model",
     "fit_extended_unbinned_model", "fit_indexed_model", "fit_multi_model", "plot_fit",
+    "DiagnosticFinding", "DiagnosticReport", "FitReport", "ParameterEstimate",
+    "ProfileResult", "ProfileInterval", "ContourResult", "ProfileMatrixResult",
+    "ProfileMatrixPanelTriage",
 ]

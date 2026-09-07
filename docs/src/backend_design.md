@@ -127,6 +127,9 @@ otherwise. This avoids demanding convergence below the noise floor of
 numerically differenced gradients; it is not an error bound on fitted
 parameters. Explicit `tol` values are preserved, including when they lead to
 a reported convergence failure.
+For LsqFit, `maxiters` maps to `maxIter` and `tol` to both its step (`x_tol`)
+and gradient (`g_tol`) criteria. The result keeps the solver's actual
+convergence flag; reaching an iteration limit does not imply success.
 
 The finite mode differentiates the **whole** objective, including any
 parameter-dependent covariance and its log determinant. It is an approximation,
@@ -249,6 +252,7 @@ Architecture changes need evidence at the layer they affect:
 | Profiles, contours, local approximations, and failed refits | `test/statistics/profile_contour_reference.jl` |
 | Structured matrix-free covariance | `test/statistics/structured_whitening_reference.jl` |
 | In-place models and Jacobians | `test/numerics/inplace_model_reference.jl` |
+| Solver limits, convergence status, and stopped profile refits | `test/numerics/solver_status_reference.jl` |
 | Invalid scientific and numerical inputs | `test/numerics/torture_inputs.jl` |
 | Public compatibility and optional plotting boundary | `test/regression/current_api.jl` |
 | Steady-state hot-path budgets | `test/performance_budget_gate.jl` |
@@ -273,8 +277,9 @@ benchmark runner are documented on the [Performance](performance.md) page.
 - [ ] **v0.2: complete the native Python interface.** The preview now wraps
   every high-level fitting family, including correlated parameter constraints
   and named multi-dataset sharing, sparse/structured covariance, error
-  components, and in-place callbacks. Remaining: complete structured result/diagnostic
-  access, profile matrices, and native Matplotlib diagnostic/report panels.
+  components, and in-place callbacks. Named result/report/diagnostic snapshots,
+  asymmetric profile intervals, and profile matrices now preserve core findings
+  and missing values. Remaining: native Matplotlib diagnostic/report panels.
   Keep panel visibility independent of visual style, and reuse the Julia
   numerical engine rather than duplicating inference in Python. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,

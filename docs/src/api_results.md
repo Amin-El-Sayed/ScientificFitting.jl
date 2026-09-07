@@ -100,7 +100,9 @@ Wilks-theorem approximations, not universal finite-sample guarantees.
 `adaptive=true` refines threshold crossings or contour cells instead of making
 the entire rectangular grid dense. Failed refits become `Inf` by default and
 are surfaced by diagnostics; use `on_failure=:throw` to stop at the first failed
-point.
+point. A finite objective from a non-converged nuisance fit also counts as a
+failure, not as a profile minimum. Refits inherit the original solver limits
+and tolerances.
 
 | Scan control | Meaning |
 |---|---|
@@ -114,6 +116,10 @@ point.
 
 `profile_interval` linearly interpolates threshold crossings.
 A side that is not bracketed is returned as `NaN`, not silently extrapolated.
+The search stops at failed grid points rather than interpolating across gaps.
+Pass a completed `ProfileResult` to extract its interval without additional
+refits. Reports requested with `errors=:profile` likewise leave unbracketed
+sides as `NaN` instead of silently substituting local symmetric errors.
 `profile_matrix` accepts `parameters` and `parameter_names`; `profile_tolerance`
 and `contour_tolerance` compare scans with local quadratic geometry.
 
@@ -146,6 +152,7 @@ Dashboard status is `:ok`, `:review`, or `:stop`. Text output renders `:stop` as
 `:ok` is not proof that the physical model is true.
 
 `diagnostic_dashboard(...; max_actions=5)` limits the deduplicated action list.
+Use `max_actions=0` to suppress that list without removing any findings.
 `fit_report(...; errors=:profile)` replaces local symmetric display errors with
 profile intervals and therefore performs additional fits. Its
 `profile_threshold`, `profile_npoints`, and `profile_nsigma` keywords control

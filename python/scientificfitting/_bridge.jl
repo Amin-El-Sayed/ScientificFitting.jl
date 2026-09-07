@@ -120,17 +120,59 @@ function run_multi(callbacks, xs, ys, sigma, maps, p0, options)
         fit_keywords(options)...)
 end
 
-"""Return ordinary mappings at the Python boundary, retaining the Julia fit for refits."""
-function result_values(result)
-    stats = Dict(String(name) => getproperty(result.stats, name) for name in
-        (:cost_min, :chi2, :chi2_ndf, :ndf, :pvalue, :aic, :bic))
-    return pydict(params=Py(result.params), stderr=Py(result.param_stderr),
-        covariance=Py(result.param_covariance), correlation=Py(result.param_correlation),
-        converged=result.converged, statistics=stats)
+"""Convert scalar records only; symbols become strings and missing counts become None."""
+scalar_value(value) = value isa Symbol ? String(value) : ismissing(value) ? nothing : value
+scalar_fields(record) = pydict(String(name) => scalar_value(getproperty(record, name)) for name in propertynames(record))
+
+"""Stored numerical checks, with parameter names instead of one-based indices."""
+function numerical_values(diagnostics, names)
+    return pydict(warnings=pylist(diagnostics.warnings),
+        covariance_condition=diagnostics.covariance_condition, hessian_condition=diagnostics.hessian_condition,
+        active_bounds=pylist(names[diagnostics.active_bounds]),
+        findings=pylist(scalar_fields(f) for f in diagnostics.findings))
 end
 
-result_report(result, names) = report_text(result; parameter_names=pyconvert(Vector{String}, Py(names)))
-result_diagnose(result) = diagnostic_dashboard_text(result)
+"""Transfer actual core reports; Python never infers findings by parsing text."""
+function diagnostic_values(report::DiagnosticReport, max_actions::Int=5)
+    dashboard = diagnostic_dashboard(report; max_actions)
+    return pydict(findings=pylist(scalar_fields(f) for f in report.findings),
+        summary=report.summary, status=String(dashboard.status),
+        severity_counts=pydict(String(k) => v for (k, v) in dashboard.severity_counts),
+        next_actions=pylist(dashboard.next_actions), text=diagnose_text(report),
+        dashboard_text=diagnostic_dashboard_text(dashboard))
+end
+
+"""Return snapshots, retaining the Julia fit privately for later refits."""
+function result_values(result, names)
+    labels = pyconvert(Vector{String}, Py(names))
+    return pydict(params=Py(result.params), stderr=Py(result.param_stderr),
+        covariance=Py(result.param_covariance), correlation=Py(result.param_correlation),
+        converged=result.converged, statistics=scalar_fields(result.stats),
+        options=scalar_fields(result.options), backend=String(result.backend),
+        iterations=scalar_value(result.iterations), message=result.message,
+        numerical_diagnostics=numerical_values(result.diagnostics, labels),
+        data=result isa FitResult ? pydict(x=Py(result.problem.x), y=Py(result.problem.y),
+            model_y=Py(result.model_y), residuals=Py(result.residuals),
+            weighted_residuals=Py(result.weighted_residuals), jacobian=Py(result.jacobian)) : pybuiltins.None)
+end
+
+function report_values(report::FitReport, names, sigdigits::Int)
+    return pydict(parameters=pylist(pydict(name=p.name, value=p.value, uncertainty=p.uncertainty,
+            uncertainty_minus=p.uncertainty_minus, uncertainty_plus=p.uncertainty_plus, fixed=p.fixed)
+            for p in report.parameters),
+        statistics=scalar_fields(report.statistics), covariance=Py(report.covariance),
+        correlation=Py(report.correlation), backend=String(report.backend), converged=report.converged,
+        iterations=scalar_value(report.iterations), message=report.message,
+        numerical_diagnostics=numerical_values(report.diagnostics, pyconvert(Vector{String}, Py(names))),
+        text=report_text(report; sigdigits))
+end
+
+function run_report(result, names, errors::String, threshold::Float64, npoints::Int, nsigma::Float64)
+    return fit_report(result; parameter_names=pyconvert(Vector{String}, Py(names)),
+        errors=Symbol(errors), profile_threshold=threshold, profile_npoints=npoints, profile_nsigma=nsigma)
+end
+
+result_diagnose(result, max_actions::Int) = diagnostic_values(diagnose(result), max_actions)
 prediction(result, x, uncertainty::Bool) = predict(result, vector(x); uncertainty=uncertainty)
 
 """Pass scan controls without recomputing profile costs in Python."""
@@ -138,7 +180,7 @@ function scan_keywords(options)
     result = Dict{Symbol, Any}()
     for (key, value) in pyconvert(Dict{String, Py}, Py(options))
         name = Symbol(key)
-        result[name] = if name in (:values, :xvalues, :yvalues, :levels)
+        result[name] = if name in (:values, :xvalues, :yvalues, :levels, :contour_levels)
             vector(value)
         elseif name == :on_failure
             Symbol(pyconvert(String, value))
@@ -151,5 +193,35 @@ end
 
 run_profile(result, index::Int, options) = profile(result, index; scan_keywords(options)...)
 run_contour(result, i::Int, j::Int, options) = contour(result, i, j; scan_keywords(options)...)
+run_interval(result, index::Int, options) = profile_interval(result, index; scan_keywords(options)...)
+function run_matrix(result, indices, names, options)
+    return profile_matrix(result; parameters=pyconvert(Vector{Int}, Py(indices)),
+        parameter_names=pyconvert(Vector{String}, Py(names)), scan_keywords(options)...)
+end
+
+profile_diagnostics(scan::ProfileResult, sigma::Real) = diagnostic_values(
+    isfinite(sigma) && sigma > 0 ? diagnose(scan; local_sigma=sigma) : diagnose(scan))
+contour_diagnostics(scan::ContourResult, center, covariance) = diagnostic_values(
+    diagnose(scan; local_center=vector(center), local_covariance=matrix(covariance)))
+
+"""Keep core ordering and axis orientation while replacing indices with names."""
+function matrix_values(result::ProfileMatrixResult)
+    labels = Dict(zip(result.parameters, result.parameter_names))
+    triage = profile_matrix_triage(result; include_ok=true)
+    return pydict(parameters=pylist(result.parameter_names),
+        best_values=Py(result.best_values), local_stderr=Py(result.local_stderr),
+        local_covariance=Py(result.local_covariance), local_correlation=Py(result.local_correlation),
+        profiles=pylist(pytuple((labels[i], Py(scan), diagnostic_values(result.profile_diagnostics[i])))
+            for (i, scan) in result.profiles),
+        contours=pylist(pytuple((labels[i], labels[j], Py(scan), diagnostic_values(result.contour_diagnostics[(i, j)])))
+            for ((i, j), scan) in result.contours),
+        panel_status=pydict(pytuple((labels[i], labels[j])) => String(status)
+            for ((i, j), status) in result.panel_status),
+        diagnostics=diagnostic_values(result.report),
+        triage=pylist(pydict(parameters=pytuple(row.parameter_names), status=String(row.status),
+            severity_counts=pydict(String(k) => v for (k, v) in row.severity_counts),
+            finding_codes=pylist(String.(row.finding_codes)), next_action=row.next_action) for row in triage))
+end
+
 plot_errors(result) = (ScientificFitting._xerror_for_plot(result.problem, result.params),
     ScientificFitting._yerror_for_plot(result.problem, result.params))

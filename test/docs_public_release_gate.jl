@@ -6,6 +6,7 @@ const DOCS_MAKE = joinpath(ROOT, "docs", "make.jl")
 const PUBLIC_DOC_PAGES = [
     "index.md",
     "install.md",
+    "python.md",
     "quickstart.md",
     "how_scientificfitting_works.md",
     "gallery.md",
@@ -229,7 +230,8 @@ end
     end
 
     @testset "Python interoperability documentation" begin
-        text = install_page_text()
+        @test occursin("(python.md)", install_page_text())
+        text = public_file_text(joinpath(DOCS_SRC, "python.md"))
         @test occursin("JuliaCall", text)
         @test occursin("examples/python/numpy_matplotlib.py", text)
         @test occursin("python -m pytest python/tests", text)

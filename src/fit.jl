@@ -28,6 +28,8 @@ end
 
 function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     free_p0 = _free_p0(problem)
+    # Translate our controls once for every allocating/in-place solver path.
+    solver_kwargs = (; maxIter=options.maxiters, x_tol=options.tol, g_tol=options.tol)
     sigma = problem.sigma_y
     factor = problem.cov_y === nothing ? nothing : _stable_cholesky(problem.cov_y)
     operator = problem.whitening
@@ -44,7 +46,8 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
         end
 
         if problem.jacobian === nothing
-            LsqFit.curve_fit(weighted_model!, problem.x, weighted_y, free_p0; inplace=true)
+            LsqFit.curve_fit(weighted_model!, problem.x, weighted_y, free_p0;
+                inplace=true, solver_kwargs...)
         else
             free_idx = _free_indices(problem)
             full_jacobian = length(free_idx) == length(problem.p0) ? nothing :
@@ -69,6 +72,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
                 weighted_y,
                 free_p0;
                 inplace=true,
+                solver_kwargs...,
             )
         end
     else
@@ -89,17 +93,19 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
         end
 
         if weighted_jacobian === nothing
-            LsqFit.curve_fit(weighted_model, problem.x, weighted_y, free_p0)
+            LsqFit.curve_fit(weighted_model, problem.x, weighted_y, free_p0; solver_kwargs...)
         else
-            LsqFit.curve_fit(weighted_model, weighted_jacobian, problem.x, weighted_y, free_p0)
+            LsqFit.curve_fit(weighted_model, weighted_jacobian, problem.x, weighted_y, free_p0;
+                solver_kwargs...)
         end
     end
     params = _expand_free_parameters(problem, LsqFit.coef(fit_result))
 
-    converged = true
+    converged = LsqFit.isconverged(fit_result)
     iterations = hasproperty(fit_result, :iterations) ?
                  Int(getproperty(fit_result, :iterations)) : missing
-    message = "Converged with LsqFit"
+    message = converged ? "Converged with LsqFit" :
+              "LsqFit did not converge (check tolerances and iteration limit)"
 
     # LsqFit stores the weighted model Jacobian. ScientificFitting stores residual
     # Jacobians, hence the sign flip at result construction.
