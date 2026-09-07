@@ -105,7 +105,7 @@ participate in the fit.
 | `maxiters` | `500` for `fit_model`, `1000` for likelihood wrappers | Positive iteration limit for each candidate. |
 | `tol` | `1e-10` | Positive absolute and relative solver tolerance. |
 | `initial_guesses` | `nothing` | Additional complete starting vectors. |
-| `multistart` | `1` | Deterministic candidates generated from finite bounds or scaled versions of `p0`. |
+| `multistart` | `1` | Total candidate budget including `p0`. Additional `initial_guesses` are tried next, then deterministic candidates from bounds or scaled `p0` where available. Set this above 1 to use additional starts. |
 
 `fit_model` additionally accepts:
 

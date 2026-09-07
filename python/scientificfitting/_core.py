@@ -73,6 +73,22 @@ def _options(options, names, nobs):
     for key in ("cov_x", "cov_y"):
         if converted.get(key) is not None:
             converted[key] = _covariance(converted[key])
+    if converted.get("initial_guesses") is not None:
+        guesses = converted["initial_guesses"]
+        guesses = [guesses] if isinstance(guesses, Mapping) else list(guesses)
+        if guesses and np.isscalar(guesses[0]):
+            guesses = [guesses]
+        ordered = []
+        for guess in guesses:
+            if isinstance(guess, Mapping):
+                if set(guess) != set(names):
+                    raise ValueError("each initial guess must contain exactly the p0 parameter names")
+                guess = [guess[name] for name in names]
+            guess = _array(guess)
+            if len(guess) != len(names):
+                raise ValueError("each initial guess must match the p0 parameter count")
+            ordered.append(guess)
+        converted["initial_guesses"] = ordered
     if converted.get("whitening") is not None:
         if not isinstance(converted["whitening"], WhiteningOperator):
             raise TypeError("whitening must be a WhiteningOperator")
@@ -288,6 +304,12 @@ def fit_model(model, x, y, *, p0, **options):
     The core's finite-mode stopping tolerance defaults to 1e-6; explicit `tol`
     values are preserved. This is a solver criterion, not a parameter error.
 
+    `initial_guesses` accepts named mappings or numerical vectors in p0 order,
+    singly or as a sequence. `multistart` is the total candidate budget including
+    p0 (default 1); set it to 3 to try p0 plus two distinct supplied starts.
+    The core fills remaining slots with deterministic candidates where possible
+    and selects the converged result with the lowest objective.
+
     With `inplace=True`, use `model(out, x, **parameters)` and optionally
     `jacobian(out, x, **parameters)`. Fill every output entry and return None;
     output arrays are writable views into Julia buffers and must not be kept.
@@ -397,7 +419,7 @@ def fit_multi_model(models, xs, ys, *, p0, sigma_y=None, parameter_map=None, **o
     scales = [None] * len(models) if sigma_y is None else list(sigma_y)
     if len(scales) != len(models):
         raise ValueError("sigma_y must contain one uncertainty entry per dataset")
-    scales = [None if s is None else np.broadcast_to(np.asarray(s, dtype=float), y.shape).copy()
+    scales = [None if s is None else np.broadcast_to(_real_array(s), y.shape).copy()
               for s, y in zip(scales, ysets)]
     keywords = _options(options, names, sum(map(len, ysets)))
     handle = _backend().run_multi(callbacks, xsets, ysets, scales, indices, start, keywords)

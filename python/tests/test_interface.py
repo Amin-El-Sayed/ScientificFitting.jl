@@ -1,12 +1,13 @@
 """Execute real NumPy callbacks through the public Python interface."""
 
+import subprocess
 import sys
 
 import numpy as np
 import pytest
 
 from scientificfitting import fit_custom, fit_histogram_model, fit_model, fit_poisson_model, plot_fit
-from scientificfitting._core import _backend
+from scientificfitting._core import _backend, _options
 
 
 def line(x, slope, offset):
@@ -48,8 +49,21 @@ def test_bounds_predictions_profiles_and_ownership(calibration):
     np.testing.assert_allclose(result.predict(np.linspace(-1, 1, 15)), mean)
     with pytest.raises(ValueError):
         result.params[0] = 0
-    assert "matplotlib.pyplot" not in sys.modules
     assert not _backend().seval('any(m -> nameof(m) in (:Makie, :CairoMakie), values(Base.loaded_modules))')
+
+
+def test_import_and_report_need_no_plotting_runtime():
+    # A fresh process makes this independent of other tests using Matplotlib.
+    subprocess.run([sys.executable, "-c", """
+import sys
+import numpy as np
+import scientificfitting as sf
+assert 'juliacall' not in sys.modules and 'matplotlib' not in sys.modules
+result = sf.fit_model(lambda x, mean: np.full_like(x, mean), [0, 1, 2], [1, 2, 3],
+                      p0={'mean': 1.}, sigma_y=1.)
+assert result.converged and 'mean' in result.report()
+assert 'matplotlib' not in sys.modules
+"""], check=True, timeout=120)
 
 
 def test_numpy_nonlinear_model_and_dense_xy_covariance():
@@ -145,3 +159,40 @@ def test_named_parameters_do_not_depend_on_dictionary_order(calibration):
     result = fit_model(line, x, y, p0={"offset": 0.2, "slope": 1.2}, sigma_y=0.12)
     expected = np.linalg.lstsq(np.column_stack([x, np.ones_like(x)]), y, rcond=None)[0]
     np.testing.assert_allclose(result.params, expected[::-1], atol=2e-6)
+
+
+@pytest.mark.parametrize("guesses", [
+    {"offset": 0.3, "mu": -1.}, [{"offset": 0.3, "mu": -1.}],
+    [-1., 0.3], [[-1., 0.3]], np.array([[-1., 0.3]]),
+])
+def test_initial_guess_forms_follow_p0_order(guesses):
+    options = _options({"initial_guesses": guesses}, ["mu", "offset"], 10)
+    np.testing.assert_array_equal(options["initial_guesses"], [[-1., 0.3]])
+
+
+@pytest.mark.parametrize("guesses, message", [
+    ({"mu": 1.}, "parameter names"),
+    ({"mu": 1., "typo": 0.}, "parameter names"),
+    ([1.], "parameter count"),
+    (np.array([1.+2.j, 0.]), "real"),
+])
+def test_initial_guesses_reject_ambiguous_or_lossy_inputs(guesses, message):
+    with pytest.raises(ValueError, match=message):
+        _options({"initial_guesses": guesses}, ["mu", "offset"], 10)
+
+
+def test_named_multistart_reaches_better_basin_and_respects_budget():
+    def double_well(mu, offset):
+        return (mu*mu-1)**2 + 0.2*mu + (offset-0.3)**2
+
+    options = {"p0": {"mu": 1., "offset": 0.}, "nobs": 10,
+               "initial_guesses": [{"offset": 0.2, "mu": -1.}]}
+    local = fit_custom(double_well, **options, multistart=1)
+    result = fit_custom(double_well, **options, multistart=2)
+    # Stationary points solve a cubic; no competing minimizer needed as oracle.
+    roots = np.roots([4., 0., -4., 0.2])
+    expected = min(roots, key=lambda mu: double_well(mu, 0.3))
+    assert local.converged and result.converged
+    assert local.values["mu"] > 0
+    np.testing.assert_allclose(result.params, [expected, 0.3], atol=2e-6)
+    assert result.statistics["cost_min"] < local.statistics["cost_min"] - 0.3

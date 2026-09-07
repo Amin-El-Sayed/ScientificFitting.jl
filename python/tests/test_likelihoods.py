@@ -140,3 +140,12 @@ def test_custom_goodness_statistic_and_validation():
                              logprob=lambda y, pred, mu: [0.], p0={"mu": 1.})
     with pytest.raises(ValueError, match="unknown parameter"):
         fit_custom(lambda mu: mu*mu, p0={"mu": 0.}, nobs=5, fixed_parameters={"typo": 0.})
+
+
+def test_multi_dataset_rejects_complex_uncertainties_before_model_evaluation():
+    def not_called(x, mu):
+        raise AssertionError("invalid uncertainties must fail before evaluating the model")
+
+    with pytest.raises(ValueError, match="real"):
+        fit_multi_model([not_called], [[0., 1.]], [[1., 2.]], p0={"mu": 1.},
+                        sigma_y=[np.array([0.1+0.2j, 0.1])])
