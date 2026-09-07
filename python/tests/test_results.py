@@ -1,9 +1,6 @@
 """Reports and scan geometry must survive the boundary without reinterpretation."""
 
 from dataclasses import FrozenInstanceError
-from pathlib import Path
-import re
-
 import numpy as np
 import pytest
 from scipy.optimize import brentq
@@ -179,8 +176,53 @@ def test_poisson_asymmetric_interval_and_failed_grid_point():
     failed = result.profile("rate", values=[-0.5, 0.25, 0.5])
     assert np.isinf(failed.cost_values[0]) and np.isinf(failed.delta_cost[0])
     assert "profile_refit_failed" in {f.code for f in failed.diagnostics.findings}
+    assert "profile_refit_failed" in {
+        f.code for f in failed.diagnose(tolerance=1e9, structured=True).findings}
     with pytest.raises(Exception):
         result.profile("rate", values=[-0.5, 0.25, 0.5], on_failure="throw")
+
+
+def test_reassess_completed_scans_without_model_calls():
+    calls = []
+
+    def objective(a, b):
+        calls.append(1)
+        return a*a + 0.5*a**4 + (b-a*a)**2
+
+    result = fit_custom(objective, p0={"a": 0., "b": 0.}, nobs=3)
+    profile = result.profile("a", values=np.linspace(-2, 2, 9), on_failure="throw")
+    contour = result.contour("a", "b", xvalues=np.linspace(-2, 2, 9), yvalues=np.linspace(-3, 3, 13))
+    np.testing.assert_allclose(profile.delta_cost, profile.values**2+0.5*profile.values**4, atol=1e-8)
+    a, b = contour.x[:, None], contour.y[None, :]
+    np.testing.assert_allclose(contour.delta_cost, a*a+0.5*a**4+(b-a*a)**2, atol=1e-8)
+    before = len(calls)
+    threshold, levels = profile.threshold, contour.levels.copy()
+    for scan, code in ((profile, "profile_not_parabolic"), (contour, "contour_not_elliptic")):
+        original = scan.diagnostics
+        costs = scan.delta_cost.copy()
+        strict = scan.diagnose(tolerance=0.1, structured=True)
+        relaxed = scan.diagnose(tolerance=1e9, structured=True)
+        assert code in {f.code for f in strict.findings}
+        assert code not in {f.code for f in relaxed.findings}
+        assert scan.diagnostics is original  # The original assessment remains available.
+        assert scan.diagnose(tolerance=0.1) == strict.dashboard_text
+        limited = scan.diagnose(tolerance=0.1, max_actions=0, structured=True)
+        assert limited.findings == strict.findings and limited.next_actions == ()
+        with pytest.raises(Exception, match="non-negative"):
+            scan.diagnose(tolerance=-1)
+        np.testing.assert_array_equal(scan.delta_cost, costs)
+    assert profile.threshold == threshold
+    np.testing.assert_array_equal(contour.levels, levels)
+
+    # Compare text against direct core calls, not a separate Python interpretation.
+    native_profile = _backend().seval(
+        "(s, sigma) -> diagnose_text(diagnose(s; local_sigma=sigma, tolerance=0.1))")
+    native_contour = _backend().seval(
+        "(s, c, v) -> diagnose_text(diagnose(s; local_center=vector(c), local_covariance=matrix(v), tolerance=0.1))")
+    assert profile.diagnose(tolerance=0.1, structured=True).text == native_profile(profile._handle, profile.local_stderr)
+    assert contour.diagnose(tolerance=0.1, structured=True).text == native_contour(
+        contour._handle, contour.best_values, contour.local_covariance)
+    assert len(calls) == before
 
 
 def test_named_profile_matrix_geometry_and_order():
@@ -196,6 +238,7 @@ def test_named_profile_matrix_geometry_and_order():
 
     result = fit_custom(objective, p0={"a": 0., "b": 0., "c": 0.}, nobs=20)
     matrix = result.profile_matrix(["c", "a", "b"], npoints_profile=7, npoints_contour=5, nsigma=2.5)
+    before = len(calls)
     assert isinstance(matrix, ProfileMatrixResult)
     assert matrix.parameters == ("c", "a", "b")
     np.testing.assert_allclose(matrix.local_covariance, covariance[np.ix_([2, 0, 1], [2, 0, 1])], atol=2e-6)
@@ -209,7 +252,9 @@ def test_named_profile_matrix_geometry_and_order():
         np.testing.assert_allclose(scan.delta_cost, expected, atol=1e-5)
         np.testing.assert_allclose(scan.best_values, center[indices], atol=2e-6)
         assert scan.parameters == names and scan.diagnostics.status == "ok"
-    before = len(calls)
+        assert scan.diagnose(structured=True).text == scan.diagnostics.text
+    for scan in matrix.profiles.values():
+        assert scan.diagnose(structured=True).text == scan.diagnostics.text
     rows = matrix.triage(include_ok=True)
     assert len(rows) == 6 and matrix.triage() == ()
     assert all(row.status == matrix.panel_status[row.parameters] for row in rows)
@@ -219,22 +264,3 @@ def test_named_profile_matrix_geometry_and_order():
         matrix.contours["c", "a"] = None
     with pytest.raises(Exception, match="unique"):
         result.profile_matrix(["a", "a"])
-
-
-def test_python_guide_executes_in_document_order(tmp_path, monkeypatch):
-    """Run the published cells themselves, not a separately maintained facsimile."""
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("MPLBACKEND", "Agg")
-    page = Path(__file__).resolve().parents[2] / "docs" / "src" / "python.md"
-    cells = re.findall(r"^```python\n(.*?)^```", page.read_text(), flags=re.M | re.S)
-    assert len(cells) >= 7
-    namespace = {"__name__": "__main__"}
-    for i, code in enumerate(cells):
-        exec(compile(code, f"{page}:cell-{i+1}", "exec"), namespace)
-    assert (tmp_path / "calibration.pdf").is_file()
-    assert (tmp_path / "student_t_errors.pdf").is_file()
-    assert namespace["robust_result"].converged
-    assert np.isnan(namespace["robust_result"].statistics["pvalue"])
-    assert isinstance(namespace["matrix"], ProfileMatrixResult)
-    assert namespace["interval"].lower < 0.25 < namespace["interval"].upper
-    namespace["plt"].close("all")

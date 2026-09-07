@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from scipy import optimize, stats
 
-from scientificfitting import plot_style
+from scientificfitting import DiagnosticReport, ProfileMatrixResult, plot_style
 
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples" / "python"
@@ -18,12 +18,24 @@ def test_documented_python_cells_execute_in_order(tmp_path, monkeypatch):
     """Run the actual page, not separately maintained copies of its snippets."""
     source = EXAMPLES.parents[1] / "docs" / "src" / "python.md"
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MPLBACKEND", "Agg")
     namespace = {"__name__": "__documentation__"}
-    for cell in re.findall(r"^```python\n(.*?)^```", source.read_text(), re.M | re.S):
-        exec(compile(cell, str(source), "exec"), namespace)
+    cells = re.findall(r"^```python\n(.*?)^```", source.read_text(), re.M | re.S)
+    assert len(cells) >= 7
+    for index, cell in enumerate(cells):
+        exec(compile(cell, f"{source}:cell-{index+1}", "exec"), namespace)
+    assert (tmp_path / "calibration.pdf").is_file()
+    assert (tmp_path / "student_t_errors.pdf").is_file()
+    assert namespace["robust_result"].converged
+    assert np.isnan(namespace["robust_result"].statistics["pvalue"])
+    assert isinstance(namespace["matrix"], ProfileMatrixResult)
+    assert namespace["interval"].lower < 0.25 < namespace["interval"].upper
+    assert isinstance(namespace["profile_review"], DiagnosticReport)
+    assert isinstance(namespace["pair_review"], DiagnosticReport)
     np.testing.assert_allclose(namespace["laplace_result"].params, [0.4], atol=1e-7)
     assert np.isnan(namespace["laplace_result"].stderr).all()
     np.testing.assert_allclose(namespace["waiting_fit"].params, [namespace["waiting_times"].mean()], atol=2e-6)
+    namespace["plt"].close("all")
 
 
 @pytest.fixture(scope="module")

@@ -99,6 +99,19 @@ class ProfileResult:
         """
         return _interval(_backend().profile_interval(self._handle), self)
 
+    def diagnose(self, *, tolerance=0.25, structured=False, max_actions=5):
+        """Reassess this scan against its local error without evaluating the model.
+
+        tolerance is the allowed absolute delta-cost deviation from the local
+        parabola, not a confidence level. The scan, its threshold, and its
+        original diagnostics are unchanged. Returns core dashboard text or a
+        DiagnosticReport with structured=True, including failed-refit and missing-crossing
+        findings regardless of this shape-comparison tolerance.
+        """
+        report = _diagnostic(_backend().profile_diagnostics(
+            self._handle, self.local_stderr, float(tolerance), max_actions))
+        return report if structured else report.dashboard_text
+
 
 @dataclass(frozen=True, eq=False)
 class ProfileInterval:
@@ -130,6 +143,20 @@ class ContourResult:
     best_values: np.ndarray
     local_covariance: np.ndarray
     diagnostics: DiagnosticReport
+    _handle: object = field(repr=False)
+
+    def diagnose(self, *, tolerance=0.5, structured=False, max_actions=5):
+        """Reassess this grid against its local covariance without more refits.
+
+        tolerance is the allowed absolute delta-cost deviation from the local
+        ellipse, not a confidence level. Grid values, contour levels, and the
+        original diagnostics are unchanged. Returns core dashboard text or a
+        DiagnosticReport with structured=True. Shape tolerance cannot suppress
+        findings about failed refits or unbracketed levels.
+        """
+        report = _diagnostic(_backend().contour_diagnostics(
+            self._handle, self.best_values, self.local_covariance, float(tolerance), max_actions))
+        return report if structured else report.dashboard_text
 
 
 @dataclass(frozen=True)
@@ -212,7 +239,7 @@ def _contour(handle, names, center, covariance, diagnostics=None):
     diagnosis = diagnostics if diagnostics is not None else _backend().contour_diagnostics(handle, center, covariance)
     return ContourResult(tuple(names), _snapshot(handle.x_values), _snapshot(handle.y_values),
         _snapshot(handle.cost_values), _snapshot(handle.delta_cost), _snapshot(handle.levels),
-        _snapshot(center), _snapshot(covariance), _diagnostic(diagnosis))
+        _snapshot(center), _snapshot(covariance), _diagnostic(diagnosis), handle)
 
 
 def _profile_matrix(handle):

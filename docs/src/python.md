@@ -412,6 +412,22 @@ The matrix also retains `local_stderr`, `local_correlation`,
 includes successful panels. All findings and their ordering come from the
 Julia core. Consuming these results never repeats the scans.
 
+To reassess a stored scan without fitting again:
+
+```python
+profile_review = interval.profile_result.diagnose(structured=True)
+pair_review = pair.diagnose(tolerance=0.5, structured=True)
+```
+
+`tolerance` is the allowed absolute difference in delta-cost from the local
+parabola/ellipse (defaults: 0.25 for profiles, 0.5 for contours). It is **not**
+a confidence level: changing it does not change any scan value, crossing, or
+contour level, and does not repair the uncertainty approximation. These methods
+return a new core report; the original `diagnostics` remains available. Failed
+refits and missing crossings are still reported, independently of this
+shape-comparison setting. Without `structured=True`, the returned value is the
+core's dashboard text. `max_actions` only limits its short action list.
+
 For two profiled parameters the default levels `[2.30, 6.18]` differ from
 the one-parameter thresholds `[1, 4]`. They represent the usual asymptotic
 68.27% and 95.45% joint regions, not marginal errors or posterior probabilities.

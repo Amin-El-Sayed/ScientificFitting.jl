@@ -145,6 +145,9 @@ compiling all solver branches through Python's dynamic call dispatcher. Foreign
 callbacks use a private `_TypedCallback{R}`: the result type is concrete, while
 one dynamic dispatch calls the runtime-created closure. Different Python models
 therefore share Julia solver specializations. Native Julia models bypass it.
+The Python adapter declares the output rank: models and x-derivatives return
+vectors, allocating parameter Jacobians return matrices. Input validation must
+preserve that distinction before Julia conversion.
 A small `PrecompileTools` workload caches Gaussian/Poisson numerical kernels,
 prediction, and reporting with ordinary Julia callbacks. It neither starts
 Python nor loads plotting during installation or package import.
@@ -333,7 +336,11 @@ benchmark runner are documented on the [Performance](performance.md) page.
   and named multi-dataset sharing, sparse/structured covariance, error
   components, and in-place callbacks. Named result/report/diagnostic snapshots,
   asymmetric profile intervals, and profile matrices now preserve core findings
-  and missing values. Native Matplotlib reports, Gaussian residual diagnostics,
+  and missing values. Stored profile/contour scans can be re-diagnosed with
+  different shape tolerances through Julia, without model calls or changes to
+  confidence thresholds. Allocating Jacobians retain their matrix shape; the
+  complete Python interface suite covers the shared callback adapter. Native
+  Matplotlib reports, Gaussian residual diagnostics,
   and profile/contour matrices are implemented with panel visibility independent
   of typography. Executable Student-t guidance and Poisson, unequal-bin, and
   multi-dataset examples now use ordinary Matplotlib with numerical references

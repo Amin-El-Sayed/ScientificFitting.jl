@@ -204,10 +204,10 @@ function run_matrix(result, indices, names, options)
         parameter_names=pyconvert(Vector{String}, Py(names)), scan_keywords(options)...)
 end
 
-profile_diagnostics(scan::ProfileResult, sigma::Real) = diagnostic_values(
-    isfinite(sigma) && sigma > 0 ? diagnose(scan; local_sigma=sigma) : diagnose(scan))
-contour_diagnostics(scan::ContourResult, center, covariance) = diagnostic_values(
-    diagnose(scan; local_center=vector(center), local_covariance=matrix(covariance)))
+profile_diagnostics(scan::ProfileResult, sigma::Real, tolerance::Real=0.25, max_actions::Int=5) = diagnostic_values(
+    isfinite(sigma) && sigma > 0 ? diagnose(scan; local_sigma=sigma, tolerance) : diagnose(scan; tolerance), max_actions)
+contour_diagnostics(scan::ContourResult, center, covariance, tolerance::Real=0.5, max_actions::Int=5) = diagnostic_values(
+    diagnose(scan; local_center=vector(center), local_covariance=matrix(covariance), tolerance), max_actions)
 
 """Keep core ordering and axis orientation while replacing indices with names."""
 function matrix_values(result::ProfileMatrixResult)
