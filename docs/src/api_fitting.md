@@ -79,6 +79,7 @@ different uncertainty scales or datasets.
 
 | Entry point | Additional contract |
 |---|---|
+| `fit_likelihood_model` | `logprob(y, prediction, p)` returns one normalized log density or log probability mass per independent observation; no universal goodness-of-fit p-value. |
 | `fit_poisson_model` | Every expected count must be finite and strictly positive; observed counts must be non-negative integers. |
 | `fit_histogram_model` | `length(edges) == length(counts) + 1`; edges increase strictly; the model returns one positive expectation per bin. |
 | `fit_histogram_density` | Integrates `pdf(x, p)` over every bin with Gauss-Kronrod quadrature; `total_count > 0`, `rtol > 0`. |
@@ -98,6 +99,7 @@ priors and constraints.
 ```@docs
 ScientificFitting.fit(::ScientificFitting.LikelihoodFitProblem)
 ScientificFitting.fit_custom
+ScientificFitting.fit_likelihood_model
 ScientificFitting.fit_poisson_model
 ScientificFitting.fit_histogram_model
 ScientificFitting.fit_histogram_density

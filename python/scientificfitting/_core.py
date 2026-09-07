@@ -1,6 +1,7 @@
 """Python conventions and ownership at the boundary; all inference stays in Julia."""
 
 from collections.abc import Mapping
+from copy import deepcopy
 from functools import cache
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
@@ -45,6 +46,23 @@ def _model_callback(function, names):
     return call
 
 
+def _density_callback(function, names):
+    def call(x, parameters):
+        return float(function(float(x), **dict(zip(names, map(float, parameters)))))
+
+    return call
+
+
+def _logprob_callback(function, names):
+    def call(y, prediction, parameters):
+        observations, mean = np.asarray(y).view(), np.asarray(prediction).view()
+        observations.flags.writeable = mean.flags.writeable = False
+        return np.asarray(function(observations, mean, **dict(zip(names, map(float, parameters)))),
+                          dtype=np.float64)
+
+    return call
+
+
 def _parameter_callback(function, names, *, scalar=False):
     def call(parameters):
         value = function(**dict(zip(names, map(float, parameters))))
@@ -55,9 +73,9 @@ def _parameter_callback(function, names, *, scalar=False):
 
 _OPTIONS = {
     "sigma_x", "sigma_y", "cov_x", "cov_y", "bounds", "constraints",
-    "parameter_priors", "fixed_parameters", "jacobian", "x_derivative",
+    "parameter_priors", "parameter_constraints", "fixed_parameters", "jacobian", "x_derivative",
     "backend", "cost", "scale_covariance", "maxiters", "tol",
-    "initial_guesses", "multistart", "nobs", "cost_name",
+    "initial_guesses", "multistart", "nobs", "cost_name", "gof", "rtol", "total_count",
 }
 
 
@@ -86,10 +104,20 @@ def _options(options, names, nobs):
             values = converted[key]
             if not isinstance(values, Mapping):
                 raise TypeError(f"{key} must map parameter names to values")
+            if values.keys() - set(names):
+                raise ValueError(f"{key} contain unknown parameter names")
             converted[key] = [
                 [names.index(name) + 1, *np.atleast_1d(value).tolist()]
                 for name, value in values.items()
             ]
+    if converted.get("parameter_constraints") is not None:
+        converted["parameter_constraints"] = [
+            ([names.index(name) + 1 for name in constraint["names"]],
+             _array(constraint["mean"]), _array(constraint["covariance"], ndim=2))
+            for constraint in converted["parameter_constraints"]
+        ]
+    if converted.get("gof") is not None:
+        converted["gof"] = _parameter_callback(converted["gof"], names, scalar=True)
     for key in ("jacobian", "x_derivative"):
         if converted.get(key) is not None:
             converted[key] = _model_callback(converted[key], names)
@@ -98,6 +126,7 @@ def _options(options, names, nobs):
         if constraints.keys() - {"eq", "ineq"}:
             raise ValueError("constraints use eq == 0 and ineq <= 0")
         converted["constraints"] = {name: _parameter_callback(f, names) for name, f in constraints.items()}
+    converted["parameter_names"] = names
     return converted
 
 
@@ -169,15 +198,29 @@ class Result:
                                delta_cost=_snapshot(result.delta_cost), levels=_snapshot(result.levels))
 
 
-def _fit(kind, model, x, y, p0, options):
+def _start(p0):
+    """Validate named starts once; mapping order never changes argument binding."""
     if not isinstance(p0, Mapping) or not p0 or not all(isinstance(name, str) for name in p0):
         raise TypeError("p0 must be a nonempty mapping of parameter names to initial values")
     names = list(p0)
-    # Mapping order defines result-array order; callbacks bind parameters by name.
-    start = _array(list(p0.values()))
+    return names, _array(list(p0.values()))
+
+
+def _fit(kind, model, x, y, p0, options, *, logprob=None):
+    names, start = _start(p0)
     x, y = _array(x), _array(y)
     keywords = _options(options, names, len(y))
-    callback = _parameter_callback(model, names, scalar=True) if kind == "custom" else _model_callback(model, names)
+    if kind == "gaussian":
+        # Gaussian FitProblem has no label field; Result owns its report names.
+        keywords.pop("parameter_names")
+    if kind == "custom":
+        callback = _parameter_callback(model, names, scalar=True)
+    elif kind in ("unbinned", "extended_unbinned", "histogram_density"):
+        callback = _density_callback(model, names)
+    else:
+        callback = _model_callback(model, names)
+    if logprob is not None:
+        keywords["logprob"] = _logprob_callback(logprob, names)
     handle = _backend().run_fit(kind, callback, x, y, start, keywords)
     return Result(handle, names, kind)
 
@@ -216,3 +259,91 @@ def fit_custom(objective, *, p0, nobs, **options):
     summaries have no automatic statistical interpretation. `nobs` is required.
     """
     return _fit("custom", objective, [], [], p0, {**options, "nobs": nobs})
+
+
+def fit_likelihood_model(model, x, y, *, logprob, p0, **options):
+    """Fit independent measurements with custom continuous/discrete distributions.
+
+    `model(x, **parameters)` returns predictions. `logprob(y, prediction,
+    **parameters)` returns one normalized log density or log probability mass
+    per observation, using NumPy or e.g. SciPy's vectorized logpdf/logpmf.
+    Both callbacks receive read-only arrays. The Julia core sums the terms on
+    the -2 log L scale; parameter-dependent normalization must be included.
+
+    Zero probability is -inf, not a clipped floor. Other non-finite values or
+    wrong dimensions raise an error. Parameters must be continuous and the
+    objective smooth near evaluated points. Correlated non-Gaussian data need
+    a joint likelihood via `fit_custom`, not a product of marginal densities.
+    Goodness-of-fit p-values are unavailable unless a justified `gof` is given.
+    Parameter covariance remains a local approximation, not posterior sampling.
+    """
+    return _fit("likelihood", model, x, y, p0, options, logprob=logprob)
+
+
+def fit_unbinned_model(pdf, data, *, p0, **options):
+    """Fit independent samples using a normalized positive `pdf(x, **parameters)`.
+
+    `x` is a scalar float. Supply a density normalized on the observation
+    domain; the core cannot infer that domain. No generic chi-square is assumed.
+    """
+    return _fit("unbinned", pdf, [], data, p0, options)
+
+
+def fit_extended_unbinned_model(rate, data, domain, *, p0, **options):
+    """Fit an event intensity, including its integral over a finite `(low, high)`.
+
+    `rate(x, **parameters)` receives a scalar and must be positive at the data.
+    The Julia core uses adaptive Gauss-Kronrod integration (`rtol` configurable).
+    Unlike an ordinary density fit, the expected event count is fitted too.
+    """
+    return _fit("extended_unbinned", rate, domain, data, p0, options)
+
+
+def fit_histogram_density(pdf, edges, counts, *, p0, total_count, **options):
+    """Integrate a normalized scalar density over bins, then fit Poisson counts.
+
+    `total_count` scales the bin probabilities to expectations. Unequal bin
+    widths are integrated, not approximated by midpoint density values.
+    """
+    return _fit("histogram_density", pdf, edges, counts, p0, {**options, "total_count": total_count})
+
+
+def fit_indexed_model(model, indices, y, *, p0, **options):
+    """Fit Gaussian observations indexed by strings, tuples, or other Python data.
+
+    `model(indices, **parameters)` must return one value per observation. The
+    indices are copied and retained on the Python side; do not mutate them.
+    The core owns residuals and covariance. Supports sigma_y or cov_y.
+    """
+    saved = deepcopy(indices)
+    if len(saved) != len(y):
+        raise ValueError("indices and y must have equal length")
+    return _fit("indexed", lambda x, **p: model(saved, **p), np.arange(len(y)), y, p0, options)
+
+
+def fit_multi_model(models, xs, ys, *, p0, sigma_y=None, parameter_map=None, **options):
+    """Fit multiple Gaussian datasets with shared or dataset-specific parameters.
+
+    Each model receives `(x, **parameters)`. By default it receives all global
+    names. `parameter_map` optionally supplies one mapping per dataset from
+    local argument names to names in `p0`, e.g. `{"gain": "shared_gain",
+    "offset": "offset_a"}`. `sigma_y` contains one scalar/vector (or None)
+    per dataset. The shared core performs one joint fit, not separate fits.
+    """
+    names, start = _start(p0)
+    if not models or len(models) != len(xs) or len(models) != len(ys):
+        raise ValueError("models, xs, and ys must be nonempty and have equal length")
+    maps = [dict(zip(names, names)) for _ in models] if parameter_map is None else parameter_map
+    if len(maps) != len(models) or not all(isinstance(m, Mapping) and m for m in maps):
+        raise ValueError("parameter_map must contain one nonempty local-to-global mapping per model")
+    callbacks = [_model_callback(model, list(mapping)) for model, mapping in zip(models, maps)]
+    indices = [[names.index(name) + 1 for name in mapping.values()] for mapping in maps]
+    xsets, ysets = [_array(x) for x in xs], [_array(y) for y in ys]
+    scales = [None] * len(models) if sigma_y is None else list(sigma_y)
+    if len(scales) != len(models):
+        raise ValueError("sigma_y must contain one uncertainty entry per dataset")
+    scales = [None if s is None else np.broadcast_to(np.asarray(s, dtype=float), y.shape).copy()
+              for s, y in zip(scales, ysets)]
+    keywords = _options(options, names, sum(map(len, ysets)))
+    handle = _backend().run_multi(callbacks, xsets, ysets, scales, indices, start, keywords)
+    return Result(handle, names, "multi")

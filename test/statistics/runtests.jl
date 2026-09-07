@@ -5,5 +5,6 @@ using Test
     include("diagnostics_reference.jl")
     include("linear_gaussian_reference.jl")
     include("likelihood_reference.jl")
+    include("observation_likelihood_reference.jl")
     include("profile_contour_reference.jl")
 end

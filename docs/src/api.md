@@ -13,6 +13,7 @@ style or optimizer.
 | Data and sampling model | Entry point | Model contract | Result |
 |---|---|---|---|
 | Numeric ``x`` and ``y`` with Gaussian uncertainties | [`fit_model`](@ref) | `model(x, p) -> y_hat` | [`FitResult`](@ref) |
+| Independent observations with a custom distribution | [`fit_likelihood_model`](@ref) | `model(x, p)` and `logprob(y, y_hat, p)` | [`LikelihoodFitResult`](@ref) |
 | Independent counts | [`fit_poisson_model`](@ref) | `model(x, p) -> expected_counts` | [`LikelihoodFitResult`](@ref) |
 | Histogram with expected bin counts | [`fit_histogram_model`](@ref) | `expected_counts(edges, p) -> mu` | [`LikelihoodFitResult`](@ref) |
 | Histogram from a normalized density | [`fit_histogram_density`](@ref) | `pdf(x, p) -> density` | [`LikelihoodFitResult`](@ref) |
@@ -27,6 +28,7 @@ Minimal call shapes, with required keywords shown explicitly:
 | Entry point | Minimal call |
 |---|---|
 | `fit_model` | `fit_model(model, x, y; p0=[...], sigma_y=[...])` |
+| `fit_likelihood_model` | `fit_likelihood_model(model, x, y; p0=[...], logprob=logprob)` |
 | `fit_poisson_model` | `fit_poisson_model(expected_counts, x, counts; p0=[...])` |
 | `fit_histogram_model` | `fit_histogram_model(expected_per_bin, edges, counts; p0=[...])` |
 | `fit_histogram_density` | `fit_histogram_density(pdf, edges, counts; p0=[...], total_count=sum(counts))` |

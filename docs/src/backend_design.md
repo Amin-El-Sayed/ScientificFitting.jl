@@ -201,6 +201,7 @@ stacks.
 | `weights.jl` | covariance preparation, whitening, weighted residuals/Jacobians, local covariance helpers, backend compatibility |
 | `costs.jl` | chi-square, normalized Gaussian likelihood, priors, and correlated parameter terms |
 | `fit.jl` | Gaussian solver dispatch and `FitResult` construction |
+| `derivatives.jl` and `prediction.jl` | shared derivative policy and model-mean uncertainty propagation |
 | `likelihood_fits.jl` | likelihood problem construction, wrappers, solver path, and `LikelihoodFitResult` |
 | `profile.jl` | fixed-parameter refits, profile intervals, contours, matrix summaries, and their diagnostics |
 | `diagnostics.jl` | structured findings, severity, evidence, and next actions |
@@ -249,3 +250,27 @@ Architecture changes need evidence at the layer they affect:
 The core gate is `julia --project=. test/core_runtests.jl`; the complete package
 gate is `julia --project=. test/runtests.jl`. Performance methodology and the
 benchmark runner are documented on the [Performance](performance.md) page.
+
+## Planned Work
+
+- [x] **v0.2: concrete statistical scope at the entry point.** README and
+  documentation entry now distinguish observation models, likelihood
+  optimization, local parameter errors, profiles, and model bands from
+  posterior sampling. Source checks guard that distinction.
+- [ ] **User-defined measurement-error distributions.** `fit_likelihood_model`
+  now accepts batched log densities/masses in Julia and Python, reusing the
+  common likelihood engine. Gaussian, fitted-scale, Binomial, and Student-t
+  references cover normalization and curvature. Remaining: suitable explicit
+  solver/inference controls for non-smooth or support-limited objectives and
+  worked guidance beyond the current smooth, independent-observation contract.
+- [ ] **v0.2: complete the native Python interface.** The preview now wraps
+  every high-level fitting family, including correlated parameter constraints
+  and named multi-dataset sharing. Remaining: sparse/structured covariance,
+  error components, in-place callbacks, complete structured result/diagnostic
+  access, profile matrices, and native Matplotlib diagnostic/report panels.
+  Keep panel visibility independent of visual style, and reuse the Julia
+  numerical engine rather than duplicating inference in Python. Deliver
+  documented Python APIs, pip/conda installation without manual Julia setup,
+  and clean-install tests on supported platforms. Measure numerical parity,
+  callback overhead (including scalar quadrature), startup time, and installed
+  size; automatic Julia provisioning does not eliminate its runtime footprint.

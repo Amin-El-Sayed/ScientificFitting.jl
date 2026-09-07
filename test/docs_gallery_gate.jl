@@ -145,7 +145,9 @@ end
     @test all(!isnothing, navigation_positions)
     @test issorted(first.(navigation_positions))
 
-    @test occursin("Simple fits stay simple", overview)
+    @test occursin("Least squares and likelihood fits", overview)
+    @test occursin("local covariance", overview)
+    @test occursin("not posterior sampling", overview)
     @test occursin("actual program output", overview)
     @test !occursin("## Recommended Path", overview)
     @test !occursin("## What Each Example Teaches", overview)

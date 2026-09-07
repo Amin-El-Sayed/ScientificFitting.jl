@@ -75,15 +75,9 @@ function docs_source_markdown_pages()
 end
 
 function markdown_outside_docs()
-    pages = String[]
-    for (directory, subdirectories, filenames) in walkdir(ROOT)
-        filter!(name -> name != ".git" && name != "docs", subdirectories)
-        for filename in filenames
-            endswith(filename, ".md") || continue
-            push!(pages, relpath(joinpath(directory, filename), ROOT))
-        end
-    end
-    return sort(pages)
+    # Audit publishable source, not ignored pytest/virtual-environment caches.
+    paths = split(read(`git -C $ROOT ls-files --cached --others --exclude-standard -z`, String), '\0')
+    return sort(unique(filter(path -> endswith(path, ".md") && !startswith(path, "docs/"), paths)))
 end
 
 function documenter_make_text()
@@ -236,10 +230,11 @@ end
 
     @testset "Python interoperability documentation" begin
         text = install_page_text()
-        @test occursin("juliacall", text)
-        @test occursin("examples/python/fit_from_python.py", text)
-        @test occursin("SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1", text)
-        @test occursin("experimental or deferred", text)
+        @test occursin("JuliaCall", text)
+        @test occursin("examples/python/numpy_matplotlib.py", text)
+        @test occursin("python -m pytest python/tests", text)
+        @test occursin("not a claim of v0.2 feature parity", text)
+        @test occursin("does **not** remove the Julia", text)
     end
 
     @testset "First-user path is executable and honest" begin
@@ -251,7 +246,11 @@ end
 
         @test occursin("content=\"0; url=gallery.html\"", home)
         @test occursin("```@raw html\n<section class=\"scientificfitting-hero\">", gallery)
-        @test occursin("Simple fits stay simple", gallery)
+        @test occursin("Least squares and likelihood fits", gallery)
+        @test occursin("local covariance", gallery)
+        @test occursin("not posterior sampling", gallery)
+        @test occursin("Measurement errors are inputs", readme)
+        @test occursin("not a posterior-sampling", readme)
         @test occursin("actual program output", gallery)
         @test occursin("data-scientificfitting-plot-group=\"gallery-linear\"", gallery)
         @test !occursin("## Recommended Path", gallery)

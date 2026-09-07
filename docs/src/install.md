@@ -132,19 +132,31 @@ The default solver `tol=1e-6` accounts for differenced-gradient noise;
 `tol` remains configurable and is not a bound on parameter error.
 
 The preview covers Gaussian fits with x/y errors or dense covariance,
-Poisson counts, expected-count histograms, custom costs, parameter bounds,
-named fixed values and Gaussian priors, nonlinear constraints, profiles,
-contours, and core reports. `result.predict(x, uncertainty=True)` returns a
+Poisson counts, expected-count and integrated-density histograms, unbinned
+and extended-unbinned likelihoods, indexed and multi-dataset fits, custom
+costs, and user-defined observation distributions. Parameter bounds, named
+fixed values and Gaussian priors, correlated parameter constraints, nonlinear
+constraints, profiles, contours, and core reports reuse the Julia engine.
+`result.predict(x, uncertainty=True)` returns a
 Gaussian model mean and its local standard uncertainty, without observation
 noise. `plot_fit` accepts an existing Matplotlib `ax` and ordinary artist
 keyword dictionaries; it does not change global plotting settings or refit.
 
-Not yet covered by the Python facade: structured whitening, correlated
-parameter constraints, multi-dataset convenience calls, scalar-density
-quadrature/unbinned likelihoods, profile matrices, and the full diagnostic/
+Not yet covered by the Python facade: structured whitening, sparse covariance,
+error components, profile matrices, and the full diagnostic/
 report-panel plotting suite. The Julia APIs remain available; this preview is
 not a claim of v0.2 feature parity. Cross-platform clean-install checks and
 release dependency pins are also still required before publishing a wheel.
+
+For non-Gaussian regression, `fit_likelihood_model` accepts a vectorized
+`logprob(y, prediction, **parameters)` returning one normalized log density
+or log probability mass per independent observation. For example, SciPy's
+`stats.t.logpdf(y, df=4, loc=prediction, scale=scales)` describes Student-t
+errors; the scale is not their standard deviation. Capture known per-point
+scales in the callback. Unlike `fit_custom`, no manual likelihood summation or
+observation count is needed. Both callbacks are batched; scalar-density
+quadrature helpers cross the language boundary once per evaluation point and
+can be slower. Dependent observations require a joint likelihood.
 
 ## Troubleshooting
 

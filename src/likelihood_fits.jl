@@ -376,6 +376,70 @@ function _assert_count_observations(name::AbstractString, values::AbstractVector
     return values
 end
 
+"""
+    fit_likelihood_model(model, x, y; logprob, p0, kwargs...) -> LikelihoodFitResult
+
+Fit independent observations with a user-defined continuous or discrete
+observation distribution. `model(x, p)` returns one prediction per observation;
+`logprob(y, prediction, p)` returns a vector of normalized log densities or
+log probability masses. The two callbacks are evaluated once per objective
+evaluation, allowing vectorized Julia or Python models. Capture per-observation
+scales, trial counts, or other known inputs in the `logprob` closure.
+
+The core minimizes `-2 * sum(logprob(...))`. Include all normalization terms,
+especially those depending on fitted parameters. A log density may be positive;
+`-Inf` denotes zero probability and yields infinite cost, without clipping.
+NaN, positive infinity, wrong output dimensions, or non-finite observations
+raise `ArgumentError`. Begin at finite cost inside the distribution's support.
+The package cannot verify that an arbitrary callback is normalized.
+
+The default gradient/Hessian backend requires a smooth objective near evaluated
+parameters, even for discrete *observations*. This does not support discrete
+fitted parameters. Use `fit_custom` for dependent observations with a joint
+likelihood rather than multiplying their marginal probabilities.
+
+Parameter controls, derivatives, and solver options follow `fit_custom`.
+Local covariance and profiles use the same complete likelihood. There is no
+universal chi-square goodness statistic: `chi2`, `chi2_ndf`, and `pvalue` are
+NaN unless a justified `gof(p)` is supplied. Profile coverage is asymptotic,
+not automatically guaranteed for every distribution or parameter boundary.
+
+# Example
+
+```julia
+using Distributions
+model(x, p) = p[1] .* x .+ p[2]
+sigma = [0.2, 0.3, 0.2, 0.4]
+# Student-t errors allow heavier tails; sigma is a scale, not a standard deviation.
+logprob(y, mu, p) = logpdf.(TDist(4), (y .- mu) ./ sigma) .- log.(sigma)
+result = fit_likelihood_model(model, [0., 1., 2., 3.], [0.1, 1.2, 1.9, 3.4];
+    logprob=logprob, p0=[1., 0.])
+```
+"""
+function fit_likelihood_model(
+    model, x::AbstractVector, y::AbstractVector;
+    logprob, p0::AbstractVector, cost_name::Symbol=:observation_likelihood, kwargs...,
+)
+    x_vec, y_vec = _float_vector(x), _float_vector(y)
+    length(x_vec) == length(y_vec) || throw(ArgumentError("x and y must have equal length"))
+    _assert_finite_observations("x", x_vec)
+    _assert_finite_observations("y", y_vec)
+    objective = function (p)
+        prediction = model(x_vec, p)
+        prediction isa AbstractVector && length(prediction) == length(y_vec) ||
+            throw(ArgumentError("model must return one prediction per observation"))
+        all(isfinite, prediction) || throw(ArgumentError("model predictions must be finite"))
+        terms = logprob(y_vec, prediction, p)
+        terms isa AbstractVector && length(terms) == length(y_vec) ||
+            throw(ArgumentError("logprob must return one log probability per observation"))
+        # Zero support stays impossible; never replace it with an arbitrary floor.
+        all(v -> v isa Real && (isfinite(v) || v == -Inf), terms) ||
+            throw(ArgumentError("logprob values must be finite or -Inf (zero probability)"))
+        return -2 * sum(terms)
+    end
+    return fit_custom(objective; p0=p0, nobs=length(y_vec), cost_name=cost_name, kwargs...)
+end
+
 function _positive_expectation(mu, n::Int)
     values = collect(mu)
     length(values) == n || throw(ArgumentError("model expectation length must match observations"))

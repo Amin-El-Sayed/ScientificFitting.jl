@@ -8,6 +8,7 @@ vector_model(f) = (x, p) -> pyconvert(Vector{Float64}, f(x, p))
 matrix_model(f) = (x, p) -> pyconvert(Matrix{Float64}, f(x, p))
 scalar_cost(f) = p -> pyconvert(Float64, f(p))
 vector_constraint(f) = p -> pyconvert(Vector{Float64}, f(p))
+scalar_model(f) = (x, p) -> pyconvert(Float64, f(x, p))
 vector(x) = pyconvert(Vector{Float64}, Py(x))
 matrix(x) = pyconvert(Matrix{Float64}, Py(x))
 
@@ -35,12 +36,21 @@ function fit_keywords(options)
         elseif name in (:parameter_priors, :fixed_parameters)
             constructor = name == :parameter_priors ? ParameterPrior : FixedParameter
             [constructor(Int(row[1]), row[2:end]...) for row in pyconvert(Vector{Vector{Float64}}, value)]
+        elseif name == :parameter_constraints
+            [ParameterConstraint(pyconvert(Vector{Int}, row[0]), vector(row[1]), matrix(row[2]))
+             for row in value]
+        elseif name == :parameter_names
+            pyconvert(Vector{String}, value)
         elseif name == :initial_guesses
             pyconvert(Vector{Vector{Float64}}, value)
         elseif name == :jacobian
             matrix_model(value)
         elseif name == :x_derivative
             vector_model(value)
+        elseif name == :gof
+            scalar_cost(value)
+        elseif name == :logprob
+            (y, mu, p) -> pyconvert(Vector{Float64}, value(y, mu, p))
         elseif name in (:maxiters, :multistart, :nobs)
             pyconvert(Int, value)
         else
@@ -55,11 +65,30 @@ function run_fit(kind::String, callback::Py, x, y, p0, options)
     kwargs = fit_keywords(options)
     start = vector(p0)
     kind == "custom" && return fit_custom(scalar_cost(callback); p0=start, kwargs...)
-    kind in ("gaussian", "poisson", "histogram") || throw(ArgumentError("unknown fit family: $kind"))
+    kind == "unbinned" && return fit_unbinned_model(scalar_model(callback), vector(y); p0=start, kwargs...)
+    if kind == "extended_unbinned"
+        domain = vector(x)
+        length(domain) == 2 || throw(ArgumentError("domain must contain exactly two endpoints"))
+        return fit_extended_unbinned_model(scalar_model(callback), vector(y), Tuple(domain); p0=start, kwargs...)
+    end
+    kind == "histogram_density" && return fit_histogram_density(scalar_model(callback), vector(x), vector(y); p0=start, kwargs...)
+    kind in ("gaussian", "poisson", "histogram", "indexed", "likelihood") ||
+        throw(ArgumentError("unknown fit family: $kind"))
     model = vector_model(callback)
     fit_function = kind == "gaussian" ? fit_model :
-                   kind == "poisson" ? fit_poisson_model : fit_histogram_model
+                   kind == "poisson" ? fit_poisson_model :
+                   kind == "indexed" ? fit_indexed_model :
+                   kind == "likelihood" ? fit_likelihood_model : fit_histogram_model
     return fit_function(model, vector(x), vector(y); p0=start, kwargs...)
+end
+
+"""Preserve the single global parameter map while converting dataset arrays once."""
+function run_multi(callbacks, xs, ys, sigma, maps, p0, options)
+    models = [vector_model(f) for f in Py(callbacks)]
+    scales = [pyis(s, pybuiltins.None) ? nothing : vector(s) for s in Py(sigma)]
+    return fit_multi_model(models, [vector(x) for x in Py(xs)], [vector(y) for y in Py(ys)];
+        p0=vector(p0), sigma_y=scales, parameter_map=pyconvert(Vector{Vector{Int}}, Py(maps)),
+        fit_keywords(options)...)
 end
 
 """Return ordinary mappings at the Python boundary, retaining the Julia fit for refits."""

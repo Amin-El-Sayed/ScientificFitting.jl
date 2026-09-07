@@ -2,14 +2,15 @@
 
 ```@raw html
 <section class="scientificfitting-hero">
-  <div class="scientificfitting-kicker">Scientific model fitting for Julia</div>
+  <div class="scientificfitting-kicker">Least squares and likelihood fits in Julia</div>
   <p class="scientificfitting-lede">
-    Simple fits stay simple. Difficult fits keep their statistics explicit.
+    Fit your model to measurements. Inspect the result, not just the curve.
   </p>
   <p>
-    One Julia-native workflow for least squares and likelihood fits, x/y and
-    correlated uncertainty, parameter constraints, profiles and contours,
-    actionable diagnostics, and editable Makie figures.
+    Supply standard deviations or covariances for Gaussian measurement errors,
+    use Poisson counts, or define your own likelihood. Fit with parameter
+    constraints, inspect residuals and profiles, and edit the resulting Makie
+    figure without rewriting the fit.
   </p>
   <div class="scientificfitting-hero-actions">
     <a class="scientificfitting-button primary" href="gallery/linear_calibration.html">Start with a complete fit</a>
@@ -17,6 +18,14 @@
   </div>
 </section>
 ```
+
+**What do the uncertainties mean?** Measurement errors describe the assumed
+observation distribution. Reported parameter errors are local covariance
+approximations; profile-likelihood scans show where that approximation breaks
+down. A band for the fitted model does not include the scatter of future
+measurements unless explicitly stated. ScientificFitting uses optimization,
+not posterior sampling. The [statistical chapters](statistical_foundations.md)
+explain these distinctions and the assumptions behind interval coverage.
 
 Start with [Linear Calibration](gallery/linear_calibration.md) for the shortest
 complete analysis, or choose the example closest to your data below. Every page

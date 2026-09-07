@@ -13,7 +13,7 @@ dependencies = ["numpy>=1.24", "juliacall>=0.9.35,<0.10"]
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.7"]
-test = ["pytest>=7", "matplotlib>=3.7"]
+test = ["pytest>=7", "matplotlib>=3.7", "scipy>=1.10"]
 
 [tool.setuptools.package-data]
 scientificfitting = ["*.jl", "juliapkg.json"]

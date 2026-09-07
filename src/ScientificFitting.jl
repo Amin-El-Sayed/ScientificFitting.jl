@@ -57,6 +57,7 @@ export fit
 export predict
 export fit_model
 export fit_custom
+export fit_likelihood_model
 export fit_poisson_model
 export fit_histogram_model
 export fit_histogram_density
