@@ -96,6 +96,31 @@ observations. If supplied, `gof(p)` is the data goodness-of-fit statistic;
 ScientificFitting adds quadratic contributions and dimensions from Gaussian parameter
 priors and constraints.
 
+### Minimization And Local Errors
+
+All likelihood helpers accept these independent controls; Gaussian `fit_model`
+continues to use `backend` and `scale_covariance`.
+
+| Keyword | Choices and behavior |
+|---|---|
+| `optimizer` | `:auto` selects LBFGS, or IPNewton for nonlinear constraints. Explicit `:lbfgs`, `:ipnewton`, and `:nelder_mead` are available. |
+| `parameter_covariance` | `:auto` selects `:none` with Nelder-Mead, `:hessian` otherwise. `:hessian` requires a locally smooth cost; `:none` leaves free-parameter errors as `NaN`, fixed errors as zero. |
+
+Nelder-Mead uses NLopt's native box bounds without numerical derivatives or a
+custom penalty. Fixed values, Gaussian priors and correlated parameter terms
+remain active. Nonlinear constraints require IPNewton and are rejected with
+other solvers, never ignored. All methods optimize continuous parameters and
+are local searches. Begin at finite cost inside the likelihood's support.
+
+For Nelder-Mead, `maxiters` is an **objective-evaluation budget**, not an
+iteration count; `result.iterations` is `missing`. `tol` sets absolute/relative
+parameter stopping tolerances, so choose parameter units/scales accordingly.
+Function-value stopping is disabled: distant simplex vertices can have equal
+costs without locating the minimum. Reaching the budget is
+not convergence. Profiles preserve both controls; use explicit `values` grids
+when no local errors exist. [Non-regular likelihoods](likelihood_models.md#A-Moving-Support-Boundary)
+need more than a successful minimization to justify confidence intervals.
+
 ```@docs
 ScientificFitting.fit(::ScientificFitting.LikelihoodFitProblem)
 ScientificFitting.fit_custom

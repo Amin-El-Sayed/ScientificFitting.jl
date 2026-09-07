@@ -211,6 +211,27 @@ def test_failed_costs_and_invalid_covariance_are_not_invented(plt, matrix):
         plot_contour(scan, region_kwargs={"levels": [1, 4]})
 
 
+def test_derivative_free_profiles_render_without_invented_curvature(plt, tmp_path):
+    result = fit_custom(lambda a, b: 2*abs(a-0.7) + 3*abs(b-1.3),
+        p0={"a": 0.2, "b": 1.}, nobs=10, optimizer="nelder_mead", tol=1e-10)
+    profile = result.profile("a", values=np.linspace(-1, 2, 9))
+    fig, ax = plot_profile(profile)
+    assert not any("parabola" in line.get_label() for line in ax.lines)
+    assert_inside_canvas(fig)
+    scan = result.contour("a", "b", xvalues=np.linspace(-1, 2, 9),
+                          yvalues=np.linspace(0, 3, 9), levels=[1., 3.])
+    fig, ax = plot_contour(scan)
+    assert len(ax.lines) == 1  # Minimum only; there is no local covariance ellipse.
+    assert "local covariance unavailable" in [t.get_text() for t in fig.legends[0].get_texts()]
+    assert_inside_canvas(fig)
+    matrix = result.profile_matrix(npoints_profile=5, npoints_contour=5, nsigma=10,
+                                   contour_levels=[1., 3.])
+    fig, axes = plot_profile_matrix(matrix)
+    assert "local correlation unavailable" in [t.get_text() for t in axes[0, 1].texts]
+    assert_inside_canvas(fig)
+    fig.savefig(tmp_path / "derivative-free-profiles.pdf")
+
+
 def test_residuals_use_core_whitening_and_exclude_auxiliary_terms(plt):
     calls = []
 

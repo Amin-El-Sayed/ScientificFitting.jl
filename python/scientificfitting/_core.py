@@ -56,6 +56,7 @@ _OPTIONS = {
     "sigma_x", "sigma_y", "cov_x", "cov_y", "bounds", "constraints",
     "parameter_priors", "parameter_constraints", "fixed_parameters", "jacobian", "x_derivative",
     "backend", "cost", "scale_covariance", "maxiters", "tol",
+    "optimizer", "parameter_covariance",
     "initial_guesses", "multistart", "nobs", "cost_name", "gof", "rtol", "total_count",
     "whitening", "error_components", "inplace",
 }
@@ -334,6 +335,21 @@ def fit_custom(objective, *, p0, nobs, **options):
 
     For arbitrary losses the optimum is usable, but covariance and likelihood
     summaries have no automatic statistical interpretation. `nobs` is required.
+
+    All likelihood helpers accept `optimizer="auto"` (LBFGS, or IPNewton for
+    nonlinear constraints), "lbfgs", "ipnewton", or "nelder_mead". The latter
+    uses NLopt without derivatives, retains bounds/fixed values/Gaussian terms,
+    and rejects nonlinear constraints. Start at finite cost; methods are local
+    and fitted parameters must be continuous. For Nelder-Mead, maxiters is an
+    evaluation budget, tol sets absolute/relative parameter stopping criteria, and
+    result.iterations is None because no iteration count is available. Scale
+    parameters appropriately; equal function values alone do not stop the solve.
+
+    `parameter_covariance="auto"` selects "none" with Nelder-Mead and "hessian"
+    otherwise. "none" skips local curvature and leaves free errors as NaN,
+    fixed errors as zero. Explicit "hessian" requires a locally smooth cost.
+    Profiles preserve both choices; supply explicit scan values without local
+    errors. Their usual chi-square thresholds may fail for non-regular models.
     """
     return _fit("custom", objective, [], [], p0, {**options, "nobs": nobs})
 
@@ -348,8 +364,10 @@ def fit_likelihood_model(model, x, y, *, logprob, p0, **options):
     the -2 log L scale; parameter-dependent normalization must be included.
 
     Zero probability is -inf, not a clipped floor. Other non-finite values or
-    wrong dimensions raise an error. Parameters must be continuous and the
-    objective smooth near evaluated points. Correlated non-Gaussian data need
+    wrong dimensions raise an error. Parameters must be continuous; the default
+    optimizer requires a smooth objective. For non-smooth or moving-support
+    costs, use optimizer="nelder_mead"; see fit_custom for solver/covariance
+    choices. Correlated non-Gaussian data need
     a joint likelihood via `fit_custom`, not a product of marginal densities.
     Goodness-of-fit p-values are unavailable unless a justified `gof` is given.
     Parameter covariance remains a local approximation, not posterior sampling.

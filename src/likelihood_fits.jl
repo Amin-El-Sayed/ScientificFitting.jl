@@ -163,8 +163,20 @@ function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOpti
     free_bounds = _free_bounds(problem)
     lb = free_bounds === nothing ? nothing : free_bounds[1]
     ub = free_bounds === nothing ? nothing : free_bounds[2]
+    isfinite(objective(_free_p0(problem), cache)) || throw(ArgumentError(
+        "initial likelihood cost must be finite; choose a starting point inside the distribution's support",
+    ))
 
-    if has_constraints(free_constraints)
+    if options.optimizer == :nelder_mead
+        # NLopt enforces box bounds natively, without a differentiable barrier.
+        optprob = OptimizationProblem(OptimizationFunction(objective), _free_p0(problem), cache; lb, ub)
+        solver = OptimizationNLopt.NLopt.Opt(:LN_NELDERMEAD, length(_free_indices(problem)))
+        # Set native stopping properties, not algorithm-specific kwargs. Equal
+        # costs at distant simplex vertices must not imply convergence.
+        solver.xtol_rel = options.tol
+        solver.xtol_abs = options.tol
+        sol = solve(optprob, solver; maxiters=options.maxiters)
+    elseif options.optimizer == :ipnewton
         cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
         ad = _optimization_ad(problem; second_order=true)
         optf = OptimizationFunction(objective, ad; cons=cons!)
@@ -178,27 +190,25 @@ function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOpti
 
     params = _expand_free_parameters(problem, sol.u)
     retcode_text = string(sol.retcode)
-    converged = occursin("Success", retcode_text) || occursin("Default", retcode_text)
-    iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ?
+    converged = Optimization.SciMLBase.successful_retcode(sol.retcode)
+    # OptimizationNLopt's stats contain a default zero, not an iteration count.
+    iterations = options.optimizer != :nelder_mead && hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ?
                  Int(sol.stats.iterations) : missing
     return params, converged, iterations, retcode_text
 end
 
-function _likelihood_covariance(problem::LikelihoodFitProblem, params::Vector{Float64})
-    return _likelihood_covariance(_prepare_likelihood_cache(problem), params)
-end
-
-function _likelihood_covariance(cache::LikelihoodEvaluationCache, params::Vector{Float64})
+"""Compute local curvature once, or retain explicit missing free-parameter errors."""
+function _likelihood_geometry(cache::LikelihoodEvaluationCache, params::Vector{Float64}, method::Symbol)
     problem = cache.problem
     free_idx = _free_indices(problem)
-    if isempty(free_idx)
-        return _embed_free_covariance(problem, zeros(Float64, 0, 0))
+    if isempty(free_idx) || method == :none
+        return _embed_free_covariance(problem, fill(NaN, length(free_idx), length(free_idx))), nothing
     end
 
     q = params[free_idx]
     H = _derivative_hessian(problem, qq -> _likelihood_cost(cache, _expand_free_parameters(problem, qq)), q)
     free_cov = 2.0 .* _stable_symmetric_inverse(H)
-    return _embed_free_covariance(problem, free_cov)
+    return _embed_free_covariance(problem, free_cov), H
 end
 
 function _build_likelihood_result(
@@ -220,35 +230,54 @@ function _build_likelihood_result(
     pvalue = isfinite(gof) && ndf > 0 ? ccdf(Chisq(ndf), gof) : NaN
     aic = cost_min + 2.0 * npar
     bic = cost_min + log(nobs) * npar
-    cov = _likelihood_covariance(cache, params)
+    cov, hessian = _likelihood_geometry(cache, params, options.parameter_covariance)
     stderr = _standard_errors_from_covariance(cov)
     corr = _correlation_from_covariance(cov)
     stats = FitStatistics(problem.cost_name, cost_min, cost_min, gof, gof_ndf, ndf, pvalue, aic, bic)
-    free_idx = _free_indices(problem)
-    hessian = isempty(free_idx) ? nothing : _derivative_hessian(problem, q -> _likelihood_cost(cache, _expand_free_parameters(problem, q)), params[free_idx])
-    diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=gof)
+    diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf;
+        hessian, gof, covariance_computed=options.parameter_covariance != :none)
 
     return LikelihoodFitResult(problem, options, :optimization, converged, iterations, message, params, stderr, cov, corr, stats, diagnostics)
 end
 
 """
     fit(problem::LikelihoodFitProblem; maxiters=1000, tol=1e-10,
-        initial_guesses=nothing, multistart=1) -> LikelihoodFitResult
+        initial_guesses=nothing, multistart=1, optimizer=:auto,
+        parameter_covariance=:auto) -> LikelihoodFitResult
 
 Minimize a validated likelihood-scale or custom objective problem. Bounds,
 fixed parameters, Gaussian parameter terms, nonlinear constraints, observation
 count, and cost name are already stored in `problem`.
 
-`initial_guesses` may contain additional complete parameter vectors.
-`multistart > 1` adds deterministic bounded candidates when finite bounds are
+`initial_guesses` may contain additional complete parameter vectors. `multistart`
+is the total candidate budget including `p0`; its default of one uses only `p0`.
+Remaining slots use deterministic bounded candidates when finite bounds are
 available. ScientificFitting returns the converged candidate with the lowest finite cost;
 if only non-converged finite candidates remain, the best one is returned with
 `converged == false`. If no candidate produces a finite result, the last
 objective, validation, or solver error is raised.
 
-`maxiters` and `tol` must be positive. The returned local covariance uses the
-Hessian of the complete stored cost and has likelihood meaning only when that
-cost follows the documented `-2 log(L)` convention.
+`optimizer=:auto` selects LBFGS, or IPNewton with nonlinear constraints.
+`:nelder_mead` uses NLopt's bounded derivative-free simplex method for non-smooth
+or support-limited costs. It retains bounds, fixed parameters and Gaussian
+parameter terms, but rejects nonlinear constraints; those require `:ipnewton`.
+Start at finite cost inside the distribution's support. All methods are local
+optimizers of continuous parameters, not guarantees of a global minimum.
+
+`parameter_covariance=:auto` chooses `:none` with Nelder-Mead and `:hessian`
+otherwise. Explicit `:hessian` computes `2 * inv(H)` for the complete cost;
+use it only for locally smooth likelihoods on the documented `-2 log(L)` scale.
+`:none` skips curvature and stores NaN for free-parameter errors (fixed errors
+remain zero). Profile refits preserve both options. Supply explicit profile
+ranges when local errors are unavailable; profile thresholds still require
+statistical justification for non-regular models.
+
+`maxiters` and `tol` must be positive. With Nelder-Mead, `maxiters` limits
+objective evaluations, `tol` sets NLopt's absolute/relative parameter tolerances,
+and `iterations` is `missing`, not an invented count. Scale parameters accordingly;
+`tol` is not a statistical error. Function-value stopping is disabled because
+equal costs need not mean a contracted simplex. A budget-limited solve returns
+`converged == false`.
 """
 function fit(
     problem::LikelihoodFitProblem;
@@ -256,7 +285,13 @@ function fit(
     tol::Real=_default_fit_tolerance(problem.derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
+    constrained = has_constraints(problem.constraints)
+    optimizer = optimizer == :auto ? (constrained ? :ipnewton : :lbfgs) : optimizer
+    parameter_covariance = parameter_covariance == :auto ?
+        (optimizer == :nelder_mead ? :none : :hessian) : parameter_covariance
     options = FitOptions(
         backend=:optimization,
         cost=problem.cost_name,
@@ -264,7 +299,15 @@ function fit(
         tol=Float64(tol),
         scale_covariance=:never,
         multistart=multistart,
+        optimizer=optimizer,
+        parameter_covariance=parameter_covariance,
     )
+    constrained && optimizer != :ipnewton && throw(ArgumentError(
+        "nonlinear constraints require optimizer=:auto or :ipnewton; they cannot be dropped",
+    ))
+    !constrained && optimizer == :ipnewton && throw(ArgumentError(
+        "optimizer=:ipnewton requires nonlinear constraints; use :auto, :lbfgs, or :nelder_mead",
+    ))
 
     candidates = _initial_candidates(problem, initial_guesses, multistart)
     best_result = nothing
@@ -309,7 +352,7 @@ p-values; otherwise these fields are `NaN`. `nobs` controls degrees of freedom
 and the BIC sample-size term, and must represent the number of statistically
 independent observations used by the objective.
 
-ScientificFitting computes local covariance as `2 * inv(H)`, where `H` is the objective
+When requested, ScientificFitting computes local covariance as `2 * inv(H)`, where `H` is the objective
 Hessian. AIC, BIC, and that covariance therefore have their standard
 interpretation only when `objective` is a normalized `-2log(L)` cost (Gaussian
 chi-square is on the same scale). For an arbitrary loss, the optimizer result
@@ -317,7 +360,10 @@ remains usable but those inferential fields are only arithmetic summaries.
 
 Common keywords are `bounds`, `constraints`, `parameter_priors`,
 `parameter_constraints`, `fixed_parameters`, `parameter_names`, `maxiters`,
-`tol`, `initial_guesses`, `multistart`, and `derivatives=:auto` (or `:finite`). Parameter callbacks receive the
+`tol`, `initial_guesses`, `multistart`, and `derivatives=:auto` (or `:finite`).
+`optimizer` and `parameter_covariance` independently control minimization and
+local errors; see [`fit(::LikelihoodFitProblem)`](@ref) for choices and limits.
+Parameter callbacks receive the
 complete vector in `p0` order. `nobs` must be positive; invalid parameter
 controls or a non-finite objective fail with an error rather than producing a
 reportable result.
@@ -346,6 +392,8 @@ function fit_custom(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     problem = LikelihoodFitProblem(
         objective,
@@ -361,7 +409,7 @@ function fit_custom(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end
 
 function _assert_finite_observations(name::AbstractString, values::AbstractVector)
@@ -394,12 +442,14 @@ raise `ArgumentError`. Begin at finite cost inside the distribution's support.
 The package cannot verify that an arbitrary callback is normalized.
 
 The default gradient/Hessian backend requires a smooth objective near evaluated
-parameters, even for discrete *observations*. This does not support discrete
-fitted parameters. Use `fit_custom` for dependent observations with a joint
+parameters, even for discrete *observations*. Choose `optimizer=:nelder_mead`
+for non-smooth or moving-support likelihoods; it does not compute Hessian errors
+unless `parameter_covariance=:hessian` is explicitly requested. This does not
+support discrete fitted parameters. Use `fit_custom` for dependent observations with a joint
 likelihood rather than multiplying their marginal probabilities.
 
 Parameter controls, derivatives, and solver options follow `fit_custom`.
-Local covariance and profiles use the same complete likelihood. There is no
+Requested local covariance and profiles use the same complete likelihood. There is no
 universal chi-square goodness statistic: `chi2`, `chi2_ndf`, and `pvalue` are
 NaN unless a justified `gof(p)` is supplied. Profile coverage is asymptotic,
 not automatically guaranteed for every distribution or parameter boundary.
@@ -500,6 +550,8 @@ function fit_poisson_model(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     x_vec = _float_vector(x)
     counts_vec = _float_vector(counts)
@@ -523,7 +575,7 @@ function fit_poisson_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end
 
 """
@@ -557,6 +609,8 @@ function fit_histogram_model(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     edges_vec = _float_vector(edges)
     counts_vec = _float_vector(counts)
@@ -584,7 +638,7 @@ function fit_histogram_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end
 
 """
@@ -620,6 +674,8 @@ function fit_histogram_density(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     total = Float64(total_count)
     isfinite(total) && total > 0 || throw(ArgumentError("total_count must be finite and > 0"))
@@ -649,6 +705,8 @@ function fit_histogram_density(
         tol=tol,
         initial_guesses=initial_guesses,
         multistart=multistart,
+        optimizer=optimizer,
+        parameter_covariance=parameter_covariance,
     )
 end
 
@@ -680,6 +738,8 @@ function fit_unbinned_model(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     data_vec = _float_vector(data)
     _assert_finite_observations("unbinned data", data_vec)
@@ -706,7 +766,7 @@ function fit_unbinned_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end
 
 """
@@ -741,6 +801,8 @@ function fit_extended_unbinned_model(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     data_vec = _float_vector(data)
     a, b = Float64(domain[1]), Float64(domain[2])
@@ -776,7 +838,7 @@ function fit_extended_unbinned_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end
 
 function _gaussian_chi2_from_residual(residual::AbstractVector, sigma_y, cov_y)
@@ -869,6 +931,8 @@ function fit_indexed_model(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     y_vec = _float_vector(y)
     _assert_finite_observations("y", y_vec)
@@ -896,7 +960,7 @@ function fit_indexed_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end
 
 """
@@ -938,6 +1002,8 @@ function fit_multi_model(
     tol::Real=_default_fit_tolerance(derivatives),
     initial_guesses=nothing,
     multistart::Int=1,
+    optimizer::Symbol=:auto,
+    parameter_covariance::Symbol=:auto,
 )
     ndatasets = length(models)
     ndatasets > 0 || throw(ArgumentError("at least one dataset is required"))
@@ -990,5 +1056,5 @@ function fit_multi_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters=maxiters, tol=tol, initial_guesses=initial_guesses, multistart=multistart)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance)
 end

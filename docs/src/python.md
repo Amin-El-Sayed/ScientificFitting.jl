@@ -40,7 +40,7 @@ fig.savefig("calibration.pdf")
 Models receive a read-only NumPy coordinate array and named float parameters.
 The keys of `p0` must match the model's parameter names; mapping order sets
 the order of result arrays, not how parameters bind to the model. Models must
-be deterministic and smooth around evaluated points. Finite differences are
+be deterministic and, for the default solvers, smooth around evaluated points. Finite differences are
 used consistently, including when bounds or profiles trigger a different
 solver. Optional analytic `jacobian` and `x_derivative` callbacks use the same
 Python argument convention.
@@ -143,6 +143,48 @@ with plt.rc_context(plot_style("sans")):
 The bars show the specified error distribution's central range, not the
 uncertainty of the fitted line. For the latter, use the fitted parameter
 likelihood and its local approximation or profiles, as appropriate.
+
+### Non-Smooth Errors And Hard Support
+
+Solver choice and local error calculation are separate controls. All likelihood
+helpers accept `optimizer="auto"` (LBFGS, or IPNewton for nonlinear constraints),
+`"lbfgs"`, `"ipnewton"`, or `"nelder_mead"`. NLopt's Nelder-Mead needs no
+derivatives and respects bounds, fixed values and Gaussian parameter terms.
+It rejects nonlinear constraints rather than dropping them. These are local
+searches over continuous parameters, even when observations are discrete.
+
+```python
+readings_laplace = np.array([-1.2, -0.1, 0.2, 0.4, 0.8, 1.3, 5.0])
+def constant(x, location):
+    return np.full_like(x, location)
+
+laplace_result = fit_likelihood_model(
+    constant, np.arange(len(readings_laplace)), readings_laplace,
+    logprob=lambda y, mu, location: stats.laplace.logpdf(y, loc=mu, scale=1),
+    p0={"location": 0.1}, optimizer="nelder_mead", tol=1e-10,
+)
+print(laplace_result.report())
+scan = laplace_result.profile("location", values=[-0.2, 0., 0.4, 0.7, 1.])
+```
+
+The fitted location is the sample median, 0.4. The cost has corners at the
+observations, so Nelder-Mead defaults to `parameter_covariance="none"`: free
+errors are `NaN`, not zero. Explicit `"hessian"` is available for locally smooth
+costs, and `"none"` also works with the gradient solvers. Profiles preserve
+both settings; specify actual scan values when no local error scale is available.
+For Nelder-Mead, `maxiters` limits objective evaluations, `tol` sets absolute and
+relative parameter tolerances, and `result.iterations` is `None` because the
+backend exposes no iteration count. Exhausting the budget is not convergence.
+Scale parameters appropriately; a tiny `tol` is not a statistical precision
+claim. Equal objective values alone do not stop the simplex search.
+
+For a distribution with a moving support boundary, return `-np.inf` for zero
+probability and start at a finite likelihood. For example,
+`stats.expon.logpdf(y, loc=mu, scale=1)` describes a location plus a positive
+exponential delay; its fitted location is the smallest observation. No density
+floor is inserted. Finding that minimum does **not** validate the usual
+chi-square profile thresholds: the [exact support-boundary example](likelihood_models.md#A-Moving-Support-Boundary)
+shows why a nominal 68% threshold can have only 39% coverage.
 
 ## Counts, Histograms, And Shared Parameters
 

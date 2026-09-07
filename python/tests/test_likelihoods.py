@@ -6,7 +6,8 @@ from scipy import optimize, stats
 
 from scientificfitting import (
     fit_custom, fit_extended_unbinned_model, fit_histogram_density,
-    fit_indexed_model, fit_likelihood_model, fit_multi_model, fit_unbinned_model,
+    fit_histogram_model, fit_indexed_model, fit_likelihood_model, fit_multi_model,
+    fit_poisson_model, fit_unbinned_model,
 )
 
 
@@ -149,3 +150,97 @@ def test_multi_dataset_rejects_complex_uncertainties_before_model_evaluation():
     with pytest.raises(ValueError, match="real"):
         fit_multi_model([not_called], [[0., 1.]], [[1., 2.]], p0={"mu": 1.},
                         sigma_y=[np.array([0.1+0.2j, 0.1])])
+
+
+def test_laplace_errors_use_derivative_free_optimization_without_hessian_errors():
+    y = np.array([-1.2, -0.1, 0.2, 0.4, 0.8, 1.3, 5.0])
+
+    def logprob(y, mu, location):
+        assert isinstance(location, float) and mu.dtype == np.float64
+        return stats.laplace.logpdf(y, loc=mu, scale=1)
+
+    result = fit_likelihood_model(lambda x, location: np.full_like(x, location),
+        np.arange(len(y)), y, logprob=logprob, p0={"location": 0.1},
+        optimizer="nelder_mead", tol=1e-10)
+    assert result.converged and result.iterations is None
+    np.testing.assert_allclose(result.params, [np.median(y)], atol=1e-7)
+    assert result.options["optimizer"] == "nelder_mead"
+    assert result.options["parameter_covariance"] == "none"
+    assert np.isnan(result.stderr).all() and np.isnan(result.covariance).all()
+    codes = {finding.code for finding in result.diagnose(structured=True).findings}
+    assert "covariance_not_computed" in codes and "invalid_local_covariance" not in codes
+    values = np.array([-0.2, 0., 0.4, 0.7, 1.])
+    scan = result.profile("location", values=values, on_failure="throw")
+    reference = 2*np.abs(y[:, None]-values).sum(axis=0) - 2*np.abs(y-np.median(y)).sum()
+    np.testing.assert_allclose(scan.delta_cost, reference, atol=1e-7)
+
+
+def test_moving_support_is_not_clipped_or_differentiated():
+    y = np.array([0.3, 0.5, 0.9, 1.2, 2.1])
+    model = lambda x, location: np.full_like(x, location)
+    logprob = lambda y, mu, location: stats.expon.logpdf(y, loc=mu, scale=1)
+    result = fit_likelihood_model(model, np.arange(len(y)), y, logprob=logprob,
+        p0={"location": 0.}, bounds={"location": (-1., 1.)},
+        optimizer="nelder_mead", tol=1e-10)
+    assert result.converged and result.params[0] <= y.min()
+    np.testing.assert_allclose(result.params, [y.min()], atol=1e-7)
+    scan = result.profile("location", values=[0., 0.2, 0.3, 0.4])
+    np.testing.assert_allclose(scan.delta_cost[:3], [3., 1., 0.], atol=1e-6)
+    assert np.isinf(scan.delta_cost[3])
+    with pytest.raises(Exception, match="initial likelihood cost must be finite"):
+        fit_likelihood_model(model, np.arange(len(y)), y, logprob=logprob,
+                             p0={"location": 0.8}, optimizer="nelder_mead")
+
+
+def test_derivative_free_nuisance_refits_keep_constraints_and_missing_errors():
+    def cost(a, b, fixed):
+        assert 0 <= a <= 2 and 0 <= b <= 2 and fixed == 0.4
+        return 2*abs(a-0.7) + (b-a)**2 + fixed**2
+
+    result = fit_custom(cost, p0={"a": 0.2, "b": 0.3, "fixed": 0.}, nobs=10,
+        bounds={"a": (0., 2.), "b": (0., 2.)}, fixed_parameters={"fixed": 0.4},
+        parameter_priors={"b": (0.7, 1.)}, optimizer="nelder_mead", tol=1e-10)
+    assert result.converged
+    np.testing.assert_allclose(result.params, [0.7, 0.7, 0.4], atol=2e-5)
+    assert np.isnan(result.stderr[:2]).all() and result.stderr[2] == 0
+    scan = result.profile("a", values=[0.5, 0.7, 0.9], on_failure="throw")
+    np.testing.assert_allclose(scan.delta_cost, [0.42, 0., 0.42], atol=2e-6)
+    stopped = fit_custom(lambda mu: (mu-1)**2, p0={"mu": 0.}, nobs=10,
+                         optimizer="nelder_mead", maxiters=1)
+    assert not stopped.converged
+
+
+@pytest.mark.parametrize("optimizer", ["auto", "lbfgs", "nelder_mead"])
+@pytest.mark.parametrize("covariance", ["none", "hessian"])
+@pytest.mark.parametrize("center", [0., 1.5])
+def test_likelihood_solver_and_covariance_are_orthogonal(optimizer, covariance, center):
+    result = fit_custom(lambda mu: (mu-center)**2/0.04, p0={"mu": 0.2}, nobs=10,
+        optimizer=optimizer, parameter_covariance=covariance, tol=1e-8, maxiters=200)
+    assert result.converged
+    np.testing.assert_allclose(result.params, [center], atol=2e-8)
+    if covariance == "none":
+        assert np.isnan(result.stderr).all()
+    else:
+        np.testing.assert_allclose(result.stderr, [0.2], rtol=2e-5)
+
+
+def test_all_likelihood_wrappers_forward_solver_and_covariance_options():
+    options = dict(p0={"mu": 1.}, optimizer="nelder_mead", parameter_covariance="none",
+                   bounds={"mu": (0.1, 5.)}, tol=1e-8)
+    counts = [2, 1, 3]
+    constant = lambda x, mu: np.full_like(x, mu)
+    fits = [
+        fit_poisson_model(constant, [0, 1, 2], counts, **options),
+        fit_histogram_model(lambda edges, mu: mu*np.diff(edges), [0, 1, 2, 3], counts, **options),
+        fit_histogram_density(lambda x, mu: np.exp(-x/mu)/mu, [0, 1, 2, 3], counts,
+                              total_count=6, **options),
+        fit_unbinned_model(lambda x, mu: np.exp(-x/mu)/mu, [0.2, 0.5, 1.2], **options),
+        fit_extended_unbinned_model(lambda x, mu: mu, [0.2, 0.5, 1.2], (0, 2), **options),
+        fit_indexed_model(constant, [0, 1, 2], counts, **options),
+        fit_multi_model([constant], [[0, 1, 2]], [counts], **options),
+    ]
+    for result in fits:
+        assert result.converged
+        assert result.options["optimizer"] == "nelder_mead"
+        assert result.options["parameter_covariance"] == "none"
+        assert np.isnan(result.stderr).all()

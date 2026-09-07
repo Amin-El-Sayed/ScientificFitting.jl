@@ -10,6 +10,7 @@ using LaTeXStrings
 using LinearAlgebra
 using LsqFit
 using Optimization
+import OptimizationNLopt
 using OptimizationOptimJL
 using QuadGK
 using SpecialFunctions

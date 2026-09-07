@@ -106,13 +106,16 @@ ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=
 
 """
     FitOptions(; backend=:auto, cost=:auto, maxiters=500, tol=1e-10,
-                scale_covariance=:auto, multistart=1)
+                scale_covariance=:auto, multistart=1,
+                optimizer=:auto, parameter_covariance=:auto)
 
 Normalized solver and covariance options stored in a `FitResult`. User-facing
 fit functions expose these as keyword arguments; constructing `FitOptions`
 directly is mainly useful for lower-level workflows and tests. Invalid backend,
 iteration, tolerance, covariance-scaling, and multistart
 settings fail during construction rather than inside a solver.
+Likelihood fits additionally select `optimizer` and `parameter_covariance`;
+their resolved choices are stored here and preserved by profile refits.
 """
 Base.@kwdef struct FitOptions
     backend::Symbol = :auto
@@ -121,6 +124,8 @@ Base.@kwdef struct FitOptions
     tol::Float64 = 1e-10
     scale_covariance::Symbol = :auto
     multistart::Int = 1
+    optimizer::Symbol = :auto
+    parameter_covariance::Symbol = :auto
 
     function FitOptions(
         backend::Symbol,
@@ -129,6 +134,8 @@ Base.@kwdef struct FitOptions
         tol::Real,
         scale_covariance::Symbol,
         multistart::Integer,
+        optimizer::Symbol=:auto,
+        parameter_covariance::Symbol=:auto,
     )
         maxiters_value = Int(maxiters)
         tol_value = Float64(tol)
@@ -138,6 +145,12 @@ Base.@kwdef struct FitOptions
         ))
         scale_covariance in (:auto, :always, :never) || throw(ArgumentError(
             "scale_covariance must be :auto, :always, or :never",
+        ))
+        optimizer in (:auto, :lbfgs, :ipnewton, :nelder_mead) || throw(ArgumentError(
+            "optimizer must be :auto, :lbfgs, :ipnewton, or :nelder_mead",
+        ))
+        parameter_covariance in (:auto, :hessian, :none) || throw(ArgumentError(
+            "parameter_covariance must be :auto, :hessian, or :none",
         ))
         maxiters_value > 0 || throw(ArgumentError("maxiters must be > 0"))
         isfinite(tol_value) && tol_value > 0 || throw(ArgumentError(
@@ -151,6 +164,8 @@ Base.@kwdef struct FitOptions
             tol_value,
             scale_covariance,
             multistart_value,
+            optimizer,
+            parameter_covariance,
         )
     end
 end

@@ -36,7 +36,7 @@ function fit_keywords(options)
     for (key, value) in values
         name = Symbol(key)
         pyis(value, pybuiltins.None) && continue
-        result[name] = if name in (:backend, :cost, :scale_covariance, :cost_name)
+        result[name] = if name in (:backend, :cost, :scale_covariance, :cost_name, :optimizer, :parameter_covariance)
             Symbol(pyconvert(String, value))
         elseif name in (:cov_x, :cov_y)
             covariance(value)

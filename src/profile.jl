@@ -165,6 +165,8 @@ function _refit_with_fixed(result::LikelihoodFitResult, fixed::Vector{FixedParam
         refit_problem;
         maxiters=result.options.maxiters,
         tol=result.options.tol,
+        optimizer=result.options.optimizer,
+        parameter_covariance=result.options.parameter_covariance,
     )
 end
 
@@ -305,7 +307,9 @@ Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
 
 The automatic grid intersects `best_value +/- nsigma * local_stderr` with the
-parameter bounds. Explicit `values` are not clipped: infeasible points still
+parameter bounds. Without a positive finite local error, its initial step scale
+is `0.1 * max(abs(best_value), 1)`, a search heuristic, not an uncertainty.
+Use explicit `values` for scientifically chosen ranges. Explicit values are not clipped: infeasible points still
 follow `on_failure`. A bound is not substituted for a missing threshold crossing.
 
 With `adaptive=true`, ScientificFitting refines grid intervals that bracket the requested
@@ -545,6 +549,8 @@ Compute a multi-parameter profile/contour diagnostic matrix without loading
 Makie. Diagonal entries are one-parameter profile scans; lower-triangle entries
 are two-parameter profile contours. Each panel is diagnosed against the local
 covariance approximation when local errors or covariance entries are finite.
+Without local errors, grids use `profile`'s heuristic scale; for controlled
+ranges, compute individual profiles/contours with explicit grid values.
 
 Use this when a fit has several correlated or nonlinear parameters and you
 need a quick, machine-readable answer to: "Are local symmetric covariance

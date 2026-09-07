@@ -182,13 +182,23 @@ function _local_covariance_validity_findings(cov::AbstractMatrix)
     ]
 end
 
-function _fit_diagnostics(problem, params::AbstractVector, cov::AbstractMatrix, converged::Bool, ndf::Int; hessian=nothing, gof=nothing)
-    cov_cond = _safe_condition_number(cov)
+function _fit_diagnostics(problem, params::AbstractVector, cov::AbstractMatrix, converged::Bool, ndf::Int;
+                          hessian=nothing, gof=nothing, covariance_computed::Bool=true)
+    # Fixed coordinates have zero variance by construction, not a degeneracy.
+    free_idx = _free_indices(problem)
+    free_cov = cov[free_idx, free_idx]
+    cov_cond = covariance_computed ? _safe_condition_number(free_cov) : NaN
     hess_cond = hessian === nothing ? NaN : _safe_condition_number(hessian)
     active_bounds = _active_bound_indices(problem.bounds, params)
     warnings = _diagnostic_warnings(converged, ndf, cov_cond, hess_cond, active_bounds; gof=gof)
     findings = _basic_diagnostic_findings(converged, ndf, cov_cond, hess_cond, active_bounds; gof=gof)
-    covariance_findings = _local_covariance_validity_findings(cov)
+    covariance_findings = covariance_computed ? _local_covariance_validity_findings(free_cov) : DiagnosticFinding[]
+    if !covariance_computed && !isempty(free_idx)
+        push!(findings, _finding(:info, :covariance_not_computed,
+            "Local parameter errors were not computed",
+            "parameter_covariance=:none; free-parameter errors are unavailable, not zero.",
+            "Use explicit profile ranges or a distribution-specific uncertainty method. A non-smooth or support-limited likelihood need not obey the usual chi-square profile thresholds."))
+    end
     append!(findings, covariance_findings)
     !isempty(covariance_findings) && push!(
         warnings,

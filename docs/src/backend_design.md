@@ -134,7 +134,7 @@ convergence flag; reaching an iteration limit does not imply success.
 The finite mode differentiates the **whole** objective, including any
 parameter-dependent covariance and its log determinant. It is an approximation,
 not a claim of exact derivatives: noisy models, badly scaled parameters, and
-non-smooth/domain-limited callbacks still need care. Models must be evaluable
+non-smooth/domain-limited callbacks still need care. Differentiated models must be evaluable
 in a neighborhood of each evaluation point, including near declared bounds.
 For pointwise x-error propagation, two vectorized model calls estimate all
 `df/dx` values instead of crossing a Python boundary once per observation.
@@ -147,10 +147,18 @@ Solver selection follows the represented problem rather than a speed preference:
 | Unbounded, static Gaussian chi-square without extra parameter terms | LsqFit least-squares path |
 | Bounds, priors, parameter constraints, parameter-dependent covariance, or likelihood objective | Optimization.jl with LBFGS |
 | Nonlinear equality or inequality constraints | Optimization.jl with IPNewton |
+| Likelihood with explicit `optimizer=:nelder_mead` and no nonlinear constraints | OptimizationNLopt with native bounded Nelder-Mead, without derivatives |
 
 An explicit `backend=:lsqfit` request is rejected if it would discard any part
 of the statistical problem. Backend selection may change how the same objective
 is minimized; it must never change which objective is being minimized.
+
+Likelihood `optimizer` and `parameter_covariance` are independent options stored
+in `FitOptions` and retained by profile refits. Nelder-Mead defaults to no
+Hessian calculation, not a numerical Hessian across a kink or support boundary.
+It uses the same objective/cache and parameter controls, without a separate
+statistics implementation or bound penalty. Its `maxiters` is NLopt's objective
+evaluation budget; the unavailable iteration count remains `missing`.
 
 CHOLMOD's sparse solves do not accept ForwardDiff dual numbers. Static sparse
 covariance therefore requires `derivatives=:finite` with the general optimizer,
@@ -169,7 +177,12 @@ residuals, and the weighted Jacobian.
 
 For static least squares, local covariance comes from the weighted Jacobian. For
 Gaussian likelihood and general likelihood fits, it comes from the objective
-Hessian on the ``-2\log L`` scale. This covariance is a local approximation;
+Hessian on the ``-2\log L`` scale. `LikelihoodFitResult` construction evaluates
+it once and reuses it for diagnostics.
+For likelihoods with `parameter_covariance=:none`, free errors/covariances are
+`NaN`, fixed errors remain zero, and diagnostics explain the omission rather
+than claiming a curvature failure. Covariance conditioning uses free coordinates;
+a fixed parameter's zero variance is not a singularity. This covariance is a local approximation;
 profiles and contours remain separate refit operations when the cost is not
 locally quadratic.
 
@@ -266,6 +279,7 @@ Architecture changes need evidence at the layer they affect:
 | Structured matrix-free covariance | `test/statistics/structured_whitening_reference.jl` |
 | In-place models and Jacobians | `test/numerics/inplace_model_reference.jl` |
 | Solver limits, convergence status, and stopped profile refits | `test/numerics/solver_status_reference.jl` |
+| Laplace median, moving support, derivative-free nuisance refits, and optional Hessian errors | `test/numerics/nonsmooth_likelihood_reference.jl` |
 | Invalid scientific and numerical inputs | `test/numerics/torture_inputs.jl` |
 | Public compatibility and optional plotting boundary | `test/regression/current_api.jl` |
 | Steady-state hot-path budgets | `test/performance_budget_gate.jl` |
@@ -282,12 +296,14 @@ benchmark runner are documented on the [Performance](performance.md) page.
   documentation entry now distinguish observation models, likelihood
   optimization, local parameter errors, profiles, and model bands from
   posterior sampling. Source checks guard that distinction.
-- [ ] **User-defined measurement-error distributions.** `fit_likelihood_model`
+- [x] **User-defined measurement-error distributions.** `fit_likelihood_model`
   now accepts batched log densities/masses in Julia and Python, reusing the
   common likelihood engine. Gaussian, fitted-scale, Binomial, and Student-t
-  references cover normalization and curvature. Remaining: suitable explicit
-  solver/inference controls for non-smooth or support-limited objectives and
-  worked guidance beyond the current smooth, independent-observation contract.
+  references cover normalization and curvature. Bounded derivative-free
+  Nelder-Mead and independent covariance controls now cover non-smooth and
+  moving-support examples without fabricated Hessian errors. Laplace and
+  exponential references verify minima and profile costs; worked guidance
+  distinguishes successful minimization from valid interval coverage.
 - [ ] **v0.2: complete the native Python interface.** The preview now wraps
   every high-level fitting family, including correlated parameter constraints
   and named multi-dataset sharing, sparse/structured covariance, error

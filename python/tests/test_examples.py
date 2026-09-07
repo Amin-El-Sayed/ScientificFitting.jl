@@ -1,6 +1,7 @@
 """Execute the worked Python sources; compare their inference and rendered data."""
 
 from pathlib import Path
+import re
 import runpy
 
 import numpy as np
@@ -11,6 +12,17 @@ from scientificfitting import plot_style
 
 
 EXAMPLES = Path(__file__).resolve().parents[2] / "examples" / "python"
+
+
+def test_documented_python_cells_execute_in_order(tmp_path, monkeypatch):
+    """Run the actual page, not separately maintained copies of its snippets."""
+    source = EXAMPLES.parents[1] / "docs" / "src" / "python.md"
+    monkeypatch.chdir(tmp_path)
+    namespace = {"__name__": "__documentation__"}
+    for cell in re.findall(r"^```python\n(.*?)^```", source.read_text(), re.M | re.S):
+        exec(compile(cell, str(source), "exec"), namespace)
+    np.testing.assert_allclose(namespace["laplace_result"].params, [0.4], atol=1e-7)
+    assert np.isnan(namespace["laplace_result"].stderr).all()
 
 
 @pytest.fixture(scope="module")
