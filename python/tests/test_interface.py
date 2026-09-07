@@ -115,7 +115,7 @@ def test_analytic_callbacks_and_native_matplotlib(calibration, tmp_path):
     assert len(calls) == before + 1
     with plt.rc_context({"font.size": 13}):
         fig, axes = plt.subplots(1, 2, figsize=(10, 4), layout="constrained")
-        returned_fig, returned_ax = plot_fit(result, ax=axes[0], xlabel="x / mm", ylabel="U / V",
+        returned_fig, returned_ax = plot_fit(result, ax=axes[0], panel=False, xlabel="x / mm", ylabel="U / V",
                                               curve_kwargs={"color": "#0072B2"})
         assert returned_fig is fig and returned_ax is axes[0]
         parameters = result.params.copy()

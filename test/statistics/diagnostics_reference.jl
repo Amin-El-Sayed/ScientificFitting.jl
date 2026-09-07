@@ -1,7 +1,35 @@
 using ScientificFitting
 using Test
+using LinearAlgebra
 
 @testset "Statistical diagnostic warnings" begin
+    @testset "Renderers share stored observation diagnostics without Makie" begin
+        calls = Ref(0)
+        function model(x, p)
+            calls[] += 1
+            return p[1] .* x .+ p[2]
+        end
+        x = collect(0.0:6.0)
+        y = [0.6, 1.4, 2.8, 3.5, 4.7, 5.6, 6.8]
+        covariance = 0.04 .* 0.5 .^ abs.(x .- x')
+        result = fit_model(model, x, y; p0=[1.0, 0.0], cov_y=covariance,
+                           parameter_priors=(index=1, mean=1.0, sigma=0.3))
+        before = calls[]
+        coordinates, values, errors, title, label, reference =
+            ScientificFitting._diagnostic_values(result, :pull)
+        @test calls[] == before
+        @test coordinates == x
+        @test length(result.weighted_residuals) == length(x) + 1
+        @test values ≈ cholesky(Symmetric(covariance)).L \ result.residuals
+        @test errors === nothing
+        @test title == "Whitened residuals"
+        @test reference == 0.0
+        ratio = ScientificFitting._diagnostic_values(result, :ratio)
+        @test ratio[2] ≈ y ./ result.model_y
+        @test ratio[3] ≈ sqrt.(diag(covariance)) ./ abs.(result.model_y)
+        @test_throws ArgumentError ScientificFitting._diagnostic_values(result, :unknown)
+    end
+
     @testset "Unbinned likelihood warns about unavailable p-values" begin
         data = Float64[-0.8, -0.1, 0.2, 0.7]
         sigma = 0.5

@@ -32,7 +32,6 @@ print(result.report())
 
 fig, ax = plot_fit(result, xlabel="x / mm", ylabel="U / V")
 ax.axvline(1.5, color="black", linestyle="--")
-ax.legend()
 fig.savefig("calibration.pdf")
 ```
 
@@ -60,8 +59,10 @@ Gaussian model mean and its local standard uncertainty, without observation
 noise. `plot_fit` accepts an existing Matplotlib `ax` and ordinary artist
 keyword dictionaries; it does not change global plotting settings or refit.
 
-Not yet covered by the Python facade: the full diagnostic/report-panel
-plotting suite. The Julia APIs remain available; this preview is
+The plotting facade now includes Gaussian fit/residual panels, editable
+reports, and profiles/contours for every supported fit family. Convenience
+plots for likelihood observations and multi-dataset results are still missing.
+The Julia APIs remain available; this preview is
 not a claim of v0.2 feature parity. Cross-platform clean-install checks and
 release dependency pins are also still required before publishing a wheel.
 
@@ -229,3 +230,93 @@ Julia core. Consuming these results never repeats the scans.
 For two profiled parameters the default levels `[2.30, 6.18]` differ from
 the one-parameter thresholds `[1, 4]`. They represent the usual asymptotic
 68.27% and 95.45% joint regions, not marginal errors or posterior probabilities.
+
+## Native Matplotlib, Independent Controls
+
+`plot_style("sans")` and `plot_style("tex")` return ordinary Matplotlib rcParams.
+The latter uses bundled STIX fonts and MathText, not an external TeX installation.
+Both support a report panel; `panel=False` disables it without changing the font,
+colors, uncertainty calculation, or fit. No global style is changed.
+
+```python
+from scientificfitting import add_report, plot_style
+
+with plt.rc_context(plot_style("tex")):
+    fig, ax = plot_fit(result, panel=False, xlabel="x / mm", ylabel="U / V")
+    ax.axvline(1.5, color="black", linestyle=":", label="reference position")
+    panel = add_report(
+        fig, result, ax=ax, expand=True,
+        parameter_labels={"slope": r"$m$", "offset": r"$b$"},
+        statistics=("chi2_ndf", "pvalue"),
+    )
+    fig.savefig("calibration_with_reference.pdf")
+    plt.close(fig)
+```
+
+Add labeled artists **before** constructing the report if they should appear in
+its legend. The returned `panel` is a normal Matplotlib `Legend`; it can be edited
+or removed with `panel.remove()`. `parameters` selects the displayed estimates,
+`parameter_labels` changes their labels, and `statistics` selects report fields.
+Passing a completed `FitReport` also supports previously computed asymmetric
+profile errors without launching another scan. Unavailable values stay visible
+as unavailable, not zero. Reports show the actual optimizer convergence flag;
+convergence alone does not validate the model.
+
+Outside reports use Matplotlib's
+[constrained layout](https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html).
+A default new `plot_fit` figure grows by the measured report extent, rather
+than squeezing the graph. An explicit `figsize=(width, height)` is respected
+in inches; increasing width gives the data axes more room while the report text
+keeps its size. Very small explicit canvases can still be too small for the
+chosen text. `add_report(..., expand=True)` opts into content-sized expansion;
+`position="bottom"` places it below instead of beside the graph.
+
+To use an existing subplot, pass `ax=...` and `panel=False`; its layout is left
+alone. For an outside report, create the parent figure with
+`plt.subplots(..., layout="constrained")`. Artist dictionaries
+`curve_kwargs`, `point_kwargs`, and `band_kwargs` are passed to Matplotlib's
+`plot`, `errorbar`, and `fill_between`, respectively. Adding markers, changing
+limits, or exporting PDF/SVG/PNG remains ordinary Matplotlib code.
+
+## Plot Diagnostics Without Repeating Fits
+
+```python
+from scientificfitting import (plot_contour, plot_diagnostics, plot_profile,
+                              plot_profile_matrix, plot_residuals)
+
+fig, axes = plot_diagnostics(result, kinds=("residual", "pull"), xlabel="x / mm")
+fig.savefig("calibration_diagnostics.pdf")
+plt.close(fig)
+
+# These consume the completed scans above; no additional minimizations.
+fig, ax = plot_profile(interval.profile_result, delta_max=5)
+plt.close(fig)
+fig, ax = plot_contour(pair)
+plt.close(fig)
+fig, axes = plot_profile_matrix(matrix)
+fig.savefig("calibration_profiles.pdf")
+plt.close(fig)
+```
+
+`plot_residuals(..., kind="residual" | "pull" | "ratio")` returns one axis;
+`plot_diagnostics` returns a selectable stack. Both use the same numerical
+helper as the Julia renderer. Pulls use only stored **observation** residuals,
+not appended parameter-prior terms. With covariance they are whitened
+coordinates, not individual measurement discrepancies divided by marginal
+errors. The shaded unit bands are reference guides, not calibrated coverage
+intervals for fitted residuals. Ratios are undefined at zero predictions:
+the single-plot call raises an error; the stack marks that panel unavailable
+while retaining the useful residual panels.
+
+Profile plots compare the refitted cost with the local covariance parabola.
+Contour plots distinguish filled profile regions from dashed covariance
+ellipses, with explicit one- versus two-parameter thresholds in the legend.
+Matrix plots put profiles on the diagonal, joint regions below it, and local
+correlations above it. Failed costs remain gaps; invalid local covariance is
+marked unavailable. Negative cost differences, which can reveal a better
+minimum, are not reset to zero. `panel_status="none"` hides the compact status
+label but does not alter results; detailed findings remain on `scan.diagnostics`.
+
+The complete nonlinear decay example in `examples/python/numpy_matplotlib.py`
+exports both styles, with and without panels, plus residual and three-parameter
+profile plots. It fits once and computes its scans once before rendering.

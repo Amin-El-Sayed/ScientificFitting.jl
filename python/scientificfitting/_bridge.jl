@@ -225,3 +225,5 @@ end
 
 plot_errors(result) = (ScientificFitting._xerror_for_plot(result.problem, result.params),
     ScientificFitting._yerror_for_plot(result.problem, result.params))
+
+diagnostic_data(result::FitResult, kind::String) = ScientificFitting._diagnostic_values(result, Symbol(kind))

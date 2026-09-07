@@ -8,7 +8,8 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scientificfitting import fit_model, plot_fit
+from scientificfitting import (add_report, fit_model, plot_diagnostics, plot_fit,
+                              plot_profile_matrix, plot_style)
 
 
 def decay(t, amplitude, tau, background):
@@ -30,23 +31,39 @@ result = fit_model(
 print(result.report())
 print(result.diagnose())
 
-# Normal Matplotlib customization. No Makie, no new fit to edit the figure.
-with plt.rc_context({"font.size": 12, "axes.labelsize": 13, "axes.titlesize": 14}):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4), layout="constrained")
-    plot_fit(result, ax=axes[0], xlabel="t / s", ylabel="U / V", title="Decay with background",
-             curve_kwargs={"color": "#0072B2"})
-    axes[0].axhline(result.values["background"], color="black", linestyle="--", linewidth=1,
-                   label="fitted background")
-    axes[0].legend(fontsize=9, frameon=False)
+# Scans refit nuisance parameters in Julia. Compute once, not once per style.
+matrix = result.profile_matrix(
+    ["amplitude", "tau", "background"], npoints_profile=31, npoints_contour=21, nsigma=3,
+)
+print(matrix.diagnostics)
+output = Path(__file__).resolve().parents[1] / "output"
+output.mkdir(exist_ok=True)
+labels = {"amplitude": r"$A$ / V", "tau": r"$\tau$ / s", "background": r"$B$ / V"}
 
-    # Profiles still refit nuisance parameters in Julia, using the NumPy model.
-    scan = result.profile("tau", npoints=31, nsigma=3)
-    axes[1].plot(scan.values, scan.delta_cost, color="#0072B2")
-    axes[1].axhline(1, color="black", linestyle="--", linewidth=1, label=r"$\Delta C=1$")
-    axes[1].set(xlabel=r"$\tau$ / s", ylabel=r"$\Delta C$", title="Lifetime profile")
-    axes[1].legend(fontsize=10, frameon=False)
 
-    output = Path(__file__).resolve().parents[1] / "output"
-    output.mkdir(exist_ok=True)
-    fig.savefig(output / "python_numpy_matplotlib.png", dpi=160)
-    fig.savefig(output / "python_numpy_matplotlib.pdf")
+def save_figure(fig, name):
+    """Export the same native figure as a bitmap and a vector PDF."""
+    fig.savefig(output / f"{name}.png", dpi=160)
+    fig.savefig(output / f"{name}.pdf")
+    plt.close(fig)
+
+
+for style in ("sans", "tex"):
+    with plt.rc_context(plot_style(style)):
+        # Panel visibility is independent of typography. Add artists first so
+        # the report's legend includes them; native Matplotlib owns the layout.
+        for panel in (True, False):
+            fig, ax = plot_fit(result, panel=False, xlabel="t / s", ylabel="U / V",
+                               title="Decay with detector background")
+            ax.axhline(result.values["background"], color="black", linestyle="--", linewidth=1,
+                       label="fitted background")
+            if panel:
+                add_report(fig, result, ax=ax, parameter_labels=labels, expand=True)
+            else:
+                ax.legend(frameon=False)
+            save_figure(fig, f"python_decay_{style}_panel_{panel}")
+
+        fig, axes = plot_diagnostics(result, kinds=("residual", "pull"), xlabel="t / s")
+        save_figure(fig, f"python_diagnostics_{style}")
+        fig, axes = plot_profile_matrix(matrix, parameter_labels=labels)
+        save_figure(fig, f"python_profiles_{style}")

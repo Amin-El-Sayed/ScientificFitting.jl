@@ -681,3 +681,43 @@ diagnostic_dashboard_text(result; max_actions::Int=5) =
 function Base.show(io::IO, dashboard::DiagnosticDashboard)
     print(io, diagnostic_dashboard_text(dashboard))
 end
+
+"""
+    _diagnostic_values(result::FitResult, kind::Symbol)
+
+Renderer-independent coordinates, values, marginal error bars, and labels.
+Pulls reuse only the observation part of the stored whitened residual vector;
+auxiliary parameter constraints are not additional measurement points.
+"""
+function _diagnostic_values(result::FitResult, kind::Symbol)
+    x, yhat = result.problem.x, result.model_y
+    if kind == :residual
+        values = result.residuals
+        errors = _yerror_for_plot(result.problem, result.params)
+        _validate_diagnostic_plot_values(kind, x, values, errors)
+        return x, values, errors, "Residuals", "y - fit", 0.0
+    elseif kind == :pull
+        values = view(result.weighted_residuals, 1:length(x))
+        _validate_diagnostic_plot_values(kind, x, values, nothing)
+        return x, values, nothing, "Whitened residuals", "whitened residual", 0.0
+    elseif kind == :ratio
+        all(isfinite, yhat) || throw(ArgumentError("ratio diagnostic requires finite model predictions"))
+        all(!iszero, yhat) || throw(ArgumentError("ratio diagnostic is undefined when a model prediction is zero"))
+        ratio = result.problem.y ./ yhat
+        yerr = _yerror_for_plot(result.problem, result.params)
+        ratio_err = yerr === nothing ? nothing : yerr ./ abs.(yhat)
+        _validate_diagnostic_plot_values(kind, x, ratio, ratio_err)
+        return x, ratio, ratio_err, "Ratio", "data / fit", 1.0
+    end
+    throw(ArgumentError("diagnostic plot kind must be :residual, :pull, or :ratio"))
+end
+
+function _validate_diagnostic_plot_values(kind::Symbol, x, values, errors)
+    all(isfinite, x) || throw(ArgumentError("diagnostic plot x values must be finite"))
+    all(isfinite, values) || throw(ArgumentError("$(kind) diagnostic values must be finite"))
+    if errors !== nothing
+        all(isfinite, errors) || throw(ArgumentError("$(kind) diagnostic errors must be finite"))
+        all(>=(0.0), errors) || throw(ArgumentError("$(kind) diagnostic errors must be non-negative"))
+    end
+    return nothing
+end

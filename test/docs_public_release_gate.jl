@@ -41,7 +41,7 @@ const FORBIDDEN_PUBLIC_PATTERNS = Pair{String, Regex}[
     "AI/LLM disclosure text" => r"(?i)\b(as an ai|chatgpt|large language model|ai[- ]?generated|ai slop)\b",
     "placeholder marker" => r"(?i)\b(todo|fixme|lorem ipsum|placeholder prose|being rewritten|not all of them are finished|work in progress|coming soon|to be written|to be added)\b",
     "draft/tutorial residue" => r"(?i)\b(draft-only|toy example|left as an exercise|why this example matters|synthetic perfect-data)\b",
-    "private local path" => r"(?i)(/Users/|Documents/Projekte|private P1|P1-Praktikum|Praktikum)",
+    "private local path" => r"(?i)((?<![\w/])/Users/|file:///Users/|Documents/Projekte|private P1|P1-Praktikum|Praktikum)",
     "private author handle in public prose" => r"(?i)\bAmin_El_Sayed\b",
     "course-internal wording" => r"(?i)\b(course[- ]internal|lab-course-internal|private dataset)\b",
     "stale public API identifier" => r"\b(profile_curve|contour_grid)\b",
@@ -161,6 +161,13 @@ function html_image_alt_text(tag::AbstractString)
 end
 
 @testset "Public documentation release hygiene" begin
+    @testset "Website sections are not machine-local paths" begin
+        pattern = Dict(FORBIDDEN_PUBLIC_PATTERNS)["private local path"]
+        @test occursin(pattern, "`/Users/example/project`")
+        @test occursin(pattern, "file:///Users/example/project")
+        @test !occursin(pattern, "https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html")
+    end
+
     @testset "Documenter navigation coverage" begin
         @test documenter_navigation_pages() == sort(setdiff(PUBLIC_DOC_PAGES, ["index.md"]))
         @test docs_source_markdown_pages() == sort(PUBLIC_DOC_PAGES)

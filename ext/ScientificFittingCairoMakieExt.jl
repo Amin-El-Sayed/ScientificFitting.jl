@@ -31,6 +31,7 @@ import ScientificFitting:
     resize_plot_to_layout!,
     profile,
     report_text,
+    _diagnostic_values,
     _fmt_value,
     _model_dydx,
     _model_values,

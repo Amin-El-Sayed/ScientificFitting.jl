@@ -182,6 +182,13 @@ CairoMakie package extension and consumes the same result objects. None of these
 paths reruns or alters the original fit unless the API explicitly describes a
 profile or contour refit.
 
+The Python renderer uses native Matplotlib objects, not Makie. Both renderers
+share core residual/ratio preparation; observation pulls use stored whitened
+residuals without auxiliary parameter terms. Completed profile/contour snapshots
+are rendered without further scans. Matplotlib's constrained layout reserves
+outside legends and reports; the wrapper does not install a separate layout
+engine or resize callbacks.
+
 ## Numerical Invariants
 
 These are architectural rules, not implementation preferences.
@@ -214,7 +221,7 @@ stacks.
 | `derivatives.jl` and `prediction.jl` | shared derivative policy and model-mean uncertainty propagation |
 | `likelihood_fits.jl` | likelihood problem construction, wrappers, solver path, and `LikelihoodFitResult` |
 | `profile.jl` | fixed-parameter refits, profile intervals, contours, matrix summaries, and their diagnostics |
-| `diagnostics.jl` | structured findings, severity, evidence, and next actions |
+| `diagnostics.jl` | structured findings, severity, evidence, next actions, and renderer-independent residual values |
 | `report.jl` | Makie-free report objects and text formatting |
 | `plotting_api.jl` | public plotting boundary and informative fallback methods |
 | `ext/ScientificFittingCairoMakieExt.jl` plus `plotting.jl` | CairoMakie rendering only |
@@ -257,6 +264,7 @@ Architecture changes need evidence at the layer they affect:
 | Public compatibility and optional plotting boundary | `test/regression/current_api.jl` |
 | Steady-state hot-path budgets | `test/performance_budget_gate.jl` |
 | Plot composition and extension behavior | `test/plots/fitplot.jl` |
+| NumPy callback parity, native Matplotlib panels, profiles, and ownership | `python/tests` |
 
 The core gate is `julia --project=. test/core_runtests.jl`; the complete package
 gate is `julia --project=. test/runtests.jl`. Performance methodology and the
@@ -279,9 +287,10 @@ benchmark runner are documented on the [Performance](performance.md) page.
   and named multi-dataset sharing, sparse/structured covariance, error
   components, and in-place callbacks. Named result/report/diagnostic snapshots,
   asymmetric profile intervals, and profile matrices now preserve core findings
-  and missing values. Remaining: native Matplotlib diagnostic/report panels.
-  Keep panel visibility independent of visual style, and reuse the Julia
-  numerical engine rather than duplicating inference in Python. Deliver
+  and missing values. Native Matplotlib reports, Gaussian residual diagnostics,
+  and profile/contour matrices are implemented with panel visibility independent
+  of typography. Remaining: likelihood-observation and multi-dataset plotting
+  conveniences, without duplicating inference in Python. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,
   and clean-install tests on supported platforms. Measure numerical parity,
   callback overhead (including scalar quadrature), startup time, and installed

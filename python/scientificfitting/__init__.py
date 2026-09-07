@@ -1,7 +1,7 @@
 """Native Python fitting with a shared Julia numerical core and optional Matplotlib.
 
 Development API: models receive `(x, **parameters)` as NumPy arrays and floats.
-Matplotlib is imported only by `plot_fit`; Julia/Makie figures are never exposed.
+Matplotlib is imported only when plotting; Julia/Makie figures are never exposed.
 """
 
 from ._core import (
@@ -14,17 +14,12 @@ from ._results import (
     ContourResult, DiagnosticFinding, DiagnosticReport, FitReport, ParameterEstimate,
     ProfileInterval, ProfileMatrixPanelTriage, ProfileMatrixResult, ProfileResult,
 )
-
-
-def plot_fit(result, **kwargs):
-    """Draw an existing Gaussian fit; return a native Matplotlib `(Figure, Axes)`.
-
-    See `scientificfitting._plotting.plot_fit` for display options. Importing or
-    fitting with this package does not import a plotting backend.
-    """
-    from ._plotting import plot_fit as draw
-
-    return draw(result, **kwargs)
+# Renderers import Matplotlib inside calls, preserving real signatures/docstrings
+# on the public API without making plotting dependencies mandatory at import.
+from ._plotting import add_report, plot_fit, plot_style
+from ._diagnostic_plots import (
+    plot_contour, plot_diagnostics, plot_profile, plot_profile_matrix, plot_residuals,
+)
 
 
 __all__ = [
@@ -34,4 +29,6 @@ __all__ = [
     "DiagnosticFinding", "DiagnosticReport", "FitReport", "ParameterEstimate",
     "ProfileResult", "ProfileInterval", "ContourResult", "ProfileMatrixResult",
     "ProfileMatrixPanelTriage",
+    "plot_style", "add_report", "plot_profile", "plot_contour", "plot_profile_matrix",
+    "plot_residuals", "plot_diagnostics",
 ]
