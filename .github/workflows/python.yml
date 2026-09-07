@@ -72,6 +72,7 @@ jobs:
     env:
       JULIA_DEPOT_PATH: ${{ runner.temp }}/conda-julia-depot
       PYTHON_JULIAPKG_PROJECT: ${{ runner.temp }}/conda-julia-project
+      CONDA_SOLVER: libmamba
     steps:
       - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v4
@@ -83,7 +84,7 @@ jobs:
       - name: Build and install the noarch package
         run: |
           conda install -y conda-build
-          conda build python/recipe --no-anaconda-upload --output-folder "$RUNNER_TEMP/conda-artifacts"
+          conda build python/recipe --override-channels -c conda-forge --no-anaconda-upload --output-folder "$RUNNER_TEMP/conda-artifacts"
           conda create -y -n fit-install -c "file://$RUNNER_TEMP/conda-artifacts" -c conda-forge python=3.14 scientificfitting
       - name: Check fits and reports from the installed Conda package
         run: conda run --no-capture-output -n fit-install python python/tests/check_install.py --source . --output conda-install.json

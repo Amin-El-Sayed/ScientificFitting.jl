@@ -533,6 +533,8 @@ runtime, or Makie. [JuliaPkg](https://github.com/JuliaPy/pyjuliapkg) selects a
 compatible Julia executable or downloads one and installs the numerical core.
 The core is constrained to `~0.2.0`; an explicitly overridden Julia environment
 is checked before the bridge loads. Package import alone does not start Julia.
+Compatible Julia 0.2.x bugfix releases do not require a new Python wheel;
+the wrapper's version need not advance with every core patch.
 
 On macOS ARM64 with Python 3.12.4, JuliaCall 0.9.35, and Julia 1.12.7, a fresh
 Python process using an already installed environment needed **14-23 s** to
@@ -557,9 +559,12 @@ The same sources build with standard tools:
 ```bash
 python -m pip install build
 python -m build python --outdir python/dist
-conda build python/recipe -c conda-forge --no-anaconda-upload
+conda build python/recipe --override-channels -c conda-forge --no-anaconda-upload
 ```
 
+Use a conda-forge build environment with
+[Conda's libmamba dependency solver](https://docs.conda.io/projects/conda/en/26.7.x/user-guide/concepts/conda-performance.html),
+as in the Python CI workflow.
 The Conda recipe reads the Python version and requirements from `pyproject.toml`;
 only the dependency name changes from `juliacall` to conda-forge's `pyjuliacall`.
 Matplotlib and SciPy remain optional. No post-install scripts modify the user's
@@ -574,6 +579,11 @@ profile costs, Poisson estimates, and text diagnostics. Before registration,
 Julia executable. The Python CI workflow runs installed-wheel tests on Linux,
 macOS, and Windows; a workflow definition is not evidence that every platform
 has passed. Its reports retain first-fit and repeat-fit times.
+They also record Pkg's resolved source, tracking mode, and tree hash. The check
+requires the requested checkout with `--source`; without it, retained local-path
+or repository overrides are rejected rather than counted as registry installs.
+Wheel checks compare every packaged Python/Julia runtime file with its source,
+including the wheel rebuilt from the source archive.
 
 Release order matters: register the Julia 0.2 core first, then repeat the wheel
 installation check **in a new environment without** `--source`, and only then

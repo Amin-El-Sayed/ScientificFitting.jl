@@ -359,7 +359,9 @@ normalized across solver/platform versions.
   fitting and record the remaining runtime and quadrature overhead.
   Local installed-wheel provisioning and Conda Python 3.14 reference fits pass
   on macOS ARM64. Wheel/sdist metadata, MIT license, and the 0.2 core pin are
-  checked; the noarch Conda recipe reuses the same Python sources.
+  checked; installed Conda and packaged wheel runtime files match the current
+  sources. Registry installation checks reject persisted development/repository
+  overrides and record the actual resolved core source and tree hash.
   **Remaining:** run the configured installed-package CI on Linux, macOS, and
   Windows, then repeat clean wheel/Conda installation against the registered
   0.2 core without development overrides before publishing Python packages.

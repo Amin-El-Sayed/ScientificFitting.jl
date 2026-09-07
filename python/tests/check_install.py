@@ -1,7 +1,8 @@
 """Check an installed base wheel, with real fits and no optional Python packages.
 
 Run in a fresh environment after `pip install <wheel>`. `--source` stages an
-unreleased Julia checkout via JuliaPkg; omitting it tests the registry pin.
+unreleased Julia checkout via JuliaPkg; omitting it requires a registry install
+and rejects persisted development or repository overrides.
 It never supplies or installs a Julia executable itself.
 """
 
@@ -14,6 +15,19 @@ import sys
 from time import perf_counter
 
 import numpy as np
+
+
+def validate_core_source(info, source):
+    """Check Pkg's resolved provenance, not just the requested installation mode."""
+    if source is None:
+        assert info["registry"] and not info["path"] and not info["repo"] and info["tree_hash"], (
+            "expected a registry-installed core; use a new JuliaPkg environment "
+            "without persisted source overrides, or pass --source explicitly"
+        )
+    else:
+        assert info["path"] and Path(info["source"]).resolve() == Path(source).resolve(), (
+            "loaded core does not match the requested development checkout"
+        )
 
 
 def check(source=None):
@@ -58,12 +72,21 @@ def check(source=None):
     np.testing.assert_allclose(counts.covariance, [[2.]], rtol=2e-5)
     from scientificfitting._runtime import _backend
     backend = _backend()
+    core_install = dict(backend.seval('''
+        using Pkg
+        let info = Pkg.dependencies()[Base.PkgId(ScientificFitting).uuid]
+            pydict(registry=info.is_tracking_registry, path=info.is_tracking_path,
+                   repo=info.is_tracking_repo, source=info.source, tree_hash=info.tree_hash)
+        end
+    '''))
+    validate_core_source(core_install, source)
     assert not backend.seval('any(m -> nameof(m) in (:Makie, :CairoMakie), values(Base.loaded_modules))')
     assert "matplotlib" not in sys.modules and "scipy" not in sys.modules
     return dict(platform=platform.platform(), python=platform.python_version(),
                 julia=backend.seval("string(VERSION)"), core=backend.seval("string(pkgversion(ScientificFitting))"),
                 package=str(Path(sf.__file__).resolve()), source_argument=bool(source),
                 core_source=backend.seval("pathof(ScientificFitting)"),
+                core_install=core_install,
                 first_fit_seconds=first_fit, repeat_fit_seconds=repeat_fit,
                 maximum_parameter_error=float(np.max(np.abs(result.params-expected))))
 
