@@ -3,6 +3,33 @@ using LinearAlgebra
 using Test
 
 @testset "Profile and contour statistical references" begin
+    @testset "Automatic scans respect bounds without altering explicit grids" begin
+        observations = [0.0, 0.2, -0.1, 0.3]
+        gaussian = fit_model((x,p) -> fill(p[1], length(x)), collect(1.0:4.0), observations;
+                             p0=[0.1], sigma_y=ones(4), bounds=([0.0], [1.0]))
+        likelihood = fit_custom(p -> sum(abs2, observations .- p[1]); p0=[0.1],
+                                bounds=([0.0], [1.0]), nobs=4)
+        for fit_result in (gaussian, likelihood)
+            scan = profile(fit_result, 1; npoints=5, nsigma=3, on_failure=:throw)
+            @test first(scan.values) == 0.0
+            @test last(scan.values) == 1.0
+            @test all(isfinite, scan.cost_values)
+            @test isnan(profile_interval(scan).lower)
+
+            # Caller-provided impossible values remain explicit failures.
+            outside = profile(fit_result, 1; values=[-0.2, 0.0, 0.1])
+            @test outside.values == [-0.2, 0.0, 0.1]
+            @test isinf(first(outside.cost_values))
+            @test_throws ArgumentError profile(fit_result, 1; values=outside.values, on_failure=:throw)
+        end
+        pair = fit_custom(p -> abs2(p[1]-0.1) + abs2(p[2]-0.9); p0=[0.1,0.9],
+                          bounds=([0.0,0.0], [1.0,1.0]), nobs=10)
+        scan = contour(pair, 1, 2; npoints=5, on_failure=:throw)
+        @test extrema(scan.x_values) == (0.0, 1.0)
+        @test extrema(scan.y_values) == (0.0, 1.0)
+        @test all(isfinite, scan.cost_values)
+    end
+
     x = collect(range(-2.0, 2.0; length=21))
     sigma_y = @. 0.12 + 0.02 * (x + 2.0)
     model(x, p) = @. p[1] * x + p[2]

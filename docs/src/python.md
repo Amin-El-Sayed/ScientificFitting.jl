@@ -60,9 +60,11 @@ noise. `plot_fit` accepts an existing Matplotlib `ax` and ordinary artist
 keyword dictionaries; it does not change global plotting settings or refit.
 
 The plotting facade now includes Gaussian fit/residual panels, editable
-reports, and profiles/contours for every supported fit family. Convenience
-plots for likelihood observations and multi-dataset results are still missing.
-The Julia APIs remain available; this preview is
+reports, and profiles/contours for every supported fit family. Like the Julia
+renderer, `plot_fit` and x-y residual helpers target Gaussian results;
+likelihood observations and multiple datasets can be drawn using ordinary
+Matplotlib with `add_report` for the fit estimates. Worked examples of those
+compositions are still required for the Python release. This preview is
 not a claim of v0.2 feature parity. Cross-platform clean-install checks and
 release dependency pins are also still required before publishing a wheel.
 
@@ -190,6 +192,10 @@ increase, and diagnosis against the local covariance approximation. If a scan
 already exists, `scan.interval()` extracts its crossings without fitting again.
 Unbracketed endpoints remain `NaN`; failed scan points remain infinite and
 produce findings. The wrapper never fills a failed region by interpolation.
+Automatic profile and contour grids respect declared parameter bounds. Explicit
+grids remain unchanged, so deliberately testing a forbidden value still records
+a failure (or raises with `on_failure="throw"`). A physical bound is not silently
+reported as a threshold crossing.
 
 `result.report(errors="profile")` can use asymmetric profile errors in the
 parameter report. It performs additional fits. Missing crossings remain

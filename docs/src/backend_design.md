@@ -182,6 +182,12 @@ CairoMakie package extension and consumes the same result objects. None of these
 paths reruns or alters the original fit unless the API explicitly describes a
 profile or contour refit.
 
+Automatic scan ranges intersect the local-covariance range with declared bounds;
+they do not generate known-infeasible trial values. Explicit grids are preserved,
+and missing threshold crossings remain missing rather than being replaced by a
+bound. This policy is shared by Gaussian and general-likelihood profiles,
+contours, and matrices.
+
 The Python renderer uses native Matplotlib objects, not Makie. Both renderers
 share core residual/ratio preparation; observation pulls use stored whitened
 residuals without auxiliary parameter terms. Completed profile/contour snapshots
@@ -289,8 +295,9 @@ benchmark runner are documented on the [Performance](performance.md) page.
   asymmetric profile intervals, and profile matrices now preserve core findings
   and missing values. Native Matplotlib reports, Gaussian residual diagnostics,
   and profile/contour matrices are implemented with panel visibility independent
-  of typography. Remaining: likelihood-observation and multi-dataset plotting
-  conveniences, without duplicating inference in Python. Deliver
+  of typography. Remaining: worked likelihood-observation and multi-dataset
+  plots using ordinary Matplotlib, plus the final numerical API-parity review.
+  Do not add parallel plotting abstractions where native composition suffices. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,
   and clean-install tests on supported platforms. Measure numerical parity,
   callback overhead (including scalar quadrature), startup time, and installed

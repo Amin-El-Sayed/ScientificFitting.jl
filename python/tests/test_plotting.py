@@ -89,6 +89,14 @@ def test_nonlinear_multiplot_and_long_report_share_native_layout(plt, tmp_path):
                     t, y, p0={"amplitude": 2.8, "tau": 1.5, "background": .1}, sigma_y=sigma,
                     bounds={"amplitude": (0, 10), "tau": (.1, 10), "background": (0, 1)})
     assert fit.converged
+    # The default local range crosses B=0; automatic scans must respect that
+    # bound instead of manufacturing a failed profile point outside the model.
+    profile = fit.profile("background", npoints=9, nsigma=3, on_failure="throw")
+    assert profile.values[0] == 0
+    assert np.isfinite(profile.cost_values).all()
+    contour = fit.contour("tau", "background", npoints=5, on_failure="throw")
+    assert contour.y[0] == 0
+    assert np.isfinite(contour.cost_values).all()
     for style in ("sans", "tex"):
         with plt.rc_context(plot_style(style)):
             fig, axes = plt.subplots(2, 1, figsize=(6.4, 6), sharex=True, layout="constrained")

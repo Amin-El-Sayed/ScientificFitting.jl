@@ -174,7 +174,14 @@ function _default_profile_grid(result, index::Int; npoints::Int, nsigma::Real)
     if !isfinite(sigma) || sigma <= 0
         sigma = max(abs(center), 1.0) * 0.1
     end
-    return collect(range(center - nsigma * sigma, center + nsigma * sigma; length=npoints))
+    lower, upper = center - nsigma * sigma, center + nsigma * sigma
+    if result.problem.bounds !== nothing
+        # An automatic scan must not manufacture failures outside known bounds.
+        lower = max(lower, result.problem.bounds[1][index])
+        upper = min(upper, result.problem.bounds[2][index])
+    end
+    lower < upper || throw(ArgumentError("parameter $index has no nonzero scan range within its bounds"))
+    return collect(range(lower, upper; length=npoints))
 end
 
 function _profile_refit_cost(result, fixed::Vector{FixedParameter}; on_failure::Symbol)
@@ -296,6 +303,10 @@ end
 
 Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
+
+The automatic grid intersects `best_value +/- nsigma * local_stderr` with the
+parameter bounds. Explicit `values` are not clipped: infeasible points still
+follow `on_failure`. A bound is not substituted for a missing threshold crossing.
 
 With `adaptive=true`, ScientificFitting refines grid intervals that bracket the requested
 profile threshold. This improves interval extraction without forcing a dense
@@ -808,6 +819,9 @@ end
 Compute a two-parameter profile-likelihood contour grid. At each grid point,
 parameters `i` and `j` are fixed and all remaining free parameters are
 re-minimized.
+
+Automatic axes respect parameter bounds, as in `profile`. Explicit `xvalues`
+and `yvalues` remain unchanged, including infeasible points.
 
 With `adaptive=true`, ScientificFitting refines grid cells whose corner values bracket a
 requested contour level. This concentrates expensive refits near meaningful
