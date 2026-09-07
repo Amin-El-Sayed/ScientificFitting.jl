@@ -11,13 +11,14 @@ from ._runtime import _backend
 from ._results import _diagnostic, _fit_report, _profile, _contour, _interval, _profile_matrix, _numerical_diagnostics
 
 
-def _model_callback(function, names):
+def _model_callback(function, names, *, ndim=1):
+    """Borrow inputs and validate the declared vector or Jacobian-matrix result."""
     def call(x, parameters):
         # Julia owns inputs during the callback; user code must not mutate them.
         values = _readonly(x)
         result = _real_array(function(values, **dict(zip(names, map(float, parameters)))))
-        if result.ndim != 1:
-            raise ValueError("model must return a one-dimensional numeric array")
+        if result.ndim != ndim:
+            raise ValueError(f"callback must return a {ndim}-dimensional numeric array")
         return result
 
     return call
@@ -136,8 +137,10 @@ def _options(options, names, nobs):
         converted["gof"] = _parameter_callback(converted["gof"], names, scalar=True)
     for key in ("jacobian", "x_derivative"):
         if converted.get(key) is not None:
-            wrap = _inplace_callback if key == "jacobian" and converted.get("inplace", False) else _model_callback
-            converted[key] = wrap(converted[key], names)
+            if key == "jacobian" and converted.get("inplace", False):
+                converted[key] = _inplace_callback(converted[key], names)
+            else:
+                converted[key] = _model_callback(converted[key], names, ndim=2 if key == "jacobian" else 1)
     if converted.get("constraints") is not None:
         constraints = converted["constraints"]
         if constraints.keys() - {"eq", "ineq"}:

@@ -43,7 +43,10 @@ the order of result arrays, not how parameters bind to the model. Models must
 be deterministic and, for the default solvers, smooth around evaluated points. Finite differences are
 used consistently, including when bounds or profiles trigger a different
 solver. Optional analytic `jacobian` and `x_derivative` callbacks use the same
-Python argument convention.
+Python argument convention. `jacobian(x, **parameters)` returns an `(n, k)`
+matrix with columns in `p0` key order; `x_derivative(x, **parameters)` returns
+an `(n,)` vector. Both differentiate the unweighted model; the core handles
+uncertainty propagation and whitening. Do not flatten the Jacobian matrix.
 The default solver `tol=1e-6` accounts for differenced-gradient noise;
 `tol` remains configurable and is not a bound on parameter error.
 `maxiters` limits each solver run. `result.converged` and the report reflect

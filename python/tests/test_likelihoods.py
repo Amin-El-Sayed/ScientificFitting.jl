@@ -138,7 +138,7 @@ def test_vectorized_histogram_matches_integrated_bin_probabilities():
 
 def test_vectorized_density_rejects_malformed_output_and_option():
     for bad in (lambda x, tau: 1., lambda x, tau: np.ones(len(x)+1)):
-        with pytest.raises(Exception, match="vectorized density|one-dimensional numeric array"):
+        with pytest.raises(Exception, match="vectorized density|1-dimensional numeric array"):
             fit_unbinned_model(bad, [0.1, 0.5, 1.], p0={"tau": 1.}, vectorized=True)
     with pytest.raises(TypeError, match="vectorized must be a boolean"):
         fit_unbinned_model(lambda x, tau: np.exp(-x/tau)/tau, [0.1, 0.5],

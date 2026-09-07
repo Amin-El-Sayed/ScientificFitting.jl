@@ -144,6 +144,27 @@ def test_analytic_callbacks_and_native_matplotlib(calibration, tmp_path):
         plt.close(fig)
 
 
+@pytest.mark.parametrize("option,ndim", [("jacobian", 2), ("x_derivative", 1)])
+def test_derivative_callback_array_contract(option, ndim):
+    from scientificfitting._core import _options
+
+    x = np.arange(3.)
+    expected = np.column_stack([x, np.ones_like(x)]) if ndim == 2 else np.full_like(x, 2.)
+
+    def derivative(x, slope, offset):
+        assert not x.flags.writeable
+        assert slope == 2. and offset == 4.
+        return expected
+
+    callback = _options({option: derivative}, ["offset", "slope"], len(x))[option]
+    np.testing.assert_array_equal(callback(x, [4., 2.]), expected)
+    assert x.flags.writeable  # Borrowing must not change the owner's array flags.
+    wrong_shape = np.ones(3) if ndim == 2 else np.ones((3, 1))
+    callback = _options({option: lambda x, **p: wrong_shape}, ["slope"], len(x))[option]
+    with pytest.raises(ValueError, match=f"{ndim}-dimensional numeric array"):
+        callback(x, [2.])
+
+
 def test_errors_are_not_hidden(calibration):
     x, y = calibration
     with pytest.raises(TypeError, match="unsupported"):
