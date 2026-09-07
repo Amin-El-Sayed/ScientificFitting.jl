@@ -295,8 +295,12 @@ benchmark runner are documented on the [Performance](performance.md) page.
   asymmetric profile intervals, and profile matrices now preserve core findings
   and missing values. Native Matplotlib reports, Gaussian residual diagnostics,
   and profile/contour matrices are implemented with panel visibility independent
-  of typography. Remaining: worked likelihood-observation and multi-dataset
-  plots using ordinary Matplotlib, plus the final numerical API-parity review.
+  of typography. Executable Student-t guidance and Poisson, unequal-bin, and
+  multi-dataset examples now use ordinary Matplotlib with numerical references
+  and export checks. Named additional starts follow `p0` order, and multi-dataset
+  errors use the same real-input validation as single-dataset fits.
+  Remaining: the final numerical API-parity review, including explicit multistart
+  budgets in the Julia gallery (supplying `initial_guesses` alone does not run them).
   Do not add parallel plotting abstractions where native composition suffices. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,
   and clean-install tests on supported platforms. Measure numerical parity,

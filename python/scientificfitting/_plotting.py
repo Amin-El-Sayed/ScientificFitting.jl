@@ -61,7 +61,7 @@ def _number(value, sigdigits):
 
 
 def add_report(fig, result, *, ax=None, parameters=None, parameter_labels=None,
-               statistics=("chi2_ndf", "pvalue"), position="right", sigdigits=4,
+               statistics=("chi2_ndf", "pvalue"), statistic_labels=None, position="right", sigdigits=4,
                expand=False, **legend_kwargs):
     """Add a native Legend containing fit estimates; return the editable Legend.
 
@@ -70,6 +70,8 @@ def add_report(fig, result, *, ax=None, parameters=None, parameter_labels=None,
     data/curve legend entries above the report. Names and statistic keys select
     fields; labels may use Matplotlib mathtext. Missing values remain explicitly
     unavailable. The full numerical/text report remains on ``result.report()``.
+    ``statistic_labels`` overrides displayed field labels without changing their
+    values, e.g. label chi2_ndf as deviance/ndf for a Poisson fit.
 
     Use a figure created with ``layout="constrained"``. ``expand=True`` adds
     room based on the legend's measured extent; otherwise the figure size is
@@ -100,6 +102,7 @@ def add_report(fig, result, *, ax=None, parameters=None, parameter_labels=None,
         texts.append(f"{labels.get(name, name)} = ${value}{error}$")
     stat_labels = {"chi2": r"$\chi^2$", "chi2_ndf": r"$\chi^2/\mathrm{ndf}$",
                    "pvalue": r"$p$ (goodness of fit)", "aic": "AIC", "bic": "BIC"}
+    stat_labels.update(statistic_labels or {})
     for key in statistics:
         value = report.statistics[key]
         rendered = f"${_number(value, sigdigits)}$" if isinstance(value, (float, int)) else str(value)

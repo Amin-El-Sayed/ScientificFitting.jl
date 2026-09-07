@@ -9,6 +9,8 @@ checkout, in a Python 3.10+ virtual environment:
 python -m pip install -e './python[plot,test]'
 python python/develop.py
 python examples/python/numpy_matplotlib.py
+python examples/python/likelihood_workflows.py
+python examples/python/multi_dataset_calibration.py
 python -m pytest python/tests
 ```
 
@@ -46,6 +48,12 @@ The default solver `tol=1e-6` accounts for differenced-gradient noise;
 `tol` remains configurable and is not a bound on parameter error.
 `maxiters` limits each solver run. `result.converged` and the report reflect
 the actual solver status, including when the iteration limit is too small.
+All fit families accept `initial_guesses` as additional named dictionaries
+or numerical vectors in `p0` order. Set `multistart` explicitly: it is the
+total candidate budget **including `p0`**, not the number of extra runs.
+For two distinct additional guesses, use `multistart=3`. With its default of
+one, only `p0` is used. The core selects the lowest converged result; trying
+several starts is useful for local minima, but does not prove global optimality.
 
 The preview covers Gaussian fits with x/y errors, dense or SciPy sparse
 covariance, named `ErrorComponent` sources, and matrix-free `WhiteningOperator`,
@@ -64,7 +72,7 @@ reports, and profiles/contours for every supported fit family. Like the Julia
 renderer, `plot_fit` and x-y residual helpers target Gaussian results;
 likelihood observations and multiple datasets can be drawn using ordinary
 Matplotlib with `add_report` for the fit estimates. Worked examples of those
-compositions are still required for the Python release. This preview is
+compositions are included below. This preview is
 not a claim of v0.2 feature parity. Cross-platform clean-install checks and
 release dependency pins are also still required before publishing a wheel.
 
@@ -77,6 +85,97 @@ scales in the callback. Unlike `fit_custom`, no manual likelihood summation or
 observation count is needed. Both callbacks are batched; scalar-density
 quadrature helpers cross the language boundary once per evaluation point and
 can be slower. Dependent observations require a joint likelihood.
+
+## Choose The Observation Distribution
+
+A few large residuals can be plausible under a heavy-tailed error model without
+requiring a different mean response. This controlled example uses a Student-t
+distribution with four degrees of freedom and known, point-specific scales:
+
+```python
+from scipy import stats
+from scientificfitting import fit_likelihood_model
+
+locations = np.array([-1., -0.4, 0., 0.5, 1.2, 1.8, 2.4])
+readings = np.array([-1.1, -0.23, 0.31, 0.94, 2.04, 2.91, 6.9])
+scales = np.array([0.12, 0.20, 0.14, 0.18, 0.11, 0.25, 0.20])
+
+def measurement_logprob(y, prediction, slope, offset):
+    # One normalized log density per observation, not a summed objective.
+    return stats.t.logpdf(y, df=4, loc=prediction, scale=scales)
+
+robust_result = fit_likelihood_model(
+    line, locations, readings, logprob=measurement_logprob,
+    p0={"slope": 1., "offset": 0.},
+)
+print(robust_result.report())
+```
+
+For this distribution, the standard deviation is ``\sqrt{2}`` times the scale.
+Its negative log density grows only logarithmically for large residuals, rather
+than quadratically as in a Gaussian model. The last observation therefore has
+less influence, but it is not removed. This assumption needs a physical or
+empirical justification; it is not a way to hide a wrong response model.
+No generic goodness-of-fit p-value is invented for this custom distribution.
+For count data, use a log **mass**, such as `stats.binom.logpmf`, instead of a
+continuous density. See the [Likelihood Fitting API](api_fitting.md).
+
+These likelihood results can be drawn with the same editable Matplotlib tools:
+
+```python
+import matplotlib.pyplot as plt
+from scientificfitting import add_report, plot_style
+
+with plt.rc_context(plot_style("sans")):
+    fig, ax = plt.subplots(layout="constrained")
+    grid = np.linspace(locations.min(), locations.max(), 300)
+    ax.plot(grid, line(grid, **robust_result.values), color="#0072B2", label="fitted mean")
+    ax.errorbar(locations, readings, yerr=stats.t.ppf(0.84, df=4)*scales,
+                fmt="o", color="black", markersize=3, elinewidth=0.8, capsize=2,
+                label="data; 16-84% error range")
+    ax.set(xlabel="reference setting", ylabel="response / V", title="Student-t measurement errors")
+    add_report(fig, robust_result, ax=ax, statistics=("cost_min",),
+               statistic_labels={"cost_min": r"$-2\log L$"}, expand=True)
+    fig.savefig("student_t_errors.pdf")
+    plt.close(fig)
+```
+
+The bars show the specified error distribution's central range, not the
+uncertainty of the fitted line. For the latter, use the fitted parameter
+likelihood and its local approximation or profiles, as appropriate.
+
+## Counts, Histograms, And Shared Parameters
+
+Two complete scripts use the same fixed arrays as the Julia gallery. Both print
+actual core reports and export PNG/PDF in `sans` and `tex`, with panels independently
+on or off. Each fit runs once, not once per output style.
+
+| Script in `examples/python/` | Scientific calculation | Native Matplotlib composition |
+|---|---|---|
+| `likelihood_workflows.py` | Poisson decay with background; a Gaussian peak integrated over unequal bins | Count observations, expected counts, and conditional Poisson quantile regions |
+| `multi_dataset_calibration.py` | One shared gain versus a separate gain for channel C | Three datasets, mean-fit bands, two pull panels, and a selected-parameter report |
+
+For the count example, each observation is a separate **10 s** exposure, one
+minute apart. The signal and background are counts per exposure, while the decay
+constant is in inverse minutes. The Poisson 16th/84th percentiles are computed
+at the fitted mean. Their steps reflect discrete counts; they neither include
+parameter uncertainty nor guarantee exactly 68% probability at low means.
+The fitted background is weakly determined: its local symmetric error extends
+below zero, despite a nonnegative physical bound. Use a background profile
+before interpreting that number as an interval; convergence does not make
+the local approximation reliable at a boundary.
+Matplotlib's [step-filled regions](https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.fill_between.html)
+and [stairs](https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.stairs.html)
+preserve vertical transitions. Histogram heights are **counts per bin**, and the
+expected counts integrate the model over the actual, unequal bin widths.
+
+In the channel example, `parameter_map` maps local model names to global fit
+names, for example `{"gain": "gain_ab", "offset": "offset_a"}`. Reusing
+`gain_ab` in two mappings shares that parameter, while `gain_c` remains separate.
+The script propagates the **full** parameter covariance for the gain difference.
+Its nested-model test has one additional parameter, identical observations, and
+the same known Gaussian errors. These conditions justify that comparison;
+different likelihoods or uncertainty assumptions cannot be interchanged silently.
 
 ## Large Gaussian Fits
 
@@ -263,6 +362,9 @@ Add labeled artists **before** constructing the report if they should appear in
 its legend. The returned `panel` is a normal Matplotlib `Legend`; it can be edited
 or removed with `panel.remove()`. `parameters` selects the displayed estimates,
 `parameter_labels` changes their labels, and `statistics` selects report fields.
+`statistic_labels` changes field labels without changing their values: for a
+Poisson fit, the core's `chi2_ndf` field contains **deviance/ndf**, not a Gaussian
+residual sum. The count script labels it accordingly.
 Passing a completed `FitReport` also supports previously computed asymmetric
 profile errors without launching another scan. Unavailable values stay visible
 as unavailable, not zero. Reports show the actual optimizer convergence flag;

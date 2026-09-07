@@ -223,6 +223,9 @@ def test_python_guide_executes_in_document_order(tmp_path, monkeypatch):
     for i, code in enumerate(cells):
         exec(compile(code, f"{page}:cell-{i+1}", "exec"), namespace)
     assert (tmp_path / "calibration.pdf").is_file()
+    assert (tmp_path / "student_t_errors.pdf").is_file()
+    assert namespace["robust_result"].converged
+    assert np.isnan(namespace["robust_result"].statistics["pvalue"])
     assert isinstance(namespace["matrix"], ProfileMatrixResult)
     assert namespace["interval"].lower < 0.25 < namespace["interval"].upper
     namespace["plt"].close("all")
