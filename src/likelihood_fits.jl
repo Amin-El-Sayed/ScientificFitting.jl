@@ -311,7 +311,6 @@ function fit(
 
     candidates = _initial_candidates(problem, initial_guesses, multistart)
     best_result = nothing
-    best_cost = Inf
     last_error = nothing
 
     for candidate in candidates
@@ -323,13 +322,7 @@ function fit(
                 _fit_likelihood_problem(candidate_problem, options)
             end
             result = _build_likelihood_result(candidate_problem, options, params, converged, iterations, message)
-            if result.converged && isfinite(result.stats.cost_min) && result.stats.cost_min < best_cost
-                best_result = result
-                best_cost = result.stats.cost_min
-            elseif best_result === nothing && isfinite(result.stats.cost_min)
-                best_result = result
-                best_cost = result.stats.cost_min
-            end
+            _prefer_fit(result, best_result) && (best_result = result)
         catch err
             last_error = err
         end

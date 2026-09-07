@@ -253,6 +253,14 @@ function _build_fit_result(
     )
 end
 
+"""Prefer convergence first, then the lowest finite cost within that status."""
+function _prefer_fit(candidate, incumbent)
+    isfinite(candidate.stats.cost_min) || return false
+    incumbent === nothing && return true
+    candidate.converged != incumbent.converged && return candidate.converged
+    return candidate.stats.cost_min < incumbent.stats.cost_min
+end
+
 """
     fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500,
         tol=1e-10, scale_covariance=:auto, initial_guesses=nothing,
@@ -301,7 +309,6 @@ function fit(
 
     candidates = _initial_candidates(problem, initial_guesses, multistart)
     best_result = nothing
-    best_cost = Inf
     last_error = nothing
 
     for candidate in candidates
@@ -322,14 +329,7 @@ function fit(
                 _build_fit_result(candidate_problem, options, chosen_backend, params, converged, iterations, message, backend_jacobian)
             end
 
-            current_cost = result.stats.cost_min
-            if result.converged && isfinite(current_cost) && current_cost < best_cost
-                best_result = result
-                best_cost = current_cost
-            elseif best_result === nothing && isfinite(current_cost)
-                best_result = result
-                best_cost = current_cost
-            end
+            _prefer_fit(result, best_result) && (best_result = result)
         catch err
             last_error = err
         end

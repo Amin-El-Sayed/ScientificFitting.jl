@@ -43,3 +43,39 @@ using Test
     @test any(f -> f.code == :profile_refit_failed, diagnose(scan).findings)
     @test_throws ErrorException profile(result, 1; values=[-0.5, 0.0, 0.5], on_failure=:throw)
 end
+
+@testset "Multistart ranks status before cost and keeps the best fallback" begin
+    record(converged, cost) = (; converged, stats=(cost_min=cost,))
+    prefer = ScientificFitting._prefer_fit
+    @test prefer(record(true, 1.), record(false, 0.))
+    @test !prefer(record(false, 0.), record(true, 1.))
+    for converged in (false, true)
+        @test prefer(record(converged, 1.), nothing)
+        @test prefer(record(converged, 1.), record(converged, 2.))
+        @test !prefer(record(converged, 2.), record(converged, 1.))
+        @test !prefer(record(converged, 1.), record(converged, 1.))
+        for bad in (Inf, NaN)
+            @test !prefer(record(converged, bad), nothing)
+            @test !prefer(record(converged, bad), record(false, 1.))
+        end
+    end
+
+    # Neither run may move with a one-evaluation budget; the second is better.
+    custom = fit_custom(p -> (p[1]-2)^2; p0=[0.], initial_guesses=[[1.]],
+        multistart=2, nobs=10, optimizer=:nelder_mead, maxiters=1)
+    @test !custom.converged
+    @test custom.params == [1.]
+    @test custom.stats.cost_min == 1.
+
+    # Exercise the Gaussian loop as well, using independent stopped-run results.
+    x, y = collect(1.:8.), fill(2., 8)
+    model(x, p) = fill(exp(p[1]), length(x))
+    runs = [fit_model(model, x, y; p0=[start], sigma_y=ones(8), maxiters=1)
+            for start in (-2., -1.)]
+    @test all(r -> !r.converged, runs)
+    @test runs[2].stats.cost_min < runs[1].stats.cost_min
+    combined = fit_model(model, x, y; p0=[-2.], sigma_y=ones(8), maxiters=1,
+                         initial_guesses=[[-1.]], multistart=2)
+    @test !combined.converged
+    @test combined.params == runs[2].params
+end

@@ -113,6 +113,15 @@ def test_nonconverged_nuisance_fit_is_not_a_profile_minimum():
         result.profile("a", values=[-0.5, 0., 0.5], on_failure="throw")
 
 
+def test_multistart_keeps_the_lowest_cost_when_no_run_converges():
+    result = fit_custom(lambda mu: (mu-2)**2, p0={"mu": 0.}, nobs=10,
+                        initial_guesses=[{"mu": 1.}], multistart=2,
+                        optimizer="nelder_mead", maxiters=1)
+    assert not result.converged
+    np.testing.assert_array_equal(result.params, [1.])
+    assert result.statistics["cost_min"] == 1.
+
+
 def test_diagnostics_are_exact_core_findings_and_actions():
     x = np.linspace(-2, 2, 21)
     result = fit_model(lambda x, slope, offset: slope*x+offset, x, 0.5*x*x+1,

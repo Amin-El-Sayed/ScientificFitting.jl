@@ -160,6 +160,11 @@ It uses the same objective/cache and parameter controls, without a separate
 statistics implementation or bound penalty. Its `maxiters` is NLopt's objective
 evaluation budget; the unavailable iteration count remains `missing`.
 
+Both fit families use one multistart ranking rule: a converged finite result
+outranks an unconverged one; within the same status, the lower cost wins. If
+every run stops early, return the best finite result with `converged=false`,
+not merely the first candidate.
+
 CHOLMOD's sparse solves do not accept ForwardDiff dual numbers. Static sparse
 covariance therefore requires `derivatives=:finite` with the general optimizer,
 or an AD-compatible `WhiteningOperator` instead. The least-squares path remains
