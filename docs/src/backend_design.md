@@ -76,7 +76,7 @@ evaluations:
 
 - diagonal errors become inverse standard deviations and a log determinant,
 - dense covariance becomes a Cholesky factor and a log determinant,
-- sparse covariance stays sparse on the compatible least-squares path,
+- sparse covariance keeps its sparse Cholesky factor,
 - `WhiteningOperator` keeps the supplied matrix-free operation and determinant,
 - correlated parameter constraints are factorized once.
 
@@ -148,6 +148,13 @@ Solver selection follows the represented problem rather than a speed preference:
 An explicit `backend=:lsqfit` request is rejected if it would discard any part
 of the statistical problem. Backend selection may change how the same objective
 is minimized; it must never change which objective is being minimized.
+
+CHOLMOD's sparse solves do not accept ForwardDiff dual numbers. Static sparse
+covariance therefore requires `derivatives=:finite` with the general optimizer,
+or an AD-compatible `WhiteningOperator` instead. The least-squares path remains
+available without that override. Python uses finite derivatives consistently,
+including sparse fits with bounds and profile refits. Sparse covariance
+components are validated through their stored entries, without a dense copy.
 
 ### 6. Build the result once
 
@@ -265,8 +272,8 @@ benchmark runner are documented on the [Performance](performance.md) page.
   worked guidance beyond the current smooth, independent-observation contract.
 - [ ] **v0.2: complete the native Python interface.** The preview now wraps
   every high-level fitting family, including correlated parameter constraints
-  and named multi-dataset sharing. Remaining: sparse/structured covariance,
-  error components, in-place callbacks, complete structured result/diagnostic
+  and named multi-dataset sharing, sparse/structured covariance, error
+  components, and in-place callbacks. Remaining: complete structured result/diagnostic
   access, profile matrices, and native Matplotlib diagnostic/report panels.
   Keep panel visibility independent of visual style, and reuse the Julia
   numerical engine rather than duplicating inference in Python. Deliver

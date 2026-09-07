@@ -131,7 +131,8 @@ Python argument convention.
 The default solver `tol=1e-6` accounts for differenced-gradient noise;
 `tol` remains configurable and is not a bound on parameter error.
 
-The preview covers Gaussian fits with x/y errors or dense covariance,
+The preview covers Gaussian fits with x/y errors, dense or SciPy sparse
+covariance, named `ErrorComponent` sources, and matrix-free `WhiteningOperator`,
 Poisson counts, expected-count and integrated-density histograms, unbinned
 and extended-unbinned likelihoods, indexed and multi-dataset fits, custom
 costs, and user-defined observation distributions. Parameter bounds, named
@@ -142,8 +143,8 @@ Gaussian model mean and its local standard uncertainty, without observation
 noise. `plot_fit` accepts an existing Matplotlib `ax` and ordinary artist
 keyword dictionaries; it does not change global plotting settings or refit.
 
-Not yet covered by the Python facade: structured whitening, sparse covariance,
-error components, profile matrices, and the full diagnostic/
+Not yet covered by the Python facade: complete structured diagnostics,
+profile matrices, and the full diagnostic/
 report-panel plotting suite. The Julia APIs remain available; this preview is
 not a claim of v0.2 feature parity. Cross-platform clean-install checks and
 release dependency pins are also still required before publishing a wheel.
@@ -157,6 +158,59 @@ scales in the callback. Unlike `fit_custom`, no manual likelihood summation or
 observation count is needed. Both callbacks are batched; scalar-density
 quadrature helpers cross the language boundary once per evaluation point and
 can be slower. Dependent observations require a joint likelihood.
+
+### Large Gaussian Fits
+
+SciPy sparse matrices and arrays are copied as canonical CSC buffers, not
+converted to dense arrays. Install `./python[sparse]` to add SciPy if needed.
+The same `cov_x`/`cov_y` arguments accept either representation. Static sparse
+y covariance is factorized once per fit; parameter-dependent effective
+covariance must be refactorized at each parameter point. Sparse factorization
+can still produce fill-in: input sparsity alone does not guarantee linear
+memory or runtime. A known whitening operator can avoid the matrix entirely:
+
+```python
+from scientificfitting import WhiteningOperator
+
+sigma = 0.2  # Known marginal standard deviation of stationary AR(1) noise.
+rho = 0.6    # Known correlation between neighboring observations.
+n = len(y)
+
+def whiten(out, residual):
+    out[0] = residual[0] / sigma
+    out[1:] = (residual[1:] - rho * residual[:-1]) / (sigma * np.sqrt(1 - rho**2))
+
+noise = WhiteningOperator(
+    whiten, 2*n*np.log(sigma) + (n-1)*np.log1p(-rho**2),
+    marginal_sigma=sigma, inplace=True,
+)
+correlated = fit_model(line, x, y, p0={"slope": 1., "offset": 0.}, whitening=noise)
+```
+
+This operator describes ``C_{ij}=\sigma^2\rho^{|i-j|}``, with observations
+ordered at equal intervals. Subtracting ``\rho r_{i-1}`` removes the predictable
+part of each residual; dividing by its innovation standard deviation gives
+unit-variance residuals. The second constructor argument is ``\log\det C``,
+not the determinant of the whitening operator. It is required for the
+normalized likelihood. The operator replaces all other observation errors;
+`marginal_sigma` is plotting metadata, not an additional error source.
+
+For a model that fills an existing buffer, use `inplace=True` on the fit:
+
+```python
+def line_inplace(out, x, slope, offset):
+    np.multiply(x, slope, out=out)
+    out += offset
+
+result = fit_model(line_inplace, x, y, p0={"slope": 1., "offset": 0.},
+                   sigma_y=0.2, inplace=True)
+```
+
+An optional in-place `jacobian(out, x, **parameters)` fills an
+``n\times k`` array in `p0` order. Both callbacks must fill every entry and
+return `None`; the supplied arrays borrow Julia memory and must not be kept.
+`x_derivative(x, **parameters)` still returns an array. In-place callbacks
+avoid model-output copies; they do not make the complete fit allocation-free.
 
 ## Troubleshooting
 

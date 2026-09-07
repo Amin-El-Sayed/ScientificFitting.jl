@@ -109,11 +109,11 @@ end
 function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     if _static_effective_covariance_available(problem)
         cov = _effective_covariance(problem, problem.p0)
-        if cov isa SparseMatrixCSC
+        # Finite differences perturb Float64 parameters outside the sparse solve.
+        if cov isa SparseMatrixCSC && _derivative_mode(problem) != :finite
             throw(ArgumentError(
-                "sparse covariance currently supports the unbounded least-squares backend; " *
-                "use a dense covariance or an AD-compatible WhiteningOperator for " *
-                "constrained or Gaussian-likelihood fits",
+                "sparse covariance with the general optimizer requires derivatives=:finite " *
+                "or an AD-compatible WhiteningOperator; CHOLMOD cannot propagate dual numbers",
             ))
         end
     end

@@ -1,6 +1,7 @@
 using Test
 using ScientificFitting
 using LinearAlgebra
+using SparseArrays
 
 # Float64-only callbacks enforce the same contract as NumPy, without requiring
 # Python for the Julia core suite. The Python suite exercises the actual bridge.
@@ -58,6 +59,40 @@ finite_linear(x, p::Vector{Float64}) = @. p[1] * x + p[2]
         @test result.params ≈ [1.0, 0.0] atol=3e-5
         @test abs(only(eq(result.params))) < 1e-6
         @test result.param_covariance ≈ Matrix{Float64}(I, 2, 2) rtol=1e-5
+    end
+
+    @testset "Sparse covariance with finite derivatives" begin
+        n = length(x)
+        cy = spdiagm(-1 => fill(0.002, n-1), 0 => sigma.^2, 1 => fill(0.002, n-1))
+        weighted_design = cy \ design
+        expected_cov = inv(design' * weighted_design)
+        expected_params = expected_cov * weighted_design' * y
+        result = fit_model(finite_linear, x, y; p0=[1.2, 0.2], cov_y=cy,
+            bounds=([0.0, -1.0], [3.0, 1.0]), derivatives=:finite)
+        @test result.converged
+        @test result.problem.cov_y isa SparseMatrixCSC
+        @test result.params ≈ expected_params atol=2e-6
+        @test result.param_covariance ≈ expected_cov rtol=2e-5
+        scan = profile(result, 1; values=result.params[1] .+ result.param_stderr[1] .* [-1, 0, 1])
+        @test scan.delta_cost ≈ [1, 0, 1] atol=2e-5
+
+        # Parameter-dependent sparse x covariance uses the full NLL, too.
+        cx = 0.02^2 * spdiagm(0 => ones(n), 1 => fill(0.2, n-1), -1 => fill(0.2, n-1))
+        native(x, p) = @. p[1] * x + p[2]
+        dense = fit_model(native, x, y; p0=[1.2, 0.2], cov_y=Matrix(cy), cov_x=Matrix(cx))
+        dynamic = fit_model(finite_linear, x, y; p0=[1.2, 0.2], cov_y=cy, cov_x=cx,
+            derivatives=:finite)
+        @test dynamic.params ≈ dense.params atol=2e-5
+        @test dynamic.param_covariance ≈ dense.param_covariance rtol=4e-3
+        @test dynamic.stats.cost_min ≈ dense.stats.cost_min atol=1e-7
+
+        # Warm validation first; a dense copy here would allocate 128 MiB.
+        component = ErrorComponent(:readout, :y, :covariance, spdiagm(0 => ones(4096)))
+        ScientificFitting._normalize_error_components(component, 4096)
+        bytes = @allocated ScientificFitting._normalize_error_components(component, 4096)
+        @test bytes < 1_000_000
+        @test_throws ArgumentError fit_model(native, x, y; p0=[1.0, 0.0], cov_y=cy,
+            bounds=([0.0, -1.0], [3.0, 1.0])) # CHOLMOD is still not an AD backend.
     end
 
     @testset "Poisson Hessian and likelihood profiles" begin

@@ -8,6 +8,8 @@ from types import MappingProxyType, SimpleNamespace
 
 import numpy as np
 
+from ._inputs import ErrorComponent, WhiteningOperator, _array, _covariance, _readonly, _real_array
+
 
 @cache
 def _backend():
@@ -23,13 +25,6 @@ def _backend():
     return bridge
 
 
-def _array(values, *, ndim=1):
-    array = np.array(values, dtype=np.float64, copy=True)
-    if array.ndim != ndim:
-        raise ValueError(f"expected a {ndim}-dimensional numeric array")
-    return array
-
-
 def _snapshot(values):
     array = np.array(values, dtype=np.float64, copy=True)
     array.flags.writeable = False
@@ -39,34 +34,40 @@ def _snapshot(values):
 def _model_callback(function, names):
     def call(x, parameters):
         # Julia owns inputs during the callback; user code must not mutate them.
-        values = np.asarray(x).view()
-        values.flags.writeable = False
-        return np.asarray(function(values, **dict(zip(names, map(float, parameters)))), dtype=np.float64)
+        values = _readonly(x)
+        return _real_array(function(values, **dict(zip(names, map(float, parameters)))))
+
+    return call
+
+
+def _inplace_callback(function, names):
+    def call(out, x, parameters):
+        # np.asarray borrows the writable Julia buffer, including Jacobian views.
+        if function(np.asarray(out), _readonly(x), **dict(zip(names, map(float, parameters)))) is not None:
+            raise TypeError("in-place callbacks must fill out and return None")
 
     return call
 
 
 def _density_callback(function, names):
     def call(x, parameters):
-        return float(function(float(x), **dict(zip(names, map(float, parameters)))))
+        return float(_real_array(function(float(x), **dict(zip(names, map(float, parameters))))))
 
     return call
 
 
 def _logprob_callback(function, names):
     def call(y, prediction, parameters):
-        observations, mean = np.asarray(y).view(), np.asarray(prediction).view()
-        observations.flags.writeable = mean.flags.writeable = False
-        return np.asarray(function(observations, mean, **dict(zip(names, map(float, parameters)))),
-                          dtype=np.float64)
+        observations, mean = _readonly(y), _readonly(prediction)
+        return _real_array(function(observations, mean, **dict(zip(names, map(float, parameters)))))
 
     return call
 
 
 def _parameter_callback(function, names, *, scalar=False):
     def call(parameters):
-        value = function(**dict(zip(names, map(float, parameters))))
-        return float(value) if scalar else np.atleast_1d(np.asarray(value, dtype=np.float64))
+        value = _real_array(function(**dict(zip(names, map(float, parameters)))))
+        return float(value) if scalar else np.atleast_1d(value)
 
     return call
 
@@ -76,6 +77,7 @@ _OPTIONS = {
     "parameter_priors", "parameter_constraints", "fixed_parameters", "jacobian", "x_derivative",
     "backend", "cost", "scale_covariance", "maxiters", "tol",
     "initial_guesses", "multistart", "nobs", "cost_name", "gof", "rtol", "total_count",
+    "whitening", "error_components", "inplace",
 }
 
 
@@ -86,11 +88,21 @@ def _options(options, names, nobs):
     converted = dict(options)
     for key in ("sigma_x", "sigma_y"):
         if converted.get(key) is not None:
-            value = np.asarray(converted[key], dtype=float)
+            value = _real_array(converted[key])
             converted[key] = np.full(nobs, float(value)) if value.ndim == 0 else _array(value)
     for key in ("cov_x", "cov_y"):
         if converted.get(key) is not None:
-            converted[key] = _array(converted[key], ndim=2)
+            converted[key] = _covariance(converted[key])
+    if converted.get("whitening") is not None:
+        if not isinstance(converted["whitening"], WhiteningOperator):
+            raise TypeError("whitening must be a WhiteningOperator")
+        converted["whitening"] = converted["whitening"]._payload()
+    if converted.get("error_components") is not None:
+        components = converted["error_components"]
+        components = [components] if isinstance(components, ErrorComponent) else list(components)
+        if not all(isinstance(c, ErrorComponent) for c in components):
+            raise TypeError("error_components must contain ErrorComponent objects")
+        converted["error_components"] = [c._payload() for c in components]
     if converted.get("bounds") is not None:
         # Named bounds avoid one-based/zero-based index translation in user code.
         bounds = converted["bounds"]
@@ -120,7 +132,8 @@ def _options(options, names, nobs):
         converted["gof"] = _parameter_callback(converted["gof"], names, scalar=True)
     for key in ("jacobian", "x_derivative"):
         if converted.get(key) is not None:
-            converted[key] = _model_callback(converted[key], names)
+            wrap = _inplace_callback if key == "jacobian" and converted.get("inplace", False) else _model_callback
+            converted[key] = wrap(converted[key], names)
     if converted.get("constraints") is not None:
         constraints = converted["constraints"]
         if constraints.keys() - {"eq", "ineq"}:
@@ -217,6 +230,8 @@ def _fit(kind, model, x, y, p0, options, *, logprob=None):
         callback = _parameter_callback(model, names, scalar=True)
     elif kind in ("unbinned", "extended_unbinned", "histogram_density"):
         callback = _density_callback(model, names)
+    elif kind == "gaussian" and options.get("inplace", False):
+        callback = _inplace_callback(model, names)
     else:
         callback = _model_callback(model, names)
     if logprob is not None:
@@ -226,18 +241,25 @@ def _fit(kind, model, x, y, p0, options, *, logprob=None):
 
 
 def fit_model(model, x, y, *, p0, **options):
-    """Fit a vectorized `model(x, *parameters)` to Gaussian x-y data.
+    """Fit a vectorized `model(x, **parameters)` to Gaussian x-y data.
 
     `p0={"slope": 1.0, "offset": 0.0}` sets result-array order and names.
     Callbacks receive parameters by keyword, so dictionary order cannot swap
     the meaning of model arguments. Names must match the Python signature.
-    Supports scalar/pointwise sigma_x/sigma_y, dense cov_x/cov_y, bounds,
+    Supports scalar/pointwise sigma_x/sigma_y, dense or SciPy sparse cov_x/cov_y,
+    WhiteningOperator, ErrorComponent sources, bounds,
     named fixed_parameters/parameter_priors, nonlinear constraints, analytic
     jacobian/x_derivative, and Julia solver controls. All derivative paths use
     finite differences unless an analytic callback is available. Callbacks
     must be smooth and defined in a neighborhood of evaluated points.
     The core's finite-mode stopping tolerance defaults to 1e-6; explicit `tol`
     values are preserved. This is a solver criterion, not a parameter error.
+
+    With `inplace=True`, use `model(out, x, **parameters)` and optionally
+    `jacobian(out, x, **parameters)`. Fill every output entry and return None;
+    output arrays are writable views into Julia buffers and must not be kept.
+    `x_derivative` remains an allocating callback. Sparse covariance is copied
+    as CSC buffers; finite derivatives also support the constrained solver.
     """
     return _fit("gaussian", model, x, y, p0, options)
 
@@ -253,7 +275,7 @@ def fit_histogram_model(expected_counts, edges, counts, *, p0, **options):
 
 
 def fit_custom(objective, *, p0, nobs, **options):
-    """Fit a scalar `objective(*parameters)` on the normalized -2 log L scale.
+    """Fit a scalar `objective(**parameters)` on the normalized -2 log L scale.
 
     For arbitrary losses the optimum is usable, but covariance and likelihood
     summaries have no automatic statistical interpretation. `nobs` is required.

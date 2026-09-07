@@ -172,7 +172,8 @@ prediction bands. Without it, confidence bands remain available but a
 prediction band would not have enough information.
 
 The mutating function must write every element of `out` and support the element
-types used by automatic differentiation when the general optimizer is needed.
+types used by automatic differentiation when the general optimizer is needed,
+unless the fit uses `derivatives=:finite` for Float64-only callbacks.
 It must accept `AbstractVector` views because ScientificFitting applies the same operator
 columnwise to analytic Jacobians.
 """
@@ -644,7 +645,7 @@ function _normalize_error_components(error_components, nobs::Int)
             _assert_finite_vector("error component $(component.name)", component.values)
         elseif component.values isa AbstractMatrix
             size(component.values) == (nobs, nobs) || throw(ArgumentError("error component covariance must be n x n"))
-            _assert_finite_matrix("error component $(component.name)", Matrix(component.values))
+            _assert_finite_matrix("error component $(component.name)", component.values)
         elseif component.values isa Number
             isfinite(component.values) || throw(ArgumentError("error component $(component.name) must be finite"))
         end

@@ -1,4 +1,4 @@
-using ScientificFitting, PythonCall
+using ScientificFitting, PythonCall, SparseArrays
 
 # Fail before fitting when an installed wheel is paired with the old core.
 supports_finite_derivatives = hasfield(LikelihoodFitProblem, :derivatives)
@@ -9,19 +9,46 @@ matrix_model(f) = (x, p) -> pyconvert(Matrix{Float64}, f(x, p))
 scalar_cost(f) = p -> pyconvert(Float64, f(p))
 vector_constraint(f) = p -> pyconvert(Vector{Float64}, f(p))
 scalar_model(f) = (x, p) -> pyconvert(Float64, f(x, p))
+mutating_model(f) = (out, x, p) -> (f(out, x, p); nothing)
 vector(x) = pyconvert(Vector{Float64}, Py(x))
 matrix(x) = pyconvert(Matrix{Float64}, Py(x))
+
+"""Reconstruct canonical CSC without allocating an n-by-n dense intermediary."""
+function covariance(value::Py)
+    pyisinstance(value, pybuiltins.dict) || return matrix(value)
+    n, m = pyconvert(Tuple{Int, Int}, value["shape"])
+    return SparseMatrixCSC(n, m, pyconvert(Vector{Int}, value["indptr"]) .+ 1,
+        pyconvert(Vector{Int}, value["indices"]) .+ 1, vector(value["data"]))
+end
+
+"""Copy scalar, vector, or covariance metadata once, not during fit evaluation."""
+function uncertainty_values(value::Py)
+    pyisinstance(value, pybuiltins.dict) && return covariance(value)
+    ndim = pyhasattr(value, "ndim") ? pyconvert(Int, value.ndim) : 0
+    return ndim == 0 ? pyconvert(Float64, value) : ndim == 1 ? vector(value) : matrix(value)
+end
 
 """Convert the supported Python keyword boundary once, outside numerical loops."""
 function fit_keywords(options)
     result = Dict{Symbol, Any}(:derivatives => :finite)
-    for (key, value) in pyconvert(Dict{String, Py}, Py(options))
+    values = pyconvert(Dict{String, Py}, Py(options))
+    inplace = haskey(values, "inplace") && pyconvert(Bool, values["inplace"])
+    for (key, value) in values
         name = Symbol(key)
         pyis(value, pybuiltins.None) && continue
         result[name] = if name in (:backend, :cost, :scale_covariance, :cost_name)
             Symbol(pyconvert(String, value))
         elseif name in (:cov_x, :cov_y)
-            matrix(value)
+            covariance(value)
+        elseif name == :whitening
+            callback = value[0]
+            marginal = pyis(value[2], pybuiltins.None) ? nothing : uncertainty_values(value[2])
+            WhiteningOperator((out, residual) -> (callback(out, residual); nothing);
+                logdet_covariance=pyconvert(Float64, value[1]), marginal_sigma=marginal)
+        elseif name == :error_components
+            [ErrorComponent(Symbol(pyconvert(String, row[0])), Symbol(pyconvert(String, row[1])),
+                Symbol(pyconvert(String, row[2])), uncertainty_values(row[3]);
+                active=pyconvert(Bool, row[4])) for row in value]
         elseif name in (:sigma_x, :sigma_y)
             vector(value)
         elseif name == :bounds
@@ -44,7 +71,7 @@ function fit_keywords(options)
         elseif name == :initial_guesses
             pyconvert(Vector{Vector{Float64}}, value)
         elseif name == :jacobian
-            matrix_model(value)
+            inplace ? mutating_model(value) : matrix_model(value)
         elseif name == :x_derivative
             vector_model(value)
         elseif name == :gof
@@ -53,6 +80,8 @@ function fit_keywords(options)
             (y, mu, p) -> pyconvert(Vector{Float64}, value(y, mu, p))
         elseif name in (:maxiters, :multistart, :nobs)
             pyconvert(Int, value)
+        elseif name == :inplace
+            pyconvert(Bool, value)
         else
             pyconvert(Float64, value)
         end
@@ -74,7 +103,7 @@ function run_fit(kind::String, callback::Py, x, y, p0, options)
     kind == "histogram_density" && return fit_histogram_density(scalar_model(callback), vector(x), vector(y); p0=start, kwargs...)
     kind in ("gaussian", "poisson", "histogram", "indexed", "likelihood") ||
         throw(ArgumentError("unknown fit family: $kind"))
-    model = vector_model(callback)
+    model = kind == "gaussian" && get(kwargs, :inplace, false) ? mutating_model(callback) : vector_model(callback)
     fit_function = kind == "gaussian" ? fit_model :
                    kind == "poisson" ? fit_poisson_model :
                    kind == "indexed" ? fit_indexed_model :
