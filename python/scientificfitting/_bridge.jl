@@ -1,12 +1,13 @@
 using ScientificFitting, PythonCall, SparseArrays
+using ScientificFitting: _TypedCallback
 
 """One vectorized foreign call; no dual numbers or per-observation Python loops."""
-vector_model(f) = (x, p) -> pyconvert(Vector{Float64}, f(x, p))
-matrix_model(f) = (x, p) -> pyconvert(Matrix{Float64}, f(x, p))
-scalar_cost(f) = p -> pyconvert(Float64, f(p))
-vector_constraint(f) = p -> pyconvert(Vector{Float64}, f(p))
-scalar_model(f) = (x, p) -> pyconvert(Float64, f(x, p))
-mutating_model(f) = (out, x, p) -> (f(out, x, p); nothing)
+vector_model(f) = _TypedCallback{Vector{Float64}}((x, p) -> pyconvert(Vector{Float64}, f(x, p)))
+matrix_model(f) = _TypedCallback{Matrix{Float64}}((x, p) -> pyconvert(Matrix{Float64}, f(x, p)))
+scalar_cost(f) = _TypedCallback{Float64}(p -> pyconvert(Float64, f(p)))
+vector_constraint(f) = _TypedCallback{Vector{Float64}}(p -> pyconvert(Vector{Float64}, f(p)))
+scalar_model(f) = _TypedCallback{Float64}((x, p) -> pyconvert(Float64, f(x, p)))
+mutating_model(f) = _TypedCallback{Nothing}((out, x, p) -> (f(out, x, p); nothing))
 vector(x) = pyconvert(Vector{Float64}, Py(x))
 matrix(x) = pyconvert(Matrix{Float64}, Py(x))
 
@@ -40,7 +41,7 @@ function fit_keywords(options)
         elseif name == :whitening
             callback = value[0]
             marginal = pyis(value[2], pybuiltins.None) ? nothing : uncertainty_values(value[2])
-            WhiteningOperator((out, residual) -> (callback(out, residual); nothing);
+            WhiteningOperator(_TypedCallback{Nothing}((out, residual) -> (callback(out, residual); nothing));
                 logdet_covariance=pyconvert(Float64, value[1]), marginal_sigma=marginal)
         elseif name == :error_components
             [ErrorComponent(Symbol(pyconvert(String, row[0])), Symbol(pyconvert(String, row[1])),
@@ -74,7 +75,7 @@ function fit_keywords(options)
         elseif name == :gof
             scalar_cost(value)
         elseif name == :logprob
-            (y, mu, p) -> pyconvert(Vector{Float64}, value(y, mu, p))
+            _TypedCallback{Vector{Float64}}((y, mu, p) -> pyconvert(Vector{Float64}, value(y, mu, p)))
         elseif name in (:maxiters, :multistart, :nobs)
             pyconvert(Int, value)
         elseif name == :inplace
@@ -86,18 +87,24 @@ function fit_keywords(options)
     return result
 end
 
-"""Dispatch to existing Julia fits; the bridge owns conversion, never statistics."""
+"""
+Dispatch to existing Julia fits; the bridge owns conversion, never statistics.
+
+`invokelatest` is a once-per-fit inference boundary: Python's dynamic argument
+conversion must not infer every solver branch. The selected Julia fit then
+specializes on concrete arrays and callbacks; its numerical loops stay native.
+"""
 function run_fit(kind::String, callback::Py, x, y, p0, options)
     kwargs = fit_keywords(options)
     start = vector(p0)
-    kind == "custom" && return fit_custom(scalar_cost(callback); p0=start, kwargs...)
-    kind == "unbinned" && return fit_unbinned_model(scalar_model(callback), vector(y); p0=start, kwargs...)
+    kind == "custom" && return Base.invokelatest(fit_custom, scalar_cost(callback); p0=start, kwargs...)
+    kind == "unbinned" && return Base.invokelatest(fit_unbinned_model, scalar_model(callback), vector(y); p0=start, kwargs...)
     if kind == "extended_unbinned"
         domain = vector(x)
         length(domain) == 2 || throw(ArgumentError("domain must contain exactly two endpoints"))
-        return fit_extended_unbinned_model(scalar_model(callback), vector(y), Tuple(domain); p0=start, kwargs...)
+        return Base.invokelatest(fit_extended_unbinned_model, scalar_model(callback), vector(y), Tuple(domain); p0=start, kwargs...)
     end
-    kind == "histogram_density" && return fit_histogram_density(scalar_model(callback), vector(x), vector(y); p0=start, kwargs...)
+    kind == "histogram_density" && return Base.invokelatest(fit_histogram_density, scalar_model(callback), vector(x), vector(y); p0=start, kwargs...)
     kind in ("gaussian", "poisson", "histogram", "indexed", "likelihood") ||
         throw(ArgumentError("unknown fit family: $kind"))
     model = kind == "gaussian" && get(kwargs, :inplace, false) ? mutating_model(callback) : vector_model(callback)
@@ -105,14 +112,14 @@ function run_fit(kind::String, callback::Py, x, y, p0, options)
                    kind == "poisson" ? fit_poisson_model :
                    kind == "indexed" ? fit_indexed_model :
                    kind == "likelihood" ? fit_likelihood_model : fit_histogram_model
-    return fit_function(model, vector(x), vector(y); p0=start, kwargs...)
+    return Base.invokelatest(fit_function, model, vector(x), vector(y); p0=start, kwargs...)
 end
 
 """Preserve the single global parameter map while converting dataset arrays once."""
 function run_multi(callbacks, xs, ys, sigma, maps, p0, options)
     models = [vector_model(f) for f in Py(callbacks)]
     scales = [pyis(s, pybuiltins.None) ? nothing : vector(s) for s in Py(sigma)]
-    return fit_multi_model(models, [vector(x) for x in Py(xs)], [vector(y) for y in Py(ys)];
+    return Base.invokelatest(fit_multi_model, models, [vector(x) for x in Py(xs)], [vector(y) for y in Py(ys)];
         p0=vector(p0), sigma_y=scales, parameter_map=pyconvert(Vector{Vector{Int}}, Py(maps)),
         fit_keywords(options)...)
 end

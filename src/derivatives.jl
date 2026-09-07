@@ -1,3 +1,16 @@
+"""
+Typed boundary for foreign callbacks evaluated with finite differences.
+
+The function field is deliberately abstract: the solver specializes on its
+declared return type, not each runtime-created Python closure. One dynamic
+dispatch per callback lets these fits share precompiled numerical code. Native
+Julia models bypass this adapter and retain automatic differentiation.
+"""
+struct _TypedCallback{R}
+    f::Function
+end
+(callback::_TypedCallback{R})(args...) where {R} = callback.f(args...)::R
+
 """Validate the differentiation policy stored with a problem and its refits."""
 function _validate_derivatives(mode::Symbol)
     mode in (:auto, :finite) || throw(ArgumentError("derivatives must be :auto or :finite"))

@@ -12,6 +12,7 @@ using LsqFit
 using Optimization
 import OptimizationNLopt
 using OptimizationOptimJL
+using PrecompileTools: @setup_workload, @compile_workload
 using QuadGK
 using SpecialFunctions
 using SparseArrays
@@ -30,6 +31,7 @@ include("profile.jl")
 include("prediction.jl")
 include("plotting_api.jl")
 include("report.jl")
+include("precompile.jl")
 
 export ConstraintSpec
 export ParameterPrior

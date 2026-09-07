@@ -139,6 +139,16 @@ in a neighborhood of each evaluation point, including near declared bounds.
 For pointwise x-error propagation, two vectorized model calls estimate all
 `df/dx` values instead of crossing a Python boundary once per observation.
 
+The Python bridge converts inputs once and enters the selected fit through
+`invokelatest`, an inference boundary outside the numerical loop. This prevents
+compiling all solver branches through Python's dynamic call dispatcher. Foreign
+callbacks use a private `_TypedCallback{R}`: the result type is concrete, while
+one dynamic dispatch calls the runtime-created closure. Different Python models
+therefore share Julia solver specializations. Native Julia models bypass it.
+A small `PrecompileTools` workload caches Gaussian/Poisson numerical kernels,
+prediction, and reporting with ordinary Julia callbacks. It neither starts
+Python nor loads plotting during installation or package import.
+
 Solver selection follows the represented problem rather than a speed preference:
 
 | Condition | Backend |
@@ -325,13 +335,16 @@ benchmark runner are documented on the [Performance](performance.md) page.
   installed-wheel check exercises fitting, covariance, profiles, and reports
   without optional Python plotting packages. Local wheel provisioning and
   Conda Python 3.14 reference fits pass on macOS ARM64; first use and
-  new-process startup are not yet lightweight.
+  runtime size are not yet lightweight. Typed foreign callbacks, a fit-entry
+  inference boundary, and standard precompile workloads reduce the measured
+  fresh-process Gaussian first fit from about 37 s to 15 s on the local ARM64
+  installation; repeated fits remain millisecond-scale.
   Remaining: the final numerical API-parity review, including explicit multistart
   budgets in the Julia gallery (supplying `initial_guesses` alone does not run them).
   Do not add parallel plotting abstractions where native composition suffices. Deliver
   documented Python APIs, pip/conda installation without manual Julia setup,
   and passing installed-package CI results on supported platforms. The workflow
   is configured, not yet remotely verified. Measure numerical parity and callback
-  overhead (including scalar quadrature); investigate new-process startup after
-  the now-measured runtime footprint. Repeat installation against the registered
+  overhead (including scalar quadrature) and startup for the other fit families.
+  Repeat installation against the registered
   0.2 core without development overrides before any Python publication.

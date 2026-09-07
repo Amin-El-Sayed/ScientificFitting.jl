@@ -19,6 +19,42 @@ small TOML summary. This is a startup smoke test, not a stable latency claim.
 Use it to catch regressions such as accidentally moving plotting dependencies
 back into the fitting/reporting core.
 
+## Python Startup
+
+After installing the Python package and resolving its Julia environment, run
+this in a **fresh Python process**:
+
+```bash
+python python/benchmarks/startup.py --output=/tmp/scientificfitting-python-startup.json
+```
+
+It separates Python imports, JuliaCall initialization, bridge loading, the first
+Gaussian solve, result conversion, and report/diagnostic generation. It then
+fits a newly created Python callable in the same process. Both results and
+covariances are checked against a closed-form linear reference. Julia version,
+package source, NumPy/Python versions, and platform accompany the timings.
+The solve stage includes any outstanding compilation, not just optimization.
+With an empty environment, JuliaCall initialization also includes provisioning;
+do not compare that run with a previously installed environment.
+
+One macOS ARM64 run (Python 3.12.4, NumPy 2.5.3, JuliaCall 0.9.35, Julia 1.12.7)
+measured 3.5 s for JuliaCall, 6.5 s for the bridge, 5.2 s for the first solve,
+and 1.5 s for report/diagnostics. The full sequence took about 17 s, versus 46 s
+before the callback/precompile changes. A separate call through the public
+`fit_model` API took 15.3 s to its first result; repeated fits took 1-2 ms.
+These are local Gaussian measurements, not cross-library performance claims or
+promises about more complex first-use paths.
+
+The core uses [PrecompileTools](https://julialang.github.io/PrecompileTools.jl/stable/)
+with tiny deterministic Gaussian/Poisson fits and reports. The Python entry
+uses [`invokelatest`](https://docs.julialang.org/en/v1/base/base/#Base.invokelatest)
+once per fit to separate dynamic language conversion from numerical specialization.
+Foreign callbacks have a fixed return-type boundary; native Julia callbacks
+retain their normal specialization and automatic differentiation. These choices
+cache reusable code without executing Python during package precompilation or
+building platform-specific sysimages. They increase the installation cache and
+do not eliminate Julia's load time; see [Python installation](python.md#Installation-And-Packaging).
+
 ## Running BenchmarkTools Benchmarks
 
 The benchmark entry point is:

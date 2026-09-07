@@ -480,14 +480,22 @@ compatible Julia executable or downloads one and installs the numerical core.
 The core is constrained to `~0.2.0`; an explicitly overridden Julia environment
 is checked before the bridge loads. Package import alone does not start Julia.
 
-A clean macOS ARM64 installation with Python 3.12.4, JuliaCall 0.9.35, and Julia
-1.12.7 took about **298 s** from the first fit call through automatic download,
-package setup, compilation, and the fit. A new Python process using the completed
-installation needed about **37 s** for its first fit; a repeated small fit in the
-same process took **1-2 ms**. These are single installation observations, not
-cross-library performance claims. The wheel was about 30 KB; `du` reported
-798 MiB for Julia and 364 MiB for packages/caches, excluding Python and optional
-plotting dependencies. First-use latency and runtime size remain material costs.
+On macOS ARM64 with Python 3.12.4, JuliaCall 0.9.35, and Julia 1.12.7, a fresh
+Python process using an already installed environment needed about **15 s** for
+its first six-point Gaussian fit; another fit in the same process took **1-2 ms**.
+The same installation previously needed about 37 s for the first fit. Shared
+callback types and a small Julia precompile workload reduce compilation, without
+starting Julia at Python import. See [Performance](performance.md#Python-Startup)
+for the reproducible probe and what its stages include. These are local
+observations, not latency guarantees for every fit family or machine.
+
+First-ever use also downloads Julia/dependencies and builds caches. A clean
+provisioning test before these precompile changes took about five minutes; that
+is not a new cold-install timing. The current wheel is about 30 KB, but `du`
+reported 798 MiB for Julia and about 460 MiB for packages/caches, excluding Python
+and optional plotting dependencies. Roughly 96 MiB is ScientificFitting's own
+compiled cache; building it took about 53 s. Precompilation moves work to setup
+and uses disk space; it does not remove the runtime's installation cost.
 
 The same sources build with standard tools:
 

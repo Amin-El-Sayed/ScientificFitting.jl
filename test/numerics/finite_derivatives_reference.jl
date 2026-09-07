@@ -15,6 +15,23 @@ finite_linear(x, p::Vector{Float64}) = @. p[1] * x + p[2]
     expected = design \ y
     covariance = inv(design' * design) * 0.12^2
 
+    @testset "Reusable typed callback boundary" begin
+        first = ScientificFitting._TypedCallback{Vector{Float64}}(finite_linear)
+        second = ScientificFitting._TypedCallback{Vector{Float64}}((x, p) -> p[1] .* x .+ p[2])
+        @test typeof(first) == typeof(second)
+        @test (@inferred first(x, [1.7, 0.4])) == second(x, [1.7, 0.4])
+        for callback in (first, second)
+            result = fit_model(callback, x, y; p0=[1.2, 0.2], sigma_y=sigma, derivatives=:finite)
+            @test result.converged
+            @test result.params ≈ expected atol=2e-6
+            @test result.param_covariance ≈ covariance rtol=2e-6
+        end
+        wrong_type = ScientificFitting._TypedCallback{Vector{Float64}}((x, p) -> 1.0)
+        @test_throws TypeError wrong_type(x, [1.0, 0.0])
+        failing = ScientificFitting._TypedCallback{Float64}(p -> throw(ArgumentError("callback failed")))
+        @test_throws ArgumentError failing([1.0])
+    end
+
     @testset "Bounds, covariance, predictions, and refits" begin
         result = fit_model(finite_linear, x, y; p0=[1.2, 0.2], sigma_y=sigma,
             bounds=([0.0, -1.0], [3.0, 1.0]), derivatives=:finite)
