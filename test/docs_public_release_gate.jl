@@ -191,7 +191,8 @@ end
     @testset "Repository root stays package-facing" begin
         root_markdown = sort(filter(name -> endswith(name, ".md"), readdir(ROOT)))
         @test root_markdown == ["README.md"]
-        @test markdown_outside_docs() == ["README.md"]
+        # Both distributable packages need a public README, not internal notes.
+        @test markdown_outside_docs() == ["README.md", "python/README.md"]
     end
 
     @testset "Configured public files exist" begin
@@ -242,7 +243,7 @@ end
         @test occursin("JuliaCall", text)
         @test occursin("examples/python/numpy_matplotlib.py", text)
         @test occursin("python -m pytest python/tests", text)
-        @test occursin("not a claim of v0.2 feature parity", text)
+        @test occursin("not a claim of v0.2 release readiness", text)
         @test occursin("does **not** remove the Julia", text)
     end
 

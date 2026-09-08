@@ -86,7 +86,8 @@ jobs:
           echo "PYTHON_JULIAPKG_PROJECT=$RUNNER_TEMP/conda-julia-project" >> "$GITHUB_ENV"
       - name: Build and install the noarch package
         run: |
-          conda install -y conda-build
+          # conda loads its build plugin from base, not the activated test env.
+          conda install -y -n base conda-build
           conda build python/recipe --override-channels -c conda-forge --no-anaconda-upload --output-folder "$RUNNER_TEMP/conda-artifacts"
           conda create -y -n fit-install -c "file://$RUNNER_TEMP/conda-artifacts" -c conda-forge python=3.14 scientificfitting
       - name: Check fits and reports from the installed Conda package
