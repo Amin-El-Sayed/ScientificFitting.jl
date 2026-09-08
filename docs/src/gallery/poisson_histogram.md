@@ -159,10 +159,10 @@ decay_result = fit_poisson_model(
     bounds=([1e-6, 1e-6, 1e-6], [200.0, 2.0, 50.0]),
     parameter_names=["initial signal", "decay constant", "background"],
     initial_guesses=[
-        [40.0, 0.15, 3.0],
         [70.0, 0.30, 2.0],
         [25.0, 0.08, 5.0],
     ],
+    multistart=3, # p0 and the two additional starts.
 )
 
 lambda = decay_result.params[2]
@@ -302,10 +302,10 @@ spectrum_result = fit_histogram_model(
     bounds=([1e-6, 0.0, 0.05, 1e-6], [1000.0, 10.0, 5.0, 100.0]),
     parameter_names=["peak yield", "centroid", "width", "background density"],
     initial_guesses=[
-        [210.0, 3.8, 1.0, 1.0],
         [300.0, 4.2, 1.5, 0.5],
         [150.0, 3.2, 0.7, 2.0],
     ],
+    multistart=3,
 )
 
 @printf("peak yield = %.1f +/- %.1f events\n",

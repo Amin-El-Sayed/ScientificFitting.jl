@@ -1,15 +1,18 @@
 module ScientificFitting
 
 using ADTypes
-import StatsAPI: fit
+import StatsAPI: fit, predict
 using Distributions
 using DifferentiationInterface
+using FiniteDiff
 using ForwardDiff
 using LaTeXStrings
 using LinearAlgebra
 using LsqFit
 using Optimization
+import OptimizationNLopt
 using OptimizationOptimJL
+using PrecompileTools: @setup_workload, @compile_workload
 using QuadGK
 using SpecialFunctions
 using SparseArrays
@@ -17,6 +20,7 @@ using Statistics
 
 include("formatting.jl")
 include("types.jl")
+include("derivatives.jl")
 include("parameters.jl")
 include("diagnostics.jl")
 include("weights.jl")
@@ -24,8 +28,10 @@ include("costs.jl")
 include("fit.jl")
 include("likelihood_fits.jl")
 include("profile.jl")
+include("prediction.jl")
 include("plotting_api.jl")
 include("report.jl")
+include("precompile.jl")
 
 export ConstraintSpec
 export ParameterPrior
@@ -51,8 +57,10 @@ export ProfileInterval
 export ProfileMatrixResult
 export ProfileMatrixPanelTriage
 export fit
+export predict
 export fit_model
 export fit_custom
+export fit_likelihood_model
 export fit_poisson_model
 export fit_histogram_model
 export fit_histogram_density

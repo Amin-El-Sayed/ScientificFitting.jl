@@ -79,6 +79,7 @@ different uncertainty scales or datasets.
 
 | Entry point | Additional contract |
 |---|---|
+| `fit_likelihood_model` | `logprob(y, prediction, p)` returns one normalized log density or log probability mass per independent observation; no universal goodness-of-fit p-value. |
 | `fit_poisson_model` | Every expected count must be finite and strictly positive; observed counts must be non-negative integers. |
 | `fit_histogram_model` | `length(edges) == length(counts) + 1`; edges increase strictly; the model returns one positive expectation per bin. |
 | `fit_histogram_density` | Integrates `pdf(x, p)` over every bin with Gauss-Kronrod quadrature; `total_count > 0`, `rtol > 0`. |
@@ -95,9 +96,35 @@ observations. If supplied, `gof(p)` is the data goodness-of-fit statistic;
 ScientificFitting adds quadratic contributions and dimensions from Gaussian parameter
 priors and constraints.
 
+### Minimization And Local Errors
+
+All likelihood helpers accept these independent controls; Gaussian `fit_model`
+continues to use `backend` and `scale_covariance`.
+
+| Keyword | Choices and behavior |
+|---|---|
+| `optimizer` | `:auto` selects LBFGS, or IPNewton for nonlinear constraints. Explicit `:lbfgs`, `:ipnewton`, and `:nelder_mead` are available. |
+| `parameter_covariance` | `:auto` selects `:none` with Nelder-Mead, `:hessian` otherwise. `:hessian` requires a locally smooth cost; `:none` leaves free-parameter errors as `NaN`, fixed errors as zero. |
+
+Nelder-Mead uses NLopt's native box bounds without numerical derivatives or a
+custom penalty. Fixed values, Gaussian priors and correlated parameter terms
+remain active. Nonlinear constraints require IPNewton and are rejected with
+other solvers, never ignored. All methods optimize continuous parameters and
+are local searches. Begin at finite cost inside the likelihood's support.
+
+For Nelder-Mead, `maxiters` is an **objective-evaluation budget**, not an
+iteration count; `result.iterations` is `missing`. `tol` sets absolute/relative
+parameter stopping tolerances, so choose parameter units/scales accordingly.
+Function-value stopping is disabled: distant simplex vertices can have equal
+costs without locating the minimum. Reaching the budget is
+not convergence. Profiles preserve both controls; use explicit `values` grids
+when no local errors exist. [Non-regular likelihoods](likelihood_models.md#A-Moving-Support-Boundary)
+need more than a successful minimization to justify confidence intervals.
+
 ```@docs
 ScientificFitting.fit(::ScientificFitting.LikelihoodFitProblem)
 ScientificFitting.fit_custom
+ScientificFitting.fit_likelihood_model
 ScientificFitting.fit_poisson_model
 ScientificFitting.fit_histogram_model
 ScientificFitting.fit_histogram_density

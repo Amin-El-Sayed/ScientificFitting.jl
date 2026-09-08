@@ -1,0 +1,43 @@
+{% set project = load_file_data('pyproject.toml')['project'] %}
+
+package:
+  name: {{ project['name'] }}
+  version: {{ project['version'] }}
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  number: 0
+  # Resolve the host interpreter at build time; rendering may rename its prefix.
+  script: python -m pip install . --no-deps --no-build-isolation -vv
+
+requirements:
+  host:
+    - python {{ project['requires-python'] }}
+    - pip
+    - setuptools >=77
+    - wheel
+  run:
+    - python {{ project['requires-python'] }}
+    {% for dependency in project['dependencies'] %}
+    - {{ dependency | replace('juliacall', 'pyjuliacall') }}
+    {% endfor %}
+
+test:
+  imports:
+    - scientificfitting
+  commands:
+    - python -c "import scientificfitting, sys; assert 'juliacall' not in sys.modules and 'matplotlib' not in sys.modules"
+
+about:
+  home: {{ project['urls']['Source'] }}
+  license: MIT
+  license_file: LICENSE
+  summary: {{ project['description'] }}
+  doc_url: {{ project['urls']['Documentation'] }}
+
+extra:
+  recipe-maintainers:
+    - Amin-El-Sayed

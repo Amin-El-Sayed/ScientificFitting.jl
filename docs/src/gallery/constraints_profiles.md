@@ -168,6 +168,7 @@ result = fit_model(
         [6.0, 5.0, 0.1],
         [3.0, 2.0, 0.1],
     ],
+    multistart=3, # p0 and the two additional starts.
     maxiters=2000,
 )
 

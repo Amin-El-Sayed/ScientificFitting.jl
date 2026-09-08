@@ -6,6 +6,7 @@ const DOCS_MAKE = joinpath(ROOT, "docs", "make.jl")
 const PUBLIC_DOC_PAGES = [
     "index.md",
     "install.md",
+    "python.md",
     "quickstart.md",
     "how_scientificfitting_works.md",
     "gallery.md",
@@ -40,7 +41,7 @@ const FORBIDDEN_PUBLIC_PATTERNS = Pair{String, Regex}[
     "AI/LLM disclosure text" => r"(?i)\b(as an ai|chatgpt|large language model|ai[- ]?generated|ai slop)\b",
     "placeholder marker" => r"(?i)\b(todo|fixme|lorem ipsum|placeholder prose|being rewritten|not all of them are finished|work in progress|coming soon|to be written|to be added)\b",
     "draft/tutorial residue" => r"(?i)\b(draft-only|toy example|left as an exercise|why this example matters|synthetic perfect-data)\b",
-    "private local path" => r"(?i)(/Users/|Documents/Projekte|private P1|P1-Praktikum|Praktikum)",
+    "private local path" => r"(?i)((?<![\w/])/Users/|file:///Users/|Documents/Projekte|private P1|P1-Praktikum|Praktikum)",
     "private author handle in public prose" => r"(?i)\bAmin_El_Sayed\b",
     "course-internal wording" => r"(?i)\b(course[- ]internal|lab-course-internal|private dataset)\b",
     "stale public API identifier" => r"\b(profile_curve|contour_grid)\b",
@@ -75,15 +76,9 @@ function docs_source_markdown_pages()
 end
 
 function markdown_outside_docs()
-    pages = String[]
-    for (directory, subdirectories, filenames) in walkdir(ROOT)
-        filter!(name -> name != ".git" && name != "docs", subdirectories)
-        for filename in filenames
-            endswith(filename, ".md") || continue
-            push!(pages, relpath(joinpath(directory, filename), ROOT))
-        end
-    end
-    return sort(pages)
+    # Audit publishable source, not ignored pytest/virtual-environment caches.
+    paths = split(read(`git -C $ROOT ls-files --cached --others --exclude-standard -z`, String), '\0')
+    return sort(unique(filter(path -> endswith(path, ".md") && !startswith(path, "docs/"), paths)))
 end
 
 function documenter_make_text()
@@ -166,6 +161,13 @@ function html_image_alt_text(tag::AbstractString)
 end
 
 @testset "Public documentation release hygiene" begin
+    @testset "Website sections are not machine-local paths" begin
+        pattern = Dict(FORBIDDEN_PUBLIC_PATTERNS)["private local path"]
+        @test occursin(pattern, "`/Users/example/project`")
+        @test occursin(pattern, "file:///Users/example/project")
+        @test !occursin(pattern, "https://matplotlib.org/stable/users/explain/axes/constrainedlayout_guide.html")
+    end
+
     @testset "Documenter navigation coverage" begin
         @test documenter_navigation_pages() == sort(setdiff(PUBLIC_DOC_PAGES, ["index.md"]))
         @test docs_source_markdown_pages() == sort(PUBLIC_DOC_PAGES)
@@ -189,7 +191,8 @@ end
     @testset "Repository root stays package-facing" begin
         root_markdown = sort(filter(name -> endswith(name, ".md"), readdir(ROOT)))
         @test root_markdown == ["README.md"]
-        @test markdown_outside_docs() == ["README.md"]
+        # Both distributable packages need a public README, not internal notes.
+        @test markdown_outside_docs() == ["README.md", "python/README.md"]
     end
 
     @testset "Configured public files exist" begin
@@ -235,11 +238,13 @@ end
     end
 
     @testset "Python interoperability documentation" begin
-        text = install_page_text()
-        @test occursin("juliacall", text)
-        @test occursin("examples/python/fit_from_python.py", text)
-        @test occursin("SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1", text)
-        @test occursin("experimental or deferred", text)
+        @test occursin("(python.md)", install_page_text())
+        text = public_file_text(joinpath(DOCS_SRC, "python.md"))
+        @test occursin("JuliaCall", text)
+        @test occursin("examples/python/numpy_matplotlib.py", text)
+        @test occursin("python -m pytest python/tests", text)
+        @test occursin("not a claim of v0.2 release readiness", text)
+        @test occursin("does **not** remove the Julia", text)
     end
 
     @testset "First-user path is executable and honest" begin
@@ -251,7 +256,11 @@ end
 
         @test occursin("content=\"0; url=gallery.html\"", home)
         @test occursin("```@raw html\n<section class=\"scientificfitting-hero\">", gallery)
-        @test occursin("Simple fits stay simple", gallery)
+        @test occursin("Least squares and likelihood fits", gallery)
+        @test occursin("local covariance", gallery)
+        @test occursin("not posterior sampling", gallery)
+        @test occursin("Measurement errors are inputs", readme)
+        @test occursin("not a posterior-sampling", readme)
         @test occursin("actual program output", gallery)
         @test occursin("data-scientificfitting-plot-group=\"gallery-linear\"", gallery)
         @test !occursin("## Recommended Path", gallery)

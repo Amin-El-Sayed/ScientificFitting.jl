@@ -59,10 +59,10 @@ constant_result = fit_model(
     sigma_x=sigma_time,
     bounds=([0.0, 2.0, -20.0, 0.0], [5.0, 5.0, 20.0, 0.05]),
     initial_guesses=[
-        [1.6, 3.26, 0.0, 0.0035],
         [1.8, 3.20, 2.0, 0.0020],
         [1.5, 3.35, -2.0, 0.0060],
     ],
+    multistart=3, # p0 and the two additional starts.
     maxiters=3000,
     tol=1e-7,
 )
@@ -76,10 +76,10 @@ drift_result = fit_model(
     sigma_x=sigma_time,
     bounds=([0.0, 2.0, -20.0, 0.0, -0.01], [5.0, 5.0, 20.0, 0.05, 0.01]),
     initial_guesses=[
-        [1.6, 3.26, 0.0, 0.0035, 0.0],
         [1.8, 3.20, 2.0, 0.0020, 0.0001],
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
+    multistart=3,
     maxiters=4000,
     tol=1e-7,
 )

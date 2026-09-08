@@ -106,13 +106,16 @@ ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=
 
 """
     FitOptions(; backend=:auto, cost=:auto, maxiters=500, tol=1e-10,
-                scale_covariance=:auto, multistart=1)
+                scale_covariance=:auto, multistart=1,
+                optimizer=:auto, parameter_covariance=:auto)
 
 Normalized solver and covariance options stored in a `FitResult`. User-facing
 fit functions expose these as keyword arguments; constructing `FitOptions`
 directly is mainly useful for lower-level workflows and tests. Invalid backend,
 iteration, tolerance, covariance-scaling, and multistart
 settings fail during construction rather than inside a solver.
+Likelihood fits additionally select `optimizer` and `parameter_covariance`;
+their resolved choices are stored here and preserved by profile refits.
 """
 Base.@kwdef struct FitOptions
     backend::Symbol = :auto
@@ -121,6 +124,8 @@ Base.@kwdef struct FitOptions
     tol::Float64 = 1e-10
     scale_covariance::Symbol = :auto
     multistart::Int = 1
+    optimizer::Symbol = :auto
+    parameter_covariance::Symbol = :auto
 
     function FitOptions(
         backend::Symbol,
@@ -129,6 +134,8 @@ Base.@kwdef struct FitOptions
         tol::Real,
         scale_covariance::Symbol,
         multistart::Integer,
+        optimizer::Symbol=:auto,
+        parameter_covariance::Symbol=:auto,
     )
         maxiters_value = Int(maxiters)
         tol_value = Float64(tol)
@@ -138,6 +145,12 @@ Base.@kwdef struct FitOptions
         ))
         scale_covariance in (:auto, :always, :never) || throw(ArgumentError(
             "scale_covariance must be :auto, :always, or :never",
+        ))
+        optimizer in (:auto, :lbfgs, :ipnewton, :nelder_mead) || throw(ArgumentError(
+            "optimizer must be :auto, :lbfgs, :ipnewton, or :nelder_mead",
+        ))
+        parameter_covariance in (:auto, :hessian, :none) || throw(ArgumentError(
+            "parameter_covariance must be :auto, :hessian, or :none",
         ))
         maxiters_value > 0 || throw(ArgumentError("maxiters must be > 0"))
         isfinite(tol_value) && tol_value > 0 || throw(ArgumentError(
@@ -151,6 +164,8 @@ Base.@kwdef struct FitOptions
             tol_value,
             scale_covariance,
             multistart_value,
+            optimizer,
+            parameter_covariance,
         )
     end
 end
@@ -172,7 +187,8 @@ prediction bands. Without it, confidence bands remain available but a
 prediction band would not have enough information.
 
 The mutating function must write every element of `out` and support the element
-types used by automatic differentiation when the general optimizer is needed.
+types used by automatic differentiation when the general optimizer is needed,
+unless the fit uses `derivatives=:finite` for Float64-only callbacks.
 It must accept `AbstractVector` views because ScientificFitting applies the same operator
 columnwise to analytic Jacobians.
 """
@@ -311,7 +327,7 @@ function _validate_inplace_output!(f!, output, x, p, name::AbstractString)
     return nothing
 end
 
-struct FitProblem{TF, TW}
+struct FitProblem{TF, TW, DM}
     model::TF
     x::Vector{Float64}
     y::Vector{Float64}
@@ -329,7 +345,11 @@ struct FitProblem{TF, TW}
     fixed_parameters::Vector{FixedParameter}
     jacobian::Any
     x_derivative::Any
+    derivatives::Symbol
 end
+
+# Keep the derivative backend type-stable inside nested numerical kernels.
+_derivative_mode(::FitProblem{TF, TW, DM}) where {TF, TW, DM} = DM
 
 """
     FitStatistics
@@ -640,7 +660,7 @@ function _normalize_error_components(error_components, nobs::Int)
             _assert_finite_vector("error component $(component.name)", component.values)
         elseif component.values isa AbstractMatrix
             size(component.values) == (nobs, nobs) || throw(ArgumentError("error component covariance must be n x n"))
-            _assert_finite_matrix("error component $(component.name)", Matrix(component.values))
+            _assert_finite_matrix("error component $(component.name)", component.values)
         elseif component.values isa Number
             isfinite(component.values) || throw(ArgumentError("error component $(component.name) must be finite"))
         end
@@ -723,7 +743,7 @@ end
     FitProblem(model, x, y; p0, sigma_y, sigma_x, cov_y, cov_x, whitening,
                error_components, bounds, constraints, parameter_priors,
                parameter_constraints, fixed_parameters, jacobian,
-               x_derivative, inplace=false)
+               x_derivative, inplace=false, derivatives=:auto)
 
 Build a fit problem for 1D `x` and scalar `y` observations.
 
@@ -756,7 +776,17 @@ single NamedTuple or vector of NamedTuples:
 
 `x_derivative(x, p)` optionally supplies the vector derivative `dy/dx` used for
 effective x-uncertainty propagation. If omitted, ScientificFitting differentiates the
-model with respect to each x value by automatic differentiation.
+model with respect to each x value using the selected differentiation mode.
+
+`derivatives=:auto` preserves the native solver defaults and ForwardDiff for
+post-fit derivatives. Use `:finite` for Float64-only models (including Python
+callbacks). This selects numerical differentiation throughout fitting,
+covariance estimation, profiles, and prediction bands. Analytic `jacobian` and
+`x_derivative` callbacks take precedence where applicable. Numerical differences
+require a smooth model in a neighborhood of the evaluation point, including
+at parameter bounds; they do not make discontinuous objectives differentiable.
+Fitting in finite mode defaults to `tol=1e-6` (otherwise `1e-10`); explicit
+solver tolerances are preserved and are not parameter-error guarantees.
 
 `whitening=WhiteningOperator(...)` supplies the complete static observation
 covariance through a matrix-free whitening operation. It is mutually exclusive
@@ -791,7 +821,9 @@ function FitProblem(
     jacobian=nothing,
     x_derivative=nothing,
     inplace::Bool=false,
+    derivatives::Symbol=:auto,
 )
+    _validate_derivatives(derivatives)
     x_vec = _float_vector(x)
     y_vec = _float_vector(y)
     p0_vec = _float_vector(p0)
@@ -870,7 +902,7 @@ function FitProblem(
     model_impl = inplace ? _InPlaceModel(model) : model
     jacobian_impl = inplace && jacobian !== nothing ? _InPlaceJacobian(jacobian) : jacobian
 
-    return FitProblem(
+    return FitProblem{typeof(model_impl), typeof(whitening), derivatives}(
         model_impl,
         x_vec,
         y_vec,
@@ -888,5 +920,6 @@ function FitProblem(
         fixed,
         jacobian_impl,
         x_derivative,
+        derivatives,
     )
 end

@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scientificfitting"
+version = "0.2.0"
+description = "Python interface to the ScientificFitting Julia numerical core"
+readme = "README.md"
+authors = [{name = "Amin El Sayed"}]
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+# 0.9.35 loses Julia's real bindir when its executable is a symlink.
+# Revisit this cap after the loader regression test passes with an upstream fix.
+dependencies = ["numpy>=1.24", "juliacall>=0.9.34,<0.9.35"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.urls]
+Documentation = "https://amin-el-sayed.github.io/ScientificFitting.jl/python.html"
+Source = "https://github.com/Amin-El-Sayed/ScientificFitting.jl"
+Issues = "https://github.com/Amin-El-Sayed/ScientificFitting.jl/issues"
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.7"]
+sparse = ["scipy>=1.10"]
+test = ["pytest>=7", "matplotlib>=3.7", "scipy>=1.10", "build>=1", "setuptools>=77",
+        "tomli>=2; python_version<'3.11'"]
+
+[tool.setuptools]
+packages = ["scientificfitting"]
+
+[tool.setuptools.package-data]
+scientificfitting = ["*.jl", "juliapkg.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

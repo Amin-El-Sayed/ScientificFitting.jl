@@ -84,7 +84,7 @@ end
 
 function _free_weighted_jacobian(problem::FitProblem, params::AbstractVector)
     free_idx = _free_indices(problem)
-    jac = ForwardDiff.jacobian(q -> _weighted_residual(problem, _expand_free_parameters(problem, q)), params[free_idx])
+    jac = _derivative_jacobian(problem, q -> _weighted_residual(problem, _expand_free_parameters(problem, q)), params[free_idx])
     return Matrix{Float64}(jac)
 end
 
@@ -107,6 +107,7 @@ function _with_p0(problem::FitProblem, p0::AbstractVector)
         fixed_parameters=problem.fixed_parameters,
         jacobian=problem.jacobian,
         x_derivative=problem.x_derivative,
+        derivatives=problem.derivatives,
     )
 end
 

@@ -13,6 +13,13 @@
 /benchmarks/output/
 /benchmarks/Manifest.toml
 
+# Python wrapper development
+__pycache__/
+*.egg-info/
+.pytest_cache/
+/python/build/
+/python/dist/
+
 # Generated plot exports in repository root
 /*.pdf
 /*.png

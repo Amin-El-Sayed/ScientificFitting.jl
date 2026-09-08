@@ -1,0 +1,102 @@
+name: Python
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["Project.toml", "src/**", "python/**", "examples/python/**", "docs/src/python.md", ".github/workflows/python.yml"]
+  pull_request:
+    paths: ["Project.toml", "src/**", "python/**", "examples/python/**", "docs/src/python.md", ".github/workflows/python.yml"]
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  wheel:
+    name: Wheel - ${{ matrix.os }} - Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-latest, python: "3.10"}
+          - {os: ubuntu-latest, python: "3.14"}
+          - {os: macos-latest, python: "3.12"}
+          - {os: windows-latest, python: "3.12"}
+    defaults:
+      run:
+        shell: bash
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Isolate Python and Julia from runner packages
+        run: |
+          # Runner paths are available here, not in job-level env expressions.
+          echo "JULIA_DEPOT_PATH=$RUNNER_TEMP/python-julia-depot" >> "$GITHUB_ENV"
+          echo "PYTHON_JULIAPKG_PROJECT=$RUNNER_TEMP/python-julia-project" >> "$GITHUB_ENV"
+          python -m venv .python-test
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "$GITHUB_WORKSPACE/.python-test/Scripts" >> "$GITHUB_PATH"
+          else
+            echo "$GITHUB_WORKSPACE/.python-test/bin" >> "$GITHUB_PATH"
+          fi
+      - name: Build sdist, rebuild wheel, and install base dependencies
+        run: |
+          python -m pip install build
+          python -m build python --outdir python/dist
+          python -m pip install python/dist/*.whl
+      - name: Fit through installed wheel and JuliaPkg
+        # No Julia setup action or package cache; --source selects the pending core.
+        run: python python/tests/check_install.py --source . --output python-install.json
+      - name: Test numerical and Matplotlib APIs from the installed wheel
+        run: |
+          for wheel in python/dist/*.whl; do python -m pip install "${wheel}[test]"; done
+          python -m pytest python/tests -q
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-install-${{ matrix.os }}-${{ matrix.python }}
+          path: python-install.json
+
+  conda:
+    name: Conda package - Linux - Python 3.14
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      CONDA_SOLVER: libmamba
+    steps:
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v4
+        with:
+          miniforge-version: latest
+          python-version: "3.12"
+          channels: conda-forge
+          channel-priority: strict
+      - name: Select isolated Julia environment
+        run: |
+          echo "JULIA_DEPOT_PATH=$RUNNER_TEMP/conda-julia-depot" >> "$GITHUB_ENV"
+          echo "PYTHON_JULIAPKG_PROJECT=$RUNNER_TEMP/conda-julia-project" >> "$GITHUB_ENV"
+      - name: Build and install the noarch package
+        run: |
+          # conda loads its build plugin from base, not the activated test env.
+          conda install -y -n base conda-build
+          conda build python/recipe --override-channels -c conda-forge --no-anaconda-upload --output-folder "$RUNNER_TEMP/conda-artifacts"
+          conda create -y -n fit-install -c "file://$RUNNER_TEMP/conda-artifacts" -c conda-forge python=3.14 scientificfitting
+      - name: Check fits and reports from the installed Conda package
+        run: conda run --no-capture-output -n fit-install python python/tests/check_install.py --source . --output conda-install.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: conda-install-linux-3.14
+          path: conda-install.json

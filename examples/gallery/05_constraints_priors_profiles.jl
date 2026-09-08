@@ -35,6 +35,7 @@ fit = fitplot(
     bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
     parameter_priors=(index=3, mean=0.10, sigma=0.08),
     initial_guesses=[[6.0, 5.0, 0.1], [3.0, 2.0, 0.1]],
+    multistart=3, # p0 and the two additional starts.
     maxiters=2000,
     filename=example_output("05_constraints_priors_fit.pdf"),
     title="Early saturation measurement",

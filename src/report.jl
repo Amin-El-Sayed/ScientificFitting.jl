@@ -78,8 +78,9 @@ function _parameter_estimates(
                     npoints=profile_npoints,
                     nsigma=profile_nsigma,
                 )
-                uncertainty_minus = isfinite(interval.uncertainty_minus) ? interval.uncertainty_minus : uncertainty
-                uncertainty_plus = isfinite(interval.uncertainty_plus) ? interval.uncertainty_plus : uncertainty
+                # Missing crossings are not evidence for a local symmetric error.
+                uncertainty_minus = interval.uncertainty_minus
+                uncertainty_plus = interval.uncertainty_plus
                 uncertainty = max(uncertainty_minus, uncertainty_plus)
                 push!(estimates, ParameterEstimate(i, names[i], result.params[i], uncertainty, uncertainty_minus, uncertainty_plus, false))
             elseif errors == :local
@@ -103,6 +104,7 @@ Return an extractable report object for a fit result. Parameters are available a
 Use `errors=:profile` to compute profile-based asymmetric uncertainties. This
 re-runs fits and can be expensive. `profile_threshold`, `profile_npoints`, and
 `profile_nsigma` control those scans and are ignored for `errors=:local`.
+Unbracketed profile sides remain `NaN`; they are never replaced with local errors.
 """
 function fit_report(
     result;

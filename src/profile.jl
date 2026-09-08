@@ -126,6 +126,7 @@ function _refit_with_fixed(result::FitResult, fixed::Vector{FixedParameter})
         fixed_parameters=_merge_fixed_parameters(problem.fixed_parameters, fixed),
         jacobian=problem.jacobian,
         x_derivative=problem.x_derivative,
+        derivatives=problem.derivatives,
     )
 
     return fit(
@@ -157,12 +158,15 @@ function _refit_with_fixed(result::LikelihoodFitResult, fixed::Vector{FixedParam
         nobs=problem.nobs,
         cost_name=problem.cost_name,
         parameter_names=problem.parameter_names,
+        derivatives=problem.derivatives,
     )
 
     return fit(
         refit_problem;
         maxiters=result.options.maxiters,
         tol=result.options.tol,
+        optimizer=result.options.optimizer,
+        parameter_covariance=result.options.parameter_covariance,
     )
 end
 
@@ -172,12 +176,21 @@ function _default_profile_grid(result, index::Int; npoints::Int, nsigma::Real)
     if !isfinite(sigma) || sigma <= 0
         sigma = max(abs(center), 1.0) * 0.1
     end
-    return collect(range(center - nsigma * sigma, center + nsigma * sigma; length=npoints))
+    lower, upper = center - nsigma * sigma, center + nsigma * sigma
+    if result.problem.bounds !== nothing
+        # An automatic scan must not manufacture failures outside known bounds.
+        lower = max(lower, result.problem.bounds[1][index])
+        upper = min(upper, result.problem.bounds[2][index])
+    end
+    lower < upper || throw(ArgumentError("parameter $index has no nonzero scan range within its bounds"))
+    return collect(range(lower, upper; length=npoints))
 end
 
 function _profile_refit_cost(result, fixed::Vector{FixedParameter}; on_failure::Symbol)
     try
         profiled = _refit_with_fixed(result, fixed)
+        # A finite objective is not enough: nuisance parameters must be minimized.
+        profiled.converged || error("profile refit did not converge: $(profiled.message)")
         return Float64(profiled.stats.cost_min)
     catch err
         on_failure == :throw && rethrow(err)
@@ -293,6 +306,12 @@ end
 Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
 
+The automatic grid intersects `best_value +/- nsigma * local_stderr` with the
+parameter bounds. Without a positive finite local error, its initial step scale
+is `0.1 * max(abs(best_value), 1)`, a search heuristic, not an uncertainty.
+Use explicit `values` for scientifically chosen ranges. Explicit values are not clipped: infeasible points still
+follow `on_failure`. A bound is not substituted for a missing threshold crossing.
+
 With `adaptive=true`, ScientificFitting refines grid intervals that bracket the requested
 profile threshold. This improves interval extraction without forcing a dense
 grid over the full scan range. `on_failure=:inf` records failed refits as
@@ -359,6 +378,8 @@ function _profile_crossings(profile_result::ProfileResult)
 
     lower = NaN
     for i in (center - 1):-1:1
+        # Search only the connected finite region around the minimum.
+        isfinite(delta[i]) && isfinite(delta[i + 1]) || break
         if delta[i] >= threshold && delta[i + 1] <= threshold
             lower = _linear_crossing(values[i], delta[i], values[i + 1], delta[i + 1], threshold)
             break
@@ -367,6 +388,7 @@ function _profile_crossings(profile_result::ProfileResult)
 
     upper = NaN
     for i in center:(length(values) - 1)
+        isfinite(delta[i]) && isfinite(delta[i + 1]) || break
         if delta[i] <= threshold && delta[i + 1] >= threshold
             upper = _linear_crossing(values[i], delta[i], values[i + 1], delta[i + 1], threshold)
             break
@@ -408,11 +430,23 @@ function profile_interval(
         max_refinements=max_refinements,
         max_points=max_points,
     )
+    return profile_interval(prof)
+end
+
+"""
+    profile_interval(profile_result::ProfileResult)
+
+Extract threshold crossings from an existing scan without running more fits.
+The best value and threshold are those stored in the scan. Unbracketed sides
+remain `NaN`, just as for `profile_interval(result, index)`. A failed grid
+point stops that side's search; crossings are never interpolated across gaps.
+"""
+function profile_interval(prof::ProfileResult)
     lower, upper = _profile_crossings(prof)
-    center = result.params[index]
+    center = prof.best_value
     minus = isfinite(lower) ? center - lower : NaN
     plus = isfinite(upper) ? upper - center : NaN
-    return ProfileInterval(index, lower, upper, minus, plus, Float64(threshold), prof)
+    return ProfileInterval(prof.parameter_index, lower, upper, minus, plus, prof.threshold, prof)
 end
 
 function _profile_threshold_bracket_findings(profile_result::ProfileResult)
@@ -515,6 +549,8 @@ Compute a multi-parameter profile/contour diagnostic matrix without loading
 Makie. Diagonal entries are one-parameter profile scans; lower-triangle entries
 are two-parameter profile contours. Each panel is diagnosed against the local
 covariance approximation when local errors or covariance entries are finite.
+Without local errors, grids use `profile`'s heuristic scale; for controlled
+ranges, compute individual profiles/contours with explicit grid values.
 
 Use this when a fit has several correlated or nonlinear parameters and you
 need a quick, machine-readable answer to: "Are local symmetric covariance
@@ -687,7 +723,7 @@ function diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance:
     return DiagnosticReport(findings, _diagnostic_summary(findings))
 end
 
-function _default_contour_grid(result::FitResult, index::Int; npoints::Int, nsigma::Real)
+function _default_contour_grid(result, index::Int; npoints::Int, nsigma::Real)
     return _default_profile_grid(result, index; npoints=npoints, nsigma=nsigma)
 end
 
@@ -789,6 +825,9 @@ end
 Compute a two-parameter profile-likelihood contour grid. At each grid point,
 parameters `i` and `j` are fixed and all remaining free parameters are
 re-minimized.
+
+Automatic axes respect parameter bounds, as in `profile`. Explicit `xvalues`
+and `yvalues` remain unchanged, including infeasible points.
 
 With `adaptive=true`, ScientificFitting refines grid cells whose corner values bracket a
 requested contour level. This concentrates expensive refits near meaningful

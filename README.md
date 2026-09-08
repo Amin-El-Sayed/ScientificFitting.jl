@@ -9,12 +9,17 @@
 [![Documentation](https://github.com/Amin-El-Sayed/ScientificFitting.jl/actions/workflows/pages.yml/badge.svg)](https://amin-el-sayed.github.io/ScientificFitting.jl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Scientific fitting for Julia: data, uncertainties, statistically explicit
-results, diagnostics, and Makie plots from one coherent workflow.
+Fit parametric models to measurement data in Julia using weighted nonlinear
+least squares or likelihood optimization. Supply measurement standard
+deviations/covariances for Gaussian fits, use a Poisson model for counts, or
+define a likelihood for other observation distributions. Parameter constraints,
+diagnostics, and editable Makie plots work with the resulting fit.
 
-ScientificFitting combines weighted nonlinear least squares, likelihood fits,
-parameter constraints, profile diagnostics, and publication-ready Makie plots.
-Version 0.1 is the first public release; feedback from real analyses is welcome.
+Measurement errors are inputs; reported parameter errors are local covariance
+approximations, with profile-likelihood scans available to examine asymmetry
+and non-quadratic behavior. A model-uncertainty band is not the scatter of future
+measurements. This is an optimization-based package, not a posterior-sampling
+framework. Feedback from real analyses is welcome.
 
 ## Install
 

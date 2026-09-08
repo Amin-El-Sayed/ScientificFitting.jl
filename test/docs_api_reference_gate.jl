@@ -13,6 +13,7 @@ const PUBLIC_API_DOC_EXEMPTIONS = Set([:ScientificFitting])
 const FIT_ENTRYPOINTS = [
     :fit_model,
     :fit_custom,
+    :fit_likelihood_model,
     :fit_poisson_model,
     :fit_histogram_model,
     :fit_histogram_density,

@@ -28,6 +28,8 @@ end
 
 function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     free_p0 = _free_p0(problem)
+    # Translate our controls once for every allocating/in-place solver path.
+    solver_kwargs = (; maxIter=options.maxiters, x_tol=options.tol, g_tol=options.tol)
     sigma = problem.sigma_y
     factor = problem.cov_y === nothing ? nothing : _stable_cholesky(problem.cov_y)
     operator = problem.whitening
@@ -44,7 +46,8 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
         end
 
         if problem.jacobian === nothing
-            LsqFit.curve_fit(weighted_model!, problem.x, weighted_y, free_p0; inplace=true)
+            LsqFit.curve_fit(weighted_model!, problem.x, weighted_y, free_p0;
+                inplace=true, solver_kwargs...)
         else
             free_idx = _free_indices(problem)
             full_jacobian = length(free_idx) == length(problem.p0) ? nothing :
@@ -69,6 +72,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
                 weighted_y,
                 free_p0;
                 inplace=true,
+                solver_kwargs...,
             )
         end
     else
@@ -89,17 +93,19 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
         end
 
         if weighted_jacobian === nothing
-            LsqFit.curve_fit(weighted_model, problem.x, weighted_y, free_p0)
+            LsqFit.curve_fit(weighted_model, problem.x, weighted_y, free_p0; solver_kwargs...)
         else
-            LsqFit.curve_fit(weighted_model, weighted_jacobian, problem.x, weighted_y, free_p0)
+            LsqFit.curve_fit(weighted_model, weighted_jacobian, problem.x, weighted_y, free_p0;
+                solver_kwargs...)
         end
     end
     params = _expand_free_parameters(problem, LsqFit.coef(fit_result))
 
-    converged = true
+    converged = LsqFit.isconverged(fit_result)
     iterations = hasproperty(fit_result, :iterations) ?
                  Int(getproperty(fit_result, :iterations)) : missing
-    message = "Converged with LsqFit"
+    message = converged ? "Converged with LsqFit" :
+              "LsqFit did not converge (check tolerances and iteration limit)"
 
     # LsqFit stores the weighted model Jacobian. ScientificFitting stores residual
     # Jacobians, hence the sign flip at result construction.
@@ -109,17 +115,19 @@ end
 function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     if _static_effective_covariance_available(problem)
         cov = _effective_covariance(problem, problem.p0)
-        if cov isa SparseMatrixCSC
+        # Finite differences perturb Float64 parameters outside the sparse solve.
+        if cov isa SparseMatrixCSC && _derivative_mode(problem) != :finite
             throw(ArgumentError(
-                "sparse covariance currently supports the unbounded least-squares backend; " *
-                "use a dense covariance or an AD-compatible WhiteningOperator for " *
-                "constrained or Gaussian-likelihood fits",
+                "sparse covariance with the general optimizer requires derivatives=:finite " *
+                "or an AD-compatible WhiteningOperator; CHOLMOD cannot propagate dual numbers",
             ))
         end
     end
 
     cache = _prepare_fit_cache(problem)
-    objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(cache.problem, q), options.cost)
+    # Keep the model type in the objective: sharing a precompiled AD tag across
+    # unseen models can invert the tag order of their nested x derivatives.
+    objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)
 
     lb = nothing
     ub = nothing
@@ -132,7 +140,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     has_cons = has_constraints(free_constraints)
     if has_cons
         cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
-        ad = DifferentiationInterface.SecondOrder(Optimization.AutoForwardDiff(), Optimization.AutoForwardDiff())
+        ad = _optimization_ad(problem; second_order=true)
         optf = OptimizationFunction(objective, ad; cons=cons!)
         optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
         sol = solve(
@@ -143,7 +151,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
             reltol=options.tol,
         )
     else
-        optf = OptimizationFunction(objective, Optimization.AutoForwardDiff())
+        optf = OptimizationFunction(objective, _optimization_ad(problem))
         optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub)
         sol = solve(
             optprob,
@@ -221,7 +229,7 @@ function _build_fit_result(
         bic,
     )
     hessian = if _resolve_cost(problem, options.cost) == :gaussian_likelihood && !isempty(free_idx)
-        ForwardDiff.hessian(q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost), params[free_idx])
+        _derivative_hessian(problem, q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost), params[free_idx])
     else
         nothing
     end
@@ -247,6 +255,14 @@ function _build_fit_result(
     )
 end
 
+"""Prefer convergence first, then the lowest finite cost within that status."""
+function _prefer_fit(candidate, incumbent)
+    isfinite(candidate.stats.cost_min) || return false
+    incumbent === nothing && return true
+    candidate.converged != incumbent.converged && return candidate.converged
+    return candidate.stats.cost_min < incumbent.stats.cost_min
+end
+
 """
     fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500,
         tol=1e-10, scale_covariance=:auto, initial_guesses=nothing,
@@ -263,7 +279,8 @@ Keyword contracts:
 - `scale_covariance`: `:auto`, `:never`, or `:always`. `:auto` estimates a
   residual scale only when no observation uncertainty was supplied.
 - `initial_guesses`: additional complete parameter vectors in `p0` order.
-- `multistart`: number of deterministic candidates, including `problem.p0`.
+- `multistart`: total candidate budget, including `problem.p0`. The default
+  of one uses only `p0`; two distinct additional guesses need `multistart=3`.
 
 The converged finite candidate with the lowest cost is returned. If no candidate
 converges but one remains finite, it is returned with `converged == false`; use
@@ -279,7 +296,7 @@ function fit(
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(problem.derivatives),
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
@@ -295,7 +312,6 @@ function fit(
 
     candidates = _initial_candidates(problem, initial_guesses, multistart)
     best_result = nothing
-    best_cost = Inf
     last_error = nothing
 
     for candidate in candidates
@@ -316,14 +332,7 @@ function fit(
                 _build_fit_result(candidate_problem, options, chosen_backend, params, converged, iterations, message, backend_jacobian)
             end
 
-            current_cost = result.stats.cost_min
-            if result.converged && isfinite(current_cost) && current_cost < best_cost
-                best_result = result
-                best_cost = current_cost
-            elseif best_result === nothing && isfinite(current_cost)
-                best_result = result
-                best_cost = current_cost
-            end
+            _prefer_fit(result, best_result) && (best_result = result)
         catch err
             last_error = err
         end
@@ -371,6 +380,12 @@ Parameter control uses `bounds`, `constraints`, `parameter_priors`,
 to `fit(::FitProblem)` with defaults `backend=:auto`, `cost=:auto`,
 `maxiters=500`, `tol=1e-10`, `scale_covariance=:auto`, and `multistart=1`.
 
+Use `derivatives=:finite` for models implemented outside Julia or restricted to
+ordinary floating-point inputs. The policy also controls covariance, profiles,
+and predictions; see [`FitProblem`](@ref) for its numerical assumptions.
+In this mode, the default `tol` is `1e-6` rather than `1e-10`, accounting for
+differenced-gradient noise. An explicitly supplied tolerance is never relaxed.
+
 Returns a `FitResult`. Invalid dimensions, non-finite values, non-positive
 standard deviations, contradictory uncertainty inputs, invalid covariance,
 bounds, or parameter controls raise `ArgumentError` before a result is
@@ -403,10 +418,11 @@ function fit_model(
     jacobian=nothing,
     x_derivative=nothing,
     inplace::Bool=false,
+    derivatives::Symbol=:auto,
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=1e-10,
+    tol::Real=_default_fit_tolerance(derivatives),
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
@@ -430,6 +446,7 @@ function fit_model(
         jacobian=jacobian,
         x_derivative=x_derivative,
         inplace=inplace,
+        derivatives=derivatives,
     )
 
     return fit(

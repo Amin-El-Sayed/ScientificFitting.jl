@@ -316,14 +316,6 @@ function _merged_kwargs(defaults::NamedTuple, overrides)
     return merge(defaults, _normalize_kwargs(overrides))
 end
 
-function _prediction_band_sigma(result::FitResult, xgrid::AbstractVector)
-    J = _parameter_jacobian(result.problem, result.params; x=xgrid)
-    cov = result.param_covariance
-    tmp = J * cov
-    variances = vec(sum(tmp .* J; dims=2))
-    return sqrt.(clamp.(variances, 0.0, Inf))
-end
-
 function _interpolate_sigma_to_grid(x::AbstractVector, sigma::AbstractVector, xgrid::AbstractVector)
     length(x) == length(sigma) || throw(ArgumentError("uncertainty length must match x length"))
     order = sortperm(x)
@@ -1012,6 +1004,7 @@ const _FITPLOT_FIT_KWARGS = Set([
     :jacobian,
     :x_derivative,
     :inplace,
+    :derivatives,
     :backend,
     :cost,
     :maxiters,
@@ -2375,40 +2368,6 @@ function plot_profile_matrix(
     end
 
     return fig
-end
-
-function _diagnostic_values(result::FitResult, kind::Symbol)
-    x = result.problem.x
-    yhat = result.model_y
-    if kind == :residual
-        values = result.residuals
-        errors = _yerror_for_plot(result.problem, result.params)
-        _validate_diagnostic_plot_values(kind, x, values, errors)
-        return x, values, errors, "Residuals", "y - fit", 0.0
-    elseif kind == :pull
-        values = _weighted_data_residual(result.problem, result.params)
-        _validate_diagnostic_plot_values(kind, x, values, nothing)
-        return x, values, nothing, "Pulls", "pull", 0.0
-    elseif kind == :ratio
-        all(isfinite, yhat) || throw(ArgumentError("ratio diagnostic requires finite model predictions"))
-        all(!iszero, yhat) || throw(ArgumentError("ratio diagnostic is undefined when a model prediction is zero"))
-        ratio = result.problem.y ./ yhat
-        yerr = _yerror_for_plot(result.problem, result.params)
-        ratio_err = yerr === nothing ? nothing : yerr ./ abs.(yhat)
-        _validate_diagnostic_plot_values(kind, x, ratio, ratio_err)
-        return x, ratio, ratio_err, "Ratio", "data / fit", 1.0
-    end
-    throw(ArgumentError("diagnostic plot kind must be :residual, :pull, or :ratio"))
-end
-
-function _validate_diagnostic_plot_values(kind::Symbol, x, values, errors)
-    all(isfinite, x) || throw(ArgumentError("diagnostic plot x values must be finite"))
-    all(isfinite, values) || throw(ArgumentError("$(kind) diagnostic values must be finite"))
-    if errors !== nothing
-        all(isfinite, errors) || throw(ArgumentError("$(kind) diagnostic errors must be finite"))
-        all(>=(0.0), errors) || throw(ArgumentError("$(kind) diagnostic errors must be non-negative"))
-    end
-    return nothing
 end
 
 """

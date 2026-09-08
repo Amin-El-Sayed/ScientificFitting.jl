@@ -7,6 +7,64 @@ Gaussian error bars. Their sampling process defines a likelihood. This chapter
 derives ScientificFitting's Poisson, histogram, unbinned, and extended likelihood costs,
 then separates parameter estimation, goodness of fit, and model comparison.
 
+## User-Defined Measurement Errors
+
+For independent observations, specify a normalized density or mass
+``q_i(y_i\mid f(x_i,p),p)``. The common likelihood cost is
+
+```math
+C(p)=-2\sum_i\log q_i(y_i\mid f(x_i,p),p).
+```
+
+`fit_likelihood_model` takes these log probabilities in one vectorized callback.
+The distribution can differ between observations; known scales or trial counts
+can be captured by the callback. Dependent observations instead need a **joint**
+likelihood via `fit_custom`; multiplying their marginal densities is not enough.
+
+For example, Laplace errors of known scale ``b`` have density
+``q(y\mid\mu)=\exp(-|y-\mu|/b)/(2b)``. Thus
+``C(\mu)=2\sum_i|y_i-\mu|/b+2n\log(2b)``: the optimum is a sample median,
+not a mean, and the observed cost has corners rather than quadratic curvature.
+
+```@example laplace_measurements
+using ScientificFitting
+
+y = [-1.2, -0.1, 0.2, 0.4, 0.8, 1.3, 5.0]
+location(x, p) = fill(p[1], length(x))
+# Known scale b = 1; retain the normalizing constant.
+logprob(y, mu, p) = -abs.(y .- mu) .- log(2.0)
+result = fit_likelihood_model(location, collect(eachindex(y)), y;
+    logprob, p0=[0.1], optimizer=:nelder_mead)
+(location=round(only(result.params); digits=6), local_error=only(result.param_stderr))
+```
+
+Nelder-Mead does not differentiate this cost. Its default
+`parameter_covariance=:none` leaves the local error unavailable, not zero.
+Profiles can still evaluate the actual cost over explicit `values` grids.
+This makes the optimization usable without pretending that every distribution
+has Hessian-based errors or the same confidence thresholds.
+
+### A Moving Support Boundary
+
+Suppose a trigger time ``\mu`` is followed by independent exponential delays of
+known scale ``b``: ``Y_i=\mu+E_i``, ``E_i\sim\operatorname{Exp}(\text{scale}=b)``.
+The likelihood is zero if ``\mu>\min_i y_i``. Within its support,
+
+```math
+\hat\mu=\min_i y_i,\qquad
+\Delta C(\mu)=\frac{2n}{b}(\hat\mu-\mu),\quad\mu\le\hat\mu.
+```
+
+There is no parabolic minimum. A derivative-free optimizer can find the edge,
+but changing optimizers cannot make a Hessian interval meaningful. Here an
+exact calculation is simple: ``\hat\mu-\mu`` is exponential with rate ``n/b``.
+An interval ``[\hat\mu-db/(2n),\hat\mu]`` therefore covers the true ``\mu`` with
+probability ``1-e^{-d/2}``. The usual one-parameter threshold ``d=1`` covers only
+**39.3%**, not 68.3%. For 68.3% coverage use ``d=-2\log(1-0.683)`` instead.
+This is a property of the sampling model, not a numerical defect. For more
+complicated non-regular likelihoods, interval calibration needs an appropriate
+sampling calculation or simulation; ScientificFitting does not invent one.
+
 ## Poisson Counts And Histograms
 
 For an observed non-negative integer count ``n_i`` with expected count

@@ -83,26 +83,11 @@ julia --project=. --startup-file=no -e 'using ScientificFitting; println("Scient
 For plotting, run the tracked quickstart example shown above. It exercises the
 same API used by the first tutorial and confirms CairoMakie export.
 
-## Python Interoperability (Experimental)
+## Python Interface (Development Preview)
 
-Python can call the Julia implementation through JuliaCall. This path reuses
-ScientificFitting's fit results, reports, and diagnostics; it is not a separate Python
-rewrite.
-
-```bash
-python3 -m pip install juliacall
-python3 examples/python/fit_from_python.py
-```
-
-The tracked script develops the local checkout into JuliaCall's managed Julia
-environment and keeps plotting out of the process. The release gate is opt-in:
-
-```bash
-SCIENTIFICFITTING_RUN_PYTHON_INTEROP=1 julia --project=. --startup-file=no test/python_interop_gate.jl
-```
-
-Python support remains experimental or deferred for public v0 claims until the
-same path is observed on the selected release CI or release machine.
+The unreleased Python wrapper uses NumPy models, the Julia numerical core,
+and optional native Matplotlib plots without Makie. Setup, supported features,
+and executable examples are on the [Python Interface](python.md) page.
 
 ## Troubleshooting
 

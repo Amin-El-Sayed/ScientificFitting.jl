@@ -36,6 +36,7 @@ makedocs(;
         ]),
         hide("Get Started" => "install.md", [
             "Quickstart" => "quickstart.md",
+            "Python Interface" => "python.md",
             "How ScientificFitting Works" => "how_scientificfitting_works.md",
         ]),
         hide("Guides" => "fitting_for_practitioners.md", [
