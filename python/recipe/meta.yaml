@@ -10,7 +10,8 @@ source:
 build:
   noarch: python
   number: 0
-  script: "{{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv"
+  # Resolve the host interpreter at build time; rendering may rename its prefix.
+  script: python -m pip install . --no-deps --no-build-isolation -vv
 
 requirements:
   host:
