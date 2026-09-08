@@ -47,6 +47,9 @@ Python argument convention. `jacobian(x, **parameters)` returns an `(n, k)`
 matrix with columns in `p0` key order; `x_derivative(x, **parameters)` returns
 an `(n,)` vector. Both differentiate the unweighted model; the core handles
 uncertainty propagation and whitening. Do not flatten the Jacobian matrix.
+Without `x_derivative`, x-error propagation uses a fourth-order central
+difference with four batched model calls; the model must be defined in a
+neighborhood of the supplied coordinates.
 The default solver `tol=1e-6` accounts for differenced-gradient noise;
 `tol` remains configurable and is not a bound on parameter error.
 `maxiters` limits each solver run. `result.converged` and the report reflect

@@ -67,6 +67,30 @@ finite_linear(x, p::Vector{Float64}) = @. p[1] * x + p[2]
         @test result.stats.cost_min ≈ reference.stats.cost_min atol=1e-7
     end
 
+    @testset "Nested finite derivatives with nonlinear x propagation" begin
+        native(x, p) = @. p[1] * exp(-x / p[2]) + p[3]
+        foreign(x, p::Vector{Float64}) = native(x, p)
+        t = collect(range(0.0, 8.0; length=32))
+        observations = native(t, [3.0, 1.7, 0.2]) .+ 0.03 .* sin.(0:31)
+        cx = 0.02^2 .* [0.4^abs(i-j) for i in eachindex(t), j in eachindex(t)]
+        options = (; p0=[2.8, 1.5, 0.1], sigma_y=fill(0.1, length(t)), cov_x=cx,
+            bounds=([0.1, 0.1, -1.0], [10.0, 5.0, 1.0]))
+        reference = fit_model(native, t, observations; options...)
+        result = fit_model(foreign, t, observations; options..., derivatives=:finite)
+        @test result.converged
+        @test result.params ≈ reference.params atol=2e-5
+        @test result.param_covariance ≈ reference.param_covariance rtol=4e-3
+        finite_cost(p) = ScientificFitting._cost_value(result.problem, p, :gaussian_likelihood)
+        native_cost(p) = ScientificFitting._cost_value(reference.problem, p, :gaussian_likelihood)
+        # Probe near the minimum, where nested differencing must stay below g_tol.
+        for shift in range(-1e-5, 1e-5; length=21)
+            p = reference.params .+ shift
+            g = ScientificFitting.FiniteDiff.finite_difference_gradient(finite_cost, p, Val(:central))
+            exact = ScientificFitting.ForwardDiff.gradient(native_cost, p)
+            @test maximum(abs, g - exact) < 1e-7
+        end
+    end
+
     @testset "Nonlinear parameter constraints" begin
         eq(p::Vector{Float64}) = [p[1]^2 + p[2]^2 - 1.0]
         objective(p::Vector{Float64}) = sum(abs2, p .- [2.0, 0.0])

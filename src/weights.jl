@@ -135,11 +135,14 @@ function _model_dydx(problem::FitProblem, p::AbstractVector; x::AbstractVector=p
 
     if _derivative_mode(problem) == :finite
         # Each prediction depends on its own x coordinate, as in _model_scalar.
-        # Perturb the whole vector at once to keep Python/NumPy calls batched.
-        step = cbrt(eps(Float64)) .* max.(abs.(x), 1.0)
+        # Fourth order permits a larger step, reducing roundoff when the outer
+        # likelihood gradient differentiates this estimate again. Calls stay batched.
+        step = eps(Float64)^(1 / 5) .* max.(abs.(x), 1.0)
         above = _model_values(problem, p; x=x .+ step)
         below = _model_values(problem, p; x=x .- step)
-        return (above .- below) ./ (2 .* step)
+        far_above = _model_values(problem, p; x=x .+ 2 .* step)
+        far_below = _model_values(problem, p; x=x .- 2 .* step)
+        return (8 .* (above .- below) .- (far_above .- far_below)) ./ (12 .* step)
     end
     return [ForwardDiff.derivative(t -> _model_scalar(problem, t, p), xi) for xi in x]
 end

@@ -136,8 +136,11 @@ parameter-dependent covariance and its log determinant. It is an approximation,
 not a claim of exact derivatives: noisy models, badly scaled parameters, and
 non-smooth/domain-limited callbacks still need care. Differentiated models must be evaluable
 in a neighborhood of each evaluation point, including near declared bounds.
-For pointwise x-error propagation, two vectorized model calls estimate all
-`df/dx` values instead of crossing a Python boundary once per observation.
+For pointwise x-error propagation, four vectorized model calls give a central
+fourth-order estimate of every `df/dx`, rather than one Python call per
+observation. The step ``h_i = \epsilon^{1/5}\max(|x_i|,1)`` balances truncation
+and roundoff; the larger step also reduces noise when the likelihood gradient
+differentiates this estimate again. Analytic `x_derivative` callbacks bypass it.
 
 The Python bridge converts inputs once and enters the selected fit through
 `invokelatest`, an inference boundary outside the numerical loop. This prevents

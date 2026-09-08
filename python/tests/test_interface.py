@@ -80,7 +80,8 @@ def test_numpy_nonlinear_model_and_dense_xy_covariance():
             vector(x), vector(y); p0=[2.8,1.5,0.1], sigma_y=fill(0.1,length(x)),
             cov_x=matrix(cx), bounds=([0.1,0.1,-1.0],[10.0,5.0,1.0]))
     ''')(x, y, cov_x)
-    assert result.converged
+    assert result.converged, result.report()
+    assert native.converged, str(native.message)
     np.testing.assert_allclose(result.params, np.asarray(native.params), atol=2e-5)
     np.testing.assert_allclose(result.covariance, np.asarray(native.param_covariance), rtol=4e-3)
     assert np.isfinite(result.predict(x, uncertainty=True)[1]).all()
