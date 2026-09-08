@@ -23,6 +23,9 @@ end
     y = @. 1.4 * x - 0.3 + 0.04 * sin(2.3 * x)
     covariance = [sigma^2 * rho^abs(i - j) for i in 1:n, j in 1:n]
     whitening = _ar1_whitening(n, sigma, rho)
+    factor = cholesky(Symmetric(covariance))
+    design = hcat(x, ones(n))
+    gls_params = (factor.L \ design) \ (factor.L \ y)
 
     model(x, p) = @. p[1] * x + p[2]
     jacobian(x, p) = hcat(x, ones(length(x)))
@@ -93,11 +96,19 @@ end
     @test bounded_structured.converged
     @test structured.problem.whitening === whitening
     @test structured.problem.cov_y === nothing
-    @test isapprox(structured.params, dense.params; rtol=1e-10, atol=1e-11)
-    @test isapprox(mutating.params, dense.params; rtol=1e-10, atol=1e-11)
+    for result in (dense, structured, mutating)
+        @test result.converged
+        # Iterative fits need solver tolerance; whitening at the same point does not.
+        @test isapprox(result.params, gls_params; rtol=1e-8, atol=1e-10)
+        @test isapprox(
+            result.weighted_residuals,
+            factor.L \ (y - design * result.params);
+            rtol=1e-10,
+            atol=1e-11,
+        )
+    end
     @test isapprox(structured.param_covariance, dense.param_covariance; rtol=1e-9, atol=1e-11)
     @test isapprox(mutating.param_covariance, dense.param_covariance; rtol=1e-9, atol=1e-11)
-    @test isapprox(structured.weighted_residuals, dense.weighted_residuals; rtol=1e-10, atol=1e-11)
     @test isapprox(structured.stats.chi2, dense.stats.chi2; rtol=1e-10, atol=1e-11)
     @test isapprox(structured.stats.minus2loglik_min, dense.stats.minus2loglik_min; rtol=1e-10, atol=1e-10)
     @test isapprox(structured.stats.aic, dense.stats.aic; rtol=1e-10, atol=1e-10)
