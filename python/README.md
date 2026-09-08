@@ -5,12 +5,12 @@ your own likelihood. Bounds, shared parameters, profiles, and diagnostic
 reports use the same numerical core as ScientificFitting.jl. Optional plots
 are ordinary, editable Matplotlib figures, not Julia/Makie objects.
 
-**Development preview, not yet published on PyPI or conda-forge.** From a
-checkout, in a Python 3.10+ environment:
+## Installation
+
+In a Python 3.10+ environment:
 
 ```sh
-python -m pip install -e './python[plot]'
-python python/develop.py
+python -m pip install 'scientificfitting[plot]'
 ```
 
 JuliaCall installs a compatible Julia runtime and dependencies automatically.
@@ -44,3 +44,13 @@ See the [Python guide](https://amin-el-sayed.github.io/ScientificFitting.jl/pyth
 for likelihoods, covariance, diagnostics, and native Matplotlib composition.
 [Bug reports and scientific use cases](https://github.com/Amin-El-Sayed/ScientificFitting.jl/issues)
 are welcome. MIT licensed, copyright Amin El Sayed.
+
+## Development
+
+To use a source checkout instead of the registered Julia core:
+
+```sh
+python -m pip install -e './python[plot,test]'
+python python/develop.py
+python -m pytest python/tests
+```

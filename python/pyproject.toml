@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scientificfitting"
-version = "0.2.0.dev0"
+version = "0.2.0"
 description = "Python interface to the ScientificFitting Julia numerical core"
 readme = "README.md"
 authors = [{name = "Amin El Sayed"}]

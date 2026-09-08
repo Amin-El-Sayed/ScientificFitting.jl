@@ -50,6 +50,7 @@ def test_wheel_metadata_license_and_bridge(distributions):
         paths = wheel.namelist()
         metadata = message_from_bytes(wheel.read(next(p for p in paths if p.endswith("/METADATA"))))
         assert metadata["Name"] == "scientificfitting"
+        assert metadata["Version"] == tomllib.loads((ROOT / "python/pyproject.toml").read_text())["project"]["version"]
         assert metadata["License-Expression"] == "MIT"
         assert metadata["License-File"] == "LICENSE"
         assert metadata["Description-Content-Type"] == "text/markdown"
