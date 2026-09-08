@@ -28,16 +28,17 @@ jobs:
       run:
         shell: bash
     env:
-      JULIA_DEPOT_PATH: ${{ runner.temp }}/python-julia-depot
-      PYTHON_JULIAPKG_PROJECT: ${{ runner.temp }}/python-julia-project
       MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Isolate Python from runner packages
+      - name: Isolate Python and Julia from runner packages
         run: |
+          # Runner paths are available here, not in job-level env expressions.
+          echo "JULIA_DEPOT_PATH=$RUNNER_TEMP/python-julia-depot" >> "$GITHUB_ENV"
+          echo "PYTHON_JULIAPKG_PROJECT=$RUNNER_TEMP/python-julia-project" >> "$GITHUB_ENV"
           python -m venv .python-test
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             echo "$GITHUB_WORKSPACE/.python-test/Scripts" >> "$GITHUB_PATH"
@@ -70,8 +71,6 @@ jobs:
       run:
         shell: bash -el {0}
     env:
-      JULIA_DEPOT_PATH: ${{ runner.temp }}/conda-julia-depot
-      PYTHON_JULIAPKG_PROJECT: ${{ runner.temp }}/conda-julia-project
       CONDA_SOLVER: libmamba
     steps:
       - uses: actions/checkout@v4
@@ -81,6 +80,10 @@ jobs:
           python-version: "3.12"
           channels: conda-forge
           channel-priority: strict
+      - name: Select isolated Julia environment
+        run: |
+          echo "JULIA_DEPOT_PATH=$RUNNER_TEMP/conda-julia-depot" >> "$GITHUB_ENV"
+          echo "PYTHON_JULIAPKG_PROJECT=$RUNNER_TEMP/conda-julia-project" >> "$GITHUB_ENV"
       - name: Build and install the noarch package
         run: |
           conda install -y conda-build
