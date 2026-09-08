@@ -11,6 +11,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONUNBUFFERED: "1"
+
 jobs:
   wheel:
     name: Wheel - ${{ matrix.os }} - Python ${{ matrix.python }}

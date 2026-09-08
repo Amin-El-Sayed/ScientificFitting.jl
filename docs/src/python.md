@@ -539,15 +539,22 @@ is checked before the bridge loads. Package import alone does not start Julia.
 Compatible Julia 0.2.x bugfix releases do not require a new Python wheel;
 the wrapper's version need not advance with every core patch.
 
-On macOS ARM64 with Python 3.12.4, JuliaCall 0.9.35, and Julia 1.12.7, a fresh
-Python process using an already installed environment needed **14-23 s** to
+JuliaCall is currently capped at 0.9.34: its 0.9.35 loader can look for Julia's
+system image beside a launcher symlink rather than the actual installation.
+The installed-package tests cover this case with a real symlink and a fresh
+Python process; there is no custom loader or modification of the Julia install.
+
+Earlier measurements on macOS ARM64 with Python 3.12.4, JuliaCall 0.9.35, and
+Julia 1.12.7 showed that a fresh Python process using an already installed
+environment needed **14-23 s** to
 import the backend and obtain its first fit result. This covers one small
 analytic case per fit family plus the in-place interface, each in its own
 process. A new fit in the same process took **1.1-3.3 ms**. Shared callback types
 and a small Julia precompile workload reduce compilation, without starting
 Julia at Python import. See [Performance](performance.md#Python-Startup) for
 the cases, reproducible probe, and timing boundaries. These are local
-observations, not latency guarantees for larger models or other machines.
+observations, not latency guarantees for larger models or other machines, and
+were collected before the JuliaCall version cap above.
 
 First-ever use also downloads Julia/dependencies and builds caches. A clean
 provisioning test before these precompile changes took about five minutes; that

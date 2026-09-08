@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -64,6 +65,27 @@ result = sf.fit_model(lambda x, mean: np.full_like(x, mean), [0, 1, 2], [1, 2, 3
 assert result.converged and 'mean' in result.report()
 assert 'matplotlib' not in sys.modules
 """], check=True, timeout=120)
+
+
+def test_existing_julia_can_be_selected_through_a_symlink(tmp_path):
+    import juliapkg
+
+    _backend()  # Provision once; the child tests embedding, not downloading Julia.
+    link = tmp_path / "julia"
+    try:
+        link.symlink_to(Path(juliapkg.executable()).resolve())
+    except OSError:
+        pytest.skip("creating a symlink requires additional OS privileges")
+    # Model JuliaPkg discovering /usr/bin/julia without touching a system directory.
+    child = subprocess.run([sys.executable, "-u", "-c", """
+import sys, juliapkg
+juliapkg.executable = lambda: sys.argv[1]
+import scientificfitting as sf
+result = sf.fit_model(lambda x, mean: x*0 + mean, [0, 1, 2], [1, 2, 3],
+                      p0={'mean': 1.}, sigma_y=1.)
+assert result.converged and abs(result.params[0] - 2.) < 1e-6
+""", str(link)], capture_output=True, text=True, timeout=120)
+    assert child.returncode == 0, child.stdout + child.stderr
 
 
 def test_numpy_nonlinear_model_and_dense_xy_covariance():

@@ -11,7 +11,9 @@ authors = [{name = "Amin El Sayed"}]
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24", "juliacall>=0.9.35,<0.10"]
+# 0.9.35 loses Julia's real bindir when its executable is a symlink.
+# Revisit this cap after the loader regression test passes with an upstream fix.
+dependencies = ["numpy>=1.24", "juliacall>=0.9.34,<0.9.35"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",
