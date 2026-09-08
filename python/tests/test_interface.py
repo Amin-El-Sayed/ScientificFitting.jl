@@ -71,12 +71,23 @@ def test_existing_julia_can_be_selected_through_a_symlink(tmp_path):
     import juliapkg
 
     _backend()  # Provision once; the child tests embedding, not downloading Julia.
+    executable = Path(juliapkg.executable()).resolve()
     link = tmp_path / "julia"
     try:
-        link.symlink_to(Path(juliapkg.executable()).resolve())
+        if sys.platform == "win32":
+            # Keep the exe, DLLs and sysimage together for the Windows loader.
+            link.symlink_to(executable.parent.parent, target_is_directory=True)
+            selected = link / executable.parent.name / executable.name
+        else:
+            # Model /usr/bin/julia without changing a system directory.
+            link.symlink_to(executable)
+            selected = link
     except OSError:
         pytest.skip("creating a symlink requires additional OS privileges")
-    # Model JuliaPkg discovering /usr/bin/julia without touching a system directory.
+    # Fail with Julia's own stderr if the fixture cannot launch the runtime.
+    launch = subprocess.run([str(selected), "--startup-file=no", "-e", "print(Sys.BINDIR)"],
+                            capture_output=True, text=True, timeout=30)
+    assert launch.returncode == 0, launch.stdout + launch.stderr
     child = subprocess.run([sys.executable, "-u", "-c", """
 import sys, juliapkg
 juliapkg.executable = lambda: sys.argv[1]
@@ -84,7 +95,7 @@ import scientificfitting as sf
 result = sf.fit_model(lambda x, mean: x*0 + mean, [0, 1, 2], [1, 2, 3],
                       p0={'mean': 1.}, sigma_y=1.)
 assert result.converged and abs(result.params[0] - 2.) < 1e-6
-""", str(link)], capture_output=True, text=True, timeout=120)
+""", str(selected)], capture_output=True, text=True, timeout=120)
     assert child.returncode == 0, child.stdout + child.stderr
 
 
