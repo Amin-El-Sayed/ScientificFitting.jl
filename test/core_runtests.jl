@@ -15,6 +15,7 @@ using Test
         "numerics/finite_derivatives_reference.jl",
         "numerics/nonsmooth_likelihood_reference.jl",
         "numerics/solver_status_reference.jl",
+        "numerics/solver_contract.jl",
         "numerics/torture_inputs.jl",
     )
         # Show progress before compilation; Julia's test summary appears only at the end.

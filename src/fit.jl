@@ -129,47 +129,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     # unseen models can invert the tag order of their nested x derivatives.
     objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)
 
-    lb = nothing
-    ub = nothing
-    free_bounds = _free_bounds(problem)
-    if free_bounds !== nothing
-        lb, ub = free_bounds
-    end
-
-    free_constraints = _free_constraints(problem.constraints, problem)
-    has_cons = has_constraints(free_constraints)
-    if has_cons
-        cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
-        ad = _optimization_ad(problem; second_order=true)
-        optf = OptimizationFunction(objective, ad; cons=cons!)
-        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
-        sol = solve(
-            optprob,
-            OptimizationOptimJL.IPNewton();
-            maxiters=options.maxiters,
-            abstol=options.tol,
-            reltol=options.tol,
-        )
-    else
-        optf = OptimizationFunction(objective, _optimization_ad(problem))
-        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub)
-        sol = solve(
-            optprob,
-            OptimizationOptimJL.LBFGS();
-            maxiters=options.maxiters,
-            abstol=options.tol,
-            reltol=options.tol,
-        )
-    end
-
-    params = _expand_free_parameters(problem, sol.u)
-    retcode_text = string(sol.retcode)
-    converged = occursin("Success", retcode_text) || occursin("Default", retcode_text)
-    iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ?
-                 Int(sol.stats.iterations) : missing
-    message = string(sol.retcode)
-
-    return params, converged, iterations, message, nothing
+    return _minimize_scalar(problem, options, objective, cache)
 end
 
 function _build_fit_result(
@@ -181,6 +141,7 @@ function _build_fit_result(
     iterations::Union{Int, Missing},
     message::String,
     backend_jacobian=nothing,
+    solver_result=nothing,
 )
     cache = _prepare_fit_cache(problem)
     yhat = _model_values(problem, params)
@@ -252,6 +213,7 @@ function _build_fit_result(
         Jw,
         stats,
         diagnostics,
+        solver_result,
     )
 end
 
@@ -266,7 +228,7 @@ end
 """
     fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500,
         tol=1e-10, scale_covariance=:auto, initial_guesses=nothing,
-        multistart=1) -> FitResult
+        multistart=1, solver=nothing) -> FitResult
 
 Fit a validated Gaussian `FitProblem`.
 
@@ -281,6 +243,9 @@ Keyword contracts:
 - `initial_guesses`: additional complete parameter vectors in `p0` order.
 - `multistart`: total candidate budget, including `problem.p0`. The default
   of one uses only `p0`; two distinct additional guesses need `multistart=3`.
+- `solver`: optional `OptimizationSolver(algorithm)` or `NativeMinuitSolver()`.
+  Leave `backend=:auto` when selecting a solver. The same solver/settings are
+  used for multistart and profile refits; covariance estimation is unchanged.
 
 The converged finite candidate with the lowest cost is returned. If no candidate
 converges but one remains finite, it is returned with `converged == false`; use
@@ -300,7 +265,11 @@ function fit(
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
+    solver=nothing,
 )
+    solver !== nothing && backend != :auto && throw(ArgumentError(
+        "choose solver or backend, not both; leave backend=:auto with an explicit solver",
+    ))
     options = FitOptions(
         backend=backend,
         cost=_resolve_cost(problem, cost),
@@ -308,6 +277,7 @@ function fit(
         tol=Float64(tol),
         scale_covariance=_normalize_scale_covariance(scale_covariance),
         multistart=multistart,
+        solver=solver,
     )
 
     candidates = _initial_candidates(problem, initial_guesses, multistart)
@@ -321,15 +291,20 @@ function fit(
                 params = _expand_free_parameters(candidate_problem, Float64[])
                 _build_fit_result(candidate_problem, options, :fixed, params, true, 0, "All parameters fixed", nothing)
             else
-                chosen_backend = _solve_backend(candidate_problem, backend, options.cost)
-                params, converged, iterations, message, backend_jacobian = if chosen_backend == :lsqfit
-                    _fit_with_lsqfit(candidate_problem, options)
+                chosen_backend = solver === nothing ?
+                    _solve_backend(candidate_problem, backend, options.cost) : :optimization
+                if chosen_backend == :lsqfit
+                    params, converged, iterations, message, jacobian = _fit_with_lsqfit(candidate_problem, options)
+                    _build_fit_result(candidate_problem, options, :lsqfit, params,
+                                      converged, iterations, message, jacobian)
                 elseif chosen_backend == :optimization
-                    _fit_with_optimization(candidate_problem, options)
+                    answer = _fit_with_optimization(candidate_problem, options)
+                    params = _expand_free_parameters(candidate_problem, answer.params)
+                    _build_fit_result(candidate_problem, options, answer.backend, params,
+                                      answer.converged, answer.iterations, answer.message, nothing, answer)
                 else
                     throw(ArgumentError("unsupported backend: $chosen_backend (use :auto, :lsqfit, or :optimization)"))
                 end
-                _build_fit_result(candidate_problem, options, chosen_backend, params, converged, iterations, message, backend_jacobian)
             end
 
             _prefer_fit(result, best_result) && (best_result = result)
@@ -426,6 +401,7 @@ function fit_model(
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
+    solver=nothing,
 )
     problem = FitProblem(
         model,
@@ -458,5 +434,6 @@ function fit_model(
         scale_covariance=scale_covariance,
         initial_guesses=initial_guesses,
         multistart=multistart,
+        solver=solver,
     )
 end

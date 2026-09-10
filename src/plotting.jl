@@ -1006,6 +1006,7 @@ const _FITPLOT_FIT_KWARGS = Set([
     :inplace,
     :derivatives,
     :backend,
+    :solver,
     :cost,
     :maxiters,
     :tol,

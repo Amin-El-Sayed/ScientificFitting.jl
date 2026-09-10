@@ -107,7 +107,7 @@ ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=
 """
     FitOptions(; backend=:auto, cost=:auto, maxiters=500, tol=1e-10,
                 scale_covariance=:auto, multistart=1,
-                optimizer=:auto, parameter_covariance=:auto)
+                optimizer=:auto, parameter_covariance=:auto, solver=nothing)
 
 Normalized solver and covariance options stored in a `FitResult`. User-facing
 fit functions expose these as keyword arguments; constructing `FitOptions`
@@ -117,7 +117,7 @@ settings fail during construction rather than inside a solver.
 Likelihood fits additionally select `optimizer` and `parameter_covariance`;
 their resolved choices are stored here and preserved by profile refits.
 """
-Base.@kwdef struct FitOptions
+Base.@kwdef struct FitOptions{S}
     backend::Symbol = :auto
     cost::Symbol = :auto
     maxiters::Int = 500
@@ -126,6 +126,7 @@ Base.@kwdef struct FitOptions
     multistart::Int = 1
     optimizer::Symbol = :auto
     parameter_covariance::Symbol = :auto
+    solver::S = nothing
 
     function FitOptions(
         backend::Symbol,
@@ -136,6 +137,7 @@ Base.@kwdef struct FitOptions
         multistart::Integer,
         optimizer::Symbol=:auto,
         parameter_covariance::Symbol=:auto,
+        solver=nothing,
     )
         maxiters_value = Int(maxiters)
         tol_value = Float64(tol)
@@ -157,7 +159,10 @@ Base.@kwdef struct FitOptions
             "tol must be finite and > 0",
         ))
         multistart_value > 0 || throw(ArgumentError("multistart must be >= 1"))
-        return new(
+        solver === nothing || solver isa AbstractFitSolver || throw(ArgumentError(
+            "solver must be an AbstractFitSolver, for example OptimizationSolver(algorithm)",
+        ))
+        return new{typeof(solver)}(
             backend,
             cost,
             maxiters_value,
@@ -166,6 +171,7 @@ Base.@kwdef struct FitOptions
             multistart_value,
             optimizer,
             parameter_covariance,
+            solver,
         )
     end
 end
@@ -443,8 +449,11 @@ models, active bounds, weak data, or asymmetric likelihoods, inspect
 `profile(...)` or `contour(...)` before treating symmetric errors as final.
 `iterations` is `missing` when a backend does not expose an iteration count;
 ScientificFitting never substitutes the configured iteration limit for an unknown value.
+`solver_result` retains [`FitSolverResult`](@ref) for scalar adapters, including
+native status and the free-to-full parameter map. It is `nothing` for the
+specialized LsqFit path and when every parameter is fixed.
 """
-struct FitResult
+struct FitResult{S}
     problem::FitProblem
     options::FitOptions
     backend::Symbol
@@ -461,6 +470,7 @@ struct FitResult
     jacobian::Matrix{Float64}
     stats::FitStatistics
     diagnostics::FitDiagnostics
+    solver_result::S
 end
 
 function _float_vector(v::AbstractVector)

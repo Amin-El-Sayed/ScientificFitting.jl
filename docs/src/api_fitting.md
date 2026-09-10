@@ -99,17 +99,18 @@ priors and constraints.
 ### Minimization And Local Errors
 
 All likelihood helpers accept these independent controls; Gaussian `fit_model`
-continues to use `backend` and `scale_covariance`.
+uses `scale_covariance`. Both families accept `solver` objects as an alternative
+to their legacy `backend` or `optimizer` shortcuts.
 
 | Keyword | Choices and behavior |
 |---|---|
 | `optimizer` | `:auto` selects LBFGS, or IPNewton for nonlinear constraints. Explicit `:lbfgs`, `:ipnewton`, and `:nelder_mead` are available. |
-| `parameter_covariance` | `:auto` selects `:none` with Nelder-Mead, `:hessian` otherwise. `:hessian` requires a locally smooth cost; `:none` leaves free-parameter errors as `NaN`, fixed errors as zero. |
+| `parameter_covariance` | `:auto` selects `:none` with derivative-free solvers, `:hessian` otherwise. `:hessian` requires a locally smooth cost; `:none` leaves free-parameter errors as `NaN` and preserves explicitly supplied fixed-parameter errors. |
 
 Nelder-Mead uses NLopt's native box bounds without numerical derivatives or a
 custom penalty. Fixed values, Gaussian priors and correlated parameter terms
-remain active. Nonlinear constraints require IPNewton and are rejected with
-other solvers, never ignored. All methods optimize continuous parameters and
+remain active. Nonlinear constraints require a capable solver, such as IPNewton;
+incompatible methods reject them, never ignore them. All methods optimize continuous parameters and
 are local searches. Begin at finite cost inside the likelihood's support.
 
 For Nelder-Mead, `maxiters` is an **objective-evaluation budget**, not an
@@ -133,6 +134,58 @@ ScientificFitting.fit_extended_unbinned_model
 ScientificFitting.fit_indexed_model
 ScientificFitting.fit_multi_model
 ScientificFitting.LikelihoodFitProblem
+```
+
+## Solver Adapters
+
+`solver=OptimizationSolver(algorithm; native_options...)` accepts algorithms
+from the corresponding Optimization.jl solver packages. For example:
+
+```@example solver_choice
+using ScientificFitting, OptimizationOptimJL
+
+# Same data likelihood; only the numerical minimizer is selected here.
+cost(p) = (p[1] - 2)^2 + (p[2] + 1)^2 / 4
+result = fit_custom(cost; p0=[0., 0.], nobs=10,
+                    solver=OptimizationSolver(BFGS()))
+println(report_text(result))
+```
+
+With the optional NativeMinuit package installed, use
+`using NativeMinuit` and `solver=NativeMinuitSolver(steps=[0.2, 0.3])` instead.
+NativeMinuit requires Julia 1.11 or later; the core still supports Julia 1.10.
+It is an LGPL-licensed dependency, not bundled or copied into ScientificFitting.
+Its MIGRAD adapter supports box bounds, fixed parameters and all statistical
+parameter terms, but rejects nonlinear equality/inequality constraints.
+
+`steps` contains numerical initial step sizes in **full parameter order**, not
+measurement uncertainties. `tol` is Minuit's EDM tolerance; `maxiters` is its
+function-call budget. A single MIGRAD pass runs per multistart candidate; the
+adapter does not hide additional retries. Other native constructor options,
+such as `strategy=2`, are retained by profile refits. No solver setting changes
+the objective's ``\chi^2``/``-2\log L`` scale (`errordef=1`).
+
+`result.solver_result.raw` exposes the native solver result. For NativeMinuit,
+this is the `Minuit` object for native HESSE/MINOS/contour operations. Its vector
+order is `result.solver_result.parameter_indices`; parameters already fixed by
+ScientificFitting are absent. Mutating that object does not update the stored
+ScientificFitting result. Local errors in `param_covariance` still follow
+ScientificFitting's covariance policy, not an implicit replacement by MINOS.
+For native MINOS results, inspect validity and parameter-limit flags: reaching
+a bound is not finding a likelihood-threshold crossing.
+
+Third-party adapters implement two methods: capabilities and `solve_fit`.
+They receive a standard `OptimizationProblem` with the complete objective and
+free-coordinate constraints. The statistical result is constructed by the
+shared core. See [Backend Design](backend_design.md#The-Solver-Extension-Boundary).
+
+```@docs
+ScientificFitting.AbstractFitSolver
+ScientificFitting.OptimizationSolver
+ScientificFitting.NativeMinuitSolver
+ScientificFitting.FitSolverResult
+ScientificFitting.solver_capabilities
+ScientificFitting.solve_fit
 ```
 
 ## Constraints And Uncertainty Objects

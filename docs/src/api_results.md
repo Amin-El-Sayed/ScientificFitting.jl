@@ -14,7 +14,7 @@ names. `FitResult` additionally contains x-y-specific model and residual data.
 |---|---|
 | `problem` | Validated problem used for the selected candidate. |
 | `options` | Normalized solver options. |
-| `backend` | `:lsqfit`, `:optimization`, or `:fixed`. |
+| `backend` | Selected backend, for example `:lsqfit`, `:optimization`, `:native_minuit`, or `:fixed`. |
 | `converged` | Whether the selected solver reported convergence. |
 | `iterations` | Iteration count, or `missing` when unavailable. |
 | `message` | Native solver termination message. |
@@ -24,6 +24,7 @@ names. `FitResult` additionally contains x-y-specific model and residual data.
 | `param_correlation` | Correlation matrix derived from that covariance. |
 | `stats` | [`FitStatistics`](@ref). |
 | `diagnostics` | Numerical checks computed during result construction. |
+| `solver_result` | [`FitSolverResult`](@ref) with native details and free-parameter mapping for scalar adapters; otherwise `nothing`. |
 
 Only `FitResult` has `model_y`, `residuals`, `weighted_residuals`, and
 `jacobian`. `weighted_residuals` are pulls only when the uncertainty model

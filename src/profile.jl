@@ -131,11 +131,12 @@ function _refit_with_fixed(result::FitResult, fixed::Vector{FixedParameter})
 
     return fit(
         refit_problem;
-        backend=:auto,
+        backend=result.options.backend,
         cost=result.options.cost,
         maxiters=result.options.maxiters,
         tol=result.options.tol,
         scale_covariance=result.options.scale_covariance,
+        solver=result.options.solver,
     )
 end
 
@@ -167,6 +168,7 @@ function _refit_with_fixed(result::LikelihoodFitResult, fixed::Vector{FixedParam
         tol=result.options.tol,
         optimizer=result.options.optimizer,
         parameter_covariance=result.options.parameter_covariance,
+        solver=result.options.solver,
     )
 end
 

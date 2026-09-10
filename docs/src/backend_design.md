@@ -177,6 +177,31 @@ An explicit `backend=:lsqfit` request is rejected if it would discard any part
 of the statistical problem. Backend selection may change how the same objective
 is minimized; it must never change which objective is being minimized.
 
+### The Solver Extension Boundary
+
+Both problem families enter `src/solvers.jl` for scalar minimization; the
+specialized LsqFit residual path remains in `src/fit.jl`. An explicit
+`solver::AbstractFitSolver` overrides automatic numerical selection, not the
+statistical model. An adapter implements:
+
+- `solver_capabilities`: support for bounds/constraints and required derivatives.
+- `solve_fit`: minimize the prepared `OptimizationProblem` and return
+  `FitSolverResult` in its free coordinates, with native result and actual status.
+
+The core owns objective construction, parameter mapping, capability checks,
+derivative policy, multistart ranking, statistical summaries and profile refits.
+Adapters do not add priors, reinterpret error scales or silently drop constraints.
+Unknown iteration counts stay `missing`. Solver settings persist when a profile
+changes the number of free parameters, so NLopt adapters take algorithm enums
+rather than dimension-bound native `Opt` instances.
+
+`OptimizationSolver` uses SciML's algorithm traits and termination codes.
+`ScientificFittingNativeMinuitExt` loads only with NativeMinuit; it supplies
+the same complete cost and derivative policy to MIGRAD with `errordef=1`.
+Its native result retains covariance and failure evidence without replacing
+ScientificFitting's covariance policy. Usage and budget conventions are in
+[Solver Adapters](api_fitting.md#Solver-Adapters).
+
 Likelihood `optimizer` and `parameter_covariance` are independent options stored
 in `FitOptions` and retained by profile refits. Nelder-Mead defaults to no
 Hessian calculation, not a numerical Hessian across a kink or support boundary.
@@ -339,11 +364,13 @@ normalized across solver/platform versions.
 
 ## [v0.3 Ecosystem Integration](@id v03-ecosystem)
 
-**Release scope, not current functionality.** v0.2 provides custom measurement
+**Release scope.** v0.2 provides custom measurement
 likelihoods and the published [Python interface](python.md). v0.3 must make
 existing Julia model and solver packages convenient to compose while retaining
 one statistical contract. The [package overview](citation.md#Related-Packages)
 describes their roles; the following items are required before v0.3 is complete.
+The development branch now has the scalar solver contract and optional
+NativeMinuit adapter described above; this does not complete the integrations below.
 
 ### Required Integrations
 
@@ -414,6 +441,14 @@ large solver dependency mandatory. Minuit2 is a useful independent C++ reference
 [Ipopt through Optimization.jl](https://docs.sciml.ai/Optimization/stable/optimization_packages/ipopt/)
 is an additional general-constraint check, not a required v0.3 dependency.
 GLM, Turing, and RooFitLite remain related workflows, not promised drop-in solvers.
+
+Turing is a complementary posterior-inference workflow, not a MIGRAD substitute.
+Its [external-likelihood interface](https://turinglang.org/docs/usage/external-likelihoods/index.html)
+can reuse a data log likelihood through `@addlogprob!`. A future bridge should
+expose that data term explicitly, leaving priors to Turing to avoid counting
+ScientificFitting parameter terms twice. Posterior credible intervals and
+profile confidence intervals must remain distinct. HEP model construction and
+solver integration take priority; v0.3 does not promise a posterior sampler.
 
 Each required adapter needs analytic or independent parameter/objective/error
 references, a constraint/failure case, profile-refit parity, and executable

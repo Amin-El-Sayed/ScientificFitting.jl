@@ -24,9 +24,11 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [weakdeps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+NativeMinuit = "5523a57a-07f4-4aae-a9fd-d526bcb5d194"
 
 [extensions]
 ScientificFittingCairoMakieExt = "CairoMakie"
+ScientificFittingNativeMinuitExt = "NativeMinuit"
 
 [compat]
 ADTypes = "1.21"
@@ -37,6 +39,7 @@ Distributions = "0.25"
 ForwardDiff = "0.10"
 LaTeXStrings = "1.4"
 LsqFit = "0.15"
+NativeMinuit = "0.7.2"
 Optimization = "4"
 OptimizationNLopt = "0.3.4"
 OptimizationOptimJL = "0.4"

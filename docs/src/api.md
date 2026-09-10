@@ -102,8 +102,9 @@ participate in the fit.
 
 | Keyword | Default | Contract |
 |---|---:|---|
-| `maxiters` | `500` for `fit_model`, `1000` for likelihood wrappers | Positive iteration limit for each candidate. |
-| `tol` | `1e-10` | Positive absolute and relative solver tolerance. |
+| `solver` | `nothing` | Optional [`OptimizationSolver`](@ref) or [`NativeMinuitSolver`](@ref); leave legacy `backend`/`optimizer` at `:auto`. |
+| `maxiters` | `500` for `fit_model`, `1000` for likelihood wrappers | Positive per-candidate budget: iterations for LsqFit/Optim, objective calls for NLopt/NativeMinuit. |
+| `tol` | `1e-10`, or `1e-6` with `derivatives=:finite` | Positive solver-specific stopping tolerance, not a statistical error; see [Solver Adapters](api_fitting.md#Solver-Adapters). |
 | `initial_guesses` | `nothing` | Additional complete starting vectors. |
 | `multistart` | `1` | Total candidate budget including `p0`. Additional `initial_guesses` are tried next, then deterministic candidates from bounds or scaled `p0` where available. Set this above 1 to use additional starts. |
 

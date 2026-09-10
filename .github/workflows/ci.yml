@@ -33,6 +33,26 @@ jobs:
         env:
           SCIENTIFICFITTING_PERFORMANCE_BUDGET_SCALE: "4.0"
 
+  native-minuit:
+    name: Optional NativeMinuit - Julia ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["1.11", "1.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      - name: Test extension without requiring it in the core environment
+        run: >-
+          julia --startup-file=no -e 'using Pkg;
+          Pkg.activate(; temp=true); Pkg.develop(path=pwd());
+          Pkg.add(PackageSpec(name="NativeMinuit", version="0.7.2"));
+          include("test/extensions/native_minuit.jl")'
+
   package:
     name: Full package test - Julia ${{ matrix.version }} - ubuntu
     runs-on: ubuntu-latest

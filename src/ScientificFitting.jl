@@ -19,6 +19,7 @@ using SparseArrays
 using Statistics
 
 include("formatting.jl")
+include("solvers.jl")
 include("types.jl")
 include("derivatives.jl")
 include("parameters.jl")
@@ -40,6 +41,8 @@ export ParameterConstraint
 export ErrorComponent
 export WhiteningOperator
 export FitOptions
+export AbstractFitSolver, OptimizationSolver, NativeMinuitSolver, FitSolverResult
+export solver_capabilities, solve_fit
 export FitProblem
 export FitResult
 export LikelihoodFitProblem
