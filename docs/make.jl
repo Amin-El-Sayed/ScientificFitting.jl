@@ -54,7 +54,7 @@ makedocs(;
             "Results and Diagnostics" => "api_results.md",
             "Fit Plotting" => "api_plotting.md",
             "Diagnostic Plotting" => "api_plotting_diagnostics.md",
-            "Citation" => "citation.md",
+            "Related Packages and Citation" => "citation.md",
         ]),
         hide("Internals" => "backend_design.md", [
             "Performance" => "performance.md",

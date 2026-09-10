@@ -337,34 +337,95 @@ every documented workflow. It compares the displayed output with both the
 page's code cells and the example generator; only solver iteration counts are
 normalized across solver/platform versions.
 
-## Planned Work
+## [v0.3 Ecosystem Integration](@id v03-ecosystem)
 
-- [x] **v0.2: concrete statistical scope at the entry point.** README and
-  documentation entry now distinguish observation models, likelihood
-  optimization, local parameter errors, profiles, and model bands from
-  posterior sampling. Source checks guard that distinction.
-- [x] **User-defined measurement-error distributions.** `fit_likelihood_model`
-  now accepts batched log densities/masses in Julia and Python, reusing the
-  common likelihood engine. Gaussian, fitted-scale, Binomial, and Student-t
-  references cover normalization and curvature. Bounded derivative-free
-  Nelder-Mead and independent covariance controls now cover non-smooth and
-  moving-support examples without fabricated Hessian errors. Laplace and
-  exponential references verify minima and profile costs; worked guidance
-  distinguishes successful minimization from valid interval coverage.
-- [ ] **v0.2: complete the native Python interface.** The preview now wraps
-  every high-level fit family, named parameter controls, sparse/structured
-  covariance, in-place callbacks, and core reports/profiles/diagnostics.
-  [Python examples](python.md) use NumPy models and native Matplotlib; the
-  wrapper does not duplicate statistical algorithms or require Makie.
-  Numerical API review and eleven fresh-process cases verify parameters,
-  covariance, and cost against analytic references. [Startup and callback
-  measurements](performance.md#Python-Startup) distinguish first use from warm
-  fitting and record the remaining runtime and quadrature overhead.
-  Local installed-wheel provisioning and Conda Python 3.14 reference fits pass
-  on macOS ARM64. Wheel/sdist metadata, MIT license, and the 0.2 core pin are
-  checked; installed Conda and packaged wheel runtime files match the current
-  sources. Registry installation checks reject persisted development/repository
-  overrides and record the actual resolved core source and tree hash.
-  **Remaining:** run the configured installed-package CI on Linux, macOS, and
-  Windows, then repeat clean wheel/Conda installation against the registered
-  0.2 core without development overrides before publishing Python packages.
+**Release scope, not current functionality.** v0.2 provides custom measurement
+likelihoods and the published [Python interface](python.md). v0.3 must make
+existing Julia model and solver packages convenient to compose while retaining
+one statistical contract. The [package overview](citation.md#Related-Packages)
+describes their roles; the following items are required before v0.3 is complete.
+
+### Required Integrations
+
+- [ ] **Distribution objects and constructors.** Accept Distributions-compatible
+  objects as fixed error models and explicit parameterized constructors for
+  fitted distributions. Use upstream `logpdf`/`pdf`/`cdf` methods rather than
+  duplicating distributions. Test Distributions, NumericalDistributions, and
+  DistributionsHEP, including continuous and discrete observations, multivariate
+  events with an explicit observation axis, and extended mixtures. Document
+  supported interfaces and retain user-defined log-density/objective callbacks.
+- [ ] **Selectable solvers.** Replace the closed symbol-only selection with a
+  documented extension contract, reusing Optimization.jl's algorithm objects
+  and options where applicable. NativeMinuit is the reference new backend,
+  selectable through an official optional extension. Keep the existing LsqFit,
+  Optim, and bounded derivative-free paths; no wholesale backend replacement.
+- [ ] **Independent model construction.** Provide an official optional
+  BuildConstructors extension using its public metadata and `build_model` APIs.
+  Preserve names, starts, bounds, fixed/free state, and validated shared
+  parameters through fitting and result reconstruction. It must work with
+  NativeMinuit and other compatible solvers, without depending on NativeMinuit.
+  Simple callable models remain the default; no new mandatory modeling language.
+- [ ] **Documented composition.** Provide executable examples combining an
+  upstream distribution, named model construction, two interchangeable solvers,
+  and the same reports/profiles/plots. Keep Python callbacks and result semantics
+  working; document which Julia-specific integrations the Python API exposes.
+  Separate current support, optional dependencies, and unsupported capabilities.
+
+### Shared Contract
+
+1. **Statistical meaning stays in ScientificFitting.** Solvers receive the same
+   validated objective/residuals, parameter mapping, and constraints. Likelihood
+   costs use ``-2\log L``; the Minuit adapter must use the matching error scale
+   (`errordef=1`). Probability densities, discrete masses, and event intensities
+   remain distinct. Dependent observations require a joint likelihood, not a
+   product of marginal probabilities; discrete data do not imply discrete fit
+   parameters are supported.
+2. **Capabilities are explicit.** Check bounds, nonlinear constraints, required
+   derivatives, and residual versus scalar objectives before solving. Reject
+   unsupported requests instead of dropping constraints or adding hidden
+   penalties. Retain explicit solver/derivative options in multistart and all
+   nuisance-parameter refits. Document backend-specific tolerance and budget
+   meanings rather than pretending iterations and function calls are identical.
+3. **Results preserve evidence.** Normalize parameters, objective values, and
+   convergence status while retaining native failure details. Keep minimizer
+   selection independent of local covariance, MINOS intervals, and contour
+   methods. Record missing crossings, parameter boundaries, and failed scans;
+   do not substitute symmetric errors for an invalid asymmetric interval.
+4. **Metadata is not statistics.** Constructor metadata used for optimizer step
+   sizes is not a measurement uncertainty or Gaussian prior. Parameter terms
+   remain explicit. Reject conflicting names/bounds and avoid silently mutating
+   the user's constructor during optimization or profiling.
+5. **Reuse expensive work at the correct scope.** Prepare a parameter-dependent
+   distribution and its normalization once per distinct model at each parameter
+   point, not once per observation. Preserve dual-number types, batched
+   evaluation, stable log densities, and analytic bin integrals/CDF differences
+   where available. Fall back to controlled quadrature or an explicit finite
+   derivative mode where appropriate; never cache a normalization across changed
+   parameters or claim smoothness for an arbitrary interpolated density.
+
+### Solver Checks And Completion Evidence
+
+Validate the contract first with LsqFit, Optim through Optimization.jl, bounded
+NLopt Nelder-Mead, and NativeMinuit. They exercise residual, scalar-gradient,
+nonlinear-constrained, derivative-free, and profile-based error-analysis paths.
+[NonlinearSolve's least-squares methods](https://docs.sciml.ai/NonlinearSolve/stable/solvers/nonlinear_least_squares_solvers/)
+are the next Julia-native adapter candidate; assess them without making a second
+large solver dependency mandatory. Minuit2 is a useful independent C++ reference;
+[Ipopt through Optimization.jl](https://docs.sciml.ai/Optimization/stable/optimization_packages/ipopt/)
+is an additional general-constraint check, not a required v0.3 dependency.
+GLM, Turing, and RooFitLite remain related workflows, not promised drop-in solvers.
+
+Each required adapter needs analytic or independent parameter/objective/error
+references, a constraint/failure case, profile-refit parity, and executable
+documentation. A nested signal-plus-background model must work through
+BuildConstructors with two solvers without rewriting its likelihood. Measure
+adapter overhead against direct upstream calls with the same objective and
+accuracy, separating startup, warm fitting, and uncertainty analysis. Extend
+existing targeted tests rather than duplicating a benchmark framework.
+
+Optional integrations must leave the core usable on its supported Julia
+versions. [NativeMinuit 0.7.2](https://github.com/fkguo/NativeMinuit.jl/blob/main/Project.toml)
+requires Julia 1.11 and declares LGPL-2.1-or-later; document these requirements
+for its extension rather than silently changing the core's Julia 1.10 support
+or copying upstream code. Review final API names and the support matrix before
+marking these release requirements complete.

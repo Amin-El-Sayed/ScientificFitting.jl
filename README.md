@@ -95,6 +95,16 @@ julia --project=docs --startup-file=no docs/make.jl
 
 Then serve `docs/build` with any static file server.
 
+## Related Packages
+
+ScientificFitting combines measurement-error models, constraints, fit diagnostics,
+profiles, and editable plots in one workflow. It builds on LsqFit and
+Optimization.jl rather than implementing another minimizer. Other useful Julia
+tools include RooFitLite for RooFit-style models, NativeMinuit for Minuit-based
+minimization and error analysis, and Distributions for probability models.
+See the [commented package overview](docs/src/citation.md#Related-Packages)
+for their roles and the distinction between existing and planned integrations.
+
 ## Technical Notes
 
 - Julia 1.10 and later are supported. CI tests Julia 1.10 and Julia 1.12.
