@@ -243,7 +243,9 @@ end
         @test occursin("JuliaCall", text)
         @test occursin("examples/python/numpy_matplotlib.py", text)
         @test occursin("python -m pytest python/tests", text)
-        @test occursin("not a claim of v0.2 release readiness", text)
+        @test occursin("python -m pip install 'scientificfitting[plot]'", text)
+        @test occursin("https://pypi.org/project/scientificfitting/", text)
+        @test !occursin("Development Preview", text)
         @test occursin("does **not** remove the Julia", text)
     end
 

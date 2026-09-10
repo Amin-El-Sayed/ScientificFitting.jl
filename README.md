@@ -31,6 +31,16 @@ Pkg.add("ScientificFitting")
 Add `CairoMakie` separately when plots are needed; fitting and reporting do not
 load Makie.
 
+For Python 3.10+, install the [PyPI package](https://pypi.org/project/scientificfitting/):
+
+```bash
+python -m pip install 'scientificfitting[plot]'
+```
+
+Use NumPy models and native Matplotlib plots; omit `[plot]` for fitting only.
+JuliaCall manages the Julia runtime and registered core automatically. The first
+fit needs network access and compilation. See the [Python guide](https://amin-el-sayed.github.io/ScientificFitting.jl/python.html).
+
 ## Quickstart
 
 ```julia

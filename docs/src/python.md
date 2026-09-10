@@ -1,24 +1,30 @@
-# Python Interface (Development Preview)
+# Python Interface
 
-The `python/` directory contains an unreleased wrapper, not yet a PyPI or conda
-release. It uses NumPy models, the same Julia numerical core, and optional
-native Matplotlib plots. It neither installs nor loads Makie. From this
-checkout, in a Python 3.10+ virtual environment:
+Use NumPy model functions with the same Julia numerical core and optional
+native Matplotlib plots. The Python package neither installs nor loads Makie.
+Install [ScientificFitting from PyPI](https://pypi.org/project/scientificfitting/)
+in a Python 3.10+ virtual environment:
 
 ```bash
-python -m pip install -e './python[plot,test]'
-python python/develop.py
-python examples/python/numpy_matplotlib.py
-python examples/python/likelihood_workflows.py
-python examples/python/multi_dataset_calibration.py
-python -m pytest python/tests
+python -m pip install 'scientificfitting[plot]'
 ```
 
-The development step selects this checkout because the wrapper requires the
-new **0.2.x core**, not the registered v0.1.2 API. JuliaCall manages Julia and
-its packages automatically; first use needs network access and compilation.
+Omit `[plot]` for fitting and text reports without Matplotlib. The SciPy
+distribution examples and sparse covariance support additionally need SciPy:
+
+```bash
+python -m pip install scipy
+```
+
+JuliaCall manages Julia and the registered **0.2.x core** automatically;
+first use needs network access and compilation.
 This avoids a manual Julia installation, but does **not** remove the Julia
 runtime's disk footprint or startup cost.
+
+The [conda-forge recipe](https://github.com/conda-forge/staged-recipes/pull/34795)
+has been submitted for review. Until it is published, use `pip` inside your
+Conda environment as well; `conda install -c conda-forge scientificfitting`
+is not available yet.
 
 ```python
 import numpy as np
@@ -61,7 +67,7 @@ For two distinct additional guesses, use `multistart=3`. With its default of
 one, only `p0` is used. The core selects the lowest converged result; trying
 several starts is useful for local minima, but does not prove global optimality.
 
-The preview covers Gaussian fits with x/y errors, dense or SciPy sparse
+The interface covers Gaussian fits with x/y errors, dense or SciPy sparse
 covariance, named `ErrorComponent` sources, and matrix-free `WhiteningOperator`,
 Poisson counts, expected-count and integrated-density histograms, unbinned
 and extended-unbinned likelihoods, indexed and multi-dataset fits, custom
@@ -78,9 +84,7 @@ reports, and profiles/contours for every supported fit family. Like the Julia
 renderer, `plot_fit` and x-y residual helpers target Gaussian results;
 likelihood observations and multiple datasets can be drawn using ordinary
 Matplotlib with `add_report` for the fit estimates. Worked examples of those
-compositions are included below. This preview is
-not a claim of v0.2 release readiness. Platform results and a clean installation
-against the registered 0.2 core must be verified before publishing a wheel.
+compositions are included below.
 
 For non-Gaussian regression, `fit_likelihood_model` accepts a vectorized
 `logprob(y, prediction, **parameters)` returning one normalized log density
@@ -564,6 +568,22 @@ and optional plotting dependencies. Roughly 96 MiB is ScientificFitting's own
 compiled cache; building it took about 53 s. Precompilation moves work to setup
 and uses disk space; it does not remove the runtime's installation cost.
 
+## Development Setup
+
+Only contributors working from a repository checkout need to select a local
+Julia core. In a separate Python environment, from the repository root:
+
+```bash
+python -m pip install -e './python[plot,test]'
+python python/develop.py
+python examples/python/numpy_matplotlib.py
+python examples/python/likelihood_workflows.py
+python examples/python/multi_dataset_calibration.py
+python -m pytest python/tests
+```
+
+`develop.py` selects this checkout instead of the registered core. That selection
+persists in its JuliaPkg environment; use a fresh environment to test a release.
 The same sources build with standard tools:
 
 ```bash
@@ -578,8 +598,9 @@ as in the Python CI workflow.
 The Conda recipe reads the Python version and requirements from `pyproject.toml`;
 only the dependency name changes from `juliacall` to conda-forge's `pyjuliacall`.
 Matplotlib and SciPy remain optional. No post-install scripts modify the user's
-Julia installation. This recipe is a local build, **not** an existing conda-forge
-release. Its installed-package reference fits also pass on macOS ARM64 with
+Julia installation. This in-repository recipe is for local builds and upstream
+CI; the separate conda-forge submission is linked above.
+Its installed-package reference fits also pass on macOS ARM64 with
 Conda Python 3.14.7 and NumPy 2.5.3, reusing the managed Julia runtime above.
 
 `python/tests/check_install.py` checks a base wheel in a fresh environment without

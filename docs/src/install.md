@@ -4,11 +4,13 @@ ScientificFitting declares support for Julia 1.10 and later. CI runs the core
 and full-package gates on Julia 1.10 and Julia 1.12. Julia 1.10 is the
 compatibility floor.
 
-!!! note "First public release"
-    Version 0.1 is an early work-in-progress release. Please report unexpected
+For Python, see [Python Interface](python.md).
+
+!!! note "Early release"
+    Version 0.2 is an early work-in-progress release. Please report unexpected
     behavior with a minimal reproducer and the complete diagnostic output.
 
-## Install The First Release
+## Install The Julia Package
 
 Install the registered package from Julia's General registry:
 
@@ -83,11 +85,19 @@ julia --project=. --startup-file=no -e 'using ScientificFitting; println("Scient
 For plotting, run the tracked quickstart example shown above. It exercises the
 same API used by the first tutorial and confirms CairoMakie export.
 
-## Python Interface (Development Preview)
+## Python Interface
 
-The unreleased Python wrapper uses NumPy models, the Julia numerical core,
-and optional native Matplotlib plots without Makie. Setup, supported features,
-and executable examples are on the [Python Interface](python.md) page.
+In a Python 3.10+ virtual environment:
+
+```bash
+python -m pip install 'scientificfitting[plot]'
+```
+
+The Python interface uses NumPy models and optional native Matplotlib plots,
+without Makie. JuliaCall provisions the registered Julia core automatically on
+first use, which needs network access and compilation. Omit `[plot]` when no
+plots are needed. Supported features, examples, and the conda-forge submission
+status are on the [Python Interface](python.md) page.
 
 ## Troubleshooting
 
