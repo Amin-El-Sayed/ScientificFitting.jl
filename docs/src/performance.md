@@ -191,6 +191,33 @@ baselines on stated hardware or CI runners. Local baselines belong under
 `benchmarks/output/` until a specific machine or CI environment is chosen as
 the release reference.
 
+## Ecosystem Throughput Probe
+
+From the repository checkout with Julia 1.11+, prepare the optional dependencies
+once, then run the probe:
+
+```bash
+julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+julia --project=docs --startup-file=no benchmarks/ecosystem.jl 10000 100000
+```
+
+This opt-in probe fits a controlled truncated-normal peak plus uniform background
+with four free parameters. It compares MIGRAD and bounded L-BFGS, a distribution
+factory and BuildConstructors, and the upstream DistributionsHEP objective.
+All paths include ScientificFitting's local covariance and result construction.
+
+The script reports warmed median time and allocated bytes over three repetitions.
+It requires convergence, parameter differences below 0.01 standard errors,
+cost agreement within 0.0002 and relative covariance-norm agreement within 0.001.
+Data generation and compilation are excluded;
+allocated bytes are cumulative, not peak memory. Yields are scaled by the sample
+size for both solvers. Their stopping criteria differ, so agreement of the
+results, not equal numeric tolerances, is the comparison requirement.
+
+Use the reported versions and thread settings when repeating a measurement.
+This probes integration overhead and conditioning; it is neither a CERN-data
+analysis nor a universal solver ranking.
+
 ## Performance Budget Gate
 
 The repository also has a small steady-state gate:
