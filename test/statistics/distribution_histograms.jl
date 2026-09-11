@@ -75,6 +75,27 @@ Distributions.pdf(d::PDFOnlySlope, x::Real) =
         p0=[0.5], total_count=5., integration=:quadgk)
 end
 
+@testset "Truncated distribution bins preserve boundary derivatives" begin
+    bins = ScientificFitting.DistributionHistogram([0., 0.5], [1.], 1., :cdf, 1e-9)
+    factory(p) = truncated(Normal(p[1], exp(p[2])), 0., 10.)
+    logmass(p) = ScientificFitting._bin_logmass(factory(p), 0., 0.5, bins)
+    # This parameter point previously made the lower-edge CDF derivative NaN.
+    reference(p) = log(ScientificFitting.quadgk(x -> pdf(factory(p), x), 0., 0.5; rtol=1e-9)[1])
+    point = [5.358013439054251, log(0.4)]
+    @test logmass(point) ≈ reference(point) atol=1e-10
+    @test ForwardDiff.gradient(logmass, point) ≈ ForwardDiff.gradient(reference, point) rtol=1e-8
+    @test ForwardDiff.hessian(logmass, point) ≈ ForwardDiff.hessian(reference, point) rtol=1e-7
+
+    # Bins may straddle either edge, including one-sided truncation.
+    for d in (truncated(Normal(), 0., 2.), truncated(Normal(); lower=0.),
+              truncated(Normal(); upper=2.))
+        actual = exp(ScientificFitting._bin_logmass(d, -1., 3., bins))
+        @test actual ≈ cdf(d, 3.) - cdf(d, -1.) rtol=1e-12
+    end
+    @test ScientificFitting._bin_logmass(factory(point), -1., 0., bins) == -Inf
+    @test ScientificFitting._bin_logmass(factory(point), 10., 11., bins) == -Inf
+end
+
 @testset "PDF-only bin integration retains normalization derivatives" begin
     edges = [0., 0.2, 0.6, 1.]
     bins = ScientificFitting.DistributionHistogram(edges, [4., 8., 13.], 25., :auto, 1e-9)

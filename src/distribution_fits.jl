@@ -256,6 +256,15 @@ function _bin_logmass(d::UnivariateDistribution, a, b, bins::DistributionHistogr
     throw(ArgumentError("CDF bin integral is undefined; try integration=:quadgk for a continuous density"))
 end
 
+"""Integrate inside a continuous selection window, retaining the upstream normalizer."""
+function _bin_logmass(d::Truncated{<:ContinuousUnivariateDistribution}, a, b, bins::DistributionHistogram)
+    lo = d.lower === nothing ? a : max(a, d.lower)
+    hi = d.upper === nothing ? b : min(b, d.upper)
+    lo < hi || return -Inf
+    # Truncated CDF subtraction can create log(0) duals at the window edges.
+    return _bin_logmass(d.untruncated, lo, hi, bins) - d.logtp
+end
+
 function _bin_logmass(d::MixtureModel{Univariate}, a, b, bins::DistributionHistogram)
     # Integrate components before mixing: a PDF-only component may need quadrature.
     return _log_weighted_probability(map(part -> _bin_logmass(part, a, b, bins), components(d)), probs(d))
