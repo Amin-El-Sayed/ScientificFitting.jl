@@ -9,6 +9,62 @@ end
 Distributions.pdf(d::PDFOnlySlope, x::Real) =
     0 <= x <= 1 ? exp(d.rate*x)*d.rate/expm1(d.rate) : zero(x)
 
+struct RoundedCDF{T,E} <: ContinuousUnivariateDistribution
+    normal::Normal{T}
+    offset::E
+end
+Distributions.pdf(d::RoundedCDF, x::Real) = pdf(d.normal, x)
+Distributions.cdf(d::RoundedCDF, x::Real) = cdf(d.normal, x) + d.offset
+
+struct PDFOnlyOscillation{T} <: ContinuousUnivariateDistribution
+    amplitude::T
+end
+function Distributions.pdf(d::PDFOnlyOscillation, x::Real)
+    p = d.amplitude
+    0 <= x <= 1 || return zero(p+x)
+    normalization = 1 + p*(1-cos(73.))/73 + p^2*sin(113.)/113
+    return (1 + p*sin(73x) + p^2*cos(113x)) / normalization
+end
+
+@testset "Quadrature preserves boundary and integrand derivatives" begin
+    SF = ScientificFitting
+    bins = SF.DistributionHistogram([-.5,.5], [1.], 1., :quadgk, 1e-10)
+    model(p) = truncated(Normal(p[1], exp(p[2])), p[3], 2.)
+    actual(p) = SF._bin_logmass(model(p), -.5, .5, bins)
+    reference(p) = logdiffcdf(Normal(p[1], exp(p[2])), .5, p[3]) -
+                   logdiffcdf(Normal(p[1], exp(p[2])), 2., p[3])
+    p = [.1, -.4, -.2]
+    @test actual(p) ≈ reference(p) atol=1e-10
+    @test ForwardDiff.gradient(actual, p) ≈ ForwardDiff.gradient(reference, p) atol=1e-9
+    @test ForwardDiff.hessian(actual, p) ≈ ForwardDiff.hessian(reference, p) atol=1e-8
+
+    # At amplitude zero the density is constant, but its derivatives oscillate.
+    # Adaptive accuracy must include those derivatives, not only the density.
+    a, b = .13, .92
+    integral(p) = exp(SF._bin_logmass(PDFOnlyOscillation(p[1]), a, b, bins))
+    exact(p) = ((b-a) + p[1]*(cos(73a)-cos(73b))/73 +
+        p[1]^2*(sin(113b)-sin(113a))/113) /
+        (1 + p[1]*(1-cos(73.))/73 + p[1]^2*sin(113.)/113)
+    @test integral([0.]) ≈ exact([0.]) atol=1e-10
+    @test ForwardDiff.gradient(integral, [0.]) ≈ ForwardDiff.gradient(exact, [0.]) atol=1e-9
+    @test ForwardDiff.hessian(integral, [0.]) ≈ ForwardDiff.hessian(exact, [0.]) atol=1e-8
+end
+
+@testset "CDF roundoff uses integration, not probability clipping" begin
+    SF = ScientificFitting
+    bins(mode) = SF.DistributionHistogram([8., 8.1], [1.], 1., mode, 1e-10)
+    model(p) = RoundedCDF(Normal(p[1], exp(p[2])), 4eps())
+    actual(p) = SF._bin_logmass(model(p), 8., 8.1, bins(:auto))
+    reference(p) = logdiffcdf(Normal(p[1], exp(p[2])), 8.1, 8.)
+    @test actual([0., 0.]) ≈ reference([0., 0.]) atol=1e-10
+    @test ForwardDiff.gradient(actual, [0., 0.]) ≈ ForwardDiff.gradient(reference, [0., 0.]) atol=1e-8
+    @test ForwardDiff.hessian(actual, [0., 0.]) ≈ ForwardDiff.hessian(reference, [0., 0.]) atol=1e-7
+    @test_throws ArgumentError SF._bin_logmass(model([0., 0.]), 8., 8.1, bins(:cdf))
+    for offset in (1e-3, NaN, Inf)
+        @test_throws ArgumentError SF._bin_logmass(RoundedCDF(Normal(), offset), 8., 8.1, bins(:auto))
+    end
+end
+
 @testset "Binned mixtures batch components without losing derivatives" begin
     SF = ScientificFitting
     edges = [-3., -1., -0.2, 0.4, 1., 3.]

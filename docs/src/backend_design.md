@@ -446,6 +446,31 @@ Hessians with the scalar formulation and bound allocations for 10,000 bins.
 This removes the dominant adapter overhead in the LHCb example; upstream
 CDF evaluation still costs more than its model-specific analytic control.
 
+Unbinned heterogeneous mixtures reduce native component batches in blocks of
+at most 4,096 events. This bounds simultaneous event-sized gradient/Hessian
+scratch arrays without binning, sampling, or rebuilding the model per block.
+The observations themselves remain resident; total work and cumulative
+allocations still scale with the event count. Vector and joint-event regressions
+check the complete reduction, including the final partial block and zero weights.
+
+Likelihood quadrature uses the maximum norm of the value and all nested AD
+coefficients for its estimated error, so a locally constant density cannot hide
+an oscillatory derivative. Moving finite integration bounds are mapped to
+`[0, 1]` without discarding their derivatives. CDFs that violate range/order by
+roundoff are reintegrated from the PDF in `integration=:auto`; strict `:cdf`
+and larger violations still fail. No probabilities are clipped. Analytic
+regressions cover values, gradients and Hessians; a DistributionsHEP tail case
+reproduces the original CDF-roundoff failure. Upstream normalization routines
+remain responsible for the derivatives of their own probability objects.
+
+The larger check uses [CMS DoubleMuParked muon data](https://opendata.cern.ch/record/12341),
+prepared by `examples/data/cms_dimuon/prepare.jl`: 61,540,413 source events and
+2,551,454 opposite-charge dimuon masses in `[2.8, 3.4)` GeV. Both the 300-bin
+and full unbinned fits converge after these fixes. The current bifurcated
+Crystal Ball/Das peak plus exponential background still gives a binned deviance
+of 791.3 for 291 degrees of freedom. Resolution and background modeling need
+validation before this can be presented as a successful gallery analysis.
+
 The example uses upper-only truncation of an exponential's natural support.
 Distributions 0.25.131's redundant lower bound at zero produces undefined AD
 derivatives in its log normalizer; finite differences give the same optimum,

@@ -692,6 +692,20 @@ function _density_integrand(pdf, p, vectorized::Bool)
     return BatchIntegrand{eltype(p), Float64}(evaluate!)
 end
 
+"""Control quadrature error in the value and every nested AD coefficient."""
+_quadrature_norm(x::Real) = abs(x)
+_quadrature_norm(x::ForwardDiff.Dual) = max(_quadrature_norm(ForwardDiff.value(x)),
+    maximum(_quadrature_norm, ForwardDiff.partials(x); init=zero(_finite_value(x))))
+
+"""Integrate scalar or batched likelihood terms with one checked error budget."""
+function _likelihood_integral(integrand, a, b; rtol)
+    value, error = quadgk(integrand, a, b; rtol, norm=_quadrature_norm)
+    scale = _quadrature_norm(value)
+    isfinite(scale) && isfinite(error) && error <= rtol*scale ||
+        throw(ArgumentError("likelihood quadrature did not reach the requested accuracy"))
+    return value
+end
+
 """
     fit_histogram_density(pdf, edges, counts; p0, total_count=sum(counts),
                           rtol=1e-8, vectorized=false, kwargs...) -> LikelihoodFitResult
@@ -704,6 +718,8 @@ bins. `total_count` and `rtol` must be finite and positive.
 With `vectorized=true`, `pdf(xs, p)` receives a vector of quadrature nodes and
 must return one value per node. QuadGK batches these evaluations while retaining
 adaptive error control for each bin; the scalar callback remains the default.
+During automatic differentiation, the quadrature error norm includes the value,
+gradient and nested Hessian coefficients, not just the primal density.
 
 Each expectation is `total_count * integral(pdf, edge[i], edge[i+1])`.
 Consequently, bins outside the supplied range still carry probability unless
@@ -743,7 +759,7 @@ function fit_histogram_density(
         # Reuse the batch buffers across bins within this objective evaluation.
         integrand = _density_integrand(pdf, p, vectorized)
         @inbounds for i in eachindex(mu)
-            integral, _ = quadgk(integrand, edge_values[i], edge_values[i + 1]; rtol=rtol)
+            integral = _likelihood_integral(integrand, edge_values[i], edge_values[i + 1]; rtol)
             mu[i] = total * integral
         end
         return mu
@@ -837,8 +853,9 @@ With `vectorized=true`, `rate(xs, p)` returns one intensity per input point:
 all observations are evaluated together, and QuadGK batches the quadrature nodes.
 
 The objective is `2 * integral(rate, domain) - 2 * sum(log(rate(x_i, p)))`.
-No generic chi-square p-value is reported. `rtol` controls Gauss-Kronrod
-integration and must be positive. Common parameter-control and solver keywords
+No generic chi-square p-value is reported. Positive `rtol` controls the estimated
+Gauss-Kronrod error in the maximum norm, including all carried AD coefficients.
+Common parameter-control and solver keywords
 are listed under `fit_custom`. Invalid domains, non-positive rates, and
 integration/model failures raise an error. Returns `LikelihoodFitResult`.
 """
@@ -873,7 +890,7 @@ function fit_extended_unbinned_model(
     all(x -> a <= x <= b, data_vec) || throw(ArgumentError("extended unbinned data must lie inside the domain"))
 
     objective = function (p)
-        expected, _ = quadgk(_density_integrand(rate, p, vectorized), a, b; rtol=rtol)
+        expected = _likelihood_integral(_density_integrand(rate, p, vectorized), a, b; rtol)
         expected > 0 || throw(ArgumentError("integrated rate must be positive"))
         return 2 * expected + _density_logcost(rate, data_vec, p, vectorized)
     end

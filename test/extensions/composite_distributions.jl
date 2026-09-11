@@ -5,6 +5,44 @@ using NumericalDistributions
 using ForwardDiff
 using Test
 
+struct BatchObservedNormal{T} <: ContinuousUnivariateDistribution
+    location::T
+    batch_sizes::Vector{Int}
+end
+Distributions.logpdf(d::BatchObservedNormal, x::Real) = logpdf(Normal(d.location, 1.), x)
+function Distributions.logpdf(d::BatchObservedNormal, x::AbstractVector{<:Real})
+    push!(d.batch_sizes, length(x))
+    return logpdf.(Ref(Normal(d.location, 1.)), x)
+end
+
+@testset "Event reductions bound scratch batches without losing observations" begin
+    sizes = Int[]
+    data = collect(range(-2., 2.; length=10_003))
+    model(p) = MixtureModel([BatchObservedNormal(p[1], sizes), Normal(-1., 2.)], [p[2], 1-p[2]])
+    actual(p) = ScientificFitting._distribution_cost(model(p), data)
+    reference(p) = -2sum(log(p[2]*pdf(Normal(p[1], 1.), x) +
+        (1-p[2])*pdf(Normal(-1., 2.), x)) for x in data)
+    for point in ([.4, .3], [.4, 0.])
+        empty!(sizes)
+        @test actual(point) ≈ reference(point) rtol=1e-12
+        point[2] == 0 || @test sum(sizes) == length(data)
+        @test ForwardDiff.gradient(actual, point) ≈ ForwardDiff.gradient(reference, point) rtol=1e-10
+        @test ForwardDiff.hessian(actual, point) ≈ ForwardDiff.hessian(reference, point) rtol=1e-9
+        @test maximum(sizes) <= 4096
+    end
+
+    # Joint events are columns: blocking must never split their coordinates.
+    joint = vcat(data', (data ./ 2)')
+    joint_model(p) = MixtureModel([
+        product_distribution(Normal(p[1], 1.), Normal()),
+        product_distribution(Uniform(-3., 3.), Normal(1., 2.))], [.3, .7])
+    joint_cost(p) = ScientificFitting._distribution_cost(joint_model(p), joint)
+    joint_reference(p) = -2sum(logpdf(joint_model(p), x) for x in eachcol(joint))
+    @test joint_cost([.4]) ≈ joint_reference([.4]) rtol=1e-12
+    @test ForwardDiff.gradient(joint_cost, [.4]) ≈ ForwardDiff.gradient(joint_reference, [.4]) rtol=1e-10
+    @test ForwardDiff.hessian(joint_cost, [.4]) ≈ ForwardDiff.hessian(joint_reference, [.4]) rtol=1e-9
+end
+
 @testset "Numerical densities inside native mixtures and products" begin
     data = [0.12, 0.37, 0.69, 0.84]
     builds = Ref(0)

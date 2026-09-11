@@ -139,11 +139,22 @@ end
 _mixture_logpdfs(d::MixtureModel, data) = _weighted_logbatches(
     part -> _distribution_logpdfs(part, data), components(d), probs(d), size(data, ndims(data)))
 
+_event_batch(data::AbstractVector, indices) = view(data, indices)
+_event_batch(data::AbstractMatrix, indices) = view(data, :, indices)
+
+"""Bound event-sized AD scratch storage while retaining native component batches."""
+function _batched_mixture_loglikelihood(d, data)
+    # Only the reduction is blocked. Model construction, normalization and the
+    # likelihood are unchanged; every event contributes, including the last block.
+    blocks = Iterators.partition(1:size(data, ndims(data)), 4096)
+    return sum(indices -> sum(_mixture_logpdfs(d, _event_batch(data, indices))), blocks)
+end
+
 _prepared_loglikelihood(d, data) = loglikelihood(d, data)
 # Concrete component types already allow native per-event specialization.
 _prepared_loglikelihood(d::MixtureModel, data) = isconcretetype(eltype(components(d))) ?
-    loglikelihood(d, data) : sum(_mixture_logpdfs(d, data))
-_prepared_loglikelihood(d::MixtureLogAdapter, data) = sum(_mixture_logpdfs(d.distribution, data))
+    loglikelihood(d, data) : _batched_mixture_loglikelihood(d, data)
+_prepared_loglikelihood(d::MixtureLogAdapter, data) = _batched_mixture_loglikelihood(d.distribution, data)
 
 function _distribution_loglikelihood(d, data)
     events = data isa AbstractMatrix ? eachcol(data) : data
@@ -204,7 +215,9 @@ Distributions.jl distribution. The factory runs once per objective evaluation,
 not once per event: expensive parameter-dependent normalization belongs there.
 ScientificFitting uses the upstream `loglikelihood`/`logpdf` implementation and
 minimizes `-2 log(L)`. Heterogeneous mixtures batch the upstream component log
-densities; homogeneous mixtures keep their specialized native loop. A scaled-sum
+densities in bounded event blocks, so their temporary AD arrays do not grow with
+the sample size. Every event contributes; there is no subsampling. Homogeneous
+mixtures keep their specialized native loop. A scaled-sum
 adapter retains first/second derivatives when a free mixture weight reaches zero.
 A distribution exposing only `pdf` uses `log(pdf)`;
 extreme-tail underflow then follows that upstream density implementation.
@@ -267,14 +280,30 @@ struct DistributionHistogram
 end
 
 function _quadrature_logmass(d::ContinuousUnivariateDistribution, a, b, rtol)
-    mass, error = quadgk(x -> pdf(d, x), a, b; rtol)
-    isfinite(mass) && mass >= 0 && isfinite(error) && error <= rtol*abs(mass) ||
-        throw(ArgumentError("bin quadrature did not produce a nonnegative mass at the requested accuracy"))
+    # Use ordinary quadrature nodes even when truncation bounds carry duals.
+    # The affine map retains both moving-boundary terms in the derivatives.
+    t = float(_finite_value(a))
+    mass = _likelihood_integral(x -> (b-a)*pdf(d, a+(b-a)*x), zero(t), one(t); rtol)
+    mass >= 0 || throw(ArgumentError("bin quadrature produced a negative probability"))
     return iszero(mass) ? -Inf : log(mass)
 end
 _quadrature_logmass(d, a, b, rtol) = throw(ArgumentError(
     "quadrature requires a continuous univariate distribution; use its CDF for discrete data",
 ))
+
+_valid_cdf_interval(a, b) = 0 <= _finite_value(a) <= _finite_value(b) <= 1
+
+"""Reintegrate roundoff-sized CDF violations; never clip probabilities or accept invalid CDFs."""
+function _cdf_roundoff_logmass(d, a, b, bins, fa, fb)
+    x, y = _finite_value(fa), _finite_value(fb)
+    tolerance = 8eps(float(one(x+y)))
+    if bins.integration == :auto && d isa ContinuousUnivariateDistribution &&
+       isfinite(x) && isfinite(y) && -tolerance <= x <= y+tolerance && y <= 1+tolerance
+        return _quadrature_logmass(d, a, b, bins.rtol)
+    end
+    throw(ArgumentError("CDF must be finite, nondecreasing, and between zero and one; " *
+        "received ($x, $y). For a continuous density with an inaccurate CDF, use integration=:quadgk."))
+end
 
 """Prefer upstream CDF integrals; retain tail log probabilities and handle exact support edges."""
 function _bin_logmass(d::UnivariateDistribution, a, b, bins::DistributionHistogram)
@@ -283,12 +312,12 @@ function _bin_logmass(d::UnivariateDistribution, a, b, bins::DistributionHistogr
     end
     applicable(cdf, d, a) || throw(ArgumentError("distribution has no CDF; use integration=:quadgk"))
     fa, fb = cdf(d, a), cdf(d, b)
-    0 <= fa <= fb <= 1 || throw(ArgumentError("CDF must be finite, nondecreasing, and between zero and one"))
+    _valid_cdf_interval(fa, fb) || return _cdf_roundoff_logmass(d, a, b, bins, fa, fb)
     # Avoid log(0) duals at exact support endpoints. Normal's specialized
     # logdiffcdf still handles tails where both ordinary CDFs underflow.
     fa == 0 && fb > 0 && return log(fb)
     qa, qb = fb == 1 ? (ccdf(d, a), ccdf(d, b)) : (one(fa), one(fb))
-    0 <= qb <= qa <= 1 || throw(ArgumentError("complementary CDF is invalid"))
+    _valid_cdf_interval(qb, qa) || return _cdf_roundoff_logmass(d, a, b, bins, qb, qa)
     qa > 0 && qb == 0 && return log(qa)
     value = logdiffcdf(d, b, a)
     isfinite(value) && return value
@@ -365,8 +394,12 @@ There is no implicit renormalization over the histogram window. Truncate the
 upstream distribution explicitly when it describes a selected sample instead.
 
 `integration=:auto` uses upstream CDF/log-CDF differences where available and
-adaptive QuadGK integration otherwise. `:cdf` requires the CDF interface;
-`:quadgk` forces quadrature for continuous components at relative tolerance `rtol`.
+adaptive QuadGK integration otherwise. Roundoff-sized CDF range/order violations
+are reintegrated from the PDF, not clipped; larger violations raise an error.
+`:cdf` requires valid CDFs and does not apply this recovery. `:quadgk` forces
+quadrature for continuous components. Its estimated error uses relative tolerance
+`rtol` in the maximum norm of the value and all carried AD coefficients.
+Moving truncation bounds retain their derivatives through a fixed-interval map.
 Mixture components are integrated in batches, with dispatch outside the bin loop
 and temporary storage linear in the number of bins. Their normalization and
 parameter derivatives are retained. A missing dual-number implementation requires the usual

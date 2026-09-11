@@ -5,6 +5,20 @@ using NumericalDistributions
 using ForwardDiff
 using Test
 
+@testset "HEP tail CDF roundoff retains probability and derivatives" begin
+    # This valid CMS peak shape previously produced CDF=1+eps() in its upper tail.
+    # Use the PDF integral as an independent reference if the upstream CDF changes.
+    point = [3.116201542240966, .03630967468500453, .45880186479893514,
+        3.841815572311773, 39.95733725277167, 3.8392459898050966]
+    model(p) = truncated(DoubleSidedBifurcatedCrystalBallDas(p...), 2.8, 3.4)
+    bins(mode) = ScientificFitting.DistributionHistogram([3.362, 3.364], [1.], 1., mode, 1e-10)
+    actual(p) = ScientificFitting._bin_logmass(model(p), 3.362, 3.364, bins(:auto))
+    reference(p) = ScientificFitting._bin_logmass(model(p), 3.362, 3.364, bins(:quadgk))
+    @test actual(point) ≈ reference(point) atol=1e-8
+    @test ForwardDiff.gradient(actual, point) ≈ ForwardDiff.gradient(reference, point) rtol=1e-7
+    @test ForwardDiff.hessian(actual, point) ≈ ForwardDiff.hessian(reference, point) rtol=1e-6
+end
+
 @testset "HEP distributions and numerical normalization" begin
     # The normalization depends on p; its derivatives must not be discarded.
     builds = Ref(0)
