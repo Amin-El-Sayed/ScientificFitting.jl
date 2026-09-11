@@ -4,6 +4,8 @@ if get(ENV, "SCIENTIFICFITTING_DOCS_SKIP_DEVELOP", "0") != "1"
     Pkg.instantiate()
 end
 
+# Load documented extensions before Documenter inspects bindings and docstrings.
+import BuildConstructors, DistributionsHEP, NativeMinuit
 using Documenter
 using ScientificFitting
 using CairoMakie
@@ -40,6 +42,7 @@ makedocs(;
             "How ScientificFitting Works" => "how_scientificfitting_works.md",
         ]),
         hide("Guides" => "fitting_for_practitioners.md", [
+            "Packages and Interfaces" => "interfaces.md",
             "Plotting and Customization" => "plotting_design.md",
         ]),
         "Mathematics and Statistics" => [
@@ -54,7 +57,7 @@ makedocs(;
             "Results and Diagnostics" => "api_results.md",
             "Fit Plotting" => "api_plotting.md",
             "Diagnostic Plotting" => "api_plotting_diagnostics.md",
-            "Related Packages and Citation" => "citation.md",
+            "Citation and License" => "citation.md",
         ]),
         hide("Internals" => "backend_design.md", [
             "Performance" => "performance.md",

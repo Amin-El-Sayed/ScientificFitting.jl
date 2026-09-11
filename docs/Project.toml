@@ -1,16 +1,22 @@
 [deps]
+BuildConstructors = "63b9b590-f22f-4e79-810f-ea9ba6849c26"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+DistributionsHEP = "0d0d6f60-fb7b-48ca-90bb-e14e8b1655a7"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+NativeMinuit = "5523a57a-07f4-4aae-a9fd-d526bcb5d194"
 OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
 ScientificFitting = "4ec0e560-7423-4ff9-937f-0d4da6f5f8f8"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
+BuildConstructors = "0.8"
 CairoMakie = "0.13"
 Distributions = "0.25"
+DistributionsHEP = "0.6"
 Documenter = "1"
+NativeMinuit = "0.7"
 OptimizationOptimJL = "0.4"
 LaTeXStrings = "1.4"
 SpecialFunctions = "2"

@@ -102,7 +102,7 @@ profiles, and editable plots in one workflow. It builds on LsqFit and
 Optimization.jl rather than implementing another minimizer. Other useful Julia
 tools include RooFitLite for RooFit-style models, NativeMinuit for Minuit-based
 minimization and error analysis, and Distributions for probability models.
-See the [commented package overview](docs/src/citation.md#Related-Packages)
+See [Packages and Interfaces](docs/src/interfaces.md)
 for their roles and the distinction between existing and planned integrations.
 
 ## Technical Notes

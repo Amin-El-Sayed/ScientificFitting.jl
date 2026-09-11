@@ -71,7 +71,7 @@ convergence, not model validity; an unknown iteration count is `None`.
 ## Choose The Error Model
 
 | Data / uncertainty | Entry point or option |
-|---|---|
+|:---|:---|
 | Gaussian x/y errors | `fit_model(..., sigma_x=..., sigma_y=...)` |
 | Dense or SciPy sparse covariance | `fit_model(..., cov_x=..., cov_y=...)` |
 | Named error sources | `ErrorComponent`; see `help(ErrorComponent)` |
@@ -230,7 +230,7 @@ plt.close(fig)
 ```
 
 | Change | Control |
-|---|---|
+|:---|:---|
 | Use an existing subplot | `plot_fit(result, ax=ax, panel=False)` |
 | More room for the graph | `figsize=(width, height)` in inches |
 | Report below the axes | `add_report(..., position="bottom")` |
@@ -304,7 +304,7 @@ extended likelihoods and adaptive histogram integration; `rtol` controls the
 integral accuracy. For known bin integrals, use `fit_histogram_model` directly.
 
 | Complete script in `examples/python/` | Demonstrates |
-|---|---|
+|:---|:---|
 | `numpy_matplotlib.py` | Nonlinear decay, editable reports, residuals, profiles, both styles |
 | `likelihood_workflows.py` | Poisson decay and unequal-width bins; expectations integrated per bin |
 | `multi_dataset_calibration.py` | Named `parameter_map`, shared gains, full covariance of their difference, nested-model comparison |

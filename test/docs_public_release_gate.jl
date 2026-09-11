@@ -19,6 +19,7 @@ const PUBLIC_DOC_PAGES = [
     "gallery/poisson_histogram.md",
     "gallery/multi_dataset.md",
     "fitting_for_practitioners.md",
+    "interfaces.md",
     "plotting_design.md",
     "statistical_foundations.md",
     "gaussian_models.md",

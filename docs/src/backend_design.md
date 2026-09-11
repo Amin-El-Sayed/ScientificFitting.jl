@@ -372,13 +372,15 @@ normalized across solver/platform versions.
 **Release scope.** v0.2 provides custom measurement
 likelihoods and the published [Python interface](python.md). v0.3 must make
 existing Julia model and solver packages convenient to compose while retaining
-one statistical contract. The [package overview](citation.md#Related-Packages)
+one statistical contract. [Packages and Interfaces](interfaces.md)
 describes their roles; the following items are required before v0.3 is complete.
 The development branch now has the scalar solver contract, optional NativeMinuit
 adapter, distribution-object entry point and independent BuildConstructors
 extension. A nested extended two-peak model agrees between Optim and NativeMinuit,
 including nuisance refits and named parameter reconstruction. Remaining work
-includes the executable HEP guide and end-to-end performance/support checks.
+includes end-to-end performance/support checks. The interface guide now executes
+a named, binned mixture through both solvers and compares their profile scans;
+the Python guide is code-first and its cells run in the documentation test.
 Distribution histograms now use upstream CDF integrals or controlled quadrature,
 with explicit full-support totals or extended component yields. Log bin masses
 retain tail likelihoods even when ordinary probabilities underflow; exactly
@@ -390,6 +392,9 @@ Values, gradients, and Hessians are checked against analytic references.
 Zero mixture weights retain their derivative contributions instead of being
 omitted by the native mixture evaluation; genuinely fixed zeros are still
 omitted, so an inactive peak cannot erase a remote active tail numerically.
+Continuous truncated components integrate the original distribution inside the
+selection window and reuse its normalizer, avoiding undefined CDF derivatives
+at the truncation boundary. Quadrature checks the values, gradients and Hessians.
 The release requirements below remain open.
 
 ### Required Integrations
@@ -417,6 +422,25 @@ The release requirements below remain open.
   and the same reports/profiles/plots. Keep Python callbacks and result semantics
   working; document which Julia-specific integrations the Python API exposes.
   Separate current support, optional dependencies, and unsupported capabilities.
+  Organize the technical guide by probability models, model construction and
+  minimizers, not application domain. Real-data applications belong in the Gallery.
+
+### Real-Data Gallery Candidate
+
+The [LHCb three-hadron B-decay data](https://opendata.cern.ch/record/4900)
+are a candidate for a separate Gallery analysis, not a completed reproduction.
+The CC0 release includes collision data and a separate simplified simulation;
+the [project notebook](https://github.com/lhcb/opendata-project/blob/master/LHCb_Open_Data_Project.ipynb)
+documents selection but leaves a signal/background fit as a further analysis.
+
+Before inclusion, pin the source files and extraction cuts, publish a compact
+derived sample with provenance, and compare the same normalized likelihood,
+fitted values, uncertainties and profile crossings against an independent
+C++ Minuit2/RooFit implementation. Use BuildConstructors with interchangeable solvers.
+Time data preparation, warm fitting and uncertainty analysis separately at
+matched accuracy; keep the full ROOT download outside the ordinary docs build.
+A mass-spectrum example must not imply a CP-asymmetry measurement without the
+required detector, production and efficiency corrections.
 
 ### Shared Contract
 
