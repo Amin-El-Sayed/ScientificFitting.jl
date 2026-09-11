@@ -202,6 +202,11 @@ Its native result retains covariance and failure evidence without replacing
 ScientificFitting's covariance policy. Usage and budget conventions are in
 [Solver Adapters](api_fitting.md#Solver-Adapters).
 
+Native state is retained behind a non-specializing result field. Reports,
+diagnostics and plots share the same result type across user models and solvers;
+they do not need a separate compilation for every native solution type. The
+objective and solver kernels still specialize on their computational inputs.
+
 Likelihood `optimizer` and `parameter_covariance` are independent options stored
 in `FitOptions` and retained by profile refits. Nelder-Mead defaults to no
 Hessian calculation, not a numerical Hessian across a kink or support boundary.
@@ -369,8 +374,13 @@ likelihoods and the published [Python interface](python.md). v0.3 must make
 existing Julia model and solver packages convenient to compose while retaining
 one statistical contract. The [package overview](citation.md#Related-Packages)
 describes their roles; the following items are required before v0.3 is complete.
-The development branch now has the scalar solver contract and optional
-NativeMinuit adapter described above; this does not complete the integrations below.
+The development branch now has the scalar solver contract, optional NativeMinuit
+adapter, distribution-object entry point and independent BuildConstructors
+extension. A nested extended two-peak model agrees between Optim and NativeMinuit,
+including nuisance refits and named parameter reconstruction. Remaining work
+includes the CDF-based binned path, PDF-only components inside composite
+distributions, the executable HEP guide, and end-to-end performance/support
+checks. The release requirements below remain open.
 
 ### Required Integrations
 

@@ -7,7 +7,7 @@ import DifferentiationInterface as DI
 
 function ScientificFitting.solve_fit(solver::NativeMinuitSolver,
                                     problem::Optimization.OptimizationProblem;
-                                    maxiters, tol, parameter_indices, parameter_count)
+                                    maxiters, tol, parameter_indices, parameter_count, parameter_names)
     objective = q -> problem.f(q, problem.p)
     ad = problem.f.adtype
     prepared = DI.prepare_gradient(objective, ad, problem.u0)
@@ -25,7 +25,7 @@ function ScientificFitting.solve_fit(solver::NativeMinuitSolver,
     end
     # ScientificFitting supplies -2logL/chi-square, never Minuit's half-scale NLL.
     native = Minuit(objective, copy(problem.u0); grad, limits, error=steps,
-                    names=["p$i" for i in parameter_indices], errordef=1.0,
+                    names=parameter_names, errordef=1.0,
                     solver.kwargs...)
     migrad!(native; maxfcn=maxiters, tol, iterate=1)
     fm = native.fmin.internal

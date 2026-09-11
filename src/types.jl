@@ -453,7 +453,7 @@ ScientificFitting never substitutes the configured iteration limit for an unknow
 native status and the free-to-full parameter map. It is `nothing` for the
 specialized LsqFit path and when every parameter is fixed.
 """
-struct FitResult{S}
+struct FitResult
     problem::FitProblem
     options::FitOptions
     backend::Symbol
@@ -470,7 +470,8 @@ struct FitResult{S}
     jacobian::Matrix{Float64}
     stats::FitStatistics
     diagnostics::FitDiagnostics
-    solver_result::S
+    # Native state is inspected after fitting, not used in the numerical loop.
+    solver_result::Union{Nothing, FitSolverResult}
 end
 
 function _float_vector(v::AbstractVector)

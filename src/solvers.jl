@@ -115,7 +115,7 @@ end
 
 """
     solve_fit(solver, problem::OptimizationProblem; maxiters, tol,
-              parameter_indices, parameter_count) -> FitSolverResult
+              parameter_indices, parameter_count, parameter_names) -> FitSolverResult
 
 Public solver-extension boundary. `problem.f(q, problem.p)` is the complete
 validated cost; `q` contains only free parameters. Bounds and nonlinear
@@ -124,6 +124,8 @@ objective, modify inputs, or compute ScientificFitting's statistical summaries.
 `parameter_count` is the original full dimension (needed for parameter-specific
 solver settings). Retain unavailable iteration counts as `missing` and failed
 termination as `converged=false`. The core checks capabilities before dispatch.
+`parameter_names` are unique labels in free-coordinate order, suitable for
+named native solver operations. Unnamed problems use `p1`, `p2`, etc.
 """
 function solve_fit end
 
@@ -132,7 +134,7 @@ function solve_fit(solver::NativeMinuitSolver, problem; kwargs...)
 end
 
 function solve_fit(solver::OptimizationSolver, problem; maxiters, tol,
-                   parameter_indices, parameter_count)
+                   parameter_indices, parameter_count, parameter_names)
     # NLopt exposes an evaluation count, but OptimizationStats.iterations is zero.
     nlopt = solver.algorithm isa OptimizationNLopt.NLopt.Algorithm
     sol = if nlopt
@@ -186,8 +188,11 @@ function _minimize_scalar(problem, options, objective, cache)
         OptimizationFunction(objective; cons=cons!)
     end
     optprob = OptimizationProblem(optf, q0, cache; lb, ub, lcons, ucons)
+    names = hasproperty(problem, :parameter_names) ? problem.parameter_names : nothing
+    free_names = names === nothing ? ["p$i" for i in free] : names[free]
     answer = solve_fit(solver, optprob; maxiters=options.maxiters, tol=options.tol,
-                       parameter_indices=free, parameter_count=length(problem.p0))
+                       parameter_indices=free, parameter_count=length(problem.p0),
+                       parameter_names=free_names)
     answer isa FitSolverResult || throw(ArgumentError("solve_fit must return a FitSolverResult"))
     length(answer.params) == length(free) && answer.parameter_indices == free ||
         throw(ArgumentError("solver returned inconsistent free parameter coordinates"))

@@ -28,6 +28,7 @@ include("weights.jl")
 include("costs.jl")
 include("fit.jl")
 include("likelihood_fits.jl")
+include("distribution_fits.jl")
 include("profile.jl")
 include("prediction.jl")
 include("plotting_api.jl")
@@ -64,6 +65,8 @@ export predict
 export fit_model
 export fit_custom
 export fit_likelihood_model
+export fit_distribution
+export fitted_model
 export fit_poisson_model
 export fit_histogram_model
 export fit_histogram_density

@@ -79,7 +79,8 @@ different uncertainty scales or datasets.
 
 | Entry point | Additional contract |
 |---|---|
-| `fit_likelihood_model` | `logprob(y, prediction, p)` returns one normalized log density or log probability mass per independent observation; no universal goodness-of-fit p-value. |
+| `fit_likelihood_model` | Supply `logprob(y, prediction, p)`, or fixed additive `error` distributions. A multivariate error object models the residual vector jointly. |
+| `fit_distribution` | `make_distribution(p)` builds one upstream distribution per objective evaluation; scalar events use a vector, multivariate events a matrix with explicit `obsdim`. |
 | `fit_poisson_model` | Every expected count must be finite and strictly positive; observed counts must be non-negative integers. |
 | `fit_histogram_model` | `length(edges) == length(counts) + 1`; edges increase strictly; the model returns one positive expectation per bin. |
 | `fit_histogram_density` | Integrates `pdf(x, p)` over every bin with Gauss-Kronrod quadrature; `total_count > 0`, `rtol > 0`. |
@@ -126,6 +127,7 @@ need more than a successful minimization to justify confidence intervals.
 ScientificFitting.fit(::ScientificFitting.LikelihoodFitProblem)
 ScientificFitting.fit_custom
 ScientificFitting.fit_likelihood_model
+ScientificFitting.fit_distribution
 ScientificFitting.fit_poisson_model
 ScientificFitting.fit_histogram_model
 ScientificFitting.fit_histogram_density
@@ -134,6 +136,59 @@ ScientificFitting.fit_extended_unbinned_model
 ScientificFitting.fit_indexed_model
 ScientificFitting.fit_multi_model
 ScientificFitting.LikelihoodFitProblem
+```
+
+### Distribution Objects
+
+Choose the interface according to what is random. These are different models,
+not different numerical solvers:
+
+```@example distribution_objects
+using ScientificFitting, Distributions
+
+# Fit an event distribution: both its location and scale are unknown.
+events = [-0.5, 0.2, 0.8, 1.1]
+make_distribution(p) = Normal(p[1], exp(p[2]))
+result = fit_distribution(make_distribution, events;
+    p0=[0., 0.], parameter_names=["mean", "log_scale"])
+println(report_text(result))
+```
+
+```@example distribution_errors
+using ScientificFitting, Distributions
+
+# Fit a response curve: the additive measurement-error distributions are known.
+x, y = [0., 1., 2., 3.], [0.1, 1.2, 1.8, 3.4]
+sigma = [0.2, 0.3, 0.2, 0.4]
+line(x, p) = @. p[1]*x + p[2]
+result = fit_likelihood_model(line, x, y;
+    error=Normal.(0., sigma), p0=[1., 0.])
+println(report_text(result))
+```
+
+A single `error=TDist(4)` applies the same independent Student-t error to each
+residual. `error=MvNormal(zeros(length(y)), covariance)` instead evaluates one
+joint log density; it does not multiply marginal errors. For a Poisson or other
+prediction-dependent observation model, retain the `logprob` callback.
+
+Factories may return DistributionsHEP shapes or NumericalDistributions objects.
+The latter's normalization runs once when the factory constructs the distribution,
+then is reused for all observations. ScientificFitting differentiates that
+normalization too; a constructor that cannot accept dual numbers needs explicit
+`derivatives=:finite`. A `pdf`-only object uses `log(pdf)`, with the tail precision
+of its implementation. No interpolated or moving-support model is assumed smooth.
+
+With `using BuildConstructors`, `fit_distribution(constructor, events)` takes
+names, starts, bounds and fixed/shared state from the constructor. Optional
+`p0=(mu=0.2,)` overrides free starting values. Change bounds/fixed state on the
+constructor, not through duplicate fit keywords. Metadata `uncertainty` values
+do not create priors or statistical errors. The model is snapshotted for fitting
+and profiling; `fitted_model(result)` reconstructs the fitted distribution or
+intensity. `parameter_values(result)` provides named fitted values for an explicit
+`update!` of the original constructor. The integration does not require Minuit.
+
+```@docs
+ScientificFitting.fitted_model
 ```
 
 ## Solver Adapters
@@ -152,7 +207,10 @@ println(report_text(result))
 ```
 
 With the optional NativeMinuit package installed, use
-`using NativeMinuit` and `solver=NativeMinuitSolver(steps=[0.2, 0.3])` instead.
+`import NativeMinuit` and `solver=NativeMinuitSolver(steps=[0.2, 0.3])` instead.
+`import` activates the extension without importing NativeMinuit's own `profile`
+name; use `ScientificFitting.profile` for our result-based refits and
+`NativeMinuit.profile` for its native API.
 NativeMinuit requires Julia 1.11 or later; the core still supports Julia 1.10.
 It is an LGPL-licensed dependency, not bundled or copied into ScientificFitting.
 Its MIGRAD adapter supports box bounds, fixed parameters and all statistical
@@ -173,6 +231,9 @@ ScientificFitting result. Local errors in `param_covariance` still follow
 ScientificFitting's covariance policy, not an implicit replacement by MINOS.
 For native MINOS results, inspect validity and parameter-limit flags: reaching
 a bound is not finding a likelihood-threshold crossing.
+
+Named likelihood problems carry their unique, nonempty `parameter_names` into
+the native object, including during reduced nuisance-parameter refits.
 
 Third-party adapters implement two methods: capabilities and `solve_fit`.
 They receive a standard `OptimizationProblem` with the complete objective and

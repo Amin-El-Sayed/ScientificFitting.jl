@@ -55,7 +55,7 @@ iteration count.
 it is `nothing` when every parameter is fixed. Native solver coordinates follow
 `solver_result.parameter_indices`, not necessarily the full model vector.
 """
-struct LikelihoodFitResult{S}
+struct LikelihoodFitResult
     problem::LikelihoodFitProblem
     options::FitOptions
     backend::Symbol
@@ -68,7 +68,8 @@ struct LikelihoodFitResult{S}
     param_correlation::Matrix{Float64}
     stats::FitStatistics
     diagnostics::FitDiagnostics
-    solver_result::S
+    # Do not specialize reports/plots on every native solution and model type.
+    solver_result::Union{Nothing, FitSolverResult}
 end
 
 function LikelihoodFitProblem(
@@ -92,6 +93,8 @@ function LikelihoodFitProblem(
     nobs > 0 || throw(ArgumentError("nobs must be positive"))
     names = parameter_names === nothing ? nothing : collect(String, parameter_names)
     names === nothing || length(names) == length(p0_vec) || throw(ArgumentError("parameter_names length must match p0"))
+    names === nothing || (all(name -> !isempty(name), names) && allunique(names)) ||
+        throw(ArgumentError("parameter_names must be nonempty and unique"))
 
     normalized_bounds = _normalize_bounds(bounds, length(p0_vec))
     normalized_fixed = _normalize_fixed_parameters(fixed_parameters, length(p0_vec))
@@ -406,7 +409,8 @@ function _assert_count_observations(name::AbstractString, values::AbstractVector
 end
 
 """
-    fit_likelihood_model(model, x, y; logprob, p0, kwargs...) -> LikelihoodFitResult
+    fit_likelihood_model(model, x, y; logprob=nothing, error=nothing, p0, kwargs...)
+        -> LikelihoodFitResult
 
 Fit independent observations with a user-defined continuous or discrete
 observation distribution. `model(x, p)` returns one prediction per observation;
@@ -414,6 +418,15 @@ observation distribution. `model(x, p)` returns one prediction per observation;
 log probability masses. The two callbacks are evaluated once per objective
 evaluation, allowing vectorized Julia or Python models. Capture per-observation
 scales, trial counts, or other known inputs in the `logprob` closure.
+
+Alternatively, `error=distribution` models the additive residual `y - model(x,p)`
+directly with a fixed Distributions.jl distribution. A univariate object applies
+independently to every residual; a vector of objects gives point-specific errors.
+A multivariate object describes the complete residual vector jointly, including
+dependence between measurements. Its dimension must equal the number of values.
+Use exactly one of `error` and `logprob`; no Gaussian approximation is introduced.
+For prediction-dependent distributions such as Poisson counts, keep `logprob`;
+these describe observations, not additive continuous errors.
 
 The core minimizes `-2 * sum(logprob(...))`. Include all normalization terms,
 especially those depending on fitted parameters. A log density may be positive;
@@ -449,17 +462,23 @@ result = fit_likelihood_model(model, [0., 1., 2., 3.], [0.1, 1.2, 1.9, 3.4];
 """
 function fit_likelihood_model(
     model, x::AbstractVector, y::AbstractVector;
-    logprob, p0::AbstractVector, cost_name::Symbol=:observation_likelihood, kwargs...,
+    logprob=nothing, error=nothing, p0::AbstractVector,
+    cost_name::Symbol=:observation_likelihood, kwargs...,
 )
     x_vec, y_vec = _float_vector(x), _float_vector(y)
     length(x_vec) == length(y_vec) || throw(ArgumentError("x and y must have equal length"))
     _assert_finite_observations("x", x_vec)
     _assert_finite_observations("y", y_vec)
+    (logprob === nothing) != (error === nothing) || throw(ArgumentError(
+        "provide exactly one of logprob or error",
+    ))
+    error_model = error === nothing ? nothing : _prepare_error_distribution(error, length(y_vec))
     objective = function (p)
         prediction = model(x_vec, p)
         prediction isa AbstractVector && length(prediction) == length(y_vec) ||
             throw(ArgumentError("model must return one prediction per observation"))
         all(isfinite, prediction) || throw(ArgumentError("model predictions must be finite"))
+        error_model === nothing || return _minus2logprob(_error_loglikelihood(error_model, y_vec .- prediction))
         terms = logprob(y_vec, prediction, p)
         terms isa AbstractVector && length(terms) == length(y_vec) ||
             throw(ArgumentError("logprob must return one log probability per observation"))
