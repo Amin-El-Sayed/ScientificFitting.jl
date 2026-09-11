@@ -425,23 +425,29 @@ package versions move together; Python retains its NumPy/Matplotlib interface.
 ### Real-Data Gallery Release Requirement
 
 The [LHCb three-hadron B-decay data](https://opendata.cern.ch/record/4900)
-are the proposed source for a separate Gallery analysis, not a completed reproduction.
-The CC0 release includes collision data and a separate simplified simulation;
-the [project notebook](https://github.com/lhcb/opendata-project/blob/master/LHCb_Open_Data_Project.ipynb)
-documents selection but leaves a signal/background fit as a further analysis.
+supply the [mass-spectrum example](gallery/lhcb_mass_spectrum.md): 3,420,295
+MagnetUp candidates, 9,717 after the notebook's PID cuts, 7,368 in the fit window.
+`examples/data/lhcb_mass/prepare.jl` verifies the ROOT checksum and rebuilds every
+bin. The CC0 collision data, DOI, cuts and model limits are documented on the page;
+the full ROOT download stays outside Git and the ordinary docs build.
 
-Before inclusion, pin the source files and extraction cuts, retain the dataset
-DOI and license next to the figure and executable code, and publish a compact
-derived sample with provenance, and compare the same normalized likelihood,
-fitted values, uncertainties and profile crossings against an independent
-C++ Minuit2/RooFit implementation. Use BuildConstructors with interchangeable solvers.
-Time data preparation, warm fitting and uncertainty analysis separately at
-matched accuracy; keep the full ROOT download outside the ordinary docs build.
-A mass-spectrum example must not imply a CP-asymmetry measurement without the
-required detector, production and efficiency corrections.
-The page should show the question, model and fit code, real execution output,
-diagnostic plot and limitations concisely. No data fabrication, edited terminal
-output or unsupported agreement with the published LHCb analysis is acceptable.
+`benchmarks/lhcb_reference.py` checks the two peak shapes independently using
+SciPy CDFs and C++ Minuit2. Executed documentation checks the minima, local
+errors and signal-yield profile against those references. This is a conditional
+mass-spectrum fit, not a reproduction of an LHCb paper or a CP-asymmetry result.
+Keep data preparation, warm fitting and uncertainty analysis separate in timing;
+3.4 million scanned candidates must not be advertised as 3.4 million fitted events.
+
+The example uses upper-only truncation of an exponential's natural support.
+Distributions 0.25.131's redundant lower bound at zero produces undefined AD
+derivatives in its log normalizer; finite differences give the same optimum,
+but the equivalent upper-only constructor retains valid automatic derivatives.
+The shared scalar-solver boundary rejects non-finite initial gradients and,
+when required, Hessians before entering the optimizer. The error identifies
+the derivative failure and the explicit finite-difference option; it never
+silently changes differentiation policy. This preflight does not prove derivative
+correctness throughout the parameter domain. No upstream types are patched.
+User review of the rendered documentation remains required before publication.
 
 ### Shared Contract
 

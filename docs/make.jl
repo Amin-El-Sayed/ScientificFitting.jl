@@ -35,6 +35,7 @@ makedocs(;
             "Poisson and Histograms" => "gallery/poisson_histogram.md",
             "Constraints and Profiles" => "gallery/constraints_profiles.md",
             "Multi-Dataset Fit" => "gallery/multi_dataset.md",
+            "LHCb Mass Spectrum" => "gallery/lhcb_mass_spectrum.md",
         ]),
         hide("Get Started" => "install.md", [
             "Quickstart" => "quickstart.md",

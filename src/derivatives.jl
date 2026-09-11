@@ -23,6 +23,21 @@ function _optimization_ad(problem; second_order::Bool=false)
     return second_order ? DifferentiationInterface.SecondOrder(ad, ad) : ad
 end
 
+"""Reject invalid starting derivatives before a solver can propagate NaNs into parameters."""
+function _check_initial_derivatives(problem, objective, p, capabilities)
+    capabilities.gradient || capabilities.hessian || return nothing
+    gradient = DifferentiationInterface.gradient(objective, _optimization_ad(problem), p)
+    invalid = !all(isfinite, gradient) ? "gradient" :
+        capabilities.hessian && !all(isfinite, _derivative_hessian(problem, objective, p)) ? "Hessian" : nothing
+    if invalid !== nothing
+        hint = _derivative_mode(problem) == :auto ?
+            " For AD-incompatible models, explicitly select derivatives=:finite." : ""
+        throw(ArgumentError("initial cost is finite, but its $invalid contains NaN or Inf. " *
+            "Check differentiability, parameter scales, and distribution support at p0." * hint))
+    end
+    return nothing
+end
+
 """Differentiate vector predictions/residuals with the same policy as the objective."""
 function _derivative_jacobian(problem, f, p)
     return _derivative_mode(problem) == :finite ?

@@ -105,6 +105,44 @@ end
         constraints=(eq=p -> [p[1]-p[2]],), solver=OptimizationSolver(nlopt.LN_NELDERMEAD))
 end
 
+@testset "Invalid initial derivatives never enter the solver" begin
+    optim = ScientificFitting.OptimizationOptimJL
+    solver = RecordingFitSolver(OptimizationSolver(optim.BFGS()), Int[], Float64[])
+    # Values are an ordinary quadratic, but sqrt(0) gives an undefined AD term.
+    bad_ad(p) = (p[1]-2)^2 + sqrt(zero(p[1]))
+    err = try
+        fit_custom(bad_ad; p0=[0.], nobs=10, solver)
+        nothing
+    catch e
+        e
+    end
+    @test err isa ArgumentError
+    @test occursin("gradient contains NaN or Inf", sprint(showerror, err))
+    @test occursin("derivatives=:finite", sprint(showerror, err))
+    @test isempty(solver.dimensions)
+    finite = fit_custom(bad_ad; p0=[0.], nobs=10, solver, derivatives=:finite)
+    @test finite.converged
+    @test finite.params ≈ [2.] atol=1e-6
+    @test finite.param_covariance ≈ ones(1, 1) rtol=1e-5
+
+    # A finite first derivative is not sufficient for a Hessian-based solver.
+    second = RecordingFitSolver(OptimizationSolver(optim.IPNewton()), Int[], Float64[])
+    err = try
+        fit_custom(p -> p[1]^1.5; p0=[0.], nobs=10, solver=second)
+        nothing
+    catch e
+        e
+    end
+    @test err isa ArgumentError
+    @test occursin("Hessian contains NaN or Inf", sprint(showerror, err))
+    @test isempty(second.dimensions)
+
+    # Derivative-free optimization must not acquire an implicit AD requirement.
+    direct = fit_custom(bad_ad; p0=[0.], nobs=10, optimizer=:nelder_mead)
+    @test direct.converged
+    @test direct.params ≈ [2.] atol=1e-6
+end
+
 @testset "Likelihood helpers forward solver configuration" begin
     solver = RecordingFitSolver(OptimizationSolver(ScientificFitting.OptimizationOptimJL.BFGS()),
                                 Int[], Float64[])

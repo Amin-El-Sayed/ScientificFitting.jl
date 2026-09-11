@@ -3,6 +3,9 @@
 Keep your probability model, choose a minimizer, and reuse the fitted object.
 These are independent interfaces, not separate workflows for different sciences.
 
+For a complete real-data application, see the [LHCb mass spectrum](gallery/lhcb_mass_spectrum.md):
+source-checked collision counts, a named extended mixture, MIGRAD and a shape-sensitivity check.
+
 !!! note "v0.3 development API"
     The distribution-object, BuildConstructors and NativeMinuit adapters below
     are on the development branch, not in v0.2. Optional packages must be loaded

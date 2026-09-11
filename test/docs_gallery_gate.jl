@@ -13,6 +13,7 @@ const GALLERY_PAGES = [
     "constraints_profiles.md",
     "poisson_histogram.md",
     "multi_dataset.md",
+    "lhcb_mass_spectrum.md",
 ]
 
 function read_gallery_page(name)
@@ -68,18 +69,20 @@ end
 
     for page in GALLERY_PAGES
         path, text = read_gallery_page(page)
+        executable = occursin(r"^```@example "m, text)
 
         @testset "$page" begin
             @test occursin(r"^# "m, text)
-            @test has_any(text, [r"^## .*Question"m, r"^## Scientific Question"m])
+            @test has_any(text, [r"^## .*Question"m, r"^## Scientific Question"m, r"^\*\*Question:\*\*"m])
             @test has_any(text, [r"^## Data"m, r"^## The Measurement"m])
             @test has_any(text, [r"^## .*Model"m, r"^## .*Cost"m, r"^## Poisson Likelihood"m])
-            @test has_any(text, [r"```julia"m, r"^## Complete .*Code"m, r"^## Complete .*Fit"m])
-            @test occursin("scientificfitting-cell-output", text)
-            @test occursin("Fit diagnostic dashboard", text)
-            @test has_any(text, [r"^## Diagnostics"m, r"^## What To Inspect"m, r"^## Diagnose"m])
-            @test has_any(text, [r"^## Interpretation"m, r"^## Decision"m, r"^## Read "m, r"^## Reading "m, r"^## Why Compare"m])
-            @test has_any(text, [r"^## What Can Go Wrong"m, r"^## Failure Modes"m, r"^## What To Do Before"m])
+            @test executable || has_any(text, [r"```julia"m, r"^## Complete .*Code"m, r"^## Complete .*Fit"m])
+            # Documenter executes @example output instead of keeping a text snapshot.
+            @test executable || occursin("scientificfitting-cell-output", text)
+            @test executable || occursin("Fit diagnostic dashboard", text)
+            @test has_any(text, [r"^## Diagnostics"m, r"^## What To Inspect"m, r"^## Diagnose"m, r"^## Inspect"m])
+            @test has_any(text, [r"^## Interpretation"m, r"^## Decision"m, r"^## Read "m, r"^## Reading "m, r"^## Why Compare"m, r"^## Check Shape Dependence"m])
+            @test has_any(text, [r"^## What Can Go Wrong"m, r"^## Failure Modes"m, r"^## What To Do Before"m, r"^\*\*Scope:\*\*"m])
             @test occursin("1σ", text) || occursin("1-sigma", text) || occursin("one-sigma", text)
             @test !occursin("P1", text)
             @test !occursin("Praktikum", text)
@@ -90,7 +93,9 @@ end
             sources = image_sources(text)
             @test !isempty(sources)
             for src in sources
-                @test isfile(resolve_doc_asset(path, src))
+                # Generated figures are checked by the post-build HTML link gate.
+                generated = executable && occursin("```@setup", text) && endswith(src, ".svg")
+                @test generated || isfile(resolve_doc_asset(path, src))
             end
 
             groups = style_groups(text)

@@ -34,6 +34,10 @@ diagnostics, and scientific interpretation.
 
 ## Worked Examples
 
+New for v0.3: [LHCb open-data mass spectrum](gallery/lhcb_mass_spectrum.md).
+Compose a named signal/background model, fit with NativeMinuit, and check yield
+sensitivity to the peak shape. Includes source DOI and reproducible ROOT selection.
+
 ```@raw html
 <div class="scientificfitting-gallery-grid">
 <div class="scientificfitting-gallery-item">

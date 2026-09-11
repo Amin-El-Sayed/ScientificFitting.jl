@@ -94,6 +94,19 @@ end
     end
     @test ScientificFitting._bin_logmass(factory(point), -1., 0., bins) == -Inf
     @test ScientificFitting._bin_logmass(factory(point), 10., 11., bins) == -Inf
+
+    # Exponential's lower support is already zero. A redundant truncation there
+    # can poison the upstream log-normalizer's AD, despite valid scalar values.
+    edges, counts = [0., 0.5, 1., 2.], [20, 12, 10]
+    upper(p) = truncated(Exponential(p[1]); upper=2.)
+    redundant(p) = truncated(Exponential(p[1]), 0., 2.)
+    a = fit_distribution(upper, edges, counts; p0=[1.], total_count=42., bounds=([0.1], [10.]))
+    b = fit_distribution(redundant, edges, counts; p0=[1.], total_count=42.,
+        bounds=([0.1], [10.]), derivatives=:finite)
+    @test a.converged && b.converged
+    @test a.params ≈ b.params atol=1e-5
+    @test a.param_covariance ≈ b.param_covariance rtol=1e-4
+    @test a.stats.cost_min ≈ b.stats.cost_min atol=1e-8
 end
 
 @testset "PDF-only bin integration retains normalization derivatives" begin

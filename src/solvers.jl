@@ -211,6 +211,7 @@ function _minimize_scalar(problem, options, objective, cache)
     isfinite(objective(q0, cache)) || throw(ArgumentError(
         "$context must be finite; choose a starting point inside the model's support",
     ))
+    _check_initial_derivatives(problem, q -> objective(q, cache), q0, caps)
     lb, ub = bounds === nothing ? (nothing, nothing) : bounds
     cons!, lcons, ucons = has_cons ? _build_constraint_system(constraints, problem) :
                          (nothing, nothing, nothing)
