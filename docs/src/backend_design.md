@@ -403,6 +403,10 @@ the result, native solver object and profile refits; a binned mixture regression
 checks the default fit and 25 nuisance refits against Optim.
 Native parameter-keyword aliases are rejected at construction: they must not
 override ScientificFitting's bounds, fixed state or full-order step mapping.
+Heterogeneous event mixtures now batch upstream component log densities instead
+of dispatching each component again per observation; homogeneous mixtures keep
+their native loop. The scaled sum retains zero-weight derivatives and uses
+temporary storage linear in the event count.
 The release requirements below remain open.
 
 ### Required Integrations

@@ -104,10 +104,48 @@ end
 
 _distribution_logpdf(d, x) = logpdf(_with_logpdf(d, x), x)
 
+_distribution_logpdfs(d, data) = logpdf(d, data)
+_distribution_logpdfs(d::MixtureLogAdapter, data) = _mixture_logpdfs(d.distribution, data)
+_distribution_logpdfs(d::MixtureModel, data) = isconcretetype(eltype(components(d))) ?
+    logpdf(d, data) : _mixture_logpdfs(d, data)
+
+"""Combine p = exp(scale) * total without taking the logarithm of a zero weight."""
+function _merge_mixture_terms(scale, total, logs, weight)
+    next_scale = max.(scale, logs)
+    next_total = map(scale, total, logs, next_scale) do a, s, b, m
+        # Outside both supports any finite scaled total represents zero probability.
+        m == -Inf ? s + weight : s * exp(a-m) + weight * exp(b-m)
+    end
+    return next_scale, next_total
+end
+
+"""Batch each upstream component once; temporary storage stays linear in events."""
+function _mixture_logpdfs(d::MixtureModel, data)
+    state = nothing
+    for (part, weight) in zip(components(d), probs(d))
+        isfinite(weight) && weight >= 0 || throw(ArgumentError(
+            "mixture weights must be finite and nonnegative",
+        ))
+        _structural_zero(weight) && continue
+        logs = _distribution_logpdfs(part, data)
+        state = state === nothing ? (logs, fill(weight, length(logs))) :
+                _merge_mixture_terms(state..., logs, weight)
+    end
+    state === nothing && return fill(-Inf, size(data, ndims(data)))
+    scale, total = state
+    return scale .+ log.(total)
+end
+
+_prepared_loglikelihood(d, data) = loglikelihood(d, data)
+# Concrete component types already allow native per-event specialization.
+_prepared_loglikelihood(d::MixtureModel, data) = isconcretetype(eltype(components(d))) ?
+    loglikelihood(d, data) : sum(_mixture_logpdfs(d, data))
+_prepared_loglikelihood(d::MixtureLogAdapter, data) = sum(_mixture_logpdfs(d.distribution, data))
+
 function _distribution_loglikelihood(d, data)
     events = data isa AbstractMatrix ? eachcol(data) : data
-    # Prepare once per parameter point, not once per event. Upstream batching stays intact.
-    return loglikelihood(_with_logpdf(d, first(events)), data)
+    # Preparation and component dispatch belong outside the event loop.
+    return _prepared_loglikelihood(_with_logpdf(d, first(events)), data)
 end
 
 _prepare_error_distribution(d::UnivariateDistribution, n) = deepcopy(d)
@@ -162,7 +200,10 @@ Fit independent events using `make_distribution(p)`, which returns a normalized
 Distributions.jl distribution. The factory runs once per objective evaluation,
 not once per event: expensive parameter-dependent normalization belongs there.
 ScientificFitting uses the upstream `loglikelihood`/`logpdf` implementation and
-minimizes `-2 log(L)`. A distribution exposing only `pdf` uses `log(pdf)`;
+minimizes `-2 log(L)`. Heterogeneous mixtures batch the upstream component log
+densities; homogeneous mixtures keep their specialized native loop. A scaled-sum
+adapter retains first/second derivatives when a free mixture weight reaches zero.
+A distribution exposing only `pdf` uses `log(pdf)`;
 extreme-tail underflow then follows that upstream density implementation.
 Univariate PDF-only components also work inside native mixtures and products:
 an internal adapter supplies `logpdf` without changing the upstream model.

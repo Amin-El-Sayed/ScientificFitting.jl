@@ -218,6 +218,13 @@ Use the reported versions and thread settings when repeating a measurement.
 This probes integration overhead and conditioning; it is neither a CERN-data
 analysis nor a universal solver ranking.
 
+Heterogeneous mixtures evaluate each upstream component on the event array, then
+combine the log densities with a scaled weighted sum. Homogeneous mixtures keep
+their specialized native loop. Zero weights retain their parameter derivatives;
+buffers are local to an objective call rather than shared between fits or stored
+in an event-by-component matrix. Other distributions keep their upstream
+`loglikelihood` implementation.
+
 ## Performance Budget Gate
 
 The repository also has a small steady-state gate:

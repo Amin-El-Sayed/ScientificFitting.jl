@@ -86,3 +86,64 @@ using Test
     @test ForwardDiff.hessian(squared_cost, [1.2, 0.]) ≈
         ForwardDiff.hessian(squared_reference, [1.2, 0.]) rtol=1e-5
 end
+
+@testset "Mixture batches preserve densities, derivatives and linear storage" begin
+    points = [-5., -2., -0.1, 0.4, 2., 5.]
+    peak(p) = truncated(Normal(p[1], p[2]), -1., 1.)
+    background = Normal(2., 3.)
+    model(p) = MixtureModel([peak(p), background], [p[3], 1-p[3]])
+    actual(p) = ScientificFitting._distribution_cost(model(p), points)
+    reference(p) = -2sum(log(p[3]*pdf(peak(p), x) + (1-p[3])*pdf(background, x)) for x in points)
+    # Some observations lie outside the signal window. The background still
+    # gives them positive probability, also at a zero signal yield.
+    for p in ([0.2, 0.7, 0.4], [0.2, 0.7, 0.])
+        @test actual(p) ≈ reference(p) rtol=1e-12
+        @test ForwardDiff.gradient(actual, p) ≈ ForwardDiff.gradient(reference, p) atol=1e-10
+        @test ForwardDiff.hessian(actual, p) ≈ ForwardDiff.hessian(reference, p) atol=1e-9
+    end
+    # At the first observation the variable peak vanishes, and both weights
+    # are fixed. Later observations must still retain its parameter derivatives.
+    fixed_weights(p) = MixtureModel([peak(p), background], [0.4, 0.6])
+    fixed_cost(p) = ScientificFitting._distribution_cost(fixed_weights(p), points)
+    fixed_reference(p) = reference([p[1], p[2], 0.4])
+    @test ForwardDiff.hessian(fixed_cost, [0.2, 0.7]) ≈
+        ForwardDiff.hessian(fixed_reference, [0.2, 0.7]) atol=1e-9
+
+    # Both components vanish at the first point; a later component restores
+    # support. Nested and flat representations describe the same probability.
+    inner = MixtureModel([Uniform(0., 1.), Uniform(2., 3.)], [0.25, 0.75])
+    nested = MixtureModel([inner, Normal()], [0.4, 0.6])
+    flat = MixtureModel([Uniform(0., 1.), Uniform(2., 3.), Normal()], [0.1, 0.3, 0.6])
+    @test ScientificFitting._distribution_cost(nested, points) ≈ -2loglikelihood(flat, points)
+    @test ScientificFitting._distribution_cost(inner, [-1.]) == Inf
+    tail = MixtureModel([Normal(), Normal(1000.)], [0., 1.])
+    @test ScientificFitting._distribution_cost(tail, [0.]) ≈ -2logpdf(Normal(1000.), 0.)
+    tiny_weight = MixtureModel([Normal(), Normal(1000.)], [1e-300, 1.])
+    @test ScientificFitting._distribution_cost(tiny_weight, [0., 500., 1000.]) ≈
+        -2loglikelihood(tiny_weight, [0., 500., 1000.])
+    discrete = MixtureModel([Poisson(0.5), Poisson(3.)], [0.3, 0.7])
+    @test ScientificFitting._distribution_cost(discrete, [0, 1, 5]) ≈ -2loglikelihood(discrete, [0, 1, 5])
+    # Even a mutated upstream probability vector must not become a signed density.
+    invalid = MixtureModel([Normal(), Uniform()], [0.3, 0.7])
+    probs(invalid)[1] = -0.1
+    @test_throws ArgumentError ScientificFitting._distribution_cost(invalid, [0.1, 0.3])
+
+    error = MixtureModel([Normal(), Uniform(-10., 10.)], [0.9, 0.1])
+    residual_cost(p) = -2ScientificFitting._error_loglikelihood(error, points .- p[1])
+    residual_reference(p) = -2sum(log(0.9pdf(Normal(), x-p[1]) + 0.005) for x in points)
+    @test ForwardDiff.gradient(residual_cost, [0.2]) ≈ ForwardDiff.gradient(residual_reference, [0.2])
+    @test ForwardDiff.hessian(residual_cost, [0.2]) ≈ ForwardDiff.hessian(residual_reference, [0.2])
+
+    data = collect(range(-4., 4.; length=10_000))
+    mixture = MixtureModel([Normal(), Uniform(-4., 4.)], [0.6, 0.4])
+    evaluate(data) = ScientificFitting._distribution_cost(mixture, data)
+    evaluate(data) # Warm specialization before checking allocation volume.
+    @test (@allocated evaluate(data)) < 100length(data) + 100_000
+    # A concrete component type already has a cheap native loop. Keep it rather
+    # than introducing event-sized scratch arrays for every mixture.
+    homogeneous = MixtureModel([Normal(), Normal(2.)], [0.6, 0.4])
+    homogeneous_cost(data) = ScientificFitting._distribution_cost(homogeneous, data)
+    native_cost(data) = -2loglikelihood(homogeneous, data)
+    homogeneous_cost(data); native_cost(data)
+    @test (@allocated homogeneous_cost(data)) < (@allocated native_cost(data)) + 4096
+end
