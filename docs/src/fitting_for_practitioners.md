@@ -25,7 +25,8 @@ Start from the measurement process, not from the curve shape.
   `WhiteningOperator(...)`. The covariance must represent the actual shared
   readout, baseline, or calibration mechanism.
 - **Counts at known x positions:** use `fit_poisson_model(...)`. The model must
-  predict strictly positive expected counts at every fitted point.
+  predict nonnegative expected counts, with positive expectation wherever events
+  are observed.
 - **Counts collected into bins:** use `fit_histogram_model(...)` or
   `fit_histogram_density(...)`. Integrate the model over each bin instead of
   sampling only at its center.

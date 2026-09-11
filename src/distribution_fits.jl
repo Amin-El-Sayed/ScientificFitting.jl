@@ -42,6 +42,33 @@ struct PDFLogAdapter{S, D} <: UnivariateDistribution{S}
 end
 PDFLogAdapter(d::UnivariateDistribution{S}) where {S} = PDFLogAdapter{S, typeof(d)}(d)
 
+# A fixed zero can be omitted; a zero with gradient or Hessian sensitivity cannot.
+_structural_zero(x) = iszero(x)
+_structural_zero(x::ForwardDiff.Dual) = _structural_zero(ForwardDiff.value(x)) &&
+    all(_structural_zero, ForwardDiff.partials(x))
+
+"""Sum weighted probabilities in log space without differentiating log(zero weight)."""
+function _log_weighted_probability(logvalues, weights)
+    active = ((v, w) for (v, w) in zip(logvalues, weights) if !_structural_zero(w))
+    scale = maximum(first, active; init=-Inf)
+    scale == -Inf && return scale
+    return scale + log(sum(w * exp(v - scale) for (v, w) in active))
+end
+
+"""Retain sensitivity to a zero mixture weight; upstream logpdf omits that component."""
+struct MixtureLogAdapter{V, S, D} <: Distribution{V, S}
+    distribution::D
+end
+MixtureLogAdapter(d::MixtureModel{V, S}) where {V, S} = MixtureLogAdapter{V, S, typeof(d)}(d)
+Base.length(d::MixtureLogAdapter{Multivariate}) = length(d.distribution)
+
+function _weighted_logpdf(d, x)
+    return _log_weighted_probability(map(part -> logpdf(part, x), components(d)), probs(d))
+end
+Distributions.logpdf(d::MixtureLogAdapter{Univariate}, x::Real) = _weighted_logpdf(d.distribution, x)
+# Distributions' array-variate interface owns shape checking and batched calls.
+Distributions._logpdf(d::MixtureLogAdapter{Multivariate}, x::AbstractVector{<:Real}) = _weighted_logpdf(d.distribution, x)
+
 function Distributions.logpdf(d::PDFLogAdapter, x::Real)
     density = pdf(d.distribution, x)
     density isa Real && isfinite(density) && density >= 0 ||
@@ -57,8 +84,10 @@ _with_logpdf(d::MixtureModel{Multivariate}, x::AbstractVector) = _mixture_with_l
 function _mixture_with_logpdf(d, x)
     original = components(d)
     prepared = map(part -> _with_logpdf(part, x), original)
-    all(a === b for (a, b) in zip(original, prepared)) && return d
-    return MixtureModel(prepared, probs(d))
+    model = all(a === b for (a, b) in zip(original, prepared)) ? d : MixtureModel(prepared, probs(d))
+    # Inspect plain values only to choose the evaluation path. The actual sum
+    # retains the original weights (and all their first/second derivatives).
+    return any(w -> iszero(_finite_value(w)) && !_structural_zero(w), probs(d)) ? MixtureLogAdapter(model) : model
 end
 
 # Distributions 0.25 currently returns two product representations from its public
@@ -182,4 +211,119 @@ function fit_distribution(make_distribution, data::AbstractArray{<:Real};
     observations, nobs = _distribution_data(data; obsdim)
     objective = DistributionObjective(make_distribution, observations)
     return fit_custom(objective; p0, nobs, cost_name=:distribution_likelihood, kwargs...)
+end
+
+"""Keep integration policy and observed bins separate from parameter-dependent models."""
+struct DistributionHistogram
+    edges::Vector{Float64}
+    counts::Vector{Float64}
+    total_count::Union{Nothing, Float64}
+    integration::Symbol
+    rtol::Float64
+end
+
+function _quadrature_logmass(d::ContinuousUnivariateDistribution, a, b, rtol)
+    mass, error = quadgk(x -> pdf(d, x), a, b; rtol)
+    isfinite(mass) && mass >= 0 && isfinite(error) && error <= rtol*abs(mass) ||
+        throw(ArgumentError("bin quadrature did not produce a nonnegative mass at the requested accuracy"))
+    return iszero(mass) ? -Inf : log(mass)
+end
+_quadrature_logmass(d, a, b, rtol) = throw(ArgumentError(
+    "quadrature requires a continuous univariate distribution; use its CDF for discrete data",
+))
+
+"""Prefer upstream CDF integrals; retain tail log probabilities and handle exact support edges."""
+function _bin_logmass(d::UnivariateDistribution, a, b, bins::DistributionHistogram)
+    if bins.integration == :quadgk || (bins.integration == :auto && !applicable(cdf, d, a))
+        return _quadrature_logmass(d, a, b, bins.rtol)
+    end
+    applicable(cdf, d, a) || throw(ArgumentError("distribution has no CDF; use integration=:quadgk"))
+    fa, fb = cdf(d, a), cdf(d, b)
+    0 <= fa <= fb <= 1 || throw(ArgumentError("CDF must be finite, nondecreasing, and between zero and one"))
+    # Avoid log(0) duals at exact support endpoints. Normal's specialized
+    # logdiffcdf still handles tails where both ordinary CDFs underflow.
+    fa == 0 && fb > 0 && return log(fb)
+    qa, qb = fb == 1 ? (ccdf(d, a), ccdf(d, b)) : (one(fa), one(fb))
+    0 <= qb <= qa <= 1 || throw(ArgumentError("complementary CDF is invalid"))
+    qa > 0 && qb == 0 && return log(qa)
+    value = logdiffcdf(d, b, a)
+    isfinite(value) && return value
+    qa > qb && return log(qa - qb)
+    if bins.integration == :auto && d isa ContinuousUnivariateDistribution
+        return _quadrature_logmass(d, a, b, bins.rtol)
+    end
+    fa == fb && return -Inf
+    throw(ArgumentError("CDF bin integral is undefined; try integration=:quadgk for a continuous density"))
+end
+
+function _bin_logmass(d::MixtureModel{Univariate}, a, b, bins::DistributionHistogram)
+    # Integrate components before mixing: a PDF-only component may need quadrature.
+    return _log_weighted_probability(map(part -> _bin_logmass(part, a, b, bins), components(d)), probs(d))
+end
+
+function _bin_logexpectation(d::UnivariateDistribution, bins::DistributionHistogram)
+    bins.total_count === nothing && throw(ArgumentError(
+        "a normalized distribution requires total_count (expected events on its full support)",
+    ))
+    return [log(bins.total_count) + _bin_logmass(d, a, b, bins)
+            for (a, b) in zip(bins.edges[1:end-1], bins.edges[2:end])]
+end
+_bin_logexpectation(d, bins::DistributionHistogram) = throw(ArgumentError(
+    "one-dimensional histogram fitting requires a univariate distribution or extended mixture",
+))
+
+function _distribution_cost(d::Distribution, bins::DistributionHistogram)
+    log_mu = _bin_logexpectation(d, bins)
+    mu = _nonnegative_expectation(exp.(log_mu), length(bins.counts))
+    return _poisson_minus2loglik_terms(bins.counts, mu; log_mu)
+end
+
+"""
+    fit_distribution(make_distribution, edges, counts;
+        p0, total_count=nothing, integration=:auto, rtol=1e-8, kwargs...)
+
+Fit independent Poisson bin counts using a univariate distribution factory.
+`edges` must be finite and strictly increasing. Bin `i` is `(edges[i], edges[i+1]]`;
+for integer data, half-integer edges avoid any endpoint convention ambiguity.
+Counts must be nonnegative integers. The factory runs once per objective call.
+
+For a normalized distribution, `total_count` is required: it is the known expected
+event count on the distribution's full support, not an automatically fitted or
+conditioned observed total. For a fitted rate use an `ExtendedMixtureModel` from
+DistributionsHEP and omit `total_count`; its component yields supply the rates.
+There is no implicit renormalization over the histogram window. Truncate the
+upstream distribution explicitly when it describes a selected sample instead.
+
+`integration=:auto` uses upstream CDF/log-CDF differences where available and
+adaptive QuadGK integration otherwise. `:cdf` requires the CDF interface;
+`:quadgk` forces quadrature for continuous components at relative tolerance `rtol`.
+Mixture components are integrated separately, retaining their normalization and
+parameter derivatives. A missing dual-number implementation requires the usual
+explicit `derivatives=:finite` option, not silent loss of derivatives.
+
+The objective is normalized Poisson `-2log(L)`, with tail bin probabilities kept
+in log space. Empty support bins contribute zero for zero observations and
+infinite cost otherwise. Goodness-of-fit uses asymptotic Poisson deviance only
+when all expected bin counts are strictly positive; otherwise those fields are
+`NaN`. Low counts and fitted boundaries can also invalidate that approximation.
+Other fit controls and [`fitted_model`](@ref) work as for unbinned distribution fits.
+BuildConstructors metadata can be used with either form.
+"""
+function fit_distribution(make_distribution, edges::AbstractVector, counts::AbstractVector;
+                          p0::AbstractVector, total_count=nothing,
+                          integration::Symbol=:auto, rtol::Real=1e-8, kwargs...)
+    integration in (:auto, :cdf, :quadgk) || throw(ArgumentError("integration must be :auto, :cdf, or :quadgk"))
+    isfinite(rtol) && rtol > 0 || throw(ArgumentError("rtol must be finite and positive"))
+    total_count === nothing || (total_count isa Real && isfinite(total_count) && total_count > 0) ||
+        throw(ArgumentError("total_count must be finite and positive"))
+    edge_values, observations = _histogram_data(edges, counts)
+    bins = DistributionHistogram(edge_values, observations,
+        total_count === nothing ? nothing : Float64(total_count), integration, Float64(rtol))
+    objective = DistributionObjective(make_distribution, bins)
+    gof = function (p)
+        log_mu = _bin_logexpectation(make_distribution(p), bins)
+        return _poisson_gof(observations, exp.(log_mu); log_mu)
+    end
+    return fit_custom(objective; p0, nobs=length(observations),
+        cost_name=:histogram_poisson_likelihood, gof, kwargs...)
 end

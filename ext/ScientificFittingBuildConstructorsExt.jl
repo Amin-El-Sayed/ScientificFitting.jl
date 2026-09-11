@@ -53,12 +53,16 @@ function constructor_inputs(constructor; p0)
             fixed_parameters=fixed, parameter_names=String.(collect(names)))
 end
 
-function ScientificFitting.fit_distribution(constructor::BC.AbstractConstructor,
-                                           data::AbstractArray{<:Real}; p0=nothing, kwargs...)
+ScientificFitting.fit_distribution(constructor::BC.AbstractConstructor, data::AbstractArray{<:Real}; kwargs...) =
+    fit_constructor(constructor, data; kwargs...)
+ScientificFitting.fit_distribution(constructor::BC.AbstractConstructor, edges::AbstractVector, counts::AbstractVector; kwargs...) =
+    fit_constructor(constructor, edges, counts; kwargs...)
+
+function fit_constructor(constructor, data...; p0=nothing, kwargs...)
     any(k -> k in (:bounds, :fixed_parameters, :parameter_names), keys(kwargs)) &&
         throw(ArgumentError("set names, bounds and fixed state on the constructor, not as duplicate fit keywords"))
     inputs = constructor_inputs(constructor; p0)
-    return fit_distribution(inputs.factory, data; p0=inputs.p0, bounds=inputs.bounds,
+    return fit_distribution(inputs.factory, data...; p0=inputs.p0, bounds=inputs.bounds,
         fixed_parameters=inputs.fixed_parameters, parameter_names=inputs.parameter_names, kwargs...)
 end
 

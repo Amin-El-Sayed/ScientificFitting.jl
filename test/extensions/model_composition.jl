@@ -60,4 +60,17 @@ BuildConstructors.build_model(c::TwoPeakConstructor, pars) = ExtendedMixtureMode
         ShiftedPeakConstructor(AdvancedParameter("mu", 0.2), sigma, 3.), c.signal_yield, c.background_yield)
     @test_throws ArgumentError fit_distribution(bad, data)
     @test_throws ArgumentError fit_custom(p -> sum(abs2, p); p0=[1., 1.], nobs=4, parameter_names=["mu", "mu"])
+
+    edges, counts = [-2.5, -0.5, 0.5, 2.5, 3.5, 5.5], [2, 14, 3, 9, 2]
+    binned_optim = @test_logs (:warn, r"Shared parameters") fit_distribution(c, edges, counts;
+        solver=OptimizationSolver(ScientificFitting.OptimizationOptimJL.LBFGS()), tol=1e-7)
+    binned_minuit = @test_logs (:warn, r"Shared parameters") fit_distribution(c, edges, counts;
+        solver=NativeMinuitSolver(steps=[0.1, 0.1, 0.5, 0.5]), tol=1e-7)
+    @test binned_optim.converged && binned_minuit.converged
+    @test binned_optim.params ≈ binned_minuit.params atol=2e-4
+    @test binned_optim.param_covariance ≈ binned_minuit.param_covariance rtol=1e-3
+    @test binned_optim.stats.cost_min ≈ binned_minuit.stats.cost_min atol=1e-7
+    values = [binned_optim.params[1] - 0.1, binned_optim.params[1], binned_optim.params[1] + 0.1]
+    @test profile(binned_optim, 1; values, on_failure=:throw).delta_cost ≈
+        profile(binned_minuit, 1; values, on_failure=:throw).delta_cost atol=1e-5
 end

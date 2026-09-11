@@ -11,6 +11,7 @@ using Test
         "statistics/vectorized_density_reference.jl",
         "statistics/observation_likelihood_reference.jl",
         "statistics/distribution_objects.jl",
+        "statistics/distribution_histograms.jl",
         "statistics/profile_contour_reference.jl",
         "numerics/inplace_model_reference.jl",
         "numerics/finite_derivatives_reference.jl",

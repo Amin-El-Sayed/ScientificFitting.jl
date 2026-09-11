@@ -71,6 +71,9 @@ on the ``-2\log L`` scale. Poisson and histogram fits also compute Poisson
 deviance, so `chi2`, `chi2_ndf`, and `pvalue` are available as goodness-of-fit
 summaries. Ordinary and extended unbinned fits do not invent a chi-square
 statistic; those fields are `NaN`.
+If a Poisson expectation is exactly zero, the regular chi-square reference no
+longer applies and goodness-of-fit fields are also `NaN`. The likelihood itself
+still handles zero observations without an artificial probability floor.
 
 `fit_indexed_model` and `fit_multi_model` minimize chi-square but omit additive
 Gaussian normalization constants. Their AIC/BIC values may compare models fit
@@ -80,9 +83,9 @@ different uncertainty scales or datasets.
 | Entry point | Additional contract |
 |---|---|
 | `fit_likelihood_model` | Supply `logprob(y, prediction, p)`, or fixed additive `error` distributions. A multivariate error object models the residual vector jointly. |
-| `fit_distribution` | `make_distribution(p)` builds one upstream distribution per objective evaluation; scalar events use a vector, multivariate events a matrix with explicit `obsdim`. |
-| `fit_poisson_model` | Every expected count must be finite and strictly positive; observed counts must be non-negative integers. |
-| `fit_histogram_model` | `length(edges) == length(counts) + 1`; edges increase strictly; the model returns one positive expectation per bin. |
+| `fit_distribution` | Builds one upstream distribution per objective evaluation. Accepts events (multivariate matrices need `obsdim`) or `edges, counts` with an explicit expected total or extended component yields. |
+| `fit_poisson_model` | Every expected count must be finite and nonnegative; observed counts must be non-negative integers. |
+| `fit_histogram_model` | `length(edges) == length(counts) + 1`; edges increase strictly; the model returns one nonnegative expectation per bin. |
 | `fit_histogram_density` | Integrates `pdf(x, p)` over every bin with Gauss-Kronrod quadrature; `total_count > 0`, `rtol > 0`. |
 | `fit_unbinned_model` | The supplied density must already be normalized and positive at every observation. |
 | `fit_extended_unbinned_model` | `rate` is an intensity, not a density; its integral over `domain` is the expected event count. |
@@ -153,6 +156,30 @@ result = fit_distribution(make_distribution, events;
     p0=[0., 0.], parameter_names=["mean", "log_scale"])
 println(report_text(result))
 ```
+
+For binned events, pass edges and counts instead. The following example treats
+50 events as an independently known expected full-support yield. It does **not**
+estimate that number from the observed histogram, whose window may omit events.
+
+```@example distribution_bins
+using ScientificFitting, Distributions
+
+edges = [-2., -0.8, 0.2, 1.5, 3.]
+counts = [5, 15, 18, 7]
+# Fit the peak location; the width and expected full-support count are known.
+result = fit_distribution(p -> Normal(p[1], 1.), edges, counts;
+    p0=[0.], total_count=50., parameter_names=["mean"])
+println(report_text(result))
+```
+
+Bin masses use CDF differences, not midpoint density times width.
+`integration=:quadgk` requests adaptive integration instead; `:auto` also handles
+PDF-only components that lack a CDF. With DistributionsHEP, a factory returning
+`ExtendedMixtureModel` supplies its own fitted yields: omit `total_count`.
+Neither path renormalizes a distribution over the supplied edges. For discrete
+observations, bins are right-closed `(a, b]`; half-integer edges separate integer
+outcomes unambiguously. An estimated total needs a fitted yield parameter, not
+`total_count=sum(counts)` treated as known.
 
 ```@example distribution_errors
 using ScientificFitting, Distributions

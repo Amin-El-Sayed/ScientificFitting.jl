@@ -40,6 +40,40 @@ using Test
     @test isfinite(ScientificFitting._distribution_cost(tail, [40.]))
     zero_component = ExtendedMixtureModel(parts, [0., 2.])
     @test ScientificFitting._distribution_cost(zero_component, events) ≈ 2extended_negative_log_likelihood(zero_component, events)
+    zero_cost(p) = ScientificFitting._distribution_cost(ExtendedMixtureModel(parts, p), events)
+    zero_reference(p) = 2*(sum(p) - sum(log(p[1]*pdf(parts[1], x) + p[2]*pdf(parts[2], x)) for x in events))
+    @test ForwardDiff.gradient(zero_cost, [0., 2.]) ≈ ForwardDiff.gradient(zero_reference, [0., 2.]) rtol=1e-8
+    @test ForwardDiff.hessian(zero_cost, [0., 2.]) ≈ ForwardDiff.hessian(zero_reference, [0., 2.]) rtol=1e-8
     @test_throws ArgumentError ScientificFitting._distribution_cost(ExtendedMixtureModel(parts, [-1., 2.]), events)
     @test_throws ArgumentError ScientificFitting._distribution_cost(ExtendedMixtureModel(parts, [0., 0.]), events)
+end
+
+@testset "Extended distribution histogram uses component yields" begin
+    edges, counts = [-3., -1., -0.3, 0.4, 1.3, 3.], [10, 11, 17, 8, 9]
+    parts = [truncated(Normal(-0.2, 0.6), -3., 3.), Uniform(-3., 3.)]
+    factory(p) = ExtendedMixtureModel(parts, p)
+    expected_counts(e, p) = sum(p[j] .* diff(cdf.(parts[j], e)) for j in eachindex(parts))
+    result = fit_distribution(factory, edges, counts; p0=[25., 25.], bounds=([0., 0.], [200., 200.]))
+    reference = fit_histogram_model(expected_counts, edges, counts;
+        p0=[25., 25.], bounds=([0., 0.], [200., 200.]))
+    @test result.converged && reference.converged
+    @test result.params ≈ reference.params atol=1e-5
+    @test result.param_covariance ≈ reference.param_covariance rtol=1e-5
+    @test result.stats.cost_min ≈ reference.stats.cost_min atol=1e-8
+    @test sum(result.params) ≈ sum(counts) atol=1e-5
+    @test DistributionsHEP.yields(fitted_model(result)) ≈ result.params
+
+    # A component may disappear at a yield bound; its sensitivity must remain.
+    reference_cost(p) = ScientificFitting._poisson_minus2loglik_terms(Float64.(counts), expected_counts(edges, p))
+    @test ForwardDiff.gradient(result.problem.objective, [0., 55.]) ≈
+        ForwardDiff.gradient(reference_cost, [0., 55.]) rtol=1e-6
+    @test ForwardDiff.hessian(result.problem.objective, [0., 55.]) ≈
+        ForwardDiff.hessian(reference_cost, [0., 55.]) rtol=1e-6
+    @test_throws ArgumentError fit_distribution(factory, edges, counts; p0=[25., 25.], total_count=50.)
+
+    # A selected window does not silently change yields defined on full support.
+    full = p -> ExtendedMixtureModel([Normal()], [p[1]])
+    narrow = ScientificFitting.DistributionHistogram([-0.5, 0.5], [2.], nothing, :auto, 1e-8)
+    @test exp(only(ScientificFitting._bin_logexpectation(full([10.]), narrow))) ≈
+        10*(cdf(Normal(), 0.5) - cdf(Normal(), -0.5))
 end

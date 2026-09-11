@@ -378,11 +378,18 @@ The development branch now has the scalar solver contract, optional NativeMinuit
 adapter, distribution-object entry point and independent BuildConstructors
 extension. A nested extended two-peak model agrees between Optim and NativeMinuit,
 including nuisance refits and named parameter reconstruction. Remaining work
-includes the CDF-based binned path, the executable HEP guide, and end-to-end
-performance/support checks. PDF-only numerical components now compose inside
+includes the executable HEP guide and end-to-end performance/support checks.
+Distribution histograms now use upstream CDF integrals or controlled quadrature,
+with explicit full-support totals or extended component yields. Log bin masses
+retain tail likelihoods even when ordinary probabilities underflow; exactly
+empty support bins do not receive a fictitious chi-square reference.
+PDF-only numerical components now compose inside
 native univariate/multivariate mixtures, products, and extended HEP mixtures;
 an internal log-density adapter retains upstream normalization and batching.
 Values, gradients, and Hessians are checked against analytic references.
+Zero mixture weights retain their derivative contributions instead of being
+omitted by the native mixture evaluation; genuinely fixed zeros are still
+omitted, so an inactive peak cannot erase a remote active tail numerically.
 The release requirements below remain open.
 
 ### Required Integrations

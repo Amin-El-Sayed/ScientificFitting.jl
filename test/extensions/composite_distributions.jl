@@ -67,4 +67,22 @@ using Test
     prepared = ScientificFitting._with_logpdf(original, data[1])
     @test components(prepared)[1].distribution === components(original)[1]
     @test !applicable(logpdf, components(original)[1], data[1])
+
+    # Zero weights must stay differentiable, also below another mixture/product.
+    for point in ([1.2, 0.], [1.2, 1.])
+        @test ForwardDiff.gradient(cost, point) ≈ ForwardDiff.gradient(reference, point) rtol=1e-6
+        @test ForwardDiff.hessian(cost, point) ≈ ForwardDiff.hessian(reference, point) rtol=1e-5
+    end
+    zero_nested(p) = MixtureModel([tuple_product(p), background], [p[2], 1-p[2]])
+    zero_reference(p) = -2sum(log(
+        p[2]*pdf(Normal(p[2], 1.), x[1])*exp(p[1]*x[2])*p[1]/expm1(p[1]) +
+        (1-p[2])*pdf(background, x)) for x in eachcol(samples))
+    zero_cost(p) = ScientificFitting._distribution_cost(zero_nested(p), samples)
+    @test ForwardDiff.gradient(zero_cost, [1.2, 0.]) ≈ ForwardDiff.gradient(zero_reference, [1.2, 0.]) rtol=1e-6
+    @test ForwardDiff.hessian(zero_cost, [1.2, 0.]) ≈ ForwardDiff.hessian(zero_reference, [1.2, 0.]) rtol=1e-5
+    # A squared coefficient has zero gradient but nonzero curvature at zero.
+    squared_cost(p) = cost([p[1], p[2]^2])
+    squared_reference(p) = reference([p[1], p[2]^2])
+    @test ForwardDiff.hessian(squared_cost, [1.2, 0.]) ≈
+        ForwardDiff.hessian(squared_reference, [1.2, 0.]) rtol=1e-5
 end

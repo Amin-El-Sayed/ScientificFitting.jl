@@ -490,46 +490,68 @@ function fit_likelihood_model(
     return fit_custom(objective; p0=p0, nobs=length(y_vec), cost_name=cost_name, kwargs...)
 end
 
-function _positive_expectation(mu, n::Int)
+function _nonnegative_expectation(mu, n::Int)
     values = collect(mu)
     length(values) == n || throw(ArgumentError("model expectation length must match observations"))
     all(isfinite, values) || throw(ArgumentError("model expectation contains non-finite values"))
-    all(values .> 0) || throw(ArgumentError("model expectation must be strictly positive"))
+    all(v -> v >= 0, values) || throw(ArgumentError("model expectation must be nonnegative"))
     return values
 end
 
-function _poisson_minus2loglik_terms(counts::Vector{Float64}, mu::AbstractVector)
+function _poisson_minus2loglik_terms(counts::Vector{Float64}, mu::AbstractVector; log_mu=nothing)
     total = zero(eltype(mu))
     @inbounds for i in eachindex(counts)
         n = counts[i]
-        total += 2.0 * (mu[i] - n * log(mu[i]) + loggamma(n + 1.0))
+        # The n=0 limit is 2mu, including an exactly empty support bin.
+        logterm = n == 0 ? zero(mu[i]) : n * (log_mu === nothing ? log(mu[i]) : log_mu[i])
+        total += 2.0 * (mu[i] - logterm + loggamma(n + 1.0))
     end
     return total
 end
 
-function _poisson_deviance(counts::Vector{Float64}, mu::AbstractVector)
+function _poisson_deviance(counts::Vector{Float64}, mu::AbstractVector; log_mu=nothing)
     total = zero(eltype(mu))
     @inbounds for i in eachindex(counts)
         n = counts[i]
         if n == 0
             total += 2.0 * mu[i]
         else
-            total += 2.0 * (mu[i] - n + n * log(n / mu[i]))
+            logmean = log_mu === nothing ? log(mu[i]) : log_mu[i]
+            total += 2.0 * (mu[i] - n + n * (log(n) - logmean))
         end
     end
     return total
+end
+
+"""Do not attach a regular chi-square reference to deterministic zero-count bins."""
+function _poisson_gof(counts, mu; log_mu=nothing)
+    regular = log_mu === nothing ? all(>(0), mu) : all(isfinite, log_mu)
+    return regular ? _poisson_deviance(counts, mu; log_mu) : NaN
+end
+
+"""Validate and snapshot histogram input once, independently of its model adapter."""
+function _histogram_data(edges, counts)
+    edges_vec, counts_vec = _float_vector(edges), _float_vector(counts)
+    length(edges_vec) == length(counts_vec) + 1 || throw(ArgumentError("edges length must be count length + 1"))
+    _assert_finite_observations("histogram edges", edges_vec)
+    _assert_count_observations("counts", counts_vec)
+    any(diff(edges_vec) .<= 0) && throw(ArgumentError("histogram edges must be strictly increasing"))
+    return edges_vec, counts_vec
 end
 
 """
     fit_poisson_model(model, x, counts; p0, kwargs...) -> LikelihoodFitResult
 
 Fit count data with a Poisson likelihood. `model(x, p)` must return the
-strictly positive expected counts for each observation. `counts` must contain
+nonnegative expected counts for each observation. `counts` must contain
 finite non-negative integer-valued observations; `x` must be finite and have
 the same length.
 
 The minimized objective is normalized Poisson `-2 log(L)`. `stats.chi2` stores
 the Poisson deviance and its p-value uses the asymptotic chi-square reference.
+At an exactly zero expectation this reference is not regular, so the
+goodness-of-fit fields are `NaN`. A zero expectation with a positive observation
+has infinite cost; a zero observation contributes `2mu`, without a probability floor.
 Common parameter-control and solver keywords are listed under `fit_custom`.
 Invalid counts, dimensions, expectations, or parameter controls raise
 `ArgumentError`. Returns `LikelihoodFitResult`.
@@ -560,8 +582,8 @@ function fit_poisson_model(
     _assert_finite_observations("x", x_vec)
     _assert_count_observations("counts", counts_vec)
 
-    objective = p -> _poisson_minus2loglik_terms(counts_vec, _positive_expectation(model(x_vec, p), length(counts_vec)))
-    gof = p -> _poisson_deviance(counts_vec, _positive_expectation(model(x_vec, p), length(counts_vec)))
+    objective = p -> _poisson_minus2loglik_terms(counts_vec, _nonnegative_expectation(model(x_vec, p), length(counts_vec)))
+    gof = p -> _poisson_gof(counts_vec, _nonnegative_expectation(model(x_vec, p), length(counts_vec)))
     problem = LikelihoodFitProblem(
         objective,
         gof,
@@ -583,7 +605,7 @@ end
     fit_histogram_model(expected_counts, edges, counts; p0, kwargs...)
         -> LikelihoodFitResult
 
-Fit binned counts. `expected_counts(edges, p)` must return one positive expected
+Fit binned counts. `expected_counts(edges, p)` must return one nonnegative expected
 count per bin. Histogram edges must be finite and strictly increasing; `counts`
 must contain finite non-negative integer-valued observations.
 
@@ -593,6 +615,8 @@ the bins; use `fit_histogram_density` when ScientificFitting should perform that
 integration. Common parameter-control and solver keywords are listed under
 `fit_custom`. Invalid edges, counts, expectations, or controls raise
 `ArgumentError`. Returns `LikelihoodFitResult`.
+Exactly zero expectations follow the same support and goodness-of-fit rules as
+[`fit_poisson_model`](@ref).
 """
 function fit_histogram_model(
     expected_counts,
@@ -614,18 +638,13 @@ function fit_histogram_model(
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
-    edges_vec = _float_vector(edges)
-    counts_vec = _float_vector(counts)
-    length(edges_vec) == length(counts_vec) + 1 || throw(ArgumentError("edges length must be count length + 1"))
-    _assert_finite_observations("histogram edges", edges_vec)
-    _assert_count_observations("counts", counts_vec)
-    any(diff(edges_vec) .<= 0) && throw(ArgumentError("histogram edges must be strictly increasing"))
+    edges_vec, counts_vec = _histogram_data(edges, counts)
 
     objective = p -> _poisson_minus2loglik_terms(
         counts_vec,
-        _positive_expectation(expected_counts(edges_vec, p), length(counts_vec)),
+        _nonnegative_expectation(expected_counts(edges_vec, p), length(counts_vec)),
     )
-    gof = p -> _poisson_deviance(counts_vec, _positive_expectation(expected_counts(edges_vec, p), length(counts_vec)))
+    gof = p -> _poisson_gof(counts_vec, _nonnegative_expectation(expected_counts(edges_vec, p), length(counts_vec)))
     problem = LikelihoodFitProblem(
         objective,
         gof,

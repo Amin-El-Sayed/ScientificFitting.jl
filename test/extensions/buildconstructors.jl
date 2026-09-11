@@ -54,4 +54,14 @@ BuildConstructors.build_model(c::TestNormalConstructor, pars) =
     custom = fit_custom(p -> sum(abs2, p); p0=[1.], nobs=3)
     @test_throws ArgumentError parameter_values(custom)
     @test_throws ArgumentError fitted_model(custom)
+
+    edges, counts = [-1., 0., 1., 2.], [5, 10, 3]
+    binned = fit_distribution(running, edges, counts; p0=(mu=0.1,), total_count=20.)
+    direct = fit_distribution(p -> Normal(p[1], 0.5), edges, counts; p0=[0.1], total_count=20.)
+    @test binned.converged && direct.converged
+    @test binned.params ≈ direct.params atol=1e-8
+    @test binned.problem.parameter_names == ["mu"]
+    @test params(fitted_model(binned)) == (binned.params[1], 0.5)
+    @test_throws ArgumentError fit_distribution(running, edges, counts;
+        p0=(mu=0.1,), total_count=20., parameter_names=["replacement"])
 end

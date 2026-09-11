@@ -15,6 +15,7 @@ style or optimizer.
 | Numeric ``x`` and ``y`` with Gaussian uncertainties | [`fit_model`](@ref) | `model(x, p) -> y_hat` | [`FitResult`](@ref) |
 | Independent observations with a custom distribution | [`fit_likelihood_model`](@ref) | `model(x, p)` and `logprob(y, y_hat, p)` | [`LikelihoodFitResult`](@ref) |
 | Events described by an upstream distribution | [`fit_distribution`](@ref) | `make_distribution(p) -> Distribution`, or an optional BuildConstructors model | [`LikelihoodFitResult`](@ref) |
+| Binned events described by an upstream distribution | [`fit_distribution`](@ref) | Same factory, `edges, counts`; known `total_count` or extended mixture yields | [`LikelihoodFitResult`](@ref) |
 | Independent counts | [`fit_poisson_model`](@ref) | `model(x, p) -> expected_counts` | [`LikelihoodFitResult`](@ref) |
 | Histogram with expected bin counts | [`fit_histogram_model`](@ref) | `expected_counts(edges, p) -> mu` | [`LikelihoodFitResult`](@ref) |
 | Histogram from a normalized density | [`fit_histogram_density`](@ref) | `pdf(x, p) -> density` | [`LikelihoodFitResult`](@ref) |
