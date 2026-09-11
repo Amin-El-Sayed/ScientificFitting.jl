@@ -116,6 +116,8 @@ iteration, tolerance, covariance-scaling, and multistart
 settings fail during construction rather than inside a solver.
 Likelihood fits additionally select `optimizer` and `parameter_covariance`;
 their resolved choices are stored here and preserved by profile refits.
+Unlike the public fit keywords, `tol` here is a resolved positive number,
+not `nothing`; see [`default_fit_tolerance`](@ref).
 """
 Base.@kwdef struct FitOptions{S}
     backend::Symbol = :auto
@@ -796,8 +798,9 @@ covariance estimation, profiles, and prediction bands. Analytic `jacobian` and
 `x_derivative` callbacks take precedence where applicable. Numerical differences
 require a smooth model in a neighborhood of the evaluation point, including
 at parameter bounds; they do not make discontinuous objectives differentiable.
-Fitting in finite mode defaults to `tol=1e-6` (otherwise `1e-10`); explicit
-solver tolerances are preserved and are not parameter-error guarantees.
+Omitting `tol` selects [`default_fit_tolerance`](@ref) for the solver and
+derivative mode. Explicit solver tolerances are preserved and are not
+parameter-error guarantees.
 
 `whitening=WhiteningOperator(...)` supplies the complete static observation
 covariance through a matrix-free whitening operation. It is mutually exclusive

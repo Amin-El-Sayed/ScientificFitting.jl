@@ -227,7 +227,7 @@ end
 
 """
     fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500,
-        tol=1e-10, scale_covariance=:auto, initial_guesses=nothing,
+        tol=nothing, scale_covariance=:auto, initial_guesses=nothing,
         multistart=1, solver=nothing) -> FitResult
 
 Fit a validated Gaussian `FitProblem`.
@@ -237,7 +237,9 @@ Keyword contracts:
   when static chi-square least squares represents the complete problem.
 - `cost`: `:auto`, `:chi2`, or `:gaussian_likelihood`. `:auto` selects the
   normalized Gaussian `-2 log(L)` cost for parameter-dependent covariance.
-- `maxiters`, `tol`: positive solver limits used for every candidate.
+- `maxiters`: positive solver budget used for every candidate.
+- `tol`: positive stopping tolerance; `nothing` selects
+  [`default_fit_tolerance`](@ref) for the solver and derivative mode.
 - `scale_covariance`: `:auto`, `:never`, or `:always`. `:auto` estimates a
   residual scale only when no observation uncertainty was supplied.
 - `initial_guesses`: additional complete parameter vectors in `p0` order.
@@ -261,7 +263,7 @@ function fit(
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=_default_fit_tolerance(problem.derivatives),
+    tol::Union{Nothing,Real}=nothing,
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
@@ -274,7 +276,7 @@ function fit(
         backend=backend,
         cost=_resolve_cost(problem, cost),
         maxiters=maxiters,
-        tol=Float64(tol),
+        tol=tol === nothing ? default_fit_tolerance(solver, problem.derivatives) : tol,
         scale_covariance=_normalize_scale_covariance(scale_covariance),
         multistart=multistart,
         solver=solver,
@@ -353,13 +355,15 @@ Jacobian must then use `jacobian!(J, x, p)`.
 Parameter control uses `bounds`, `constraints`, `parameter_priors`,
 `parameter_constraints`, and `fixed_parameters`. Solver keywords are forwarded
 to `fit(::FitProblem)` with defaults `backend=:auto`, `cost=:auto`,
-`maxiters=500`, `tol=1e-10`, `scale_covariance=:auto`, and `multistart=1`.
+`maxiters=500`, `tol=nothing`, `scale_covariance=:auto`, and `multistart=1`.
+Omitting `tol` selects the solver-specific [`default_fit_tolerance`](@ref).
 
 Use `derivatives=:finite` for models implemented outside Julia or restricted to
 ordinary floating-point inputs. The policy also controls covariance, profiles,
 and predictions; see [`FitProblem`](@ref) for its numerical assumptions.
-In this mode, the default `tol` is `1e-6` rather than `1e-10`, accounting for
-differenced-gradient noise. An explicitly supplied tolerance is never relaxed.
+With LsqFit/Optimization this changes the default tolerance to `1e-6` to account
+for differenced-gradient noise. NativeMinuit retains its native EDM criterion.
+An explicitly supplied tolerance is never relaxed.
 
 Returns a `FitResult`. Invalid dimensions, non-finite values, non-positive
 standard deviations, contradictory uncertainty inputs, invalid covariance,
@@ -397,7 +401,7 @@ function fit_model(
     backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,

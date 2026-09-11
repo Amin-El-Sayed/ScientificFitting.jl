@@ -134,6 +134,9 @@ Their tolerances have different meanings: Optim uses its convergence criteria,
 whereas MIGRAD uses an estimated-distance-to-minimum (EDM) criterion. Equal
 numbers would not imply equal accuracy; this example checks the fitted values,
 cost and covariance against each other during the documentation build.
+Omit `tol` for solver-specific defaults: `1e-10` for Optim with automatic
+derivatives, `1e-6` with finite differences, and MIGRAD's native `0.1`.
+The example tightens MIGRAD's tolerance to compare costs within `1e-6`.
 
 The adapter sets `errordef=1`. Reported covariance comes from ScientificFitting's
 local curvature calculation, not native MINOS intervals. Native failure details

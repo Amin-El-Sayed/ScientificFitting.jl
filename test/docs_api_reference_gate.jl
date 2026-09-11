@@ -1,5 +1,6 @@
 using Test
 using ScientificFitting
+import REPL # Activate Julia's docstring parser in non-interactive test runs.
 
 const ROOT = abspath(joinpath(@__DIR__, ".."))
 const API_PAGES = [
@@ -30,7 +31,8 @@ end
 
 function _doc_text(name::Symbol)
     doc = @eval ScientificFitting (@doc $(name))
-    return sprint(show, MIME("text/plain"), doc)
+    # Check source markup, not terminal wrapping or stripped code/heading markers.
+    return sprint(show, MIME("text/markdown"), doc)
 end
 
 function _has_public_docstring(name::Symbol)

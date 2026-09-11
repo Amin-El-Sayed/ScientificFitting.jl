@@ -25,9 +25,9 @@ function ScientificFitting.solve_fit(solver::NativeMinuitSolver,
     end
     # ScientificFitting supplies -2logL/chi-square, never Minuit's half-scale NLL.
     native = Minuit(objective, copy(problem.u0); grad, limits, error=steps,
-                    names=parameter_names, errordef=1.0,
+                    names=parameter_names, errordef=1.0, tol,
                     solver.kwargs...)
-    migrad!(native; maxfcn=maxiters, tol, iterate=1)
+    migrad!(native; maxfcn=maxiters, iterate=1)
     fm = native.fmin.internal
     message = "MIGRAD: valid=$(native.valid), call_limit=$(fm.reached_call_limit), " *
               "above_max_edm=$(fm.above_max_edm), edm=$(native.edm)"

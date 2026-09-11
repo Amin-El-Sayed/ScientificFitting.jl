@@ -2,7 +2,8 @@
     AbstractFitSolver
 
 Optional scalar-minimization adapter. Implement [`solver_capabilities`](@ref)
-and [`solve_fit`](@ref); the statistical model stays in ScientificFitting.
+and [`solve_fit`](@ref); optionally specialize [`default_fit_tolerance`](@ref).
+The statistical model stays in ScientificFitting.
 """
 abstract type AbstractFitSolver end
 
@@ -43,7 +44,9 @@ through. Bounds, fixed parameters, derivatives, and `errordef=1` belong to the
 fit and cannot be overridden here.
 
 `maxiters` is the native function-call budget, not an iteration count; `tol`
-is MIGRAD's EDM tolerance parameter. One MIGRAD pass is run per ScientificFitting
+is MIGRAD's EDM tolerance parameter, defaulting to the native `0.1` (target
+EDM `0.002 * tol` on our `errordef=1` cost scale). An explicit `tol` is never
+rescaled or relaxed. One MIGRAD pass is run per ScientificFitting
 multistart candidate. The native object is retained in `result.solver_result.raw`;
 its coordinates follow `result.solver_result.parameter_indices`. Symmetric
 errors in the ScientificFitting result still follow its covariance policy.
@@ -68,6 +71,27 @@ function NativeMinuitSolver(; steps=nothing, kwargs...)
     end
     stored = steps isa AbstractVector ? collect(Float64, steps) : steps
     return NativeMinuitSolver(stored, (; kwargs...))
+end
+
+"""
+    default_fit_tolerance(solver, derivatives::Symbol) -> Real
+
+Stopping tolerance used when a fit omits `tol` or passes `tol=nothing`.
+`derivatives` is `:auto` or `:finite`; `solver=nothing` selects the legacy path.
+LsqFit/Optimization use `1e-10`, or `1e-6` for noisier finite differences.
+NativeMinuit uses its native EDM tolerance `0.1` in either derivative mode.
+
+Third-party solvers may specialize this method to match their stopping rule.
+Return a finite positive value. The fit stores the resolved tolerance in
+`result.options.tol` and reuses it in multistart and profile refits. Explicit
+tolerances bypass this method. These are numerical criteria, not statistical
+error guarantees; equal values need not mean equal accuracy across solvers.
+"""
+default_fit_tolerance(solver, derivatives::Symbol) =
+    _validate_derivatives(derivatives) == :finite ? 1e-6 : 1e-10
+function default_fit_tolerance(::NativeMinuitSolver, derivatives::Symbol)
+    _validate_derivatives(derivatives)
+    return 0.1
 end
 
 """
@@ -126,6 +150,8 @@ solver settings). Retain unavailable iteration counts as `missing` and failed
 termination as `converged=false`. The core checks capabilities before dispatch.
 `parameter_names` are unique labels in free-coordinate order, suitable for
 named native solver operations. Unnamed problems use `p1`, `p2`, etc.
+`tol` is already a finite positive number, resolved by
+[`default_fit_tolerance`](@ref) unless the user supplied it explicitly.
 """
 function solve_fit end
 

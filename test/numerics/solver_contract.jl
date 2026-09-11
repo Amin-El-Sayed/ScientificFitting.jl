@@ -6,11 +6,14 @@ using Test
 struct RecordingFitSolver{S} <: AbstractFitSolver
     inner::S
     dimensions::Vector{Int}
+    tolerances::Vector{Float64}
 end
 ScientificFitting.solver_capabilities(s::RecordingFitSolver) = solver_capabilities(s.inner)
+ScientificFitting.default_fit_tolerance(::RecordingFitSolver, ::Symbol) = 3e-9
 function ScientificFitting.solve_fit(s::RecordingFitSolver, problem; kwargs...)
     @test problem isa ScientificFitting.Optimization.OptimizationProblem
     push!(s.dimensions, length(problem.u0))
+    push!(s.tolerances, kwargs[:tol])
     return solve_fit(s.inner, problem; kwargs...)
 end
 
@@ -19,6 +22,8 @@ struct InvalidFitSolver <: AbstractFitSolver
 end
 ScientificFitting.solver_capabilities(::InvalidFitSolver) =
     (; bounds=false, constraints=false, gradient=false, hessian=false)
+ScientificFitting.default_fit_tolerance(s::InvalidFitSolver, ::Symbol) =
+    s.bad == :tolerance ? 0.0 : 1e-10
 function ScientificFitting.solve_fit(s::InvalidFitSolver, problem; parameter_indices, kwargs...)
     p = s.bad == :nonfinite ? fill(NaN, length(problem.u0)) : copy(problem.u0)
     indices = s.bad == :coordinates ? reverse(parameter_indices) : parameter_indices
@@ -43,17 +48,22 @@ end
         @test r.message == string(r.solver_result.raw.retcode)
     end
 
-    solver = RecordingFitSolver(OptimizationSolver(optim.BFGS(); store_trace=true), Int[])
+    solver = RecordingFitSolver(OptimizationSolver(optim.BFGS(); store_trace=true), Int[], Float64[])
     r = fit_custom(p -> (p[1]-2)^2 + (p[2]-p[1])^2 + p[3]^2;
         p0=[0., 0., 0.], nobs=10, fixed_parameters=[FixedParameter(3, 0.5)],
         solver, initial_guesses=[[1., 1., 0.]], multistart=2)
     @test r.params ≈ [2., 2., 0.5] atol=1e-7
+    @test r.options.tol == 3e-9
     scan = profile(r, 1; values=[1., 2., 3.], on_failure=:throw)
     @test scan.delta_cost ≈ [1., 0., 1.] atol=1e-7
     @test solver.dimensions == [2, 2, 1, 1, 1]
+    @test solver.tolerances == fill(3e-9, 5)
     refit = ScientificFitting._refit_with_fixed(r, [FixedParameter(1, 1.)])
     @test refit.options.solver === solver
+    @test refit.options.tol == r.options.tol
     @test refit.solver_result.parameter_indices == [2]
+    explicit = fit_custom(objective; p0=[0., 0.], nobs=10, solver, tol=1e-8)
+    @test explicit.options.tol == last(solver.tolerances) == 1e-8
 
     # Both Gaussian and likelihood routes honor the same adapter on refits.
     x, y = [0., 1., 2., 3.], [1.1, 2.9, 5.2, 6.8]
@@ -61,6 +71,8 @@ end
     gaussian = fit_model(line, x, y; p0=[1., 0.], sigma_y=fill(0.2, 4), solver)
     ref = fit_model(line, x, y; p0=[1., 0.], sigma_y=fill(0.2, 4))
     @test gaussian.params ≈ ref.params atol=1e-7
+    @test gaussian.options.tol == 3e-9
+    @test ref.options.tol == 1e-10
     @test gaussian.param_covariance ≈ ref.param_covariance rtol=1e-6
     @test gaussian.stats.cost_min ≈ ref.stats.cost_min rtol=1e-8
     fixed = ScientificFitting._refit_with_fixed(gaussian, [FixedParameter(1, 2.)])
@@ -83,7 +95,7 @@ end
         @test_throws ArgumentError fit_custom(objective; p0=[0., 0.], nobs=10,
                                                solver=NativeMinuitSolver())
     end
-    for bad in (:nonfinite, :coordinates)
+    for bad in (:nonfinite, :coordinates, :tolerance)
         @test_throws ArgumentError fit_custom(objective; p0=[0., 0.], nobs=10,
                                                solver=InvalidFitSolver(bad))
     end
@@ -94,8 +106,9 @@ end
 end
 
 @testset "Likelihood helpers forward solver configuration" begin
-    solver = OptimizationSolver(ScientificFitting.OptimizationOptimJL.BFGS())
-    opts = (; p0=[0.1], solver, parameter_covariance=:none)
+    solver = RecordingFitSolver(OptimizationSolver(ScientificFitting.OptimizationOptimJL.BFGS()),
+                                Int[], Float64[])
+    opts = (; p0=[0.1], solver, tol=nothing, parameter_covariance=:none)
     constant(x, p) = fill(exp(p[1]), length(x))
     normal(x, p) = exp(-(x-p[1])^2/2) / sqrt(2pi)
     results = [
@@ -115,7 +128,9 @@ end
     for r in results
         @test r.converged
         @test r.options.solver === solver
+        @test r.options.tol == 3e-9
         @test r.options.parameter_covariance == :none
         @test all(isnan, r.param_stderr)
     end
+    @test solver.tolerances == fill(3e-9, length(results))
 end

@@ -17,9 +17,6 @@ function _validate_derivatives(mode::Symbol)
     return mode
 end
 
-"""Default stopping tolerance; differenced gradients have a higher numerical noise floor."""
-_default_fit_tolerance(mode::Symbol) = mode == :finite ? 1e-6 : 1e-10
-
 """Select SciML's derivative provider without passing dual numbers to foreign callbacks."""
 function _optimization_ad(problem; second_order::Bool=false)
     ad = _derivative_mode(problem) == :finite ? AutoFiniteDiff(fdtype=Val(:central)) : AutoForwardDiff()

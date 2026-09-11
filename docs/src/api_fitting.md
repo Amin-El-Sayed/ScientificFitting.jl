@@ -244,9 +244,9 @@ Its MIGRAD adapter supports box bounds, fixed parameters and all statistical
 parameter terms, but rejects nonlinear equality/inequality constraints.
 
 `steps` contains numerical initial step sizes in **full parameter order**, not
-measurement uncertainties. `tol` is Minuit's EDM tolerance; `maxiters` is its
-function-call budget. A single MIGRAD pass runs per multistart candidate; the
-adapter does not hide additional retries. Other native constructor options,
+measurement uncertainties. `tol` is Minuit's EDM tolerance, defaulting to `0.1`;
+`maxiters` is its function-call budget. A single MIGRAD pass runs per multistart
+candidate; the adapter does not hide additional retries. Other native constructor options,
 such as `strategy=2`, are retained by profile refits. No solver setting changes
 the objective's ``\chi^2``/``-2\log L`` scale (`errordef=1`).
 
@@ -263,6 +263,9 @@ Named likelihood problems carry their unique, nonempty `parameter_names` into
 the native object, including during reduced nuisance-parameter refits.
 
 Third-party adapters implement two methods: capabilities and `solve_fit`.
+They may specialize `default_fit_tolerance(solver, derivatives)` for a different
+stopping rule. `tol=nothing` resolves this default once; an explicit positive
+`tol` bypasses it. The resolved value is retained in all profile refits.
 They receive a standard `OptimizationProblem` with the complete objective and
 free-coordinate constraints. The statistical result is constructed by the
 shared core. See [Backend Design](backend_design.md#The-Solver-Extension-Boundary).
@@ -273,6 +276,7 @@ ScientificFitting.OptimizationSolver
 ScientificFitting.NativeMinuitSolver
 ScientificFitting.FitSolverResult
 ScientificFitting.solver_capabilities
+ScientificFitting.default_fit_tolerance
 ScientificFitting.solve_fit
 ```
 

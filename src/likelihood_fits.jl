@@ -20,8 +20,9 @@ this type directly when the objective must be stored, inspected, or refitted.
 `derivatives=:finite` selects numerical derivatives for foreign/Float64-only
 objectives and constraint callbacks, including the covariance Hessian and all
 profile refits. The default `:auto` uses ForwardDiff. Both modes require a
-smooth objective near the evaluation point. Fitting defaults to `tol=1e-6`
-in finite mode and `1e-10` otherwise; explicit tolerances are preserved.
+smooth objective near the evaluation point. Omitting `tol` selects
+[`default_fit_tolerance`](@ref) for the solver and derivative mode;
+explicit tolerances are preserved.
 """
 struct LikelihoodFitProblem{TF, TG, DM}
     objective::TF
@@ -217,7 +218,7 @@ function _build_likelihood_result(
 end
 
 """
-    fit(problem::LikelihoodFitProblem; maxiters=1000, tol=1e-10,
+    fit(problem::LikelihoodFitProblem; maxiters=1000, tol=nothing,
         initial_guesses=nothing, multistart=1, optimizer=:auto,
         parameter_covariance=:auto, solver=nothing) -> LikelihoodFitResult
 
@@ -252,7 +253,9 @@ remain zero). Profile refits preserve both options. Supply explicit profile
 ranges when local errors are unavailable; profile thresholds still require
 statistical justification for non-regular models.
 
-`maxiters` and `tol` must be positive. With Nelder-Mead, `maxiters` limits
+`maxiters` and explicit `tol` must be positive. `tol=nothing` selects
+[`default_fit_tolerance`](@ref) for the solver and derivative mode.
+With Nelder-Mead, `maxiters` limits
 objective evaluations, `tol` sets NLopt's absolute/relative parameter tolerances,
 and `iterations` is `missing`, not an invented count. Scale parameters accordingly;
 `tol` is not a statistical error. Function-value stopping is disabled because
@@ -262,7 +265,7 @@ equal costs need not mean a contracted simplex. A budget-limited solve returns
 function fit(
     problem::LikelihoodFitProblem;
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(problem.derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -282,7 +285,7 @@ function fit(
         backend=:optimization,
         cost=problem.cost_name,
         maxiters=maxiters,
-        tol=Float64(tol),
+        tol=tol === nothing ? default_fit_tolerance(solver, problem.derivatives) : tol,
         scale_covariance=:never,
         multistart=multistart,
         optimizer=optimizer,
@@ -372,7 +375,7 @@ function fit_custom(
     parameter_names=nothing,
     derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -569,7 +572,7 @@ function fit_poisson_model(
     parameter_names=nothing,
     derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -631,7 +634,7 @@ function fit_histogram_model(
     parameter_names=nothing,
     derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -724,7 +727,7 @@ function fit_histogram_density(
     parameter_names=nothing,
     derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -795,7 +798,7 @@ function fit_unbinned_model(
     parameter_names=nothing,
     derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -854,7 +857,7 @@ function fit_extended_unbinned_model(
     parameter_names=nothing,
     derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -979,7 +982,7 @@ function fit_indexed_model(
     parameter_names=nothing,
     derivatives::Symbol=:auto,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,
@@ -1051,7 +1054,7 @@ function fit_multi_model(
     derivatives::Symbol=:auto,
     parameter_map=nothing,
     maxiters::Int=1000,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
     optimizer::Symbol=:auto,

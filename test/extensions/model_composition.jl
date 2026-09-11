@@ -74,3 +74,30 @@ BuildConstructors.build_model(c::TwoPeakConstructor, pars) = ExtendedMixtureMode
     @test profile(binned_optim, 1; values, on_failure=:throw).delta_cost ≈
         profile(binned_minuit, 1; values, on_failure=:throw).delta_cost atol=1e-5
 end
+
+@testset "NativeMinuit defaults support binned nuisance refits" begin
+    # At the generic 1e-10 tolerance the peak fit converged, but MIGRAD rejected
+    # a nuisance refit on EDM. Use the native criterion, not an implicit retry.
+    edges = collect(0.0:0.5:10.0)
+    counts = [2, 1, 3, 1, 2, 2, 1, 1, 3, 14, 33, 22, 7, 2, 1, 2, 3, 1, 1, 2]
+    model(p) = ExtendedMixtureModel(
+        [truncated(Normal(p[1], 0.4), 0.0, 10.0), Uniform(0.0, 10.0)], p[2:3])
+    settings = (; p0=[5., 70., 40.], bounds=([4., 0., 0.], [6., 200., 200.]))
+    r = fit_distribution(model, edges, counts; settings..., solver=NativeMinuitSolver())
+    reference = fit_distribution(model, edges, counts; settings..., tol=1e-7)
+    @test r.converged && reference.converged
+    @test r.options.tol == NativeMinuit.Minuit(p -> sum(abs2, p), zeros(3)).tol
+    @test maximum(abs.((r.params .- reference.params) ./ reference.param_stderr)) < 0.01
+    @test r.param_covariance ≈ reference.param_covariance rtol=1e-3
+    @test r.stats.cost_min ≈ reference.stats.cost_min atol=2e-4
+    scan = profile(r, 1; nsigma=2.5, npoints=25, on_failure=:throw)
+    comparison = profile(reference, 1; values=scan.values, on_failure=:throw)
+    # Native EDM thresholds are in cost units, not parameter-error units.
+    @test scan.delta_cost ≈ comparison.delta_cost atol=2e-3
+    interval, ref_interval = profile_interval(scan), profile_interval(comparison)
+    @test interval.lower ≈ ref_interval.lower atol=1e-4
+    @test interval.upper ≈ ref_interval.upper atol=1e-4
+    refit = ScientificFitting._refit_with_fixed(r, [FixedParameter(1, scan.values[1])])
+    @test refit.converged
+    @test refit.options.tol == refit.solver_result.raw.tol == r.options.tol
+end

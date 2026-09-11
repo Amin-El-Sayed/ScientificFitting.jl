@@ -43,7 +43,7 @@ export ErrorComponent
 export WhiteningOperator
 export FitOptions
 export AbstractFitSolver, OptimizationSolver, NativeMinuitSolver, FitSolverResult
-export solver_capabilities, solve_fit
+export solver_capabilities, default_fit_tolerance, solve_fit
 export FitProblem
 export FitResult
 export LikelihoodFitProblem

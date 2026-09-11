@@ -19,6 +19,7 @@ import NativeMinuit
         @test ismissing(r.iterations)
         native = r.solver_result.raw
         @test native.errordef == 1
+        @test native.tol == r.options.tol == 1e-6
         @test native.valid
         @test native.fval ≈ r.stats.cost_min atol=1e-12
         NativeMinuit.hesse!(native)
@@ -56,6 +57,15 @@ import NativeMinuit
     @test fixed.backend == :native_minuit
     @test fixed.converged
     @test fixed.options.solver === g.options.solver
+    @test fixed.solver_result.raw.tol == fixed.options.tol == 1e-6
+
+    for derivatives in (:auto, :finite)
+        standard = fit_model(line, x, y; p0=[1., 0.], sigma_y=fill(0.2, 4),
+                             derivatives, solver=NativeMinuitSolver())
+        @test standard.converged
+        @test standard.options.tol == standard.solver_result.raw.tol == 0.1
+        @test maximum(abs.((standard.params .- baseline.params) ./ baseline.param_stderr)) < 0.01
+    end
 end
 
 @testset "NativeMinuit controls never silently change the problem" begin

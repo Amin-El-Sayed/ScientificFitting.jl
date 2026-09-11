@@ -187,6 +187,8 @@ statistical model. An adapter implements:
 - `solver_capabilities`: support for bounds/constraints and required derivatives.
 - `solve_fit`: minimize the prepared `OptimizationProblem` and return
   `FitSolverResult` in its free coordinates, with native result and actual status.
+- Optionally `default_fit_tolerance`: supply the solver's stopping tolerance
+  when the user omits `tol`; the core stores it before multistart or profiling.
 
 The core owns objective construction, parameter mapping, capability checks,
 derivative policy, multistart ranking, statistical summaries and profile refits.
@@ -395,6 +397,10 @@ omitted, so an inactive peak cannot erase a remote active tail numerically.
 Continuous truncated components integrate the original distribution inside the
 selection window and reuse its normalizer, avoiding undefined CDF derivatives
 at the truncation boundary. Quadrature checks the values, gradients and Hessians.
+Solver-specific default tolerances now prevent forwarding an Optim-scale
+threshold to MIGRAD's EDM criterion. Explicit tolerances remain unchanged in
+the result, native solver object and profile refits; a binned mixture regression
+checks the default fit and 25 nuisance refits against Optim.
 The release requirements below remain open.
 
 ### Required Integrations
