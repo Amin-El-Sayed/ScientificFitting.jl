@@ -30,9 +30,9 @@ function ScientificFitting._bin_logexpectation(model::ExtendedMixtureModel, bins
     parts, (weights, _) = components(model), validated_yields(model)
     all(part -> part isa UnivariateDistribution, parts) ||
         throw(ArgumentError("one-dimensional histograms require univariate mixture components"))
-    return [ScientificFitting._log_weighted_probability(
-        map(part -> ScientificFitting._bin_logmass(part, a, b, bins), parts), weights)
-        for (a, b) in zip(bins.edges[1:end-1], bins.edges[2:end])]
+    return ScientificFitting._weighted_logbatches(
+        part -> ScientificFitting._bin_logmasses(part, bins.edges, bins),
+        parts, weights, length(bins.counts))
 end
 
 function ScientificFitting._distribution_cost(model::ExtendedMixtureModel, bins::ScientificFitting.DistributionHistogram)

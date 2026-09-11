@@ -387,8 +387,8 @@ and nuisance refits. A named extended model agrees between Optim and NativeMinui
 the [throughput probe](performance.md#Ecosystem-Throughput-Probe) measures both
 paths at matched accuracy. Distribution construction and normalization happen
 once per objective evaluation, with temporary event storage linear in sample size.
-The executable interface guide uses a controlled histogram to isolate API usage;
-it is not evidence of a completed analysis of collision data.
+The interface guide fits an illustrative histogram; the Gallery documents
+the collision-data source and selection separately.
 
 Release preparation also requires the real-data Gallery example below and a
 review of the locally built documentation before publication. Core and Python
@@ -437,6 +437,14 @@ errors and signal-yield profile against those references. This is a conditional
 mass-spectrum fit, not a reproduction of an LHCb paper or a CP-asymmetry result.
 Keep data preparation, warm fitting and uncertainty analysis separate in timing;
 3.4 million scanned candidates must not be advertised as 3.4 million fitted events.
+
+The binned distribution adapter processes each mixture component across all
+bins, rather than dynamically dispatching and allocating component vectors
+inside every bin. It retains log-space probability sums and derivatives through
+truncation and zero weights. Regression checks compare values, gradients and
+Hessians with the scalar formulation and bound allocations for 10,000 bins.
+This removes the dominant adapter overhead in the LHCb example; upstream
+CDF evaluation still costs more than its model-specific analytic control.
 
 The example uses upper-only truncation of an exponential's natural support.
 Distributions 0.25.131's redundant lower bound at zero produces undefined AD

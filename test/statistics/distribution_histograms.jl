@@ -9,6 +9,40 @@ end
 Distributions.pdf(d::PDFOnlySlope, x::Real) =
     0 <= x <= 1 ? exp(d.rate*x)*d.rate/expm1(d.rate) : zero(x)
 
+@testset "Binned mixtures batch components without losing derivatives" begin
+    SF = ScientificFitting
+    edges = [-3., -1., -0.2, 0.4, 1., 3.]
+    bins = SF.DistributionHistogram(edges, [1., 3., 5., 4., 2.], 15., :cdf, 1e-9)
+    model(p) = MixtureModel([
+        truncated(MixtureModel([Normal(p[1], exp(p[2])), Normal(p[1], 2exp(p[2]))],
+            [0.7, 0.3]), -1., 1.), Normal(2., 3.)], [p[3], 1-p[3]])
+    actual(p) = SF._distribution_cost(model(p), bins)
+    # Preserve the independently evaluated scalar path, including clipping at
+    # both selection edges and bins outside the signal's support.
+    function reference(p)
+        logs = [log(15.) + SF._bin_logmass(model(p), edges[i], edges[i+1], bins)
+                for i in eachindex(bins.counts)]
+        SF._poisson_minus2loglik_terms(bins.counts, exp.(logs); log_mu=logs)
+    end
+    for point in ([0.2, -0.3, 0.4], [0.2, -0.3, 0.])
+        @test actual(point) ≈ reference(point) rtol=1e-12
+        @test ForwardDiff.gradient(actual, point) ≈ ForwardDiff.gradient(reference, point) atol=1e-9
+        @test ForwardDiff.hessian(actual, point) ≈ ForwardDiff.hessian(reference, point) atol=1e-8
+    end
+    @test ForwardDiff.hessian(p -> actual([p[1], p[2], p[3]^2]), [0.2, -0.3, 0.]) ≈
+        ForwardDiff.hessian(p -> reference([p[1], p[2], p[3]^2]), [0.2, -0.3, 0.]) atol=1e-8
+
+    # Dispatch and scratch storage belong to each component batch, not every
+    # component in every bin. This is an allocation contract, not a time limit.
+    n = 10_000
+    many = SF.DistributionHistogram(collect(range(-3., 3.; length=n+1)),
+        ones(n), Float64(n), :cdf, 1e-9)
+    fixed_model = model([0.2, -0.3, 0.4])
+    evaluate() = SF._distribution_cost(fixed_model, many)
+    evaluate()
+    @test (@allocated evaluate()) < 256n + 100_000
+end
+
 @testset "Distribution histogram likelihood" begin
     edges, counts = [-2., -0.8, 0.2, 1.5, 3.], [5, 15, 18, 7]
     builds = Ref(0)

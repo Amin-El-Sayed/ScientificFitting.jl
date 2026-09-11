@@ -119,22 +119,25 @@ function _merge_mixture_terms(scale, total, logs, weight)
     return next_scale, next_total
 end
 
-"""Batch each upstream component once; temporary storage stays linear in events."""
-function _mixture_logpdfs(d::MixtureModel, data)
+"""Combine component batches in log space with linear storage and one dispatch per component."""
+function _weighted_logbatches(batch::F, parts, weights, n) where {F}
     state = nothing
-    for (part, weight) in zip(components(d), probs(d))
+    for (part, weight) in zip(parts, weights)
         isfinite(weight) && weight >= 0 || throw(ArgumentError(
             "mixture weights must be finite and nonnegative",
         ))
         _structural_zero(weight) && continue
-        logs = _distribution_logpdfs(part, data)
+        logs = batch(part)
         state = state === nothing ? (logs, fill(weight, length(logs))) :
                 _merge_mixture_terms(state..., logs, weight)
     end
-    state === nothing && return fill(-Inf, size(data, ndims(data)))
+    state === nothing && return fill(-Inf, n)
     scale, total = state
     return scale .+ log.(total)
 end
+
+_mixture_logpdfs(d::MixtureModel, data) = _weighted_logbatches(
+    part -> _distribution_logpdfs(part, data), components(d), probs(d), size(data, ndims(data)))
 
 _prepared_loglikelihood(d, data) = loglikelihood(d, data)
 # Concrete component types already allow native per-event specialization.
@@ -311,12 +314,29 @@ function _bin_logmass(d::MixtureModel{Univariate}, a, b, bins::DistributionHisto
     return _log_weighted_probability(map(part -> _bin_logmass(part, a, b, bins), components(d)), probs(d))
 end
 
+"""Specialize the bin loop once for each concrete upstream distribution type."""
+function _bin_logmasses(d::UnivariateDistribution, edges, bins::DistributionHistogram)
+    # Repeated edges can arise when clipping a selected window. Such bins have
+    # exactly zero probability, not a failed CDF or quadrature calculation.
+    return [edges[i] < edges[i+1] ? _bin_logmass(d, edges[i], edges[i+1], bins) : -Inf
+            for i in 1:length(edges)-1]
+end
+
+function _bin_logmasses(d::Truncated{<:ContinuousUnivariateDistribution}, edges, bins::DistributionHistogram)
+    clipped = clamp.(edges, something(d.lower, -Inf), something(d.upper, Inf))
+    return _bin_logmasses(d.untruncated, clipped, bins) .- d.logtp
+end
+
+function _bin_logmasses(d::MixtureModel{Univariate}, edges, bins::DistributionHistogram)
+    return _weighted_logbatches(part -> _bin_logmasses(part, edges, bins),
+        components(d), probs(d), length(edges)-1)
+end
+
 function _bin_logexpectation(d::UnivariateDistribution, bins::DistributionHistogram)
     bins.total_count === nothing && throw(ArgumentError(
         "a normalized distribution requires total_count (expected events on its full support)",
     ))
-    return [log(bins.total_count) + _bin_logmass(d, a, b, bins)
-            for (a, b) in zip(bins.edges[1:end-1], bins.edges[2:end])]
+    return log(bins.total_count) .+ _bin_logmasses(d, bins.edges, bins)
 end
 _bin_logexpectation(d, bins::DistributionHistogram) = throw(ArgumentError(
     "one-dimensional histogram fitting requires a univariate distribution or extended mixture",
@@ -347,8 +367,9 @@ upstream distribution explicitly when it describes a selected sample instead.
 `integration=:auto` uses upstream CDF/log-CDF differences where available and
 adaptive QuadGK integration otherwise. `:cdf` requires the CDF interface;
 `:quadgk` forces quadrature for continuous components at relative tolerance `rtol`.
-Mixture components are integrated separately, retaining their normalization and
-parameter derivatives. A missing dual-number implementation requires the usual
+Mixture components are integrated in batches, with dispatch outside the bin loop
+and temporary storage linear in the number of bins. Their normalization and
+parameter derivatives are retained. A missing dual-number implementation requires the usual
 explicit `derivatives=:finite` option, not silent loss of derivatives.
 
 The objective is normalized Poisson `-2log(L)`, with tail bin probabilities kept
