@@ -11,9 +11,9 @@ def _backend():
     bridge = juliacall.newmodule("ScientificFittingPython")
     # JuliaPkg enforces this pin normally; check explicit environment overrides too.
     core_version = bridge.seval("using ScientificFitting; pkgversion(ScientificFitting)")
-    if not bridge.seval("v -> v\"0.2.0\" <= v < v\"0.3.0\"")(core_version):
+    if not bridge.seval("v -> v\"0.3.0\" <= v < v\"0.4.0\"")(core_version):
         raise ImportError(
-            f"scientificfitting requires Julia core 0.2.x, but loaded {core_version}. "
+            f"scientificfitting requires Julia core 0.3.x, but loaded {core_version}. "
             "Use a matching Julia environment and restart Python. For a source "
             "checkout, run `python python/develop.py` before importing the package."
         )

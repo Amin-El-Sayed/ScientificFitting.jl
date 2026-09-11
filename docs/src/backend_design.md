@@ -122,8 +122,10 @@ finite differences for foreign callbacks that accept ordinary floating-point
 values but not ForwardDiff dual numbers. It applies to optimization, constraint
 derivatives, post-fit covariance, predictions, and profile/contour refits.
 Explicit model Jacobians and x-derivatives take precedence where they apply.
-The solver stopping tolerance defaults to `1e-6` in finite mode and `1e-10`
-otherwise. This avoids demanding convergence below the noise floor of
+LsqFit and Optimization stopping tolerances default to `1e-6` in finite mode
+and `1e-10` otherwise. NativeMinuit instead keeps its native EDM tolerance
+(`0.1`); equal tolerance numbers do not mean equal accuracy across solvers.
+The finite-difference defaults avoid demanding convergence below the noise floor of
 numerically differenced gradients; it is not an error bound on fitted
 parameters. Explicit `tol` values are preserved, including when they lead to
 a reported convergence failure.
@@ -307,8 +309,11 @@ stacks.
 | `weights.jl` | covariance preparation, whitening, weighted residuals/Jacobians, local covariance helpers, backend compatibility |
 | `costs.jl` | chi-square, normalized Gaussian likelihood, priors, and correlated parameter terms |
 | `fit.jl` | Gaussian solver dispatch and `FitResult` construction |
+| `solvers.jl` and `ext/ScientificFittingNativeMinuitExt.jl` | scalar solver contract, capabilities and optional MIGRAD adapter |
 | `derivatives.jl` and `prediction.jl` | shared derivative policy and model-mean uncertainty propagation |
 | `likelihood_fits.jl` | likelihood problem construction, wrappers, solver path, and `LikelihoodFitResult` |
+| `distribution_fits.jl` and `ext/ScientificFittingDistributionsHEPExt.jl` | upstream probability objects, normalization, histogram integrals and extended yields |
+| `ext/ScientificFittingBuildConstructorsExt.jl` | named constructor metadata, parameter mapping and fitted-model reconstruction |
 | `profile.jl` | fixed-parameter refits, profile intervals, contours, matrix summaries, and their diagnostics |
 | `diagnostics.jl` | structured findings, severity, evidence, next actions, and renderer-independent residual values |
 | `report.jl` | Makie-free report objects and text formatting |
@@ -376,54 +381,34 @@ likelihoods and the published [Python interface](python.md). v0.3 must make
 existing Julia model and solver packages convenient to compose while retaining
 one statistical contract. [Packages and Interfaces](interfaces.md)
 describes their roles; the following items are required before v0.3 is complete.
-The development branch now has the scalar solver contract, optional NativeMinuit
-adapter, distribution-object entry point and independent BuildConstructors
-extension. A nested extended two-peak model agrees between Optim and NativeMinuit,
-including nuisance refits and named parameter reconstruction. Remaining work
-includes end-to-end performance/support checks. The interface guide now executes
-a named, binned mixture through both solvers and compares their profile scans;
-the Python guide is code-first and its cells run in the documentation test.
-Distribution histograms now use upstream CDF integrals or controlled quadrature,
-with explicit full-support totals or extended component yields. Log bin masses
-retain tail likelihoods even when ordinary probabilities underflow; exactly
-empty support bins do not receive a fictitious chi-square reference.
-PDF-only numerical components now compose inside
-native univariate/multivariate mixtures, products, and extended HEP mixtures;
-an internal log-density adapter retains upstream normalization and batching.
-Values, gradients, and Hessians are checked against analytic references.
-Zero mixture weights retain their derivative contributions instead of being
-omitted by the native mixture evaluation; genuinely fixed zeros are still
-omitted, so an inactive peak cannot erase a remote active tail numerically.
-Continuous truncated components integrate the original distribution inside the
-selection window and reuse its normalizer, avoiding undefined CDF derivatives
-at the truncation boundary. Quadrature checks the values, gradients and Hessians.
-Solver-specific default tolerances now prevent forwarding an Optim-scale
-threshold to MIGRAD's EDM criterion. Explicit tolerances remain unchanged in
-the result, native solver object and profile refits; a binned mixture regression
-checks the default fit and 25 nuisance refits against Optim.
-Native parameter-keyword aliases are rejected at construction: they must not
-override ScientificFitting's bounds, fixed state or full-order step mapping.
-Heterogeneous event mixtures now batch upstream component log densities instead
-of dispatching each component again per observation; homogeneous mixtures keep
-their native loop. The scaled sum retains zero-weight derivatives and uses
-temporary storage linear in the event count.
-The release requirements below remain open.
+The development branch implements the three adapters below. Analytic references
+cover normalization, gradients, Hessians, mixture boundaries, parameter controls
+and nuisance refits. A named extended model agrees between Optim and NativeMinuit;
+the [throughput probe](performance.md#Ecosystem-Throughput-Probe) measures both
+paths at matched accuracy. Distribution construction and normalization happen
+once per objective evaluation, with temporary event storage linear in sample size.
+The executable interface guide uses a controlled histogram to isolate API usage;
+it is not evidence of a completed analysis of collision data.
+
+Release preparation also requires the real-data Gallery example below and a
+review of the locally built documentation before publication. Core and Python
+package versions move together; Python retains its NumPy/Matplotlib interface.
 
 ### Required Integrations
 
-- [ ] **Distribution objects and constructors.** Accept Distributions-compatible
+- [x] **Distribution objects and constructors.** Accept Distributions-compatible
   objects as fixed error models and explicit parameterized constructors for
   fitted distributions. Use upstream `logpdf`/`pdf`/`cdf` methods rather than
   duplicating distributions. Test Distributions, NumericalDistributions, and
   DistributionsHEP, including continuous and discrete observations, multivariate
   events with an explicit observation axis, and extended mixtures. Document
   supported interfaces and retain user-defined log-density/objective callbacks.
-- [ ] **Selectable solvers.** Replace the closed symbol-only selection with a
+- [x] **Selectable solvers.** Replace the closed symbol-only selection with a
   documented extension contract, reusing Optimization.jl's algorithm objects
   and options where applicable. NativeMinuit is the reference new backend,
   selectable through an official optional extension. Keep the existing LsqFit,
   Optim, and bounded derivative-free paths; no wholesale backend replacement.
-- [ ] **Independent model construction.** Provide an official optional
+- [x] **Independent model construction.** Provide an official optional
   BuildConstructors extension using its public metadata and `build_model` APIs.
   Preserve names, starts, bounds, fixed/free state, and validated shared
   parameters through fitting and result reconstruction. It must work with
@@ -437,15 +422,16 @@ The release requirements below remain open.
   Organize the technical guide by probability models, model construction and
   minimizers, not application domain. Real-data applications belong in the Gallery.
 
-### Real-Data Gallery Candidate
+### Real-Data Gallery Release Requirement
 
 The [LHCb three-hadron B-decay data](https://opendata.cern.ch/record/4900)
-are a candidate for a separate Gallery analysis, not a completed reproduction.
+are the proposed source for a separate Gallery analysis, not a completed reproduction.
 The CC0 release includes collision data and a separate simplified simulation;
 the [project notebook](https://github.com/lhcb/opendata-project/blob/master/LHCb_Open_Data_Project.ipynb)
 documents selection but leaves a signal/background fit as a further analysis.
 
-Before inclusion, pin the source files and extraction cuts, publish a compact
+Before inclusion, pin the source files and extraction cuts, retain the dataset
+DOI and license next to the figure and executable code, and publish a compact
 derived sample with provenance, and compare the same normalized likelihood,
 fitted values, uncertainties and profile crossings against an independent
 C++ Minuit2/RooFit implementation. Use BuildConstructors with interchangeable solvers.
@@ -453,6 +439,9 @@ Time data preparation, warm fitting and uncertainty analysis separately at
 matched accuracy; keep the full ROOT download outside the ordinary docs build.
 A mass-spectrum example must not imply a CP-asymmetry measurement without the
 required detector, production and efficiency corrections.
+The page should show the question, model and fit code, real execution output,
+diagnostic plot and limitations concisely. No data fabrication, edited terminal
+output or unsupported agreement with the published LHCb analysis is acceptable.
 
 ### Shared Contract
 

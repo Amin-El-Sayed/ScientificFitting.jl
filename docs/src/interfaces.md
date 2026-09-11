@@ -30,9 +30,20 @@ println(report_text(result))
 @assert isapprox(result.params[1], sum(observations)/length(observations); atol=1e-5) # hide
 ```
 
-`fit_distribution` models the observations themselves. In contrast,
-`fit_model(model, x, y; error=Normal(0, 0.2), p0=...)` describes noise around
-the predictions. For multivariate samples, set `obsdim` explicitly; each vector
+`fit_distribution` models the observations themselves. A fixed `error` distribution
+instead describes additive noise around predictions:
+
+```@example interfaces
+x, y = [0., 1., 2., 3.], [0.1, 1.2, 1.8, 3.4]
+line(x, p) = @. p[1]*x + p[2]
+regression = fit_likelihood_model(line, x, y;
+    error=Normal(0, 0.2), p0=[1., 0.])
+println("Slope, intercept: ", round.(regression.params; digits=4))
+@assert regression.converged # hide
+@assert isapprox(regression.params, [1.05, 0.05]; atol=1e-5) # hide
+```
+
+For multivariate samples, set `obsdim` explicitly; each vector
 observation uses its joint density. Between-observation dependence requires a
 joint likelihood, not a product of marginal densities.
 

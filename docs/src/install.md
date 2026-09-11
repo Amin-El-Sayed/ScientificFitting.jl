@@ -1,8 +1,9 @@
 # Installation
 
-ScientificFitting declares support for Julia 1.10 and later. CI runs the core
-and full-package gates on Julia 1.10 and Julia 1.12. Julia 1.10 is the
-compatibility floor.
+ScientificFitting supports Julia 1.10 and later. CI targets Julia 1.10 and the
+latest stable Julia for the core and full-package tests. The optional
+NativeMinuit adapter requires Julia 1.11+; its integration tests also target
+that minimum version. Documentation rendering stays pinned to Julia 1.12.
 
 For Python, see [Python Interface](python.md).
 
