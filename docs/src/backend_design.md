@@ -378,9 +378,12 @@ The development branch now has the scalar solver contract, optional NativeMinuit
 adapter, distribution-object entry point and independent BuildConstructors
 extension. A nested extended two-peak model agrees between Optim and NativeMinuit,
 including nuisance refits and named parameter reconstruction. Remaining work
-includes the CDF-based binned path, PDF-only components inside composite
-distributions, the executable HEP guide, and end-to-end performance/support
-checks. The release requirements below remain open.
+includes the CDF-based binned path, the executable HEP guide, and end-to-end
+performance/support checks. PDF-only numerical components now compose inside
+native univariate/multivariate mixtures, products, and extended HEP mixtures;
+an internal log-density adapter retains upstream normalization and batching.
+Values, gradients, and Hessians are checked against analytic references.
+The release requirements below remain open.
 
 ### Required Integrations
 

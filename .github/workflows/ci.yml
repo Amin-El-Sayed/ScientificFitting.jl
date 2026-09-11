@@ -55,6 +55,7 @@ jobs:
           VERSION >= v"1.11" && push!(deps, PackageSpec(name="NativeMinuit", version="0.7.2"));
           Pkg.add(deps);
           include("test/extensions/distribution_ecosystem.jl");
+          include("test/extensions/composite_distributions.jl");
           include("test/extensions/buildconstructors.jl");
           if VERSION >= v"1.11";
             include("test/extensions/native_minuit.jl");

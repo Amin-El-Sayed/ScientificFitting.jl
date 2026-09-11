@@ -36,19 +36,49 @@ function _distribution_cost(d::Distribution, data)
     return _minus2logprob(_distribution_loglikelihood(d, data))
 end
 
-"""Some numerical distributions implement only pdf; do not assume a logpdf fallback exists."""
-function _distribution_logpdf(d, x)
-    applicable(logpdf, d, x) && return logpdf(d, x)
-    density = pdf(d, x)
+"""Supply the missing log-density interface without adding methods to upstream types."""
+struct PDFLogAdapter{S, D} <: UnivariateDistribution{S}
+    distribution::D
+end
+PDFLogAdapter(d::UnivariateDistribution{S}) where {S} = PDFLogAdapter{S, typeof(d)}(d)
+
+function Distributions.logpdf(d::PDFLogAdapter, x::Real)
+    density = pdf(d.distribution, x)
     density isa Real && isfinite(density) && density >= 0 ||
         throw(ArgumentError("density must be finite and nonnegative"))
     return log(density)
 end
 
+_with_logpdf(d, x) = d
+_with_logpdf(d::UnivariateDistribution, x::Real) = applicable(logpdf, d, x) ? d : PDFLogAdapter(d)
+
+_with_logpdf(d::MixtureModel{Univariate}, x::Real) = _mixture_with_logpdf(d, x)
+_with_logpdf(d::MixtureModel{Multivariate}, x::AbstractVector) = _mixture_with_logpdf(d, x)
+function _mixture_with_logpdf(d, x)
+    original = components(d)
+    prepared = map(part -> _with_logpdf(part, x), original)
+    all(a === b for (a, b) in zip(original, prepared)) && return d
+    return MixtureModel(prepared, probs(d))
+end
+
+# Distributions 0.25 currently returns two product representations from its public
+# constructor (vector vs tuple inputs). Keep that storage detail at this boundary.
+_product_parts(d::Distributions.Product) = d.v
+_product_parts(d::Distributions.VectorOfUnivariateDistribution) = d.dists
+function _with_logpdf(d::Union{Distributions.Product, Distributions.VectorOfUnivariateDistribution}, x::AbstractVector)
+    original = _product_parts(d)
+    length(original) == length(x) || throw(DimensionMismatch("event dimension must match product distribution"))
+    prepared = map((part, i) -> _with_logpdf(part, x[i]), original, eachindex(original))
+    all(a === b for (a, b) in zip(original, prepared)) && return d
+    return prepared isa Tuple ? product_distribution(prepared...) : product_distribution(prepared)
+end
+
+_distribution_logpdf(d, x) = logpdf(_with_logpdf(d, x), x)
+
 function _distribution_loglikelihood(d, data)
     events = data isa AbstractMatrix ? eachcol(data) : data
-    applicable(logpdf, d, first(events)) && return loglikelihood(d, data)
-    return sum(x -> _distribution_logpdf(d, x), events)
+    # Prepare once per parameter point, not once per event. Upstream batching stays intact.
+    return loglikelihood(_with_logpdf(d, first(events)), data)
 end
 
 _prepare_error_distribution(d::UnivariateDistribution, n) = deepcopy(d)
@@ -105,6 +135,8 @@ not once per event: expensive parameter-dependent normalization belongs there.
 ScientificFitting uses the upstream `loglikelihood`/`logpdf` implementation and
 minimizes `-2 log(L)`. A distribution exposing only `pdf` uses `log(pdf)`;
 extreme-tail underflow then follows that upstream density implementation.
+Univariate PDF-only components also work inside native mixtures and products:
+an internal adapter supplies `logpdf` without changing the upstream model.
 No parameters are inferred from a distribution instance;
 declare which are fitted explicitly in the factory and `p0`.
 
