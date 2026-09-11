@@ -401,6 +401,8 @@ Solver-specific default tolerances now prevent forwarding an Optim-scale
 threshold to MIGRAD's EDM criterion. Explicit tolerances remain unchanged in
 the result, native solver object and profile refits; a binned mixture regression
 checks the default fit and 25 nuisance refits against Optim.
+Native parameter-keyword aliases are rejected at construction: they must not
+override ScientificFitting's bounds, fixed state or full-order step mapping.
 The release requirements below remain open.
 
 ### Required Integrations

@@ -41,7 +41,8 @@ scalar or a vector in the original complete parameter order; it specifies
 initial numerical step sizes, not statistical errors or priors. Native Minuit
 constructor options such as `strategy=2` and `check_gradient=false` are passed
 through. Bounds, fixed parameters, derivatives, and `errordef=1` belong to the
-fit and cannot be overridden here.
+fit and cannot be overridden here, including through native `fix_*`, `limit_*`
+or `error_*` aliases. Set numerical initial steps with `steps` instead.
 
 `maxiters` is the native function-call budget, not an iteration count; `tol`
 is MIGRAD's EDM tolerance parameter, defaulting to the native `0.1` (target
@@ -54,24 +55,29 @@ errors in the ScientificFitting result still follow its covariance policy.
 struct NativeMinuitSolver{S, K} <: AbstractFitSolver
     steps::S
     kwargs::K
+
+    function NativeMinuitSolver(steps, kwargs::NamedTuple)
+        reserved = (:error, :errors, :name, :names, :limits, :fixed, :up, :errordef,
+                    :grad, :tol, :maxfcn)
+        # Native parameter aliases take precedence over the complete controls.
+        any(k -> k in reserved || occursin(r"^(error|fix|limit)_", String(k)), keys(kwargs)) &&
+            throw(ArgumentError(
+                "parameter controls, error scale, derivatives, and stopping limits belong to the fit; " *
+                "native error_*, fix_* and limit_* aliases are not allowed (use steps for numerical step sizes)",
+            ))
+        if steps !== nothing
+            steps isa Real || steps isa AbstractVector{<:Real} || throw(ArgumentError(
+                "steps must be a positive scalar or a vector in full parameter order",
+            ))
+            all(v -> isfinite(v) && v > 0, steps isa Real ? (steps,) : steps) ||
+                throw(ArgumentError("initial parameter steps must be finite and positive"))
+        end
+        stored = steps isa AbstractVector ? collect(Float64, steps) : steps
+        return new{typeof(stored), typeof(kwargs)}(stored, kwargs)
+    end
 end
 
-function NativeMinuitSolver(; steps=nothing, kwargs...)
-    reserved = (:error, :errors, :name, :names, :limits, :fixed, :up, :errordef,
-                :grad, :tol, :maxfcn)
-    any(k -> k in reserved, keys(kwargs)) && throw(ArgumentError(
-        "parameter controls, error scale, derivatives, and stopping limits belong to the fit",
-    ))
-    if steps !== nothing
-        steps isa Real || steps isa AbstractVector{<:Real} || throw(ArgumentError(
-            "steps must be a positive scalar or a vector in full parameter order",
-        ))
-        all(v -> isfinite(v) && v > 0, steps isa Real ? (steps,) : steps) ||
-            throw(ArgumentError("initial parameter steps must be finite and positive"))
-    end
-    stored = steps isa AbstractVector ? collect(Float64, steps) : steps
-    return NativeMinuitSolver(stored, (; kwargs...))
-end
+NativeMinuitSolver(; steps=nothing, kwargs...) = NativeMinuitSolver(steps, (; kwargs...))
 
 """
     default_fit_tolerance(solver, derivatives::Symbol) -> Real

@@ -87,6 +87,17 @@ end
     @test_throws ArgumentError NativeMinuitSolver(errordef=0.5)
     @test_throws ArgumentError NativeMinuitSolver(grad=identity)
     @test_throws ArgumentError NativeMinuitSolver(steps=[1., 0.])
+    for options in ((; fix_mu=true), (; limit_mu=(-10., 10.)), (; error_mu=0.2),
+                    (; fix_channel_gain=true))
+        @test_throws ArgumentError NativeMinuitSolver(; options...)
+        @test_throws ArgumentError NativeMinuitSolver(nothing, options)
+    end
+    @test_throws ArgumentError NativeMinuitSolver([1., 0.], (; strategy=2))
+    steps = [0.1, 0.2]
+    valid = NativeMinuitSolver(; steps, strategy=2, check_gradient=false)
+    steps[1] = 0.0
+    @test valid.steps == [0.1, 0.2]
+    @test valid.kwargs == (; strategy=2, check_gradient=false)
     @test_throws ArgumentError fit_custom(cost; p0=[0., 0.], nobs=10,
         solver=NativeMinuitSolver(steps=[1.]))
 end
