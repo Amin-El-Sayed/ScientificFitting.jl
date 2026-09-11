@@ -1,10 +1,8 @@
 # Packages And Interfaces
 
-Keep your probability model, choose a minimizer, and reuse the fitted object.
-These are independent interfaces, not separate workflows for different sciences.
-
-For a complete real-data application, see the [LHCb mass spectrum](gallery/lhcb_mass_spectrum.md):
-source-checked collision counts, a named extended mixture, MIGRAD and a shape-sensitivity check.
+Fit distribution objects, attach named parameters, and select a solver.
+The [LHCb mass spectrum](gallery/lhcb_mass_spectrum.md) combines these interfaces
+on collision data.
 
 !!! note "v0.3 development API"
     The distribution-object, BuildConstructors and NativeMinuit adapters below
@@ -16,18 +14,19 @@ source-checked collision counts, a named extended mixture, MIGRAD and a shape-se
 
 | Package | Interface in ScientificFitting |
 |:---|:---|
-| [Distributions.jl](https://juliastats.org/Distributions.jl/stable/) | Pass a fixed distribution as `error`, or a parameterized factory to `fit_distribution`. Continuous, discrete and multivariate observations are supported. |
-| [NumericalDistributions.jl](https://github.com/mmikhasenko/NumericalDistributions.jl) | Reuse numerical normalization through the same factory interface, including PDF-only components in mixtures and products. Bin probabilities use a CDF or adaptive quadrature. |
+| [Distributions.jl](https://juliastats.org/Distributions.jl/stable/) | Pass a fixed distribution as `error`, or a function `p -> distribution` to `fit_distribution`. Supports continuous, discrete and multivariate observations. |
+| [NumericalDistributions.jl](https://github.com/mmikhasenko/NumericalDistributions.jl) | Numerically normalized densities, also inside mixtures and products. Bin probabilities use a CDF or adaptive quadrature when no CDF is available. |
 | [DistributionsHEP.jl](https://github.com/JuliaHEP/DistributionsHEP.jl) | Reuse compatible shapes and native `ExtendedMixtureModel` objects. Extended fits retain component yields for both event samples and histograms. |
 
-An ordinary factory is sufficient when parameters fit naturally in a vector:
+Supply a function that constructs the distribution from parameter vector `p`.
+Here five illustrative observations determine a Gaussian center and scale:
 
 ```@example interfaces
 using ScientificFitting, Distributions, OptimizationOptimJL
 
 observations = [4.8, 5.1, 5.6, 5.4, 5.0]
-factory = p -> Normal(p[1], exp(p[2]))  # positive scale via log parameter
-result = fit_distribution(factory, observations; p0=[5.0, log(0.4)])
+normal_model(p) = Normal(p[1], exp(p[2]))  # p[2] = log(scale), so scale > 0
+result = fit_distribution(normal_model, observations; p0=[5.0, log(0.4)])
 println(report_text(result))
 @assert result.converged # hide
 @assert isapprox(result.params[1], sum(observations)/length(observations); atol=1e-5) # hide
@@ -50,8 +49,9 @@ For multivariate samples, set `obsdim` explicitly; each vector
 observation uses its joint density. Between-observation dependence requires a
 joint likelihood, not a product of marginal densities.
 
-The factory is evaluated once per objective evaluation, not once per observation.
-It must preserve dual-number types for automatic differentiation. Select
+The model-construction function (sometimes called a *factory*) runs once per
+objective evaluation, not once per observation. Preserve numeric types for
+automatic differentiation; avoid converting parameters to `Float64`. Select
 `derivatives=:finite` for models that cannot do that. A PDF that already
 underflows to zero cannot be repaired by taking its logarithm; prefer a stable
 upstream `logpdf`. See [Distribution Objects](api_fitting.md#Distribution-Objects)
@@ -59,14 +59,22 @@ for support, truncation and bin-boundary conventions.
 
 ## Named Model Construction
 
-[BuildConstructors.jl](https://github.com/RUB-EP1/BuildConstructors.jl) separates
-model construction from parameter metadata. Its optional adapter is independent
-of NativeMinuit: names, starts, bounds, fixed values and shared parameters enter
-the same fitting API with either solver.
+[BuildConstructors.jl](https://github.com/RUB-EP1/BuildConstructors.jl) attaches
+names, starts, bounds and fixed values to model parameters. Reusing a name
+shares that parameter between components.
 
-The following small, controlled histogram illustrates composition, not a
-detector measurement. A normalized Gaussian component and uniform background
-share the observation window; their coefficients are expected counts.
+**Data:** an illustrative count array, in 20 equal bins on ``[0,10]``.
+**Model:** a Gaussian peak with fixed width ``0.4``, plus a uniform background.
+Fit the center and expected signal/background counts ``N_s,N_b``.
+Both densities are normalized within the observation window:
+
+```math
+\mu_i=N_s\int_{e_i}^{e_{i+1}}f_s(x)\,dx
+     +N_b\int_{e_i}^{e_{i+1}}f_b(x)\,dx.
+```
+
+The uniform component contributes ``N_b/20`` to each bin. The fit uses these
+integrals as Poisson means, not densities evaluated at bin centers.
 
 ```@example interfaces
 using BuildConstructors, DistributionsHEP
@@ -92,26 +100,21 @@ constructor = ConstructorOfSpectrum(
 )
 edges = collect(0.0:0.5:10.0)
 counts = [2, 1, 3, 1, 2, 2, 1, 1, 3, 14, 33, 22, 7, 2, 1, 2, 3, 1, 1, 2]
-nothing # hide
+
+optim = fit_distribution(constructor, edges, counts;
+    solver=OptimizationSolver(LBFGS()), tol=1e-7)
+println(report_text(optim))
+@assert optim.converged # hide
 ```
 
-`::P` marks a parameter descriptor. Repeated names share one fitted parameter;
-conflicting metadata is rejected. The adapter snapshots the constructor rather
-than modifying it during fitting. Here `fixed=true` treats the width as exactly
-known. For an uncertain calibration use an explicit
+`::P` marks a parameter descriptor; conflicting metadata for shared names is
+rejected. Fitting leaves the constructor unchanged. `fixed=true` treats the
+width as exactly known. For an uncertain calibration use an explicit
 [parameter constraint](api_fitting.md#Constraints-And-Uncertainty-Objects);
 BuildConstructors' `uncertainty` metadata does not add a prior or measurement term.
 
-For bin ``i``, the expected count is an integral, not the density at its center:
-
-```math
-\mu_i=N_s\int_{e_i}^{e_{i+1}}f_s(x)\,dx
-     +N_b\int_{e_i}^{e_{i+1}}f_b(x)\,dx.
-```
-
-The uniform component contributes ``N_b/20`` to each bin. Component yields
-already set the normalization: do not add `total_count` or a second Poisson
-term. A non-extended distribution instead requires an explicit `total_count`
+Component yields set the normalization: omit `total_count` and any additional
+Poisson count term. A non-extended distribution requires an explicit `total_count`
 for a histogram fit. For individual events use
 `fit_distribution(constructor, events; solver=...)`.
 
@@ -129,28 +132,31 @@ for a histogram fit. For individual events use
 Change the solver without rebuilding the statistical model:
 
 ```@example interfaces
-import NativeMinuit  # activates the optional extension
+import NativeMinuit  # load the extension without importing NativeMinuit.profile
 
-optim = fit_distribution(constructor, edges, counts;
-    solver=OptimizationSolver(LBFGS()), tol=1e-7)
 minuit = fit_distribution(constructor, edges, counts;
     solver=NativeMinuitSolver(), tol=1e-3)
 
-println(report_text(minuit))
+for (label, fit) in (("Optim", optim), ("MIGRAD", minuit))
+    println(label, ": center = ", round(parameter_values(fit).center; digits=5),
+        "; -2 log L = ", round(fit.stats.cost_min; digits=5))
+end
 @assert optim.converged && minuit.converged # hide
 @assert isapprox(optim.params, minuit.params; rtol=1e-4) # hide
 @assert isapprox(optim.param_covariance, minuit.param_covariance; rtol=1e-3) # hide
 @assert isapprox(optim.stats.cost_min, minuit.stats.cost_min; atol=1e-6) # hide
 ```
 
-Both minimize the same ``-2\log L`` with the same fixed values and bounds.
-Their tolerances have different meanings: Optim uses its convergence criteria,
-whereas MIGRAD uses an estimated-distance-to-minimum (EDM) criterion. Equal
-numbers would not imply equal accuracy; this example checks the fitted values,
-cost and covariance against each other during the documentation build.
-Omit `tol` for solver-specific defaults: `1e-10` for Optim with automatic
+Julia's [`import`](https://docs.julialang.org/en/v1/manual/modules/#Standalone-using-and-import)
+loads the package without bringing its exports into scope. Both packages export
+`profile`; `import NativeMinuit` avoids that name conflict.
+
+Both solvers minimize the same ``-2\log L`` with identical bounds and fixed values.
+Optim and MIGRAD use different stopping criteria; equal tolerances do not mean
+equal accuracy. Omit `tol` for solver defaults: `1e-10` for Optim with automatic
 derivatives, `1e-6` with finite differences, and MIGRAD's native `0.1`.
-The example tightens MIGRAD's tolerance to compare costs within `1e-6`.
+This example tightens MIGRAD's tolerance and checks costs within `1e-6`, plus
+parameters and covariance, during the documentation build.
 
 The adapter sets `errordef=1`. Reported covariance comes from ScientificFitting's
 local curvature calculation, not native MINOS intervals. Native failure details
@@ -160,7 +166,7 @@ remain available in `result.solver_result.raw`. See
 ## Reuse Results And Profile Scans
 
 ```@example interfaces
-model = fitted_model(minuit)  # a native ExtendedMixtureModel, not a replacement type
+model = fitted_model(minuit)  # returns DistributionsHEP.ExtendedMixtureModel
 values = parameter_values(minuit)  # named values, including fixed parameters
 println("Center: ", round(values.center; digits=4))
 println("Expected count: ", round(DistributionsHEP.total_yield(model); digits=3))

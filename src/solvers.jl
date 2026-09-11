@@ -36,7 +36,8 @@ end
 """
     NativeMinuitSolver(; steps=nothing, kwargs...)
 
-Select MIGRAD after `using NativeMinuit` (Julia 1.11+). `steps` is a positive
+Select MIGRAD after `import NativeMinuit` (Julia 1.11+); importing only the module
+avoids a name conflict with its exported `profile`. `steps` is a positive
 scalar or a vector in the original complete parameter order; it specifies
 initial numerical step sizes, not statistical errors or priors. Native Minuit
 constructor options such as `strategy=2` and `check_gradient=false` are passed

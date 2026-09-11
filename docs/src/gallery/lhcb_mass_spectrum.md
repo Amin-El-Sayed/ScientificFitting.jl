@@ -1,17 +1,68 @@
 # A Peak In LHCb Open Data
 
-**Question:** how many reconstructed three-kaon candidates belong to the
-charged-B peak rather than the smooth background? Fit real collision counts
-with Distributions.jl, BuildConstructors.jl and NativeMinuit.jl, then check how
-the answer depends on the peak shape.
+**Question:** how many three-kaon candidates come from charged-B decays?
+Fit their reconstructed mass spectrum, then check how the estimated yield
+changes with the peak model.
+
+## From A Decay To A Mass Peak
+
+A charged B meson decays into three charged kaons:
+``B^+\to K^+K^+K^-`` or ``B^-\to K^-K^-K^+``.
+LHCb measures the daughter tracks; the parent B is reconstructed from them.
+
+```@raw html
+<figure aria-label="Effective charged-B decay diagram" style="margin:1.25rem 0">
+<svg viewBox="0 0 540 220" role="img" aria-labelledby="lhcb-decay-title lhcb-decay-desc" style="display:block;width:100%;max-width:540px;height:auto;margin:auto">
+  <title id="lhcb-decay-title">B plus decays to two positive kaons and one negative kaon</title>
+  <desc id="lhcb-decay-desc">An incoming B meson joins an effective decay vertex with three outgoing kaon lines. The vertex represents all contributing decay amplitudes, not a single quark-level interaction.</desc>
+  <g fill="none" stroke="currentColor" stroke-width="2.5">
+    <path d="M95 110 H235 M255 100 L422 32 M257 110 H422 M255 120 L422 188"/>
+  </g>
+  <circle cx="247" cy="110" r="13" fill="currentColor"/>
+  <g fill="currentColor" font-family="serif" font-size="30">
+    <text x="44" y="120">B<tspan baseline-shift="super" font-size="20">+</tspan></text>
+    <text x="437" y="42">K<tspan baseline-shift="super" font-size="20">+</tspan></text>
+    <text x="437" y="120">K<tspan baseline-shift="super" font-size="20">+</tspan></text>
+    <text x="437" y="198">K<tspan baseline-shift="super" font-size="20">−</tspan></text>
+  </g>
+</svg>
+<figcaption>Effective decay diagram. The vertex includes intermediate resonances
+and nonresonant amplitudes; it is not a single quark-level Feynman diagram.
+Both charge-conjugate decays enter the fit.</figcaption>
+</figure>
+```
+
+With ``c=1`` and the kaon mass assigned to each track,
+
+```math
+E_i=\sqrt{|\mathbf p_i|^2+m_K^2},\qquad
+m_{KKK}=\sqrt{(E_1+E_2+E_3)^2-|\mathbf p_1+\mathbf p_2+\mathbf p_3|^2}.
+```
+
+True B decays cluster near the B mass. Finite momentum resolution broadens
+that peak. Unrelated tracks can also form an accepted three-track candidate:
+this **combinatorial background** gives a smooth mass spectrum, not electronic
+readout noise. Misidentified pions and decays with missing daughters can add
+other backgrounds; the model below approximates only the smooth component.
 
 ## Data And Selection
 
 Source: **LHCb collaboration (2017)**, *Matter Antimatter Differences
 (B meson decays to three hadrons) - Data Files*, CERN Open Data,
 [DOI: 10.7483/OPENDATA.LHCB.AOF7.JH09](https://doi.org/10.7483/OPENDATA.LHCB.AOF7.JH09).
-These are preselected 2011 pp collision candidates at 7 TeV, not simulation.
+These are 2011 pp collision candidates at 7 TeV, not simulation.
 The data are CC0-1.0; CERN and LHCb do not endorse this analysis.
+
+Selection happens in two stages:
+
+1. **Before the public ROOT file:** LHCb reconstructs tracks and applies trigger,
+   momentum, candidate-mass and displaced-track/vertex selections. B mesons
+   travel before decaying, so a common vertex away from the proton collision
+   helps reject unrelated tracks. Particle identification
+   is left for the user; see the [preselection notebook](https://github.com/lhcb/opendata-project/blob/master/Background-Information-Notebooks/DataSelection.ipynb).
+2. **In this example:** use the entire MagnetUp file, require three kaon-like,
+   non-muon tracks, then restrict the fitted mass range. No random subsampling
+   is applied. MagnetDown is not included.
 
 | Choice | Definition |
 |:---|:---|
@@ -21,14 +72,19 @@ The data are CC0-1.0; CERN and LHCb do not endorse this analysis.
 | Mass | Sum three four-momenta with the kaon hypothesis, ``m_K=493.677\,\mathrm{MeV}/c^2`` |
 | Fit window | ``5200\leq m_{KKK}<5600\,\mathrm{MeV}/c^2``; 7,368 candidates in 80 bins |
 
-The cuts and momentum units follow the
+The particle-identification thresholds are the starting example cuts from the
 [LHCb project notebook](https://github.com/lhcb/opendata-project/blob/master/LHCb_Open_Data_Project.ipynb).
+They differ from the publication's optimized selection.
 The assigned kaon mass is from the
 [Particle Data Group](https://pdg.lbl.gov/2025/reviews/rpp2025-rev-charged-kaon-mass.pdf).
 [Download the UnROOT preparation script](lhcb_prepare.jl) to rebuild the
 histogram from the [original file](https://opendata.cern.ch/record/4900/files/B2HHH_MagnetUp.root).
 It verifies the file checksum and accounts for candidates outside the window.
 The full ROOT file is not downloaded during a documentation build.
+
+**Scope:** a selected-candidate yield fit with **80 Poisson bins and seven free parameters**. Processing the
+3.4-million-candidate file and fitting the resulting histogram are separate
+computational tasks.
 
 ```@setup lhcb
 using ScientificFitting
@@ -38,7 +94,7 @@ cp(joinpath(dirname(pathof(ScientificFitting)), "..", "benchmarks", "lhcb_refere
 
 ```@example lhcb
 using ScientificFitting, Distributions, DistributionsHEP, BuildConstructors, Printf
-import NativeMinuit
+import NativeMinuit  # keep ScientificFitting.profile unambiguous
 
 edges = collect(5200.:5.:5600.)  # MeV/c^2; left-closed, right-open bins
 counts = [
@@ -54,10 +110,11 @@ println("Candidates in fit window: ", sum(counts))
 
 ## Model And Fit
 
-Different track momenta and geometries need not have the same mass resolution.
-Two Gaussians with a shared center give a compact empirical core-and-tail
-model. They are **two resolution components of one peak**, not two particles.
-An exponential represents the smooth background in this window.
+Tracks with different momenta and detector paths have different resolutions.
+We approximate their combined peak by a narrow and a wider Gaussian with a
+shared center. These are **two resolution components of one peak**, not two
+particles. The background falls slowly across this window; an exponential
+provides a positive density with one adjustable slope.
 
 ```math
 S(m)\propto f\,\mathcal N(m;\mu,\sigma)
@@ -69,6 +126,12 @@ and ``N_b`` therefore count selected candidates there, not efficiency-corrected
 decays. Independent Poisson bins have expectations
 ``\nu_i=N_s\int_i S(m)\,dm+N_b\int_i B(m)\,dm``; the adapter integrates the
 distributions rather than sampling densities at bin centers.
+
+**Why BuildConstructors here?** Each `AdvancedParameter` below stores a name,
+starting value and bounds. `::P` inserts its current value into the model.
+ScientificFitting reads this metadata, builds the likelihood and passes the
+free parameters to MIGRAD. Later, `fix!` reduces the same model to one width
+without rewriting the density or keeping a second parameter-index map.
 
 ```@example lhcb
 @with_parameters(MassSpectrum;
@@ -188,11 +251,27 @@ misspecification or detector calibration. An independent SciPy-CDF/C++-Minuit2
 implementation checks both minima and the signal-yield MINOS interval; the
 documentation build checks those reference costs, parameters and interval
 crossings, and regenerates every output above.
+This tests agreement between numerical implementations of **our model**, not
+agreement with LHCb's published physics result.
 The [independent check](lhcb_reference.py) is kept in `benchmarks/lhcb_reference.py`
 and runs from the repository checkout with NumPy, SciPy and iminuit.
 
-**Scope:** this is a reproducible open-data fit, not a reproduction of an LHCb
-publication. The fitted reconstructed centroid is not a precision measurement
-of the B mass. No momentum-scale calibration, efficiency correction, production
-asymmetry or detection asymmetry is estimated here; neither a branching fraction
-nor a CP asymmetry follows from these yields.
+## Relation To The LHCb Measurement
+
+The [LHCb analysis, arXiv:1306.1246](https://arxiv.org/abs/1306.1246),
+uses mass fits to measure a difference between B-plus and B-minus decay rates
+(CP asymmetry):
+
+| | This example | LHCb publication |
+|:---|:---|:---|
+| Likelihood | Binned Poisson; charges combined | Unbinned extended fits; charges separated |
+| Peak | Two Gaussians | Asymmetric Cruijff shape, including radiative tails |
+| Background | One exponential | Combinatorial, partially reconstructed and misidentified decays |
+| Result | Selected peak yield | CP asymmetry with detector and production corrections |
+
+The published ``22\,119\pm164`` signal yield is not a reference value for this
+fit: polarity coverage, selection, window and model differ. We also omit the
+paper's charm veto, so the peak can include ``B\to DK``, ``D\to KK`` candidates.
+The result is an uncorrected selected yield, not a charmless branching fraction
+or CP asymmetry. A precision B-mass measurement also requires momentum-scale
+calibration.

@@ -174,7 +174,7 @@ println(report_text(result))
 
 Bin masses use CDF differences, not midpoint density times width.
 `integration=:quadgk` requests adaptive integration instead; `:auto` also handles
-PDF-only components that lack a CDF. With DistributionsHEP, a factory returning
+PDF-only components that lack a CDF. With DistributionsHEP, a function returning
 `ExtendedMixtureModel` supplies its own fitted yields: omit `total_count`.
 Neither path renormalizes a distribution over the supplied edges. For discrete
 observations, bins are right-closed `(a, b]`; half-integer edges separate integer
@@ -198,8 +198,8 @@ residual. `error=MvNormal(zeros(length(y)), covariance)` instead evaluates one
 joint log density; it does not multiply marginal errors. For a Poisson or other
 prediction-dependent observation model, retain the `logprob` callback.
 
-Factories may return DistributionsHEP shapes or NumericalDistributions objects.
-The latter's normalization runs once when the factory constructs the distribution,
+Model-construction functions may return DistributionsHEP or NumericalDistributions objects.
+The latter's normalization runs once when the model function constructs the distribution,
 then is reused for all observations. ScientificFitting differentiates that
 normalization too; a constructor that cannot accept dual numbers needs explicit
 `derivatives=:finite`. A `pdf`-only object uses `log(pdf)`, with the tail precision
