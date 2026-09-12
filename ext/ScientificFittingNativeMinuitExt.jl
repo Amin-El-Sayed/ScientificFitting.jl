@@ -5,6 +5,9 @@ using NativeMinuit: Minuit, migrad!
 import Optimization
 import DifferentiationInterface as DI
 
+ScientificFitting._remaining_solver_budget(::NativeMinuitSolver, answer, budget) =
+    answer.raw.fmin.internal.reached_call_limit ? 0 : max(0, budget - answer.raw.nfcn)
+
 function ScientificFitting.solve_fit(solver::NativeMinuitSolver,
                                     problem::Optimization.OptimizationProblem;
                                     maxiters, tol, parameter_indices, parameter_count, parameter_names)

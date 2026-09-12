@@ -47,9 +47,12 @@ or `error_*` aliases. Set numerical initial steps with `steps` instead.
 
 `maxiters` is the native function-call budget, not an iteration count; `tol`
 is MIGRAD's EDM tolerance parameter, defaulting to the native `0.1` (target
-EDM `0.002 * tol` on our `errordef=1` cost scale). An explicit `tol` is never
-rescaled or relaxed. One MIGRAD pass is run per ScientificFitting
-multistart candidate. The native object is retained in `result.solver_result.raw`;
+EDM `0.002 * tol`, accepted up to ten times that goal, on our `errordef=1`
+cost scale). An explicit `tol` is never
+rescaled or relaxed. A failed or independently rejected solve may restart once
+from its last point, using only the remaining function-call budget. No solver,
+strategy or tolerance is silently changed. The native object from the retained
+attempt is available in `result.solver_result.raw`;
 its coordinates follow `result.solver_result.parameter_indices`. Symmetric
 errors in the ScientificFitting result still follow its covariance policy.
 """
@@ -198,7 +201,7 @@ function _scalar_solver(problem, options)
 end
 
 """Build one scalar solver problem for both statistical problem families."""
-function _minimize_scalar(problem, options, objective, cache)
+function _minimize_scalar(problem, options, objective, cache; maxiters=options.maxiters)
     solver = _scalar_solver(problem, options)
     caps = solver_capabilities(solver)
     bounds = _free_bounds(problem)
@@ -224,7 +227,7 @@ function _minimize_scalar(problem, options, objective, cache)
     optprob = OptimizationProblem(optf, q0, cache; lb, ub, lcons, ucons)
     names = hasproperty(problem, :parameter_names) ? problem.parameter_names : nothing
     free_names = names === nothing ? ["p$i" for i in free] : names[free]
-    answer = solve_fit(solver, optprob; maxiters=options.maxiters, tol=options.tol,
+    answer = solve_fit(solver, optprob; maxiters, tol=options.tol,
                        parameter_indices=free, parameter_count=length(problem.p0),
                        parameter_names=free_names)
     answer isa FitSolverResult || throw(ArgumentError("solve_fit must return a FitSolverResult"))
@@ -232,4 +235,34 @@ function _minimize_scalar(problem, options, objective, cache)
         throw(ArgumentError("solver returned inconsistent free parameter coordinates"))
     all(isfinite, answer.params) || throw(ArgumentError("solver returned non-finite parameters"))
     return answer
+end
+
+# A restart is allowed only when an adapter can account for its used budget.
+_remaining_solver_budget(solver, answer, budget) = 0
+
+"""Validate scalar fit results before accepting them; retry at most once within budget."""
+function _fit_scalar_candidate(problem, options)
+    answer = _fit_scalar_problem(problem, options)
+    result = _build_scalar_result(problem, options, answer)
+    remaining = _remaining_solver_budget(_scalar_solver(problem, options), answer, options.maxiters)
+    if !result.converged && remaining > 0
+        restart = _with_p0(problem, result.params)
+        refined = try
+            refined_answer = _fit_scalar_problem(restart, options; maxiters=remaining)
+            _build_scalar_result(problem, options, refined_answer)
+        catch err
+            err isa InterruptException && rethrow()
+            push!(result.diagnostics.findings, _finding(:warning, :optimizer_restart_failed,
+                "Optimizer restart failed", sprint(showerror, err),
+                "The first, non-converged result was retained. Inspect the stopping reason and model support."))
+            return result
+        end
+        selected = _prefer_fit(refined, result) ? refined : result
+        push!(selected.diagnostics.findings, _finding(:info, :optimizer_restarted,
+            "Optimizer restarted from its returned point",
+            "The first attempt failed convergence validation; one restart had a remaining budget of $remaining function calls.",
+            "No settings were changed. Inspect the final convergence status and diagnostics."))
+        return selected
+    end
+    return result
 end

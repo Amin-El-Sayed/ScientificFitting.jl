@@ -112,7 +112,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     return params, converged, iterations, message, Matrix{Float64}(fit_result.jacobian)
 end
 
-function _fit_with_optimization(problem::FitProblem, options::FitOptions)
+function _fit_scalar_problem(problem::FitProblem, options::FitOptions; maxiters=options.maxiters)
     if _static_effective_covariance_available(problem)
         cov = _effective_covariance(problem, problem.p0)
         # Finite differences perturb Float64 parameters outside the sparse solve.
@@ -129,7 +129,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     # unseen models can invert the tag order of their nested x derivatives.
     objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)
 
-    return _minimize_scalar(problem, options, objective, cache)
+    return _minimize_scalar(problem, options, objective, cache; maxiters)
 end
 
 function _build_fit_result(
@@ -196,6 +196,18 @@ function _build_fit_result(
     end
     diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=chi2)
 
+    # Validate scalar solvers with fresh fit geometry, not only their success flag.
+    scale = _resolve_cost(problem, options.cost) == :chi2 &&
+            _should_scale_covariance(problem, options.scale_covariance) ? chi2 / ndf : 1.0
+    stationarity = converged && solver_result !== nothing && isfinite(scale) && scale > 0 ?
+        _stationarity_finding(problem, options, params, cov ./ scale, cost_min,
+            q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)) : nothing
+    _record_stationarity!(diagnostics, stationarity)
+    if stationarity !== nothing
+        converged = false
+        message *= "; " * stationarity.evidence
+    end
+
     return FitResult(
         problem,
         options,
@@ -215,6 +227,12 @@ function _build_fit_result(
         diagnostics,
         solver_result,
     )
+end
+
+function _build_scalar_result(problem::FitProblem, options, answer)
+    params = _expand_free_parameters(problem, answer.params)
+    return _build_fit_result(problem, options, answer.backend, params, answer.converged,
+                            answer.iterations, answer.message, nothing, answer)
 end
 
 """Prefer convergence first, then the lowest finite cost within that status."""
@@ -300,10 +318,7 @@ function fit(
                     _build_fit_result(candidate_problem, options, :lsqfit, params,
                                       converged, iterations, message, jacobian)
                 elseif chosen_backend == :optimization
-                    answer = _fit_with_optimization(candidate_problem, options)
-                    params = _expand_free_parameters(candidate_problem, answer.params)
-                    _build_fit_result(candidate_problem, options, answer.backend, params,
-                                      answer.converged, answer.iterations, answer.message, nothing, answer)
+                    _fit_scalar_candidate(candidate_problem, options)
                 else
                     throw(ArgumentError("unsupported backend: $chosen_backend (use :auto, :lsqfit, or :optimization)"))
                 end

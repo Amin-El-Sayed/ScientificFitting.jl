@@ -169,11 +169,11 @@ function _likelihood_gof(cache::LikelihoodEvaluationCache, p::AbstractVector)
     )
 end
 
-function _fit_likelihood_problem(problem::LikelihoodFitProblem, options::FitOptions)
+function _fit_scalar_problem(problem::LikelihoodFitProblem, options::FitOptions; maxiters=options.maxiters)
     cache = _prepare_likelihood_cache(problem)
     # Retain the objective type in its AD tag, just as for Gaussian fits.
     objective = (q, cache) -> _likelihood_cost(cache, _expand_free_parameters(problem, q))
-    return _minimize_scalar(problem, options, objective, cache)
+    return _minimize_scalar(problem, options, objective, cache; maxiters)
 end
 
 """Compute local curvature once, or retain explicit missing free-parameter errors."""
@@ -217,9 +217,23 @@ function _build_likelihood_result(
     diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf;
         hessian, gof, covariance_computed=options.parameter_covariance != :none)
 
+    stationarity = converged ? _stationarity_finding(problem, options, params, cov, cost_min,
+        q -> _likelihood_cost(cache, _expand_free_parameters(problem, q))) : nothing
+    _record_stationarity!(diagnostics, stationarity)
+    if stationarity !== nothing
+        converged = false
+        message *= "; " * stationarity.evidence
+    end
+
     backend = solver_result === nothing ? :optimization : solver_result.backend
     return LikelihoodFitResult(problem, options, backend, converged, iterations, message,
                                params, stderr, cov, corr, stats, diagnostics, solver_result)
+end
+
+function _build_scalar_result(problem::LikelihoodFitProblem, options, answer)
+    params = _expand_free_parameters(problem, answer.params)
+    return _build_likelihood_result(problem, options, params, answer.converged,
+                                   answer.iterations, answer.message, answer)
 end
 
 """
@@ -315,10 +329,7 @@ function fit(
                 params = _expand_free_parameters(candidate_problem, Float64[])
                 _build_likelihood_result(candidate_problem, options, params, true, 0, "All parameters fixed")
             else
-                answer = _fit_likelihood_problem(candidate_problem, options)
-                params = _expand_free_parameters(candidate_problem, answer.params)
-                _build_likelihood_result(candidate_problem, options, params, answer.converged,
-                                         answer.iterations, answer.message, answer)
+                _fit_scalar_candidate(candidate_problem, options)
             end
             _prefer_fit(result, best_result) && (best_result = result)
         catch err

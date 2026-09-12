@@ -8,6 +8,95 @@ struct RecordingFitSolver{S} <: AbstractFitSolver
     dimensions::Vector{Int}
     tolerances::Vector{Float64}
 end
+
+# Model an adapter that reports success too early, independently of any package.
+struct PrematureFitSolver <: AbstractFitSolver
+    recovery::Symbol
+    budgets::Vector{Int}
+    tolerances::Vector{Float64}
+end
+ScientificFitting.solver_capabilities(::PrematureFitSolver) =
+    (; bounds=true, constraints=false, gradient=true, hessian=false)
+ScientificFitting._remaining_solver_budget(::PrematureFitSolver, answer, budget) =
+    max(0, budget - answer.raw.calls)
+function ScientificFitting.solve_fit(s::PrematureFitSolver, problem; maxiters, tol,
+                                      parameter_indices, kwargs...)
+    push!(s.budgets, maxiters)
+    push!(s.tolerances, tol)
+    length(s.budgets) > 1 && s.recovery == :error && error("test restart failure")
+    q = s.recovery == :success && length(s.budgets) > 1 ? fill(2., length(problem.u0)) : copy(problem.u0)
+    return FitSolverResult(q; backend=:test, converged=true, message="reported success",
+                           parameter_indices, raw=(calls=3,))
+end
+
+@testset "Independent stationarity and one budgeted restart" begin
+    for gaussian in (false, true), recover in (false, true)
+        solver = PrematureFitSolver(recover ? :success : :stalled, Int[], Float64[])
+        r = if gaussian
+            fit_model((x,p) -> fill(p[1], length(x)), [1.,2.,3.], [2.,2.,2.];
+                p0=[0.], sigma_y=ones(3), solver, maxiters=20, tol=1e-8)
+        else
+            fit_custom(p -> (p[1]-2)^2; p0=[0.], nobs=10, solver,
+                maxiters=20, tol=1e-8)
+        end
+        @test r.converged == recover
+        @test solver.budgets == [20, 17]
+        @test solver.tolerances == [1e-8, 1e-8]
+        @test r.options.maxiters == 20
+        @test r.solver_result.converged # Keep the original backend claim inspectable.
+        code = recover ? :optimizer_restarted : :not_stationary
+        @test any(f -> f.code == code, r.diagnostics.findings)
+        if recover
+            @test r.params == [2.]
+        else
+            @test occursin("Fresh-curvature EDM", r.message)
+        end
+    end
+
+    solver = PrematureFitSolver(:success, Int[], Float64[])
+    r = fit_custom(p -> (p[1]-2)^2; p0=[0.], nobs=10, solver, maxiters=3)
+    @test !r.converged
+    @test solver.budgets == [3] # Never manufacture a fresh full budget.
+
+    # The gradient need not vanish at a constrained optimum.
+    solver = PrematureFitSolver(:stalled, Int[], Float64[])
+    bound = fit_custom(p -> (p[1]-2)^2; p0=[1.], nobs=10,
+        bounds=([0.], [1.]), solver)
+    @test bound.converged
+    @test solver.budgets == [1000]
+    @test any(f -> f.code == :active_bounds, bound.diagnostics.findings)
+
+    # Rescaling physical coordinates must not hide a displaced solution.
+    for unit in (1e-6, 1., 1e6)
+        solver = PrematureFitSolver(:stalled, Int[], Float64[])
+        r = fit_custom(p -> (p[1]/unit-2)^2; p0=[0.], nobs=10, solver)
+        @test !r.converged
+        @test any(f -> f.code == :not_stationary, r.diagnostics.findings)
+    end
+
+    solver = PrematureFitSolver(:error, Int[], Float64[])
+    stopped = fit_custom(p -> (p[1]-2)^2; p0=[0.], nobs=10, solver)
+    @test !stopped.converged
+    @test stopped.params == [0.]
+    @test any(f -> f.code == :optimizer_restart_failed &&
+              occursin("test restart failure", f.evidence), stopped.diagnostics.findings)
+
+    # NativeMinuit's acceptance limit is 10 times its nominal EDM goal.
+    options = FitOptions(solver=NativeMinuitSolver(), tol=1e-3)
+    for (edm, rejected) in ((2.2e-6, false), (2.2e-5, true))
+        finding = ScientificFitting._stationarity_finding(stopped.problem, options,
+            [2+sqrt(edm)], ones(1,1), edm, q -> (q[1]-2)^2)
+        @test (finding !== nothing) == rejected
+    end
+
+    solver = PrematureFitSolver(:stalled, Int[], Float64[])
+    base = fit_custom(p -> p[1]^2 + (p[2]-p[1]-2)^2; p0=[0.,2.], nobs=10, solver)
+    @test base.converged
+    scan = profile(base, 1; values=[-1., 0., 1.])
+    @test isinf(scan.delta_cost[1]) && isinf(scan.delta_cost[3])
+    @test scan.delta_cost[2] == 0
+    @test_throws ErrorException profile(base, 1; values=[-1.,0.,1.], on_failure=:throw)
+end
 ScientificFitting.solver_capabilities(s::RecordingFitSolver) = solver_capabilities(s.inner)
 ScientificFitting.default_fit_tolerance(::RecordingFitSolver, ::Symbol) = 3e-9
 function ScientificFitting.solve_fit(s::RecordingFitSolver, problem; kwargs...)

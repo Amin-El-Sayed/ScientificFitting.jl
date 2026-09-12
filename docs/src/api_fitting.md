@@ -245,10 +245,22 @@ parameter terms, but rejects nonlinear equality/inequality constraints.
 
 `steps` contains numerical initial step sizes in **full parameter order**, not
 measurement uncertainties. `tol` is Minuit's EDM tolerance, defaulting to `0.1`;
-`maxiters` is its function-call budget. A single MIGRAD pass runs per multistart
-candidate; the adapter does not hide additional retries. Other native constructor options,
+`maxiters` is its requested MIGRAD function-call budget, not a hard limit on
+all SF evaluations (gradient/covariance checks are additional). A failed or independently rejected
+attempt may restart once from the returned point, using only the remaining
+budget. The tolerance and strategy stay unchanged; diagnostics record the restart.
+Other native constructor options,
 such as `strategy=2`, are retained by profile refits. No solver setting changes
 the objective's ``\chi^2``/``-2\log L`` scale (`errordef=1`).
+
+For smooth interior fits with positive local covariance, SF also checks
+``g^{\mathsf T}\operatorname{Cov}(\hat p)g/4``: the estimated remaining cost
+decrease using a fresh gradient and SF's curvature, not the solver's iterative
+approximation. It follows Minuit's acceptance limit, ten times the nominal
+EDM goal ``0.002\,\mathrm{tol}``. A failed check sets `converged=false` and
+reports `not_stationary`.
+This check does not establish a global minimum and is not applied at active
+bounds, with nonlinear constraints, or without usable local curvature.
 
 `result.solver_result.raw` exposes the native solver result. For NativeMinuit,
 this is the `Minuit` object for native HESSE/MINOS/contour operations. Its vector

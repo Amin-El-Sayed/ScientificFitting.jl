@@ -182,6 +182,43 @@ function _local_covariance_validity_findings(cov::AbstractMatrix)
     ]
 end
 
+"""
+Check a smooth interior solution against independently computed local curvature.
+
+For a cost on the chi-square/-2logL scale, `Cov = 2 inv(H)`, so the
+quadratic estimate of remaining cost decrease is `g' * Cov * g / 4`.
+Least-squares fits use their Gauss-Newton approximation to this curvature.
+This is a stationarity check, not a global-minimum guarantee. Active bounds,
+nonlinear constraints and unavailable/nonpositive curvature need other tests.
+"""
+function _stationarity_finding(problem, options, params, cov, cost, objective)
+    free = _free_indices(problem)
+    isempty(free) && return nothing
+    has_constraints(problem.constraints) && return nothing
+    isempty(intersect(free, _active_bound_indices(problem.bounds, params))) || return nothing
+    local_cov = Symmetric(cov[free, free])
+    all(isfinite, local_cov) && isposdef(local_cov) || return nothing
+    gradient = DifferentiationInterface.gradient(objective, _optimization_ad(problem), params[free])
+    edm = dot(gradient, local_cov * gradient) / 4
+    # MIGRAD accepts up to 10 times its nominal EDM goal (0.002 * tol).
+    # Match that verdict, rather than rejecting valid near-tolerance solutions.
+    requested = options.solver isa NativeMinuitSolver ? 0.02options.tol :
+                options.tol * max(abs(cost), 1.0)
+    limit = max(requested, 64eps(Float64) * max(abs(cost), 1.0))
+    isfinite(edm) && edm <= limit && return nothing
+    return _finding(:critical, :not_stationary, "Returned point is not stationary",
+        "Fresh-curvature EDM = $(_fmt_scientific(edm)); numerical limit = $(_fmt_scientific(limit)). The backend convergence flag was rejected.",
+        "Inspect parameter scaling and the model derivatives, or try another starting point/solver. Do not interpret this point as a profile minimum.")
+end
+
+"""Keep the numerical rejection visible without claiming the backend itself failed."""
+function _record_stationarity!(diagnostics, finding)
+    finding === nothing && return nothing
+    push!(diagnostics.findings, finding)
+    push!(diagnostics.warnings, "returned point failed the independent stationarity check")
+    return nothing
+end
+
 function _fit_diagnostics(problem, params::AbstractVector, cov::AbstractMatrix, converged::Bool, ndf::Int;
                           hessian=nothing, gof=nothing, covariance_computed::Bool=true)
     # Fixed coordinates have zero variance by construction, not a degeneracy.
