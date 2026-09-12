@@ -14,7 +14,6 @@ const GALLERY_PAGES = [
     "poisson_histogram.md",
     "multi_dataset.md",
     "lhcb_mass_spectrum.md",
-    "cms_dimuon.md",
 ]
 
 function read_gallery_page(name)

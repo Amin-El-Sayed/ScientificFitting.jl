@@ -4,11 +4,11 @@ Fit distribution objects, attach named parameters, and select a solver.
 The [LHCb mass spectrum](gallery/lhcb_mass_spectrum.md) combines these interfaces
 on collision data.
 
-!!! note "v0.3 development API"
+!!! note "Julia interfaces (v0.3+)"
     The distribution-object, BuildConstructors and NativeMinuit adapters below
-    are on the development branch, not in v0.2. Optional packages must be loaded
-    to activate their extensions. The [Python API](python.md) retains NumPy
-    callbacks; it does not yet wrap these Julia-specific objects.
+    require ScientificFitting 0.3 or later. Load optional packages to activate
+    their extensions. The [Python API](python.md) uses NumPy callbacks and
+    Matplotlib; it does not wrap these Julia-specific objects.
 
 ## Probability Models
 
@@ -183,7 +183,7 @@ comparison = profile(optim, 1; values=scan.values, on_failure=:throw) # hide
 
 `model(x)` evaluates the fitted intensity; `MixtureModel(model)` gives the
 normalized distribution. Reconstruction and plotting do not refit.
-`update!(constructor, values)` explicitly replaces constructor starts if wanted.
+`BuildConstructors.update!(constructor, values)` explicitly replaces constructor starts if wanted.
 
 Profile crossings at ``\Delta(-2\log L)=1`` have an approximate one-parameter
 68.3% interpretation under regular likelihood assumptions. A boundary or an
@@ -213,6 +213,62 @@ end
 <img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="interface-profile" data-scientificfitting-plot-style="tex" src="interface_profile_tex_dark.svg" alt="Refitted component-location profile compared with the local covariance parabola, dark tex style">
 ```
 
+## Posterior Inference
+
+[Turing's external-likelihood interface](https://turinglang.org/docs/usage/external-likelihoods/index.html)
+can reuse an SF data likelihood directly. No extension is needed. Here eight
+illustrative counts have equal exposures: ``n_i\sim\operatorname{Poisson}(r)``.
+The prior ``r\sim\operatorname{Gamma}(2,3)`` uses **shape and scale**. The exact
+posterior is ``\operatorname{Gamma}(2+\sum_i n_i,\;[1/3+8]^{-1})``.
+
+Install `Turing` and `FlexiChains` for this example, tested with Turing 0.48.
+NUTS requires a differentiable log likelihood in the chosen parameterization.
+
+```@example posterior
+using ScientificFitting, Distributions, Turing, Random, Statistics, Printf
+using FlexiChains: rhat, ess, Extra
+
+counts = [0, 3, 1, 4, 2, 5, 0, 2]
+mle = fit_distribution(p -> Poisson(p[1]), counts;
+    p0=[2.], bounds=([0.], [Inf]))
+data_cost = mle.problem.objective  # normalized -2log(L), without SF parameter terms
+
+@model function rate_posterior(data_cost)
+    rate ~ Gamma(2., 3.)  # specify the prior once, here
+    @addlogprob! -data_cost([rate])/2
+end
+
+posterior = rate_posterior(data_cost)
+chain = sample(Xoshiro(20260912), posterior, NUTS(500, .85; adtype=AutoForwardDiff()),
+    MCMCSerial(), 2000, 4; progress=false, verbose=false)
+draws = chain[@varname(rate)]  # Turing 0.48 returns a FlexiChains chain
+exact = Gamma(2 + sum(counts), inv(1/3 + length(counts)))
+@printf("Maximum likelihood: %.3f\n", only(mle.params))
+@printf("Posterior mean / sd: sampled %.3f / %.3f; exact %.3f / %.3f\n",
+    mean(draws), std(draws), mean(exact), std(exact))
+@printf("R-hat: %.4f; bulk ESS: %.0f; divergent transitions: %d\n",
+    rhat(chain)[@varname(rate)], ess(chain)[@varname(rate)],
+    count(chain[Extra(:numerical_error)]))
+@assert mle.converged # hide
+@assert rhat(chain)[@varname(rate)] < 1.01 # hide
+@assert ess(chain)[@varname(rate)] > 1000 # hide
+@assert !any(chain[Extra(:numerical_error)]) # hide
+@assert isapprox(mean(draws), mean(exact); atol=.05) # hide
+```
+
+The posterior mean differs from the maximum-likelihood estimate because it
+includes the prior. Monte Carlo values vary; ``\widehat R`` compares chains and
+ESS estimates their effective sample size. These diagnose sampling, not whether
+the Poisson model describes the experiment.
+
+`LikelihoodFitResult.problem.objective` does **not** transfer SF bounds, fixed parameters or auxiliary
+parameter terms. Define the corresponding support and any auxiliary observations
+explicitly in Turing; its Gamma transform keeps `rate` positive here. Do not
+reuse a penalized cost as data, count a prior twice, or interpret a custom loss
+as a log likelihood without checking its scale and normalization. Posterior
+credible intervals are not profile confidence intervals; Turing returns its
+own chains rather than an SF fit result.
+
 ## Related Workflows
 
 These packages offer different modeling workflows, not interchangeable minimizers:
@@ -221,9 +277,8 @@ These packages offer different modeling workflows, not interchangeable minimizer
 |:---|:---|
 | [RooFit](https://root.cern.ch/manual/roofit/) / [RooFitLite.jl](https://github.com/JuliaHEP/RooFitLite.jl) | Compositional probability modeling in ROOT / a RooFit-style Julia interface. ScientificFitting does not convert their model graphs. A custom likelihood callback is possible if you supply a compatible scalar objective; that is not a native adapter. |
 | [GLM.jl](https://juliastats.org/GLM.jl/stable/) | Linear/generalized linear models with formulas, tables and link functions. |
-| [Turing.jl](https://turinglang.org/docs/) | Probabilistic models and posterior inference. Posterior credible intervals and profile confidence intervals answer different questions; a posterior sampler is not a drop-in fitting backend. |
+| [Turing.jl](https://turinglang.org/docs/) | Probabilistic models and posterior inference. Reuse a data likelihood as above; a posterior sampler is not a drop-in minimizer. |
 
 Custom density and objective callbacks remain available alongside the adapters.
-When transferring a likelihood to a probabilistic model, do not include the same
-prior twice. For kafe2's influence and software attribution, see
+For kafe2's influence and software attribution, see
 [Citation and License](citation.md).

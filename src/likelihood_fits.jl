@@ -7,6 +7,11 @@ chi-square-like data goodness-of-fit statistic for reduced statistics and
 p-values. ScientificFitting adds the chi-square contributions from Gaussian parameter
 terms to that statistic, matching their treatment as auxiliary observations in
 the degrees of freedom.
+The stored `objective` is the original callback: it does not add SF parameter
+terms or enforce bounds, fixed values or nonlinear constraints. For a normalized
+data `-2log(L)` callback, `-objective(p)/2` is therefore the data log likelihood;
+external posterior models must supply priors and parameter support themselves.
+An arbitrary custom objective need not have this likelihood interpretation.
 Nonlinear constraint callbacks receive the same complete `p` vector, including
 fixed parameters; ScientificFitting handles the reduced optimizer coordinates
 internally.

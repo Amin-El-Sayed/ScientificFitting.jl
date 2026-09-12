@@ -173,13 +173,6 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 ```
 
-### Collision Data
-
-- [LHCb mass spectrum](gallery/lhcb_mass_spectrum.md): reconstruct a selected
-  B-decay yield with DistributionsHEP, BuildConstructors and NativeMinuit.
-- [CMS dimuon model checks](gallery/cms_dimuon.md): 2.55 million candidates,
-  background and resolution sensitivity, and residual model discrepancies.
-
 Need help judging a result? Continue with [Fitting for Practitioners](@ref).
 For derivations, use [Statistical Foundations](@ref); for exact signatures and
 defaults, use the [API Reference](@ref).

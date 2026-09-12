@@ -7,9 +7,8 @@ that minimum version. Documentation rendering stays pinned to Julia 1.12.
 
 For Python, see [Python Interface](python.md).
 
-!!! note "Early release"
-    Version 0.2 is an early work-in-progress release. Please report unexpected
-    behavior with a minimal reproducer and the complete diagnostic output.
+For bug reports, include a minimal example, package versions and the complete
+diagnostic output.
 
 ## Install The Julia Package
 

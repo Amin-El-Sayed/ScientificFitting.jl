@@ -10,7 +10,7 @@ python -m pip install scipy
 ```
 
 Omit `[plot]` for fitting and reports only. JuliaCall provisions Julia and the
-compatible 0.2.x core on first use, with network access and compilation.
+compatible 0.3.x core on first use, with network access and compilation.
 This does **not** remove the Julia runtime's size or startup cost.
 Importing `scientificfitting` alone does not start Julia.
 

@@ -37,7 +37,7 @@ ScientificFittingNativeMinuitExt = "NativeMinuit"
 [compat]
 ADTypes = "1.21"
 BuildConstructors = "0.8.1"
-CairoMakie = "0.13"
+CairoMakie = "0.13, 0.15.14"
 DifferentiationInterface = "0.7"
 FiniteDiff = "2"
 Distributions = "0.25"

@@ -374,55 +374,26 @@ every documented workflow. It compares the displayed output with both the
 page's code cells and the example generator; only solver iteration counts are
 normalized across solver/platform versions.
 
-## [v0.3 Ecosystem Integration](@id v03-ecosystem)
+## [Ecosystem Integrations](@id v03-ecosystem)
 
-**Release scope.** v0.2 provides custom measurement
-likelihoods and the published [Python interface](python.md). v0.3 must make
-existing Julia model and solver packages convenient to compose while retaining
-one statistical contract. [Packages and Interfaces](interfaces.md)
-describes their roles; the following items are required before v0.3 is complete.
-The development branch implements the three adapters below. Analytic references
-cover normalization, gradients, Hessians, mixture boundaries, parameter controls
-and nuisance refits. A named extended model agrees between Optim and NativeMinuit;
-the [throughput probe](performance.md#Ecosystem-Throughput-Probe) measures both
-paths at matched accuracy. Distribution construction and normalization happen
+[Packages and Interfaces](interfaces.md) contains executable examples of
+distribution fitting, named model construction, interchangeable solvers and
+posterior inference. The [Python interface](python.md) keeps NumPy callbacks
+and Matplotlib plots; it does not wrap Julia constructor or solver objects.
+
+| Interface | Contract | Focused reference tests |
+|:---|:---|:---|
+| Distribution objects | Reuse upstream `logpdf`/`pdf`/`cdf`; continuous, discrete and joint observations, binned and extended likelihoods | `test/extensions/distribution_ecosystem.jl`, `composite_distributions.jl` |
+| BuildConstructors | Preserve names, starts, bounds, fixed/shared parameters and reconstruction; independent of Minuit | `test/extensions/buildconstructors.jl` |
+| NativeMinuit / Optimization | Same statistical objective, parameter controls and nuisance refits; explicit solver capabilities | `test/extensions/native_minuit.jl`, `model_composition.jl` |
+
+Analytic references cover normalization, gradients, Hessians, mixture
+boundaries and nuisance refits. A named extended model agrees between Optim
+and NativeMinuit; the [throughput probe](performance.md#Ecosystem-Throughput-Probe)
+compares both paths at matched accuracy. Construction and normalization happen
 once per objective evaluation; heterogeneous event mixtures use bounded batches.
-The interface guide fits an illustrative histogram; the Gallery documents
-the collision-data source and selection separately.
 
-Release preparation also requires the real-data Gallery example below and a
-review of the locally built documentation before publication. Core and Python
-package versions move together; Python retains its NumPy/Matplotlib interface.
-
-### Required Integrations
-
-- [x] **Distribution objects and constructors.** Accept Distributions-compatible
-  objects as fixed error models and explicit parameterized constructors for
-  fitted distributions. Use upstream `logpdf`/`pdf`/`cdf` methods rather than
-  duplicating distributions. Test Distributions, NumericalDistributions, and
-  DistributionsHEP, including continuous and discrete observations, multivariate
-  events with an explicit observation axis, and extended mixtures. Document
-  supported interfaces and retain user-defined log-density/objective callbacks.
-- [x] **Selectable solvers.** Replace the closed symbol-only selection with a
-  documented extension contract, reusing Optimization.jl's algorithm objects
-  and options where applicable. NativeMinuit is the reference new backend,
-  selectable through an official optional extension. Keep the existing LsqFit,
-  Optim, and bounded derivative-free paths; no wholesale backend replacement.
-- [x] **Independent model construction.** Provide an official optional
-  BuildConstructors extension using its public metadata and `build_model` APIs.
-  Preserve names, starts, bounds, fixed/free state, and validated shared
-  parameters through fitting and result reconstruction. It must work with
-  NativeMinuit and other compatible solvers, without depending on NativeMinuit.
-  Simple callable models remain the default; no new mandatory modeling language.
-- [ ] **Documented composition.** Provide executable examples combining an
-  upstream distribution, named model construction, two interchangeable solvers,
-  and the same reports/profiles/plots. Keep Python callbacks and result semantics
-  working; document which Julia-specific integrations the Python API exposes.
-  Separate current support, optional dependencies, and unsupported capabilities.
-  Organize the technical guide by probability models, model construction and
-  minimizers, not application domain. Real-data applications belong in the Gallery.
-
-### Real-Data Gallery Release Requirement
+### Real-Data Reference
 
 The [LHCb three-hadron B-decay data](https://opendata.cern.ch/record/4900)
 supply the [mass-spectrum example](gallery/lhcb_mass_spectrum.md): 3,420,295
@@ -463,19 +434,6 @@ regressions cover values, gradients and Hessians; a DistributionsHEP tail case
 reproduces the original CDF-roundoff failure. Upstream normalization routines
 remain responsible for the derivatives of their own probability objects.
 
-The [CMS dimuon study](gallery/cms_dimuon.md) retains 2,551,454 masses from
-61,540,413 source events. Checksum-verified preparation exports a 300-bin CSV
-whose disjoint muon-angle groups sum exactly to the inclusive histogram.
-The documentation executes three mass-model fits and three group refits,
-checks their minima and bin expectations, and renders the actual residuals.
-Explicit multistart checks address a poor boundary solution returned by a
-single MIGRAD start; its invalid covariance is reported, not suppressed.
-A quadratic-background control and an additional resolution component improve
-deviance from 791.3/291 to 417.4/288, but all models remain inadequate. The
-yield sensitivity is larger than local statistical errors; this is documented
-as model validation, not a completed CMS measurement. The full individual-event
-baseline also converges; numerical repairs do not erase model discrepancies.
-
 The example uses upper-only truncation of an exponential's natural support.
 Distributions 0.25.131's redundant lower bound at zero produces undefined AD
 derivatives in its log normalizer; finite differences give the same optimum,
@@ -485,7 +443,6 @@ when required, Hessians before entering the optimizer. The error identifies
 the derivative failure and the explicit finite-difference option; it never
 silently changes differentiation policy. This preflight does not prove derivative
 correctness throughout the parameter domain. No upstream types are patched.
-User review of the rendered documentation remains required before publication.
 
 ### Shared Contract
 
@@ -519,25 +476,23 @@ User review of the rendered documentation remains required before publication.
    derivative mode where appropriate; never cache a normalization across changed
    parameters or claim smoothness for an arbitrary interpolated density.
 
-### Solver Checks And Completion Evidence
+### Solver And Posterior Checks
 
-Validate the contract first with LsqFit, Optim through Optimization.jl, bounded
-NLopt Nelder-Mead, and NativeMinuit. They exercise residual, scalar-gradient,
-nonlinear-constrained, derivative-free, and profile-based error-analysis paths.
-[NonlinearSolve's least-squares methods](https://docs.sciml.ai/NonlinearSolve/stable/solvers/nonlinear_least_squares_solvers/)
-are the next Julia-native adapter candidate; assess them without making a second
-large solver dependency mandatory. Minuit2 is a useful independent C++ reference;
-[Ipopt through Optimization.jl](https://docs.sciml.ai/Optimization/stable/optimization_packages/ipopt/)
-is an additional general-constraint check, not a required v0.3 dependency.
-GLM, Turing, and RooFitLite remain related workflows, not promised drop-in solvers.
+The solver contract is exercised with LsqFit, Optim through Optimization.jl,
+bounded NLopt Nelder-Mead, and NativeMinuit. The tests cover residual,
+scalar-gradient, nonlinear-constrained, derivative-free and profile-refit
+paths. C++ Minuit2 provides an independent likelihood-fit reference.
 
 Turing is a complementary posterior-inference workflow, not a MIGRAD substitute.
 Its [external-likelihood interface](https://turinglang.org/docs/usage/external-likelihoods/index.html)
-can reuse a data log likelihood through `@addlogprob!`. A future bridge should
-expose that data term explicitly, leaving priors to Turing to avoid counting
-ScientificFitting parameter terms twice. Posterior credible intervals and
-profile confidence intervals must remain distinct. HEP model construction and
-solver integration take priority; v0.3 does not promise a posterior sampler.
+reuses `-problem.objective(p)/2` for an explicitly normalized data likelihood.
+The [executed example](interfaces.md#Posterior-Inference) specifies priors and
+support in Turing, without copying SF parameter terms or constraints. A
+Gamma-Poisson reference checks data/prior separation, values, gradients and
+Hessians, including an SF fit with an auxiliary parameter term. Four NUTS chains
+are checked against the analytic posterior and Turing's chain diagnostics.
+There is no Turing dependency or sampler wrapper in the core; posterior credible
+intervals and profile confidence intervals retain their different meanings.
 
 Each required adapter needs analytic or independent parameter/objective/error
 references, a constraint/failure case, profile-refit parity, and executable
@@ -547,9 +502,8 @@ adapter overhead against direct upstream calls with the same objective and
 accuracy, separating startup, warm fitting, and uncertainty analysis. Extend
 existing targeted tests rather than duplicating a benchmark framework.
 
-Optional integrations must leave the core usable on its supported Julia
-versions. [NativeMinuit 0.7.2](https://github.com/fkguo/NativeMinuit.jl/blob/main/Project.toml)
-requires Julia 1.11 and declares LGPL-2.1-or-later; document these requirements
-for its extension rather than silently changing the core's Julia 1.10 support
-or copying upstream code. Review final API names and the support matrix before
-marking these release requirements complete.
+The core supports Julia 1.10. The optional
+[NativeMinuit 0.7.2](https://github.com/fkguo/NativeMinuit.jl/blob/main/Project.toml)
+requires Julia 1.11 and declares LGPL-2.1-or-later. The Turing 0.48 reference
+runs on Julia 1.12. Plot tests cover CairoMakie 0.13 and 0.15.14+; the newer
+line permits coexistence with Turing's current chain-plotting dependencies.

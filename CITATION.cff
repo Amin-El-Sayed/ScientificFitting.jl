@@ -5,8 +5,7 @@ title: "ScientificFitting"
 authors:
   - family-names: "El Sayed"
     given-names: "Amin"
-version: "0.2.0"
-date-released: 2026-09-08
+version: "0.3.0"
 repository-code: "https://github.com/Amin-El-Sayed/ScientificFitting.jl"
 url: "https://amin-el-sayed.github.io/ScientificFitting.jl/"
 license: MIT

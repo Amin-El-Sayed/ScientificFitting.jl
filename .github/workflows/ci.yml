@@ -53,6 +53,8 @@ jobs:
           deps = [PackageSpec(name=name) for name in
             ["BuildConstructors", "Distributions", "DistributionsHEP", "NumericalDistributions", "ForwardDiff"]];
           VERSION >= v"1.11" && push!(deps, PackageSpec(name="NativeMinuit", version="0.7.2"));
+          VERSION >= v"1.12" && append!(deps,
+            [PackageSpec(name="Turing", version="0.48"), PackageSpec(name="FlexiChains", version="0.6")]);
           Pkg.add(deps);
           include("test/extensions/distribution_ecosystem.jl");
           include("test/extensions/composite_distributions.jl");
@@ -60,25 +62,30 @@ jobs:
           if VERSION >= v"1.11";
             include("test/extensions/native_minuit.jl");
             include("test/extensions/model_composition.jl");
-          end'
+          end;
+          VERSION >= v"1.12" && include("test/extensions/turing_likelihood.jl")'
 
   package:
-    name: Full package test - Julia ${{ matrix.version }} - ubuntu
+    name: Package test - Julia ${{ matrix.version }} - CairoMakie ${{ matrix.cairo }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        version: ["1.10", "1"]
+        include:
+          - version: "1.10"
+            cairo: "0.13"
+          - version: "1"
+            cairo: "0.15.14"
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
-      - name: Instantiate
-        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+      - name: Install the supported plotting version
+        run: julia --project=. -e 'using Pkg; Pkg.add(PackageSpec(name="CairoMakie", version="${{ matrix.cairo }}"))'
       - name: Pkg.test
-        run: julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'
+        run: julia --project=. --startup-file=no -e 'using Pkg; Pkg.test(; allow_reresolve=false)'
 
   docs:
     name: Documentation, plots, and docs gates

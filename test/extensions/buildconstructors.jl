@@ -36,12 +36,12 @@ BuildConstructors.build_model(c::TestNormalConstructor, pars) =
 
     # Updating the user's constructor must not change an existing fit's objective.
     cost = result.problem.objective(result.params)
-    update!(constructor, (mu=1., sigma=1.2))
+    BuildConstructors.update!(constructor, (mu=1., sigma=1.2))
     @test result.problem.objective(result.params) == cost
     @test params(fitted_model(result)) == Tuple(result.params)
     @test parameter_values(constructor) == (mu=1., sigma=1.2)
 
-    running = TestNormalConstructor(Running("mu"), Fixed(0.5))
+    running = TestNormalConstructor(Running("mu"), BuildConstructors.Fixed(0.5))
     @test_throws ArgumentError fit_distribution(running, data)
     explicit = fit_distribution(running, data; p0=(mu=0.1,))
     @test explicit.params[1] ≈ mean(data) atol=1e-6
@@ -49,7 +49,7 @@ BuildConstructors.build_model(c::TestNormalConstructor, pars) =
     @test_throws ArgumentError fit_distribution(constructor, data; bounds=([-1., 0.1], [1., 2.]))
     @test_throws ArgumentError fit_distribution(constructor, data; p0=(sigma=0.7,))
     @test parameter_values(result) == (mu=result.params[1], sigma=0.5)
-    update!(constructor, parameter_values(result))
+    BuildConstructors.update!(constructor, parameter_values(result))
     @test parameter_values(constructor) == parameter_values(result)
     custom = fit_custom(p -> sum(abs2, p); p0=[1.], nobs=3)
     @test_throws ArgumentError parameter_values(custom)
