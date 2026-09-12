@@ -533,7 +533,7 @@ using Test
     contour_without_legend = plot_contour(contour_result; show_legend=false)
     save(joinpath(mktempdir(), "contour_without_legend.png"), contour_without_legend)
     contour_axis_without_legend = only(filter(content -> content isa Axis, contour_without_legend.content))
-    @test contour_axis.scene.viewport[].widths[1] ==
+    @test contour_axis.scene.viewport[].widths[1] >=
           contour_axis_without_legend.scene.viewport[].widths[1]
 
     contour_right = plot_contour(
@@ -544,7 +544,7 @@ using Test
     )
     save(joinpath(mktempdir(), "contour_right_legend.png"), contour_right)
     contour_right_axis = only(filter(content -> content isa Axis, contour_right.content))
-    @test contour_right_axis.scene.viewport[].widths[1] >= 0.5 * size(contour_right.scene)[1]
+    @test contour_right_axis.scene.viewport[].widths[1] >= 420
     @test plot_contour(contour_result; filename=heatmap_out, format=:png, show_heatmap=true) !== nothing
     profile_result = ProfileResult(1, contour_values, contour_values .^ 2, contour_values .^ 2, 1.0, 0.0)
     profile_out = joinpath(mktempdir(), "profile_legend.png")

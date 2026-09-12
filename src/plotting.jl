@@ -1701,22 +1701,19 @@ function _diagnostic_legend!(
         orientation=:vertical,
         halign=:left,
         valign=:top,
-        tellwidth=false,
-        tellheight=below,
+        tellwidth=true,
+        tellheight=true,
     )
     cell = below ? fig[2, 1] : fig[1, 2]
     legend = Legend(cell, handles, labels; _merged_kwargs(defaults, legend_kwargs)...)
 
-    if below
-        # The legend determines only its own row height. Its longest label must
-        # never determine the width of the scientific data column.
-        rowsize!(fig.layout, 1, Auto(false, 1))
-    else
-        # A requested side legend gets one third of the layout, independent of
-        # label length. This prevents descriptive text from collapsing the axis.
-        colsize!(fig.layout, 1, Auto(false, 2))
-        colsize!(fig.layout, 2, Auto(false, 1))
+    if !below
+        _apply_right_panel_sizing!(fig)
     end
+    # Measure intrinsic content first; then let the data row take spare height.
+    # A long legend can enlarge the canvas, but must never shrink the data axis.
+    resize_plot_to_layout!(fig)
+    rowsize!(fig.layout, 1, Auto(false, 1))
     return legend
 end
 
@@ -1759,6 +1756,8 @@ minimum. Line weights and colors follow `theme`; explicit `line_kwargs`,
 `local_line_kwargs`, and `threshold_kwargs` take precedence. Descriptive
 legends default to a row below the axis so label length cannot shrink the data
 area. Use `legend_position=:right` only when a side legend is preferred.
+With a legend, `figure_size` is a minimum canvas: Makie's layout can enlarge it
+for long labels or custom typography while preserving a minimum data area.
 """
 function plot_profile(
     profile_result::ProfileResult;
@@ -1883,6 +1882,8 @@ the same parameter plane. Non-elliptic profile contours indicate that local
 Gaussian covariance errors are not sufficient. Descriptive legends default to
 a row below the axis so label length cannot shrink the data area. Use
 `legend_position=:right` only when a side legend is preferred.
+With a legend, `figure_size` is a minimum canvas, enlarged by Makie's layout
+when needed to fit the labels without squeezing the data axis.
 """
 function plot_contour(
     contour_result::ContourResult;
