@@ -19,6 +19,7 @@ const PUBLIC_DOC_PAGES = [
     "gallery/poisson_histogram.md",
     "gallery/multi_dataset.md",
     "gallery/lhcb_mass_spectrum.md",
+    "gallery/cms_dimuon.md",
     "fitting_for_practitioners.md",
     "interfaces.md",
     "plotting_design.md",

@@ -85,6 +85,8 @@ The full ROOT file is not downloaded during a documentation build.
 **Scope:** a selected-candidate yield fit with **80 Poisson bins and seven free parameters**. Processing the
 3.4-million-candidate file and fitting the resulting histogram are separate
 computational tasks.
+For an individual-event fit at larger scale and a model that does not pass
+residual checks, see [CMS dimuon model checks](cms_dimuon.md).
 
 ```@setup lhcb
 using ScientificFitting

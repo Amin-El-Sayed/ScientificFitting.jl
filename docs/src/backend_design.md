@@ -386,7 +386,7 @@ cover normalization, gradients, Hessians, mixture boundaries, parameter controls
 and nuisance refits. A named extended model agrees between Optim and NativeMinuit;
 the [throughput probe](performance.md#Ecosystem-Throughput-Probe) measures both
 paths at matched accuracy. Distribution construction and normalization happen
-once per objective evaluation, with temporary event storage linear in sample size.
+once per objective evaluation; heterogeneous event mixtures use bounded batches.
 The interface guide fits an illustrative histogram; the Gallery documents
 the collision-data source and selection separately.
 
@@ -463,13 +463,18 @@ regressions cover values, gradients and Hessians; a DistributionsHEP tail case
 reproduces the original CDF-roundoff failure. Upstream normalization routines
 remain responsible for the derivatives of their own probability objects.
 
-The larger check uses [CMS DoubleMuParked muon data](https://opendata.cern.ch/record/12341),
-prepared by `examples/data/cms_dimuon/prepare.jl`: 61,540,413 source events and
-2,551,454 opposite-charge dimuon masses in `[2.8, 3.4)` GeV. Both the 300-bin
-and full unbinned fits converge after these fixes. The current bifurcated
-Crystal Ball/Das peak plus exponential background still gives a binned deviance
-of 791.3 for 291 degrees of freedom. Resolution and background modeling need
-validation before this can be presented as a successful gallery analysis.
+The [CMS dimuon study](gallery/cms_dimuon.md) retains 2,551,454 masses from
+61,540,413 source events. Checksum-verified preparation exports a 300-bin CSV
+whose disjoint muon-angle groups sum exactly to the inclusive histogram.
+The documentation executes three mass-model fits and three group refits,
+checks their minima and bin expectations, and renders the actual residuals.
+Explicit multistart checks address a poor boundary solution returned by a
+single MIGRAD start; its invalid covariance is reported, not suppressed.
+A quadratic-background control and an additional resolution component improve
+deviance from 791.3/291 to 417.4/288, but all models remain inadequate. The
+yield sensitivity is larger than local statistical errors; this is documented
+as model validation, not a completed CMS measurement. The full individual-event
+baseline also converges; numerical repairs do not erase model discrepancies.
 
 The example uses upper-only truncation of an exponential's natural support.
 Distributions 0.25.131's redundant lower bound at zero produces undefined AD
