@@ -89,6 +89,8 @@ end
             @test !occursin("placeholder prose", lowercase(text))
             @test !occursin("being rewritten", text)
             @test !occursin("not all of them are finished", text)
+            # A gallery cell must not depend on an unexplained local helper file.
+            @test !occursin(r"(?m)^\s*include\(", text)
 
             sources = image_sources(text)
             @test !isempty(sources)
