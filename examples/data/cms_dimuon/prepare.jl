@@ -74,7 +74,7 @@ end
 
 Export 300 equal mass bins and three disjoint max(abs(muon_eta)) groups:
 [0, 0.9), [0.9, 1.4), [1.4, Inf). No candidates are discarded by grouping.
-The CSV is the compact, reproducible input used by the documentation build.
+The CSV is a compact, reproducible input for the exploratory model comparisons.
 """
 function write_cms_histogram(path, data)
     edges = collect(range(2.8, 3.4; length=301))
