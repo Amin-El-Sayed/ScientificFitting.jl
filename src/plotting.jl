@@ -229,6 +229,7 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
             framevisible=false,
             labelsize=preset.legend_labelsize,
             labelcolor=preset.axis_color,
+            titlecolor=preset.axis_color,
             patchsize=preset.legend_patchsize,
             rowgap=preset.legend_rowgap,
         ),
@@ -282,7 +283,9 @@ end
     plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
 
 Return the Makie theme used by ScientificFitting plots. Use this when composing a custom
-Makie figure that should remain visually consistent with `plot_fit`.
+Makie figure that should remain visually consistent with `plot_fit`. Axis text,
+legend entries and legend headings share the light/dark foreground color;
+explicit Makie attributes or `theme_override` take precedence.
 """
 function plot_theme(
     theme::Symbol=:sans;

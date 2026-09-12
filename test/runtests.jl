@@ -5,4 +5,5 @@ using Test
     # optional plotting slice so new core references cannot be omitted here.
     include("core_runtests.jl")
     include("plots/fitplot.jl")
+    include("plots/legend_theme.jl")
 end
