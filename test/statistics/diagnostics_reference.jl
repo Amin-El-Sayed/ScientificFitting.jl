@@ -99,7 +99,6 @@ using LinearAlgebra
         bad = fit_model(linear_model, x, quadratic; p0=[0.0, 0.0], sigma_y=fill(0.05, length(x)))
         bad_report = diagnose(bad)
 
-        @test any(f -> f.code == :very_large_reduced_chi2, bad_report.findings)
         @test any(f -> f.code == :tiny_pvalue, bad_report.findings)
         @test any(f -> f.code == :structured_residual_signs, bad_report.findings)
         pull_finding = only(filter(f -> f.code == :extreme_pull, bad_report.findings))
@@ -113,14 +112,13 @@ using LinearAlgebra
         block_result = fit_model(constant_model, block_x, block_y; p0=[0.0], sigma_y=fill(0.2, length(block_x)))
         block_report = diagnose(block_result)
 
-        run_finding = only(filter(f -> f.code == :long_same_sign_pull_run, block_report.findings))
+        run_finding = only(filter(f -> f.code == :structured_residual_signs, block_report.findings))
         @test run_finding.severity == :warning
         @test contains(run_finding.evidence, "point 1 to 10")
         @test contains(run_finding.evidence, "x = 1.0 to 10.0")
-        @test contains(run_finding.recommendation, "acquisition interval")
 
         too_good = fit_model(linear_model, x, linear_model(x, [1.2, -0.3]); p0=[1.0, 0.0], sigma_y=fill(10.0, length(x)))
-        @test any(f -> f.code == :very_small_reduced_chi2, diagnose(too_good).findings)
+        @test any(f -> f.code == :huge_pvalue, diagnose(too_good).findings)
 
         bounded = fit_model(
             linear_model,

@@ -2,9 +2,12 @@
     ProfileResult
 
 One-dimensional profile scan of the fitted cost function. `values` are the
-fixed parameter values, `cost_values` are the refitted objective values, and
-`delta_cost` is measured relative to the original fit minimum. The `threshold`
-field records the interval threshold requested by `profile`.
+fixed parameter values, `cost_values` are the raw refitted objective values,
+and `delta_cost` is measured relative to the original fit minimum. When the
+fit applied `scale_covariance` (chi2/ndf) scaling, `delta_cost` is divided by
+that same factor, so `threshold=1` always marks the one-sigma cut consistent
+with `param_stderr`. The `threshold` field records the interval threshold
+requested by `profile`.
 """
 struct ProfileResult
     parameter_index::Int
@@ -20,7 +23,9 @@ end
 
 Two-parameter profile-contour scan. `x_values` and `y_values` define the scan
 grid for `parameter_indices`; `delta_cost` stores the refitted cost increase
-relative to the best fit, and `levels` stores the requested contour thresholds.
+relative to the best fit, divided by the fit's applied covariance scale (the
+same convention as `ProfileResult`), and `levels` stores the requested contour
+thresholds.
 """
 struct ContourResult
     parameter_indices::Tuple{Int, Int}
@@ -251,7 +256,10 @@ function _profile_from_grid(result, index::Int, grid::Vector{Float64}, threshold
     for (i, value) in enumerate(grid)
         costs[i] = _profile_refit_cost(result, [FixedParameter(index, value)]; on_failure=on_failure)
     end
-    delta = costs .- result.stats.cost_min
+    # Report delta on the same scale as param_stderr: when the fit applied
+    # chi2/ndf covariance scaling, the raw cost difference is divided by that
+    # factor so threshold=1 stays the one-sigma cut (B1).
+    delta = (costs .- result.stats.cost_min) ./ _covariance_scale(result)
     return ProfileResult(index, grid, costs, delta, threshold, result.params[index])
 end
 
@@ -660,7 +668,9 @@ function _contour_from_grid!(cache, result, i::Int, j::Int, xs::Vector{Float64},
             _contour_refit_cost(result, i, j, xs[ix], ys[iy], on_failure)
         end
     end
-    delta = costs .- result.stats.cost_min
+    # Same scale convention as profiles: divide by the applied covariance
+    # scale so the 2.30/6.18 levels stay consistent with param_stderr (B1).
+    delta = (costs .- result.stats.cost_min) ./ _covariance_scale(result)
     return ContourResult((i, j), xs, ys, costs, delta, levels)
 end
 

@@ -102,10 +102,6 @@ function _data_chi2(cache::FitEvaluationCache, p::AbstractVector)
     return sum(abs2, rw)
 end
 
-function _chi2_cost(problem::FitProblem, p::AbstractVector)
-    return _data_chi2(problem, p) + _prior_chi2(problem, p) + _parameter_constraint_chi2(problem, p)
-end
-
 function _chi2_cost(cache::FitEvaluationCache, p::AbstractVector)
     problem = cache.problem
     return _data_chi2(cache, p) + _prior_chi2(problem, p) + _parameter_constraint_chi2(cache.parameter_constraints, p)
@@ -130,11 +126,19 @@ function _gaussian_data_minus2loglik(problem::FitProblem, p::AbstractVector)
         return n * LOG2PI + problem.whitening.logdet_covariance + _data_chi2(problem, p)
     end
     cov = _effective_covariance(problem, p)
+    if cov === nothing
+        # No observation uncertainty: the Gaussian scale is unknown and is
+        # profiled out, sigma_hat^2 = RSS/n. Callers that form AIC/BIC must
+        # count sigma_hat as one additional estimated parameter.
+        rss = _data_chi2(problem, p)
+        rss > 0 || return oftype(float(rss), NaN)
+        return n * (LOG2PI + log(rss / n) + 1)
+    end
     return n * LOG2PI + _covariance_logdet(cov, n) + _data_chi2(problem, p)
 end
 
 function _gaussian_data_minus2loglik(cache::FitEvaluationCache{NoPreparedCovariance}, p::AbstractVector)
-    return length(cache.problem.y) * LOG2PI + _data_chi2(cache, p)
+    return _gaussian_data_minus2loglik(cache.problem, p)
 end
 
 function _gaussian_data_minus2loglik(
@@ -152,27 +156,11 @@ function _gaussian_data_minus2loglik(cache::FitEvaluationCache{DynamicPreparedCo
     return _gaussian_data_minus2loglik(cache.problem, p)
 end
 
-function _gaussian_minus2loglik(problem::FitProblem, p::AbstractVector)
-    return _gaussian_data_minus2loglik(problem, p) +
-           _prior_minus2loglik(problem, p) +
-           _parameter_constraint_minus2loglik(problem, p)
-end
-
 function _gaussian_minus2loglik(cache::FitEvaluationCache, p::AbstractVector)
     problem = cache.problem
     return _gaussian_data_minus2loglik(cache, p) +
            _prior_minus2loglik(problem, p) +
            _parameter_constraint_minus2loglik(cache.parameter_constraints, p)
-end
-
-function _cost_value(problem::FitProblem, p::AbstractVector, cost::Symbol)
-    resolved = _resolve_cost(problem, cost)
-    if resolved == :chi2
-        return _chi2_cost(problem, p)
-    elseif resolved == :gaussian_likelihood
-        return _gaussian_minus2loglik(problem, p)
-    end
-    throw(ArgumentError("unsupported resolved cost: $resolved"))
 end
 
 function _cost_value(cache::FitEvaluationCache, p::AbstractVector, cost::Symbol)

@@ -236,14 +236,15 @@ def test_initial_guesses_reject_ambiguous_or_lossy_inputs(guesses, message):
         _options({"initial_guesses": guesses}, ["mu", "offset"], 10)
 
 
-def test_named_multistart_reaches_better_basin_and_respects_budget():
+def test_named_initial_guesses_are_always_tried():
     def double_well(mu, offset):
         return (mu*mu-1)**2 + 0.2*mu + (offset-0.3)**2
 
-    options = {"p0": {"mu": 1., "offset": 0.}, "nobs": 10,
-               "initial_guesses": [{"offset": 0.2, "mu": -1.}]}
-    local = fit_custom(double_well, **options, multistart=1)
-    result = fit_custom(double_well, **options, multistart=2)
+    p0 = {"p0": {"mu": 1., "offset": 0.}, "nobs": 10}
+    local = fit_custom(double_well, **p0, multistart=1)
+    # An explicit guess is part of the candidate budget even at multistart=1.
+    result = fit_custom(double_well, **p0,
+                        initial_guesses=[{"offset": 0.2, "mu": -1.}], multistart=1)
     # Stationary points solve a cubic; no competing minimizer needed as oracle.
     roots = np.roots([4., 0., -4., 0.2])
     expected = min(roots, key=lambda mu: double_well(mu, 0.3))

@@ -80,8 +80,10 @@ finite_linear(x, p::Vector{Float64}) = @. p[1] * x + p[2]
         @test result.converged
         @test result.params ≈ reference.params atol=2e-5
         @test result.param_covariance ≈ reference.param_covariance rtol=4e-3
-        finite_cost(p) = ScientificFitting._cost_value(result.problem, p, :gaussian_likelihood)
-        native_cost(p) = ScientificFitting._cost_value(reference.problem, p, :gaussian_likelihood)
+        finite_cache = ScientificFitting._prepare_fit_cache(result.problem)
+        native_cache = ScientificFitting._prepare_fit_cache(reference.problem)
+        finite_cost(p) = ScientificFitting._cost_value(finite_cache, p, :gaussian_likelihood)
+        native_cost(p) = ScientificFitting._cost_value(native_cache, p, :gaussian_likelihood)
         # Probe near the minimum, where nested differencing must stay below g_tol.
         for shift in range(-1e-5, 1e-5; length=21)
             p = reference.params .+ shift

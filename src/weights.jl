@@ -433,6 +433,25 @@ function _should_scale_covariance(problem::FitProblem, policy::Symbol)
     throw(ArgumentError("unsupported covariance scaling policy: $policy"))
 end
 
+"""
+    _covariance_scale(result) -> Float64
+
+The chi2/ndf factor that was applied to this result's parameter covariance, or
+1.0 when no scaling was applied. This is the single source of the cost-function
+scale: profiles, contours, and the stationarity check divide raw cost
+differences by it so that their thresholds stay consistent with
+`param_stderr`.
+"""
+function _covariance_scale(problem, options, stats)
+    problem isa FitProblem || return 1.0
+    stats.cost == :chi2 || return 1.0
+    _should_scale_covariance(problem, options.scale_covariance) || return 1.0
+    scale = stats.ndf > 0 ? stats.chi2 / stats.ndf : NaN
+    return isfinite(scale) && scale > 0 ? scale : 1.0
+end
+
+_covariance_scale(result) = _covariance_scale(result.problem, result.options, result.stats)
+
 function _covariance_from_cost_hessian(cache::FitEvaluationCache, p::AbstractVector, cost::Symbol)
     problem = cache.problem
     free_idx = _free_indices(problem)
@@ -460,7 +479,8 @@ function _correlation_from_covariance(cov::AbstractMatrix)
             continue
         end
         denom = sigma[i] * sigma[j]
-        corr[i, j] = denom > 0 ? cov[i, j] / denom : 0.0
+        # Zero variance (a fixed parameter) still has unit self-correlation.
+        corr[i, j] = denom > 0 ? cov[i, j] / denom : (i == j ? 1.0 : 0.0)
     end
     return corr
 end

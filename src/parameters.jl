@@ -131,7 +131,11 @@ function _initial_candidates(problem, initial_guesses, multistart::Int)
         end
     end
 
-    if multistart > 1
+    # Explicit guesses are always tried; multistart only adds generated
+    # candidates beyond p0 and the explicit list.
+    multistart = max(multistart, length(candidates))
+
+    if multistart > length(candidates)
         free_idx = _free_indices(problem)
         if problem.bounds !== nothing
             lower, upper = problem.bounds

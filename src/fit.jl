@@ -157,8 +157,11 @@ function _build_fit_result(
     ndf = nobs - npar
     chi2_ndf = ndf > 0 ? chi2 / ndf : NaN
     pvalue = ndf > 0 ? ccdf(Chisq(ndf), chi2) : NaN
-    aic = minus2loglik_min + 2.0 * npar
-    bic = minus2loglik_min + log(nobs) * npar
+    # Without observation uncertainties the Gaussian scale sigma was profiled
+    # out of minus2loglik_min and counts as one additional estimated parameter.
+    npar_lik = npar + (!has_y_uncertainty(problem) && !has_x_uncertainty(problem) ? 1 : 0)
+    aic = ndf >= 0 ? minus2loglik_min + 2.0 * npar_lik : NaN
+    bic = ndf >= 0 ? minus2loglik_min + log(nobs) * npar_lik : NaN
 
     Jw = if backend_jacobian === nothing
         _weighted_jacobian(cache, params)
@@ -197,9 +200,9 @@ function _build_fit_result(
     diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=chi2)
 
     # Validate scalar solvers with fresh fit geometry, not only their success flag.
-    scale = _resolve_cost(problem, options.cost) == :chi2 &&
-            _should_scale_covariance(problem, options.scale_covariance) ? chi2 / ndf : 1.0
-    stationarity = converged && solver_result !== nothing && isfinite(scale) && scale > 0 ?
+    # The EDM compares against the raw objective, so undo the covariance scaling.
+    scale = _covariance_scale(problem, options, stats)
+    stationarity = converged && solver_result !== nothing ?
         _stationarity_finding(problem, options, params, cov ./ scale, cost_min,
             q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)) : nothing
     _record_stationarity!(diagnostics, stationarity)
@@ -259,10 +262,13 @@ Keyword contracts:
 - `tol`: positive stopping tolerance; `nothing` selects
   [`default_fit_tolerance`](@ref) for the solver and derivative mode.
 - `scale_covariance`: `:auto`, `:never`, or `:always`. `:auto` estimates a
-  residual scale only when no observation uncertainty was supplied.
+  residual scale only when no observation uncertainty was supplied. `:always`
+  is rejected for `cost=:gaussian_likelihood`, where the covariance comes from
+  the cost Hessian.
 - `initial_guesses`: additional complete parameter vectors in `p0` order.
-- `multistart`: total candidate budget, including `problem.p0`. The default
-  of one uses only `p0`; two distinct additional guesses need `multistart=3`.
+  Explicit guesses are always tried; the candidate budget grows to cover them.
+- `multistart`: total candidate budget, including `problem.p0` and every
+  explicit guess. Values beyond that add generated candidates.
 - `solver`: optional `OptimizationSolver(algorithm)` or `NativeMinuitSolver()`.
   Leave `backend=:auto` when selecting a solver. The same solver/settings are
   used for multistart and profile refits; covariance estimation is unchanged.
@@ -290,6 +296,14 @@ function fit(
     solver !== nothing && backend != :auto && throw(ArgumentError(
         "choose solver or backend, not both; leave backend=:auto with an explicit solver",
     ))
+    if _resolve_cost(problem, cost) == :gaussian_likelihood &&
+       _normalize_scale_covariance(scale_covariance) == :always
+        throw(ArgumentError(
+            "scale_covariance=:always is not available for cost=:gaussian_likelihood: " *
+            "the parameter covariance comes from the cost Hessian there, not from " *
+            "chi2/ndf scaling of a weighted Jacobian",
+        ))
+    end
     options = FitOptions(
         backend=backend,
         cost=_resolve_cost(problem, cost),

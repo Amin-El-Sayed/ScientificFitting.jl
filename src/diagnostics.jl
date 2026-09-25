@@ -342,43 +342,8 @@ end
 function _goodness_of_fit_findings(stats::FitStatistics)
     findings = DiagnosticFinding[]
 
-    if isfinite(stats.chi2_ndf)
-        if stats.chi2_ndf > 5
-            push!(
-                findings,
-                _finding(
-                    :critical,
-                    :very_large_reduced_chi2,
-                    "Fit is very unlikely under the stated uncertainties",
-                    "chi2/ndf = $(_fmt_scientific(stats.chi2_ndf)).",
-                    "Look for missing physics, underestimated uncertainties, wrong correlations, outliers, or a failed optimizer.",
-                ),
-            )
-        elseif stats.chi2_ndf > 2
-            push!(
-                findings,
-                _finding(
-                    :warning,
-                    :large_reduced_chi2,
-                    "Reduced chi-square is high",
-                    "chi2/ndf = $(_fmt_scientific(stats.chi2_ndf)).",
-                    "Check residual structure and uncertainty estimates. If residuals are structured, improve the model before tuning errors.",
-                ),
-            )
-        elseif stats.chi2_ndf < 0.2
-            push!(
-                findings,
-                _finding(
-                    :warning,
-                    :very_small_reduced_chi2,
-                    "Data are too good for the assigned uncertainties",
-                    "chi2/ndf = $(_fmt_scientific(stats.chi2_ndf)).",
-                    "Uncertainties may be overestimated, correlations may be ignored, or the data may have been smoothed/averaged.",
-                ),
-            )
-        end
-    end
-
+    # chi2/ndf itself carries no fixed acceptable interval; the sample-size
+    # aware statements live in the p-value checks below.
     if isfinite(stats.pvalue)
         if stats.pvalue < 1e-3
             push!(
@@ -423,12 +388,16 @@ function _xy_diagnostic_findings(result::FitResult)
     pulls = _data_pull_values(result)
     findings = DiagnosticFinding[]
     isempty(pulls) && return findings
+    n = length(pulls)
 
     max_pull_index = argmax(abs.(pulls))
     max_abs_pull = abs(pulls[max_pull_index])
     max_pull_x = result.problem.x[max_pull_index]
-    pull_evidence = "max |pull| = $(_fmt_scientific(max_abs_pull)) at point $max_pull_index (x = $(_fmt_scientific(max_pull_x)))."
-    if isfinite(max_abs_pull) && max_abs_pull > 5
+    # Bonferroni over n points: family-wise two-sided alpha = 0.05, so the
+    # largest of n standard-normal pulls stays below this limit 95% of the time.
+    pull_limit = quantile(Normal(), 1 - 0.05 / (2n))
+    pull_evidence = "max |pull| = $(_fmt_scientific(max_abs_pull)) at point $max_pull_index (x = $(_fmt_scientific(max_pull_x))); the 5% family limit for $n points is $(_fmt_scientific(pull_limit))."
+    if isfinite(max_abs_pull) && max_abs_pull > max(5.0, pull_limit)
         push!(
             findings,
             _finding(
@@ -439,7 +408,7 @@ function _xy_diagnostic_findings(result::FitResult)
                 "Inspect the corresponding data point, uncertainty, units, and possible outlier handling before trusting the fit.",
             ),
         )
-    elseif isfinite(max_abs_pull) && max_abs_pull > 3
+    elseif isfinite(max_abs_pull) && max_abs_pull > pull_limit
         push!(
             findings,
             _finding(
@@ -452,48 +421,47 @@ function _xy_diagnostic_findings(result::FitResult)
         )
     end
 
-    runs = _run_count(pulls)
-    expected_runs = (length(pulls) + 1) / 2
-    if length(pulls) >= 12 && runs < 0.45 * expected_runs
-        push!(
-            findings,
-            _finding(
-                :warning,
-                :structured_residual_signs,
-                "Residual signs look structured",
-                "Observed $runs sign runs; roughly $(_fmt_scientific(expected_runs)) would be typical for structureless residuals.",
-                "Look for missing curvature, drift, hysteresis, time dependence, or an incorrect independent variable transformation.",
-            ),
-        )
+    # Wald-Wolfowitz runs test on the pull signs. The z-statistic keeps the
+    # false-positive rate sample-size independent; a fixed run-length or
+    # run-count threshold does not.
+    signs = filter(!=(0), sign.(pulls))
+    n_plus = count(>(0), signs)
+    n_minus = count(<(0), signs)
+    m = n_plus + n_minus
+    if m >= 8 && n_plus >= 1 && n_minus >= 1
+        runs = _run_count(pulls)
+        runs_mean = 2 * n_plus * n_minus / m + 1
+        runs_var = 2 * n_plus * n_minus * (2 * n_plus * n_minus - m) / (m^2 * (m - 1))
+        z_runs = runs_var > 0 ? (runs - runs_mean) / sqrt(runs_var) : NaN
+        if isfinite(z_runs) && z_runs < -2
+            longest_run = _longest_same_sign_run(pulls)
+            run_start_x = result.problem.x[longest_run.start]
+            run_stop_x = result.problem.x[longest_run.stop]
+            direction = longest_run.sign > 0 ? "positive" : "negative"
+            push!(
+                findings,
+                _finding(
+                    :warning,
+                    :structured_residual_signs,
+                    "Residual signs look structured",
+                    "Observed $runs sign runs where $(_fmt_scientific(runs_mean)) ± $(_fmt_scientific(sqrt(runs_var))) are expected (z = $(_fmt_scientific(z_runs))). Longest run: $(longest_run.length) $direction pulls from point $(longest_run.start) to $(longest_run.stop) (x = $(_fmt_scientific(run_start_x)) to $(_fmt_scientific(run_stop_x))).",
+                    "Look for missing model structure, drift, a calibration offset, or correlated uncertainty in that interval.",
+                ),
+            )
+        end
     end
 
-    longest_run = _longest_same_sign_run(pulls)
-    min_run_length = max(5, ceil(Int, 0.25 * length(pulls)))
-    if length(pulls) >= 12 && longest_run.length >= min_run_length
-        run_start_x = result.problem.x[longest_run.start]
-        run_stop_x = result.problem.x[longest_run.stop]
-        direction = longest_run.sign > 0 ? "positive" : "negative"
-        push!(
-            findings,
-            _finding(
-                :warning,
-                :long_same_sign_pull_run,
-                "Long same-sign pull run",
-                "Longest run: $(longest_run.length) $direction pulls from point $(longest_run.start) to $(longest_run.stop) (x = $(_fmt_scientific(run_start_x)) to $(_fmt_scientific(run_stop_x))).",
-                "Inspect this acquisition interval for drift, missing model structure, a calibration offset, or correlated uncertainty.",
-            ),
-        )
-    end
-
+    # Under the null, the lag-1 autocorrelation has standard deviation ~ 1/sqrt(n).
     rho1 = _lag1_autocorrelation(pulls)
-    if isfinite(rho1) && abs(rho1) > 0.45 && length(pulls) >= 12
+    z_rho = rho1 * sqrt(n)
+    if n >= 8 && isfinite(z_rho) && abs(z_rho) > 2
         push!(
             findings,
             _finding(
                 :warning,
                 :autocorrelated_pulls,
                 "Neighboring pulls are correlated",
-                "lag-1 correlation = $(_fmt_scientific(rho1)).",
+                "lag-1 correlation = $(_fmt_scientific(rho1)) (z = $(_fmt_scientific(z_rho))).",
                 "Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.",
             ),
         )

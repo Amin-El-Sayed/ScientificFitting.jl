@@ -3,6 +3,7 @@ using Test
 @testset "ScientificFitting core test suite" begin
     for file in (
         "regression/current_api.jl",
+        "statistics/scaling_consistency_reference.jl",
         "statistics/covariance_semantics_reference.jl",
         "statistics/diagnostics_reference.jl",
         "statistics/linear_gaussian_reference.jl",
