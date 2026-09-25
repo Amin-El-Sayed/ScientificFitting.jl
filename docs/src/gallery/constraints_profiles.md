@@ -326,10 +326,11 @@ hard to triage. `profile_matrix` computes the same checks as data first:
 diagonal panels are one-parameter profiles, lower-triangle panels are
 two-parameter contours, and upper-triangle panels show the local correlation
 coefficient. The plot is only a rendering layer over that diagnostic object.
-For automated notebooks or CI checks, `profile_matrix_triage(profile_overview)`
-returns the same judgement as structured rows: parameter pair, status, finding
-codes, and the first recommended action. That is the text-first route when you
-want a run to fail or warn before anyone opens the figure.
+For automated notebooks or CI checks, `profile_overview.panel_status` holds the
+same judgement per panel (`:ok`, `:review`, `:stop`), and
+`diagnose(profile_overview).findings` carries the structured finding codes and
+recommended actions. That is the text-first route when you want a run to fail
+or warn before anyone opens the figure.
 
 ```@raw html
 <img class="scientificfitting-plot" src="../assets/gallery/saturation_profile_matrix_sans_light.png" alt="Saturation profile matrix in sans style">

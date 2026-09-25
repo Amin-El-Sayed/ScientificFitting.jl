@@ -317,10 +317,8 @@ function fit(
                     params, converged, iterations, message, jacobian = _fit_with_lsqfit(candidate_problem, options)
                     _build_fit_result(candidate_problem, options, :lsqfit, params,
                                       converged, iterations, message, jacobian)
-                elseif chosen_backend == :optimization
-                    _fit_scalar_candidate(candidate_problem, options)
                 else
-                    throw(ArgumentError("unsupported backend: $chosen_backend (use :auto, :lsqfit, or :optimization)"))
+                    _fit_scalar_candidate(candidate_problem, options)
                 end
             end
 

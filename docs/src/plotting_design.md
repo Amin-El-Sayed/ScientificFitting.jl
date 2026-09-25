@@ -365,8 +365,6 @@ matrix = profile_matrix(
     adaptive=true,
 )
 
-rows = profile_matrix_triage(matrix)
-
 using CairoMakie
 fig = plot_profile_matrix(matrix; theme=:tex)
 ```

@@ -454,7 +454,7 @@ using Test
         )
         @test bounded.converged
         @test !isempty(bounded.diagnostics.active_bounds)
-        @test any(contains("active bounds"), bounded.diagnostics.warnings)
+        @test any(f -> f.code == :active_bounds, bounded.diagnostics.findings)
     end
 
     @testset "Covariance scaling policy and multistart" begin
@@ -558,7 +558,7 @@ using Test
         @test report.statistics.cost == :chi2
         @test isapprox(report.statistics.cost_min, result.stats.cost_min)
         @test size(report.covariance) == (2, 2)
-        @test report.diagnostics isa FitDiagnostics
+        @test report.diagnostics isa ScientificFitting.FitDiagnostics
         @test occursin("chi2/ndf", text)
         @test occursin("cost_min", text)
     end

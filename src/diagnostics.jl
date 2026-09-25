@@ -35,24 +35,6 @@ function _active_bound_indices(bounds, params::AbstractVector; atol::Real=1e-8)
     return active
 end
 
-function _diagnostic_warnings(
-    converged::Bool,
-    ndf::Int,
-    cov_cond::Float64,
-    hess_cond::Float64,
-    active_bounds::Vector{Int};
-    gof=nothing,
-)
-    warnings = String[]
-    converged || push!(warnings, "optimizer did not report convergence")
-    ndf <= 0 && push!(warnings, "non-positive degrees of freedom; p-values and reduced statistics are not meaningful")
-    gof !== nothing && !isfinite(gof) && push!(warnings, "goodness-of-fit statistic is unavailable; p-values are not meaningful")
-    !isnan(cov_cond) && cov_cond > 1e12 && push!(warnings, "parameter covariance is ill-conditioned")
-    !isnan(hess_cond) && hess_cond > 1e12 && push!(warnings, "cost Hessian is ill-conditioned")
-    !isempty(active_bounds) && push!(warnings, "one or more parameters are at active bounds; local errors and p-values may be unreliable")
-    return warnings
-end
-
 function _finding(severity::Symbol, code::Symbol, title, evidence, recommendation)
     severity in (:info, :warning, :critical) ||
         throw(ArgumentError("diagnostic severity must be :info, :warning, or :critical"))
@@ -215,7 +197,6 @@ end
 function _record_stationarity!(diagnostics, finding)
     finding === nothing && return nothing
     push!(diagnostics.findings, finding)
-    push!(diagnostics.warnings, "returned point failed the independent stationarity check")
     return nothing
 end
 
@@ -227,7 +208,6 @@ function _fit_diagnostics(problem, params::AbstractVector, cov::AbstractMatrix, 
     cov_cond = covariance_computed ? _safe_condition_number(free_cov) : NaN
     hess_cond = hessian === nothing ? NaN : _safe_condition_number(hessian)
     active_bounds = _active_bound_indices(problem.bounds, params)
-    warnings = _diagnostic_warnings(converged, ndf, cov_cond, hess_cond, active_bounds; gof=gof)
     findings = _basic_diagnostic_findings(converged, ndf, cov_cond, hess_cond, active_bounds; gof=gof)
     covariance_findings = covariance_computed ? _local_covariance_validity_findings(free_cov) : DiagnosticFinding[]
     if !covariance_computed && !isempty(free_idx)
@@ -237,11 +217,7 @@ function _fit_diagnostics(problem, params::AbstractVector, cov::AbstractMatrix, 
             "Use explicit profile ranges or a distribution-specific uncertainty method. A non-smooth or support-limited likelihood need not obey the usual chi-square profile thresholds."))
     end
     append!(findings, covariance_findings)
-    !isempty(covariance_findings) && push!(
-        warnings,
-        "local parameter covariance is invalid; symmetric parameter errors must not be reported",
-    )
-    return FitDiagnostics(warnings, cov_cond, hess_cond, active_bounds, findings)
+    return FitDiagnostics(cov_cond, hess_cond, active_bounds, findings)
 end
 
 function _fmt_scientific(x::Real)

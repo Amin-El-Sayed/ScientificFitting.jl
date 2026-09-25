@@ -142,7 +142,7 @@ matrix = profile_matrix(result; parameters=[1, 2, 3], adaptive=true)
 
 profile_findings = diagnose(interval.profile_result)
 pair_findings = diagnose(pair; local_covariance=result.param_covariance[[1, 2], [1, 2]])
-panels_to_review = profile_matrix_triage(matrix)
+panels_to_review = filter(p -> last(p) != :ok, matrix.panel_status)
 ```
 
 The numerical scan is independent of Makie. Load CairoMakie only when a figure

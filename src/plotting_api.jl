@@ -92,22 +92,24 @@ physical threshold to an existing fit axis.
 function add_hband! end
 
 """
-    plot_theme(style=:sans; appearance=:auto)
+    plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
 
-Return the Makie `Theme` used by ScientificFitting for a named plot style. The maintained
-visual styles are `:sans` (sans-serif typography, open axes, grid) and `:tex`
-(TeX typography, full frame, no grid). Panel visibility is deliberately not a
-style property. Former style names remain compatibility aliases. `appearance`
-is `:light`, `:dark`, or `:auto`.
+Return the Makie `Theme` used by ScientificFitting plots. The maintained visual
+styles are `:sans` (sans-serif typography, open axes, grid) and `:tex` (TeX
+typography, full frame, no grid); `appearance` is `:light`, `:dark`, or
+`:auto`. Use this when composing a custom Makie figure that should remain
+visually consistent with `plot_fit`. Axis text, legend entries and legend
+headings share the light/dark foreground color; explicit Makie attributes or
+`theme_override` take precedence.
 """
 function plot_theme end
 
 """
-    plot_palette(style=:sans; appearance=:auto)
+    plot_palette(theme=:sans; appearance=:auto)
 
-Return the visual tokens used by ScientificFitting's plot helpers, including color-safe
-series colors, markers, line weights, typography, and layout defaults. Use this
-when building compound Makie figures that should respond to a selected style.
+Return the visual tokens used by a ScientificFitting plot style. Besides data,
+fit, uncertainty-band, and error-bar defaults, the result exposes typography,
+layout, and color-safe multi-series tokens for custom Makie figures.
 """
 function plot_palette end
 

@@ -400,12 +400,10 @@ end
     FitDiagnostics
 
 Numerical and statistical diagnostics stored with every fit result. It contains
-legacy warning strings, covariance/Hessian condition numbers, active-bound
-indices, and structured `DiagnosticFinding`s used by `diagnose` and diagnostic
-plots.
+covariance/Hessian condition numbers, active-bound indices, and structured
+`DiagnosticFinding`s used by `diagnose` and diagnostic plots.
 """
 struct FitDiagnostics
-    warnings::Vector{String}
     covariance_condition::Float64
     hessian_condition::Float64
     active_bounds::Vector{Int}

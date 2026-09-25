@@ -139,10 +139,6 @@ function _with_p0(problem::LikelihoodFitProblem, p0::AbstractVector)
     )
 end
 
-function _likelihood_cost(problem::LikelihoodFitProblem, p::AbstractVector)
-    return problem.objective(p) + _prior_minus2loglik(problem, p) + _parameter_constraint_minus2loglik(problem, p)
-end
-
 struct LikelihoodEvaluationCache{TP, TC}
     problem::TP
     parameter_constraints::TC

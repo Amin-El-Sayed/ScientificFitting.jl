@@ -12,7 +12,7 @@ from ._core import (
 from ._inputs import ErrorComponent, WhiteningOperator
 from ._results import (
     ContourResult, DiagnosticFinding, DiagnosticReport, FitReport, ParameterEstimate,
-    ProfileInterval, ProfileMatrixPanelTriage, ProfileMatrixResult, ProfileResult,
+    ProfileInterval, ProfileMatrixResult, ProfileResult,
 )
 # Renderers import Matplotlib inside calls, preserving real signatures/docstrings
 # on the public API without making plotting dependencies mandatory at import.
@@ -28,7 +28,6 @@ __all__ = [
     "fit_extended_unbinned_model", "fit_indexed_model", "fit_multi_model", "plot_fit",
     "DiagnosticFinding", "DiagnosticReport", "FitReport", "ParameterEstimate",
     "ProfileResult", "ProfileInterval", "ContourResult", "ProfileMatrixResult",
-    "ProfileMatrixPanelTriage",
     "plot_style", "add_report", "plot_profile", "plot_contour", "plot_profile_matrix",
     "plot_residuals", "plot_diagnostics",
 ]

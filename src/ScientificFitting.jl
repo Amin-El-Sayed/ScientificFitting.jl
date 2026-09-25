@@ -48,18 +48,10 @@ export FitProblem
 export FitResult
 export LikelihoodFitProblem
 export LikelihoodFitResult
-export FitStatistics
-export FitDiagnostics
-export DiagnosticFinding
-export DiagnosticReport
-export DiagnosticDashboard
-export FitReport
-export ParameterEstimate
 export ProfileResult
 export ContourResult
 export ProfileInterval
 export ProfileMatrixResult
-export ProfileMatrixPanelTriage
 export fit
 export predict
 export fit_model
@@ -79,7 +71,6 @@ export profile
 export profile_interval
 export contour
 export profile_matrix
-export profile_matrix_triage
 export fitplot
 export plot_fit
 export fit_axis

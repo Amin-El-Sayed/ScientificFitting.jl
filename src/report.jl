@@ -184,12 +184,6 @@ function _report_lines(report::FitReport; sigdigits::Int=6)
     push!(lines, "  AIC = $(_fmt_value(report.statistics.aic; sigdigits=sigdigits))")
     push!(lines, "  BIC = $(_fmt_value(report.statistics.bic; sigdigits=sigdigits))")
 
-    if !isempty(report.diagnostics.warnings)
-        push!(lines, "")
-        push!(lines, "Warnings:")
-        append!(lines, ["  $warning" for warning in report.diagnostics.warnings])
-    end
-
     if !isempty(report.diagnostics.findings)
         push!(lines, "")
         push!(lines, "Diagnosis:")

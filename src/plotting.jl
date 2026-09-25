@@ -279,14 +279,6 @@ function _wrap_panel_text(value, panel_width::Real, fontsize::Real)
     return join(wrapped, '\n')
 end
 
-"""
-    plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
-
-Return the Makie theme used by ScientificFitting plots. Use this when composing a custom
-Makie figure that should remain visually consistent with `plot_fit`. Axis text,
-legend entries and legend headings share the light/dark foreground color;
-explicit Makie attributes or `theme_override` take precedence.
-"""
 function plot_theme(
     theme::Symbol=:sans;
     appearance::Symbol=:auto,
@@ -296,13 +288,6 @@ function plot_theme(
     return _theme_from_style(style, resolved_appearance, theme_override)
 end
 
-"""
-    plot_palette(theme=:sans; appearance=:auto)
-
-Return the visual tokens used by a ScientificFitting plot style. Besides data, fit,
-uncertainty-band, and error-bar defaults, the result exposes typography,
-layout, and color-safe multi-series tokens for custom Makie figures.
-"""
 function plot_palette(theme::Symbol=:sans; appearance::Symbol=:auto)
     style, resolved_appearance = _resolve_plot_style(theme, appearance)
     return _style_preset(style, resolved_appearance)
@@ -403,15 +388,6 @@ function _apply_right_panel_sizing!(fig)
     return nothing
 end
 
-"""
-    resize_plot_to_layout!(figure; axes=nothing, flexible_columns=(1,),
-                           minimum_axis_size=(420, 300),
-                           preferred_size=size(figure.scene))
-
-Fit a completed Makie layout to its contents while preserving a minimum data
-area and the requested canvas as lower bounds. See the public declaration in
-`plotting_api.jl` for the full contract.
-"""
 function resize_plot_to_layout!(
     fig;
     axes=nothing,
@@ -811,30 +787,6 @@ function _draw_inside_stats!(
     return nothing
 end
 
-"""
-    plot_info_panel!(
-        cell;
-        theme=:sans,
-        appearance=:auto,
-        legend_source=nothing,
-        legend_plots=nothing,
-        legend_labels=nothing,
-        model_label=nothing,
-        parameter_lines=Any[],
-        statistic_lines=Any[],
-        width=nothing,
-        ...
-    )
-
-Add a compact, left-aligned information panel to a Makie layout cell. The
-panel is intended for custom scientific figures that should use the same
-legend, model, parameter, and statistic hierarchy as `plot_fit`. `theme` and
-`appearance` supply readable panel defaults from the same central style
-contract; explicit panel keywords remain authoritative. By default Makie
-chooses the panel width from its contents. Set `width` to choose the wrapping
-width for detailed plain text. Legends and unbreakable TeX expressions retain
-their natural width so that the panel grows instead of clipping them.
-"""
 function plot_info_panel!(
     cell;
     theme::Symbol=:sans,
@@ -1055,21 +1007,6 @@ function _fitplot_result(result::FitResult; print_report::Bool=false, kwargs...)
     return (result=result, figure=fig)
 end
 
-"""
-    fitplot(result::FitResult; show_panel=true, print_report=false, kwargs...)
-    fitplot(model, x, y; p0, show_panel=true, print_report=false, kwargs...)
-    fitplot(x, y; p0=nothing, show_panel=true, print_report=false, kwargs...)
-
-Fit and plot in one call. The `model, x, y` method forwards fitting keywords
-such as `sigma_y`, `sigma_x`, `whitening`, `x_derivative`, `bounds`,
-`parameter_priors`, and `backend` to `fit_model`; plotting keywords such as
-`xlabel`, `ylabel`, `theme`, `nsigma`, and `filename` are forwarded to
-`plot_fit`. `show_panel` controls the numerical panel in the figure, while
-`print_report` independently controls terminal output.
-
-The `x, y` method uses a linear model by default. All methods return a named
-tuple `(result, figure)` so the numerical result is not lost.
-"""
 function fitplot(
     result::FitResult;
     show_panel::Bool=true,
@@ -1123,92 +1060,6 @@ function fitplot(
     )
 end
 
-"""
-    plot_fit(
-        result::FitResult;
-        xgrid=nothing,
-        filename=nothing,
-        format=:pdf,
-        theme=:sans,
-        appearance=:auto,
-        theme_override=Theme(),
-        title=nothing,
-        model_label=nothing,
-        xlabel="x",
-        ylabel="y",
-        xunit=nothing,
-        yunit=nothing,
-        auto_limits=true,
-        limit_padding=0.08,
-        fit_range=:axis,
-        plot_aspect=nothing,
-        figure_size=nothing,
-        stats_panel_width=:auto,
-        stats_position=:right,
-        inside_stats_position=:lt,
-        panel_gap=nothing,
-        latex_labels=false,
-        latex_stats=false,
-        show_panel=true,
-        stats_mode=:compact,
-        tight_layout=true,
-        stats_sigdigits=5,
-        parameter_names=nothing,
-        stats_fontsize=nothing,
-        stats_title=nothing,
-        stats_box_color=nothing,
-        stats_box_alpha=0.95,
-        stats_box_strokecolor=nothing,
-        stats_box_strokewidth=1.0,
-        show_legend=true,
-        legend_position=:rt,
-        axis_kwargs=NamedTuple(),
-        legend_kwargs=NamedTuple(),
-        data_color=nothing,
-        data_marker=nothing,
-        data_markersize=nothing,
-        data_strokecolor=nothing,
-        data_strokewidth=nothing,
-        scatter_kwargs=NamedTuple(),
-        fit_color=nothing,
-        fit_linewidth=nothing,
-        fit_label="fit",
-        line_kwargs=NamedTuple(),
-        band_color=nothing,
-        band_alpha=nothing,
-        band=:confidence,
-        nsigma=1,
-        band_label="1-sigma band",
-        band_kwargs=NamedTuple(),
-        xerr_color=nothing,
-        yerr_color=nothing,
-        error_whiskerwidth=nothing,
-        xerrorbars_kwargs=NamedTuple(),
-        yerrorbars_kwargs=NamedTuple(),
-        data_label="data",
-    )
-
-Create a scientific fit plot with data, error bars, best-fit curve, optional
-uncertainty band, and an optional right-side information panel. Use
-`theme=:sans` for open axes, sans-serif typography, and grid guides, or
-`theme=:tex` for TeX typography, a full frame, and no grid. `show_panel`
-independently controls the numerical result panel and defaults to `true` for
-both styles. Legacy style names remain compatibility aliases rather than
-additional cosmetic presets. `appearance=:light` or `:dark` controls the color
-scheme independently.
-`figure_size` requests a minimum logical canvas size. Makie keeps the data axis
-flexible, gives it a readable minimum size while measuring the layout, and
-enlarges the canvas if natural legend or panel content would otherwise be
-clipped. Increasing the requested width therefore widens the data axis once
-the panel has the space it needs.
-`band=:confidence`
-shows the propagated parameter-covariance band. `band=:prediction` additionally
-includes observation uncertainty in y and effective x uncertainty. With the
-default `fit_range=:axis`, the automatically generated model grid extends to
-the padded axis range; use `fit_range=:data` or pass `xgrid` to draw only over a
-specific domain. Makie keyword containers can be passed as `NamedTuple`s or
-`Dict`s via the `*_kwargs` arguments.
-"""
 function plot_fit(
     result::FitResult;
     xgrid=nothing,
@@ -1510,16 +1361,6 @@ function _axis_limits(axis::Axis)
     return (xmin, xmax), (ymin, ymax)
 end
 
-"""
-    fit_axis(figure; index=1)
-
-Return the `index`-th Makie `Axis` stored in a ScientificFitting figure.
-
-This is a small convenience for post-fit annotation workflows:
-`fig = plot_fit(result); ax = fit_axis(fig); add_vline!(ax, x0)`. It searches
-the figure layout instead of relying on manual cell indices, so the same call
-works for ordinary fit plots with or without a right-side report.
-"""
 function fit_axis(figure::Figure; index::Integer=1)
     index >= 1 || throw(ArgumentError("index must be >= 1"))
     axes = [object for object in contents(figure.layout) if object isa Axis]
@@ -1534,17 +1375,6 @@ function _finite_annotation_vector(name::AbstractString, values; min_length::Int
     return vector
 end
 
-"""
-    add_curve!(axis, f; xgrid=nothing, xspan=nothing, n=400, label=nothing, kwargs...)
-    add_curve!(axis, x, y; label=nothing, kwargs...)
-
-Add a curve to an existing Makie axis and return the created plot object.
-
-The function-valued method samples `f` either on `xgrid`, on `xspan=(xmin,
-xmax)`, or on the current visible x-range of `axis`. This is useful for adding
-extrapolations, reference models, or derived physical relationships after a fit
-has already been computed.
-"""
 function add_curve!(
     axis::Axis,
     f;
@@ -1577,13 +1407,6 @@ function add_curve!(axis::Axis, x::AbstractVector, y::AbstractVector; label=noth
     return lines!(axis, xs, ys; label=label, kwargs...)
 end
 
-"""
-    add_points!(axis, x, y; label=nothing, kwargs...)
-
-Add marker points to an existing fit axis. This is intended for derived
-quantities, thresholds, extrapolated intersections, or highlighted data points;
-it does not rerun or modify the fit.
-"""
 function add_points!(axis::Axis, x, y; label=nothing, kwargs...)
     xs = _finite_annotation_vector("x", x; min_length=1)
     ys = _finite_annotation_vector("y", y; min_length=1)
@@ -1591,48 +1414,22 @@ function add_points!(axis::Axis, x, y; label=nothing, kwargs...)
     return scatter!(axis, xs, ys; label=label, kwargs...)
 end
 
-"""
-    add_vline!(axis, x; label=nothing, kwargs...)
-
-Add vertical reference line(s) to an existing axis. This wraps Makie's
-`vlines!` with ScientificFitting-style argument validation.
-"""
 function add_vline!(axis::Axis, x; label=nothing, kwargs...)
     xs = _finite_annotation_vector("x", x; min_length=1)
     return vlines!(axis, xs; label=label, kwargs...)
 end
 
-"""
-    add_hline!(axis, y; label=nothing, kwargs...)
-
-Add horizontal reference line(s) to an existing axis. This wraps Makie's
-`hlines!` with ScientificFitting-style argument validation.
-"""
 function add_hline!(axis::Axis, y; label=nothing, kwargs...)
     ys = _finite_annotation_vector("y", y; min_length=1)
     return hlines!(axis, ys; label=label, kwargs...)
 end
 
-"""
-    add_vband!(axis, xmin, xmax; label=nothing, kwargs...)
-
-Add a vertical uncertainty/reference band to an existing axis. The band spans
-the full axis height without contributing artificial y values to automatic
-limits, so it remains an annotation layer rather than a new data model.
-"""
 function add_vband!(axis::Axis, xmin::Real, xmax::Real; label=nothing, kwargs...)
     isfinite(xmin) && isfinite(xmax) || throw(ArgumentError("xmin and xmax must be finite"))
     xmin <= xmax || throw(ArgumentError("xmin must be <= xmax"))
     return vspan!(axis, Float64(xmin), Float64(xmax); label=label, kwargs...)
 end
 
-"""
-    add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
-
-Add a horizontal uncertainty/reference band to an existing axis. The band spans
-the full axis width without contributing artificial x values to automatic
-limits, so it remains an annotation layer rather than a new data model.
-"""
 function add_hband!(axis::Axis, ymin::Real, ymax::Real; label=nothing, kwargs...)
     isfinite(ymin) && isfinite(ymax) || throw(ArgumentError("ymin and ymax must be finite"))
     ymin <= ymax || throw(ArgumentError("ymin must be <= ymax"))
@@ -1742,23 +1539,6 @@ function _draw_panel_status!(
     return nothing
 end
 
-"""
-    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:sans, ...)
-
-Plot a one-dimensional profile-likelihood scan.
-
-Pass `local_sigma=result.param_stderr[i]` to overlay the local parabolic
-covariance approximation. If the profile and parabola disagree visibly, local
-symmetric errors should not be treated as the final uncertainty statement.
-Use `delta_max` to focus the view on scientifically relevant interval
-thresholds when a strongly non-parabolic tail would otherwise compress the
-minimum. Line weights and colors follow `theme`; explicit `line_kwargs`,
-`local_line_kwargs`, and `threshold_kwargs` take precedence. Descriptive
-legends default to a row below the axis so label length cannot shrink the data
-area. Use `legend_position=:right` only when a side legend is preferred.
-With a legend, `figure_size` is a minimum canvas: Makie's layout can enlarge it
-for long labels or custom typography while preserving a minimum data area.
-"""
 function plot_profile(
     profile_result::ProfileResult;
     filename::Union{Nothing, AbstractString}=nothing,
@@ -1866,25 +1646,6 @@ function plot_profile(
     return fig
 end
 
-"""
-    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:sans, ...)
-
-Plot a two-dimensional profile-likelihood contour grid.
-
-The default emphasizes directly interpretable profile regions and labeled
-two-parameter 1-sigma/2-sigma contour levels. Set `show_heatmap=true` for an
-explicit delta-cost surface view; heatmaps are not the default diagnostic
-because they make confidence thresholds harder to read quickly.
-
-Pass `local_covariance=result.param_covariance` and
-`local_center=result.params[[i, j]]` to overlay the local covariance ellipse in
-the same parameter plane. Non-elliptic profile contours indicate that local
-Gaussian covariance errors are not sufficient. Descriptive legends default to
-a row below the axis so label length cannot shrink the data area. Use
-`legend_position=:right` only when a side legend is preferred.
-With a legend, `figure_size` is a minimum canvas, enlarged by Makie's layout
-when needed to fit the labels without squeezing the data axis.
-"""
 function plot_contour(
     contour_result::ContourResult;
     filename::Union{Nothing, AbstractString}=nothing,
@@ -2001,12 +1762,7 @@ function plot_contour(
             length(raw_center) == 2 || throw(ArgumentError("local_center must contain exactly two values"))
             (Float64(raw_center[1]), Float64(raw_center[2]))
         end
-        precision = Symmetric(cov) \ Matrix{Float64}(I, 2, 2)
-        local_delta = Matrix{Float64}(undef, length(contour_result.x_values), length(contour_result.y_values))
-        for ix in eachindex(contour_result.x_values), iy in eachindex(contour_result.y_values)
-            delta = [contour_result.x_values[ix] - center[1], contour_result.y_values[iy] - center[2]]
-            local_delta[ix, iy] = dot(delta, precision * delta)
-        end
+        local_delta = _local_contour_delta(cov, center, contour_result.x_values, contour_result.y_values)
         for level in plot_levels
             contour!(
                 ax,
@@ -2088,26 +1844,6 @@ function _local_contour_delta(covariance::AbstractMatrix, center, xs, ys)
     return out
 end
 
-"""
-    plot_profile_matrix(result; parameters=nothing, parameter_names=nothing, ...)
-    plot_profile_matrix(matrix_result::ProfileMatrixResult; ...)
-
-Create a kafe2-inspired profile/contour overview for several fitted
-parameters.
-
-Diagonal panels show one-parameter profile scans against the local covariance
-parabola. Lower-triangle panels show two-parameter profile contours against the
-local covariance ellipse. Upper-triangle panels show the local correlation
-coefficient. The plot is intended as a fast diagnostic: if profile curves are
-not parabolic, or profile contours do not resemble the local ellipse, symmetric
-local covariance errors should not be treated as the final uncertainty
-statement.
-
-By default, panels with warnings or critical findings are marked. Set
-`panel_status_mode=:issues`, `:all`, or `:none` independently of visual style.
-Passing a precomputed `ProfileMatrixResult` renders the stored scans without
-repeating the profile and contour refits.
-"""
 function plot_profile_matrix(
     result;
     parameters=nothing,
@@ -2375,12 +2111,6 @@ function plot_profile_matrix(
     return fig
 end
 
-"""
-    plot_residuals(result; kind=:pull, filename=nothing, format=:pdf, ...)
-
-Plot residuals, pulls, or data/fit ratios for an XY fit. Marker shape, marker
-size, and error-bar caps follow `theme` unless explicitly overridden.
-"""
 function plot_residuals(
     result::FitResult;
     kind::Symbol=:pull,
@@ -2438,13 +2168,6 @@ function plot_residuals(
     return fig
 end
 
-"""
-    plot_diagnostics(result; filename=nothing, format=:pdf, ...)
-
-Create a compact residual, pull, and ratio diagnostic figure for an XY fit.
-`scatter_kwargs`, `errorbars_kwargs`, and `reference_line_kwargs` are applied
-to every panel after the selected style defaults.
-"""
 function plot_diagnostics(
     result::FitResult;
     filename::Union{Nothing, AbstractString}=nothing,

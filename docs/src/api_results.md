@@ -22,7 +22,7 @@ names. `FitResult` additionally contains x-y-specific model and residual data.
 | `param_stderr` | Local one-standard-deviation estimates from the covariance diagonal. |
 | `param_covariance` | Local parameter covariance matrix. |
 | `param_correlation` | Correlation matrix derived from that covariance. |
-| `stats` | [`FitStatistics`](@ref). |
+| `stats` | [`ScientificFitting.FitStatistics`](@ref). |
 | `diagnostics` | Numerical checks computed during result construction. |
 | `solver_result` | [`FitSolverResult`](@ref) with native details and free-parameter mapping for scalar adapters; otherwise `nothing`. |
 
@@ -129,23 +129,21 @@ ScientificFitting.profile
 ScientificFitting.profile_interval
 ScientificFitting.contour
 ScientificFitting.profile_matrix
-ScientificFitting.profile_matrix_triage
 ScientificFitting.ProfileResult
 ScientificFitting.ProfileInterval
 ScientificFitting.ContourResult
 ScientificFitting.ProfileMatrixResult
-ScientificFitting.ProfileMatrixPanelTriage
 ```
 
 ## Diagnostics And Reports
 
 | Need | Function | Return value |
 |---|---|---|
-| Programmatic findings | [`diagnose`](@ref) | [`DiagnosticReport`](@ref) |
+| Programmatic findings | [`diagnose`](@ref) | [`ScientificFitting.DiagnosticReport`](@ref) |
 | Full diagnostic text | [`diagnose_text`](@ref) | `String` |
-| Short action list | [`diagnostic_dashboard`](@ref) | [`DiagnosticDashboard`](@ref) |
+| Short action list | [`diagnostic_dashboard`](@ref) | [`ScientificFitting.DiagnosticDashboard`](@ref) |
 | Dashboard text | [`diagnostic_dashboard_text`](@ref) | `String` |
-| Structured fit report | [`fit_report`](@ref) | [`FitReport`](@ref) |
+| Structured fit report | [`fit_report`](@ref) | [`ScientificFitting.FitReport`](@ref) |
 | Console or notebook report | [`report_text`](@ref) | `String` |
 
 Dashboard status is `:ok`, `:review`, or `:stop`. Text output renders `:stop` as

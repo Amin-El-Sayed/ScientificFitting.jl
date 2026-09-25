@@ -352,31 +352,6 @@ function _residual(problem::FitProblem, p::AbstractVector)
     return problem.y .- yhat
 end
 
-function _weighted_residual(problem::FitProblem, p::AbstractVector)
-    r = _residual(problem, p)
-    rw_data = _whiten_residual(problem, p, r)
-    if !has_parameter_priors(problem) && !has_parameter_constraints(problem)
-        return rw_data
-    end
-
-    T = eltype(rw_data)
-    n_constraint_terms = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
-    rw_priors = Vector{T}(undef, length(problem.parameter_priors) + n_constraint_terms)
-    cursor = 1
-    @inbounds for (i, prior) in enumerate(problem.parameter_priors)
-        sigma = _asymmetric_sigma(p[prior.index], prior.mean, prior.sigma_minus, prior.sigma_plus)
-        rw_priors[cursor] = (p[prior.index] - prior.mean) / sigma
-        cursor += 1
-    end
-    @inbounds for constraint in problem.parameter_constraints
-        delta = p[constraint.indices] .- constraint.mean
-        z = _stable_cholesky(constraint.covariance).L \ delta
-        rw_priors[cursor:(cursor + length(z) - 1)] .= z
-        cursor += length(z)
-    end
-    return vcat(rw_data, rw_priors)
-end
-
 function _weighted_residual(cache::FitEvaluationCache, p::AbstractVector)
     problem = cache.problem
     r = _residual(problem, p)
@@ -403,16 +378,6 @@ function _weighted_residual(cache::FitEvaluationCache, p::AbstractVector)
     return vcat(rw_data, rw_priors)
 end
 
-function _chi2(problem::FitProblem, p::AbstractVector)
-    rw = _weighted_residual(problem, p)
-    return sum(abs2, rw)
-end
-
-function _chi2(cache::FitEvaluationCache, p::AbstractVector)
-    rw = _weighted_residual(cache, p)
-    return sum(abs2, rw)
-end
-
 function _parameter_jacobian(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
     if problem.jacobian !== nothing
         J = problem.jacobian(x, p)
@@ -425,20 +390,8 @@ function _parameter_jacobian(problem::FitProblem, p::AbstractVector; x::Abstract
     return Matrix{Float64}(jac)
 end
 
-function _weighted_jacobian(problem::FitProblem, p::AbstractVector)
-    jac = _derivative_jacobian(problem, pp -> _weighted_residual(problem, pp), p)
-    return Matrix{Float64}(jac)
-end
-
 function _weighted_jacobian(cache::FitEvaluationCache, p::AbstractVector)
     jac = _derivative_jacobian(cache.problem, pp -> _weighted_residual(cache, pp), p)
-    return Matrix{Float64}(jac)
-end
-
-function _free_weighted_jacobian(cache::FitEvaluationCache, params::AbstractVector)
-    problem = cache.problem
-    free_idx = _free_indices(problem)
-    jac = _derivative_jacobian(problem, q -> _weighted_residual(cache, _expand_free_parameters(problem, q)), params[free_idx])
     return Matrix{Float64}(jac)
 end
 
@@ -478,14 +431,6 @@ function _should_scale_covariance(problem::FitProblem, policy::Symbol)
         return !has_y_uncertainty(problem) && !has_x_uncertainty(problem)
     end
     throw(ArgumentError("unsupported covariance scaling policy: $policy"))
-end
-
-function _covariance_from_cost_hessian(problem::FitProblem, p::AbstractVector, cost::Symbol)
-    free_idx = _free_indices(problem)
-    q = p[free_idx]
-    H = _derivative_hessian(problem, qq -> _cost_value(problem, _expand_free_parameters(problem, qq), cost), q)
-    cov = 2.0 .* _stable_symmetric_inverse(H)
-    return _embed_free_covariance(problem, cov)
 end
 
 function _covariance_from_cost_hessian(cache::FitEvaluationCache, p::AbstractVector, cost::Symbol)

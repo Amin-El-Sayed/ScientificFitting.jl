@@ -184,7 +184,7 @@ matrix = result.profile_matrix(
     ["slope", "offset"], npoints_profile=9, npoints_contour=7, nsigma=3,
 )
 pair = matrix.contours["slope", "offset"]
-actions = matrix.triage()  # panels needing attention; no new fits
+review = {k: v for k, v in matrix.panel_status.items() if v != "ok"}
 
 # Rendering completed scans does not minimize again.
 fig, ax = plot_profile(interval.profile_result, delta_max=5)
