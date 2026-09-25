@@ -121,10 +121,11 @@ participate in the fit.
 | `jacobian` | `nothing` | Analytic model Jacobian, allocating or in-place according to `inplace`. |
 | `x_derivative` | `nothing` | Vector ``\partial f/\partial x`` for efficient x-uncertainty propagation. |
 
-`backend=:auto` uses LsqFit only when static chi-square least squares represents
-the complete problem. An incompatible explicit `backend=:lsqfit` request raises
-an error rather than dropping bounds, constraints, priors, or
-parameter-dependent covariance.
+The automatic solver choice uses LsqFit exactly when static chi-square least
+squares represents the complete problem, and the scalar solver otherwise;
+`result.backend` records what solved the fit. Pass `solver=` (an
+`AbstractFitSolver`, or the shorthands `:lbfgs`, `:ipnewton`, `:nelder_mead`)
+for an explicit choice.
 
 ## Reference Sections
 

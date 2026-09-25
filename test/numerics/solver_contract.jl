@@ -175,9 +175,10 @@ end
     @test sum(constrained.params) <= 2 + 1e-8
     @test solver_capabilities(OptimizationSolver(optim.IPNewton())).hessian
 
-    @test_throws ArgumentError fit_custom(objective; p0=[0., 0.], nobs=10, solver,
-                                          optimizer=:nelder_mead)
-    @test_throws ArgumentError fit_model(line, x, y; p0=[0., 0.], solver, backend=:lsqfit)
+    # Shorthands and solver objects are the same keyword; unknown shorthands
+    # fail loudly before any solve.
+    @test_throws ArgumentError fit_custom(objective; p0=[0., 0.], nobs=10, solver=:unknown)
+    @test_throws ArgumentError fit_model(line, x, y; p0=[0., 0.], solver=:unknown)
     @test_throws ArgumentError OptimizationSolver(optim.BFGS(); maxiters=3)
     @test_throws ArgumentError OptimizationSolver(nlopt.Opt(:LN_NELDERMEAD, 2))
     if Base.get_extension(ScientificFitting, :ScientificFittingNativeMinuitExt) === nothing
@@ -227,7 +228,7 @@ end
     @test isempty(second.dimensions)
 
     # Derivative-free optimization must not acquire an implicit AD requirement.
-    direct = fit_custom(bad_ad; p0=[0.], nobs=10, optimizer=:nelder_mead)
+    direct = fit_custom(bad_ad; p0=[0.], nobs=10, solver=:nelder_mead)
     @test direct.converged
     @test direct.params ≈ [2.] atol=1e-6
 end

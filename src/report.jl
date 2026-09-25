@@ -57,7 +57,7 @@ function _parameter_estimates(
             ["p$i" for i in 1:n]
         end
     else
-        length(parameter_names) == n || throw(ArgumentError("parameter_names length must match parameter count"))
+        length(parameter_names) == n || throw(DimensionMismatch("parameter_names length must match parameter count"))
         [_plain_parameter_name(name) for name in parameter_names]
     end
 

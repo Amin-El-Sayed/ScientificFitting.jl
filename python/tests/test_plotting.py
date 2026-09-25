@@ -213,7 +213,7 @@ def test_failed_costs_and_invalid_covariance_are_not_invented(plt, matrix):
 
 def test_derivative_free_profiles_render_without_invented_curvature(plt, tmp_path):
     result = fit_custom(lambda a, b: 2*abs(a-0.7) + 3*abs(b-1.3),
-        p0={"a": 0.2, "b": 1.}, nobs=10, optimizer="nelder_mead", tol=1e-10)
+        p0={"a": 0.2, "b": 1.}, nobs=10, solver="nelder_mead", tol=1e-10)
     profile = result.profile("a", values=np.linspace(-1, 2, 9))
     fig, ax = plot_profile(profile)
     assert not any("parabola" in line.get_label() for line in ax.lines)

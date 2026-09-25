@@ -39,7 +39,7 @@ def test_result_and_report_snapshots(calibration):
     assert isinstance(result.message, str)
     assert result.iterations is None or isinstance(result.iterations, int)
     assert _backend().seval("r -> ismissing(r.iterations)")(result._handle) == (result.iterations is None)
-    assert result.options["backend"] == "auto"
+    assert result.options["solver"] is None
     assert result.statistics["cost"] == "chi2"
     np.testing.assert_allclose(result.residuals, result.y-result.model_y)
     np.testing.assert_allclose(result.weighted_residuals, result.residuals/0.1)
@@ -113,7 +113,7 @@ def test_nonconverged_nuisance_fit_is_not_a_profile_minimum():
 def test_multistart_keeps_the_lowest_cost_when_no_run_converges():
     result = fit_custom(lambda mu: (mu-2)**2, p0={"mu": 0.}, nobs=10,
                         initial_guesses=[{"mu": 1.}], multistart=2,
-                        optimizer="nelder_mead", maxiters=1)
+                        solver="nelder_mead", maxiters=1)
     assert not result.converged
     np.testing.assert_array_equal(result.params, [1.])
     assert result.statistics["cost_min"] == 1.

@@ -94,7 +94,7 @@ plot_fit(
     stats_position=:right,
     stats_mode=:full,
     # Compact observations keep short measured uncertainties visible.
-    data_markersize=5,
+    style=FitPlotStyle(data_markersize=5),
     filename="linear_calibration.pdf",
 )
 

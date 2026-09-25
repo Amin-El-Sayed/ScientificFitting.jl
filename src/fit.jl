@@ -247,15 +247,13 @@ function _prefer_fit(candidate, incumbent)
 end
 
 """
-    fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500,
-        tol=nothing, scale_covariance=:auto, initial_guesses=nothing,
-        multistart=1, solver=nothing) -> FitResult
+    fit(problem::FitProblem; cost=:auto, maxiters=500, tol=nothing,
+        scale_covariance=:auto, initial_guesses=nothing, multistart=1,
+        solver=nothing) -> FitResult
 
 Fit a validated Gaussian `FitProblem`.
 
 Keyword contracts:
-- `backend`: `:auto`, `:lsqfit`, or `:optimization`. `:auto` uses LsqFit only
-  when static chi-square least squares represents the complete problem.
 - `cost`: `:auto`, `:chi2`, or `:gaussian_likelihood`. `:auto` selects the
   normalized Gaussian `-2 log(L)` cost for parameter-dependent covariance.
 - `maxiters`: positive solver budget used for every candidate.
@@ -269,22 +267,20 @@ Keyword contracts:
   Explicit guesses are always tried; the candidate budget grows to cover them.
 - `multistart`: total candidate budget, including `problem.p0` and every
   explicit guess. Values beyond that add generated candidates.
-- `solver`: optional `OptimizationSolver(algorithm)` or `NativeMinuitSolver()`.
-  Leave `backend=:auto` when selecting a solver. The same solver/settings are
-  used for multistart and profile refits; covariance estimation is unchanged.
+- `solver`: `nothing` keeps the automatic choice: LsqFit exactly when static
+  chi-square least squares represents the complete problem, the scalar solver
+  otherwise. Pass `OptimizationSolver(algorithm)`, `NativeMinuitSolver()`, or
+  one of the shorthands `:lbfgs`, `:ipnewton`, `:nelder_mead` for an explicit
+  choice. The same solver and settings are used for multistart and profile
+  refits; `result.backend` records what actually solved the fit.
 
 The converged finite candidate with the lowest cost is returned. If no candidate
 converges but one remains finite, it is returned with `converged == false`; use
 `diagnostic_dashboard(result)` before interpreting it. If every candidate
 fails, the last model, validation, or solver error is rethrown.
-
-An explicit incompatible `backend=:lsqfit` request raises `ArgumentError`
-instead of dropping bounds, parameter terms, constraints, active error
-components, or parameter-dependent covariance.
 """
 function fit(
     problem::FitProblem;
-    backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
     tol::Union{Nothing,Real}=nothing,
@@ -293,11 +289,12 @@ function fit(
     multistart::Int=1,
     solver=nothing,
 )
-    solver !== nothing && backend != :auto && throw(ArgumentError(
-        "choose solver or backend, not both; leave backend=:auto with an explicit solver",
+    solver = _resolve_solver_shorthand(solver)
+    scale_covariance isa Symbol || throw(ArgumentError(
+        "scale_covariance must be :auto, :always, or :never; the Bool spelling was removed in v0.3",
     ))
     if _resolve_cost(problem, cost) == :gaussian_likelihood &&
-       _normalize_scale_covariance(scale_covariance) == :always
+       scale_covariance == :always
         throw(ArgumentError(
             "scale_covariance=:always is not available for cost=:gaussian_likelihood: " *
             "the parameter covariance comes from the cost Hessian there, not from " *
@@ -305,49 +302,28 @@ function fit(
         ))
     end
     options = FitOptions(
-        backend=backend,
         cost=_resolve_cost(problem, cost),
         maxiters=maxiters,
         tol=tol === nothing ? default_fit_tolerance(solver, problem.derivatives) : tol,
-        scale_covariance=_normalize_scale_covariance(scale_covariance),
+        scale_covariance=scale_covariance,
         multistart=multistart,
         solver=solver,
     )
 
-    candidates = _initial_candidates(problem, initial_guesses, multistart)
-    best_result = nothing
-    last_error = nothing
-
-    for candidate in candidates
-        candidate_problem = _with_p0(problem, candidate)
-        try
-            result = if isempty(_free_indices(candidate_problem))
-                params = _expand_free_parameters(candidate_problem, Float64[])
-                _build_fit_result(candidate_problem, options, :fixed, params, true, 0, "All parameters fixed", nothing)
-            else
-                chosen_backend = solver === nothing ?
-                    _solve_backend(candidate_problem, backend, options.cost) : :optimization
-                if chosen_backend == :lsqfit
-                    params, converged, iterations, message, jacobian = _fit_with_lsqfit(candidate_problem, options)
-                    _build_fit_result(candidate_problem, options, :lsqfit, params,
-                                      converged, iterations, message, jacobian)
-                else
-                    _fit_scalar_candidate(candidate_problem, options)
-                end
-            end
-
-            _prefer_fit(result, best_result) && (best_result = result)
-        catch err
-            last_error = err
+    return _fit_over_candidates(problem, initial_guesses, multistart) do candidate_problem
+        if isempty(_free_indices(candidate_problem))
+            params = _expand_free_parameters(candidate_problem, Float64[])
+            return _build_fit_result(candidate_problem, options, :fixed, params, true, 0, "All parameters fixed", nothing)
         end
+        chosen_backend = solver === nothing ?
+            _solve_backend(candidate_problem, options.cost) : :optimization
+        if chosen_backend == :lsqfit
+            params, converged, iterations, message, jacobian = _fit_with_lsqfit(candidate_problem, options)
+            return _build_fit_result(candidate_problem, options, :lsqfit, params,
+                                     converged, iterations, message, jacobian)
+        end
+        return _fit_scalar_candidate(candidate_problem, options)
     end
-
-    if best_result === nothing
-        last_error === nothing || throw(last_error)
-        throw(ErrorException("fit failed for all initial guesses"))
-    end
-
-    return best_result
 end
 
 """
@@ -381,7 +357,7 @@ Jacobian must then use `jacobian!(J, x, p)`.
 
 Parameter control uses `bounds`, `constraints`, `parameter_priors`,
 `parameter_constraints`, and `fixed_parameters`. Solver keywords are forwarded
-to `fit(::FitProblem)` with defaults `backend=:auto`, `cost=:auto`,
+to `fit(::FitProblem)` with defaults `cost=:auto`,
 `maxiters=500`, `tol=nothing`, `scale_covariance=:auto`, and `multistart=1`.
 Omitting `tol` selects the solver-specific [`default_fit_tolerance`](@ref).
 
@@ -425,7 +401,6 @@ function fit_model(
     x_derivative=nothing,
     inplace::Bool=false,
     derivatives::Symbol=:auto,
-    backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
     tol::Union{Nothing,Real}=nothing,
@@ -458,7 +433,6 @@ function fit_model(
 
     return fit(
         problem;
-        backend=backend,
         cost=cost,
         maxiters=maxiters,
         tol=tol,

@@ -140,7 +140,7 @@ def constant(x, location):
 laplace_result = fit_likelihood_model(
     constant, np.arange(len(readings_laplace)), readings_laplace,
     logprob=lambda y, mu, location: stats.laplace.logpdf(y, loc=mu, scale=1),
-    p0={"location": 0.1}, optimizer="nelder_mead", tol=1e-10,
+    p0={"location": 0.1}, solver="nelder_mead", tol=1e-10,
 )
 print(laplace_result.report())
 # No local covariance scale: supply the actual trial values.

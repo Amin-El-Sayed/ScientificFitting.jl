@@ -193,7 +193,7 @@ using LinearAlgebra
         @test warning_dashboard.next_actions == ["Inspect residuals.", "Record context."]
         @test isempty(diagnostic_dashboard(warning_report; max_actions=0).next_actions)
         @test length(diagnostic_dashboard(warning_report; max_actions=0).report.findings) == 3
-        @test_throws ArgumentError diagnostic_dashboard(warning_report; max_actions=-1)
+        @test_throws DomainError diagnostic_dashboard(warning_report; max_actions=-1)
     end
 
     @testset "Diagnosis flags strong parameter correlations" begin

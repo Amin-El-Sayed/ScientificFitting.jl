@@ -111,7 +111,7 @@ independently of visual style.
 | CairoMakie extension not loaded | `ArgumentError` naming CairoMakie |
 | Unsupported residual kind or non-finite coordinates | `ArgumentError` |
 | Ratio with a zero/non-finite model prediction | `ArgumentError` |
-| Non-positive profile display scale | `ArgumentError` |
+| Non-positive profile display scale | `DomainError` |
 | Incompatible local covariance or contour geometry | `ArgumentError` |
 | Invalid profile-matrix status mode or display names | `ArgumentError` |
 

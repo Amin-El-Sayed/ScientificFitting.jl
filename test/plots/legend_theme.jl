@@ -26,7 +26,7 @@ end
         for style in (:sans, :tex), appearance in (:light, :dark), position in (:below, :right)
             fig = plot_contour(result; theme=style, appearance,
                 legend_position=position, local_covariance=[1. 0.; 0. 1.],
-                local_center=[0.,0.], figure_size=(820,700))
+                local_center=[0.,0.], style=FitPlotStyle(figure_size=(820,700)))
             save(joinpath(directory, "$(style)_$(appearance)_$(position).svg"), fig)
             axis = only(filter(item -> item isa Axis, fig.content))
             legend = only(filter(item -> item isa Legend, fig.content))
@@ -40,7 +40,7 @@ end
 
         # Oversized custom typography must grow the same shared layout.
         fig = plot_profile(scan; theme=:tex, local_sigma=1.,
-            figure_size=(600,400), legend_kwargs=(labelsize=44,))
+            style=FitPlotStyle(figure_size=(600,400)), legend_kwargs=(labelsize=44,))
         save(joinpath(directory, "large_profile_legend.svg"), fig)
         legend = only(filter(item -> item isa Legend, fig.content))
         box = legend.layoutobservables.computedbbox[]

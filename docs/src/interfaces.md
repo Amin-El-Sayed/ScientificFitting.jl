@@ -125,7 +125,7 @@ for a histogram fit. For individual events use
 | [LsqFit.jl](https://julianlsolvers.github.io/LsqFit.jl/latest/) | Levenberg-Marquardt for compatible Gaussian residual problems; used by the least-squares path. |
 | [Optimization.jl](https://docs.sciml.ai/Optimization/stable/) / [Optim.jl](https://docs.sciml.ai/Optimization/stable/optimization_packages/optim/) | Solver interface / Julia algorithms for scalar objectives. Select `OptimizationSolver(algorithm)`; bounds and nonlinear constraints require a compatible algorithm. |
 | [NativeMinuit.jl](https://github.com/fkguo/NativeMinuit.jl) | Optional Julia-native MIGRAD adapter: `NativeMinuitSolver()`. Requires Julia 1.11+ for NativeMinuit 0.7; the core still supports Julia 1.10. |
-| [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl) | Provides the bounded Nelder-Mead path, `optimizer=:nelder_mead`. This derivative-free choice does not imply the objective has a meaningful Hessian. |
+| [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl) | Provides the bounded Nelder-Mead path, `solver=:nelder_mead`. This derivative-free choice does not imply the objective has a meaningful Hessian. |
 | [NonlinearSolve.jl](https://docs.sciml.ai/NonlinearSolve/stable/solvers/nonlinear_least_squares_solvers/) | Julia residual-based solvers; not currently integrated. |
 | [Minuit2.jl](https://github.com/JuliaHEP/Minuit2.jl) | Julia bindings to C++ Minuit2; distinct from NativeMinuit and not currently integrated. |
 

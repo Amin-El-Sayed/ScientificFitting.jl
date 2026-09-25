@@ -1,4 +1,48 @@
 """
+    FitPlotStyle(; kwargs...)
+
+Reusable visual tokens for every ScientificFitting plot function. Each field
+overrides the corresponding token of the selected `theme` preset; a `nothing`
+field keeps the theme value. Pass one style object to `plot_fit`, `fitplot`,
+`plot_residuals`, `plot_diagnostics`, `plot_profile`, `plot_contour`, and
+`plot_profile_matrix` via their `style` keyword to keep figures visually
+consistent. Content and layout choices (what is plotted, labels, panels,
+legends) remain keywords of the individual plot functions; Makie-level escape
+hatches remain available through their `*_kwargs` arguments.
+
+Fields: `figure_size`, `panel_gap`, `data_color`, `data_marker`,
+`data_markersize`, `data_strokecolor`, `data_strokewidth`, `fit_color`,
+`fit_linewidth`, `band_color`, `band_alpha`, `xerr_color`, `yerr_color`,
+`error_linewidth`, `error_whiskerwidth`, `secondary_color`,
+`reference_color`, `stats_fontsize`, `stats_box_color`, `stats_box_alpha`,
+`stats_box_strokecolor`, `stats_box_strokewidth`.
+"""
+Base.@kwdef struct FitPlotStyle
+    figure_size::Union{Nothing, Tuple{Int, Int}} = nothing
+    panel_gap::Union{Nothing, Float64} = nothing
+    data_color = nothing
+    data_marker = nothing
+    data_markersize::Union{Nothing, Float64} = nothing
+    data_strokecolor = nothing
+    data_strokewidth::Union{Nothing, Float64} = nothing
+    fit_color = nothing
+    fit_linewidth::Union{Nothing, Float64} = nothing
+    band_color = nothing
+    band_alpha::Union{Nothing, Float64} = nothing
+    xerr_color = nothing
+    yerr_color = nothing
+    error_linewidth::Union{Nothing, Float64} = nothing
+    error_whiskerwidth::Union{Nothing, Float64} = nothing
+    secondary_color = nothing
+    reference_color = nothing
+    stats_fontsize::Union{Nothing, Float64} = nothing
+    stats_box_color = nothing
+    stats_box_alpha::Float64 = 0.95
+    stats_box_strokecolor = nothing
+    stats_box_strokewidth::Float64 = 1.0
+end
+
+"""
     plot_fit(result; kwargs...)
 
 Create and return a Makie `Figure` from an existing `FitResult`. The default

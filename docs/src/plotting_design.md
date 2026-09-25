@@ -79,7 +79,7 @@ panel entirely.
 
 The sans style defaults to `(1040, 640)` with a right-side panel and
 `(860, 560)` without one. The TeX style uses `(1000, 640)` with the panel and
-`(760, 520)` without it. `figure_size=(width, height)` requests a minimum
+`(760, 520)` without it. `style=FitPlotStyle(figure_size=(width, height))` requests a minimum
 logical canvas. Makie measures legends, labels, and panel content while
 preserving a readable data-axis area; if the request is too small, the canvas
 grows rather than clipping content. A larger requested width goes to the
@@ -158,7 +158,7 @@ it. Keep the figure at its intended display size and control raster density
 when saving:
 
 ```julia
-fig = plot_fit(result; figure_size=(1200, 600))
+fig = plot_fit(result; style=FitPlotStyle(figure_size=(1200, 600)))
 save("fit.png", fig; px_per_unit=2)  # sharper raster, unchanged layout
 save("fit.svg", fig)                 # vector output for scalable documents
 ```
@@ -237,7 +237,7 @@ and each Makie `*_kwargs` container is applied last:
 fig = plot_fit(
     result;
     theme=:sans,
-    fit_color=:navy,
+    style=FitPlotStyle(fit_color=:navy),
     axis_kwargs=(
         xgridvisible=false,
         ygridvisible=false,

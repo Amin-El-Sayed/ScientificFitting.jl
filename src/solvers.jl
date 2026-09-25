@@ -74,7 +74,7 @@ struct NativeMinuitSolver{S, K} <: AbstractFitSolver
                 "steps must be a positive scalar or a vector in full parameter order",
             ))
             all(v -> isfinite(v) && v > 0, steps isa Real ? (steps,) : steps) ||
-                throw(ArgumentError("initial parameter steps must be finite and positive"))
+                throw(DomainError(steps, "initial parameter steps must be finite and positive"))
         end
         stored = steps isa AbstractVector ? collect(Float64, steps) : steps
         return new{typeof(stored), typeof(kwargs)}(stored, kwargs)
@@ -189,12 +189,26 @@ function solve_fit(solver::OptimizationSolver, problem; maxiters, tol,
         iterations, message=sol.retcode, parameter_indices, raw=sol)
 end
 
-"""Resolve legacy shortcuts without changing the default least-squares path."""
+"""Map the documented solver shorthands onto concrete solvers.
+
+`solver=nothing` keeps the automatic choice. The symbols `:lbfgs` and
+`:ipnewton` name the same OptimJL algorithms the automatic choice uses;
+`:nelder_mead` is NLopt's bounded derivative-free simplex for non-smooth or
+support-limited costs. Anything else must already be an `AbstractFitSolver`.
+"""
+function _resolve_solver_shorthand(solver)
+    solver isa Symbol || return solver
+    solver == :lbfgs && return OptimizationSolver(OptimizationOptimJL.LBFGS())
+    solver == :ipnewton && return OptimizationSolver(OptimizationOptimJL.IPNewton())
+    solver == :nelder_mead && return OptimizationSolver(OptimizationNLopt.NLopt.LN_NELDERMEAD)
+    throw(ArgumentError(
+        "solver shorthands are :lbfgs, :ipnewton, and :nelder_mead; " *
+        "pass an AbstractFitSolver such as OptimizationSolver(algorithm) otherwise",
+    ))
+end
+
 function _scalar_solver(problem, options)
     options.solver !== nothing && return options.solver
-    if options.optimizer == :nelder_mead
-        return OptimizationSolver(OptimizationNLopt.NLopt.LN_NELDERMEAD)
-    end
     alg = has_constraints(problem.constraints) ? OptimizationOptimJL.IPNewton() :
           OptimizationOptimJL.LBFGS()
     return OptimizationSolver(alg)

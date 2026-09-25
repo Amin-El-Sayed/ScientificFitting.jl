@@ -45,8 +45,8 @@ using Test
     @test isfinite(ScientificFitting._distribution_cost(Normal(), [40.]))
     @test ScientificFitting._distribution_cost(Uniform(), [-1.]) == Inf
     @test_throws ArgumentError fit_distribution(joint, samples; p0=[0., 0.])
-    @test_throws ArgumentError fit_distribution(joint, [1., 2.]; p0=[0., 0.])
-    @test_throws ArgumentError fit_distribution(make_normal, samples; p0=[0., 0.], obsdim=2)
+    @test_throws DimensionMismatch fit_distribution(joint, [1., 2.]; p0=[0., 0.])
+    @test_throws DimensionMismatch fit_distribution(make_normal, samples; p0=[0., 0.], obsdim=2)
     @test_throws ArgumentError fit_distribution(make_normal, [NaN]; p0=[0., 0.])
     @test_throws ArgumentError fit_distribution(make_normal, Float64[]; p0=[0., 0.])
 end
@@ -76,5 +76,5 @@ end
     @test_throws ArgumentError fit_likelihood_model(line, x, y;
         error=Normal(), logprob=(y, mu, p) -> y, p0=[1., 0.])
     @test_throws ArgumentError fit_likelihood_model(line, x, y; error=[Normal()], p0=[1., 0.])
-    @test_throws ArgumentError fit_likelihood_model(line, x, y; error=MvNormal(zeros(2), I), p0=[1., 0.])
+    @test_throws DimensionMismatch fit_likelihood_model(line, x, y; error=MvNormal(zeros(2), I), p0=[1., 0.])
 end

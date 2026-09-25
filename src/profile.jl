@@ -118,7 +118,6 @@ function _refit_with_fixed(result::FitResult, fixed::Vector{FixedParameter})
 
     return fit(
         refit_problem;
-        backend=result.options.backend,
         cost=result.options.cost,
         maxiters=result.options.maxiters,
         tol=result.options.tol,
@@ -153,7 +152,6 @@ function _refit_with_fixed(result::LikelihoodFitResult, fixed::Vector{FixedParam
         refit_problem;
         maxiters=result.options.maxiters,
         tol=result.options.tol,
-        optimizer=result.options.optimizer,
         parameter_covariance=result.options.parameter_covariance,
         solver=result.options.solver,
     )
@@ -189,8 +187,8 @@ function _profile_refit_cost(result, fixed::Vector{FixedParameter}; on_failure::
 end
 
 function _validate_adaptive_controls(max_refinements::Int, max_points::Int)
-    max_refinements >= 0 || throw(ArgumentError("max_refinements must be non-negative"))
-    max_points >= 3 || throw(ArgumentError("max_points must be at least 3"))
+    max_refinements >= 0 || throw(DomainError(max_refinements, "max_refinements must be non-negative"))
+    max_points >= 3 || throw(DomainError(max_points, "max_points must be at least 3"))
     return nothing
 end
 
@@ -201,17 +199,17 @@ end
 
 function _validate_profile_controls(npoints::Int, nsigma::Real, threshold::Real; default_grid::Bool)
     if default_grid
-        npoints >= 3 || throw(ArgumentError("npoints must be at least 3"))
-        isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and > 0"))
+        npoints >= 3 || throw(DomainError(npoints, "npoints must be at least 3"))
+        isfinite(nsigma) && nsigma > 0 || throw(DomainError(nsigma, "nsigma must be finite and > 0"))
     end
-    isfinite(threshold) && threshold > 0 || throw(ArgumentError("threshold must be finite and > 0"))
+    isfinite(threshold) && threshold > 0 || throw(DomainError(threshold, "threshold must be finite and > 0"))
     return nothing
 end
 
 function _validate_contour_controls(npoints::Int, nsigma::Real; default_x_grid::Bool, default_y_grid::Bool)
     if default_x_grid || default_y_grid
-        npoints >= 2 || throw(ArgumentError("npoints must be at least 2"))
-        isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and > 0"))
+        npoints >= 2 || throw(DomainError(npoints, "npoints must be at least 2"))
+        isfinite(nsigma) && nsigma > 0 || throw(DomainError(nsigma, "nsigma must be finite and > 0"))
     end
     return nothing
 end
@@ -463,8 +461,8 @@ end
 function _profile_parabolicity_findings(profile_result::ProfileResult, local_sigma; tolerance::Real)
     local_sigma === nothing && return DiagnosticFinding[]
     sigma = Float64(local_sigma)
-    sigma > 0 || throw(ArgumentError("local_sigma must be positive"))
-    tolerance >= 0 || throw(ArgumentError("tolerance must be non-negative"))
+    sigma > 0 || throw(DomainError(sigma, "local_sigma must be positive"))
+    tolerance >= 0 || throw(DomainError(tolerance, "tolerance must be non-negative"))
 
     local_delta = @. abs2((profile_result.values - profile_result.best_value) / sigma)
     relevant = (profile_result.delta_cost .<= max(4 * profile_result.threshold, profile_result.threshold + 3))
@@ -488,7 +486,7 @@ end
 function _profile_matrix_parameter_names(result, parameters::Vector{Int}, parameter_names)
     if parameter_names !== nothing
         names = collect(String, parameter_names)
-        length(names) == length(parameters) || throw(ArgumentError("parameter_names length must match parameters"))
+        length(names) == length(parameters) || throw(DimensionMismatch("parameter_names length must match parameters"))
         return names
     end
     if hasproperty(result.problem, :parameter_names) && result.problem.parameter_names !== nothing
@@ -790,7 +788,7 @@ function contour(
     level_values = collect(Float64, levels)
     isempty(level_values) && throw(ArgumentError("contour levels must not be empty"))
     all(isfinite, level_values) || throw(ArgumentError("contour levels must be finite"))
-    all(>(0.0), level_values) || throw(ArgumentError("contour levels must be positive delta-cost thresholds"))
+    all(>(0.0), level_values) || throw(DomainError(level_values, "contour levels must be positive delta-cost thresholds"))
     level_values = sort!(unique!(level_values))
     if adaptive
         return _adaptive_contour(
@@ -906,7 +904,7 @@ end
 function _contour_ellipticity_findings(contour_result::ContourResult, local_covariance, local_center; tolerance::Real)
     cov = _contour_local_covariance(contour_result, local_covariance)
     cov === nothing && return DiagnosticFinding[]
-    tolerance >= 0 || throw(ArgumentError("tolerance must be non-negative"))
+    tolerance >= 0 || throw(DomainError(tolerance, "tolerance must be non-negative"))
 
     center = _contour_center(contour_result, local_center)
     precision, covariance_finding = _contour_local_covariance_precision(cov)

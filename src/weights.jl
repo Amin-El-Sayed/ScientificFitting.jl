@@ -64,8 +64,8 @@ function _prepare_covariance(cov, n::Int)
 
     if cov isa AbstractVector
         variances = collect(Float64, cov)
-        length(variances) == n || throw(ArgumentError("covariance vector length must match observations"))
-        any(variances .<= 0.0) && throw(ArgumentError("all effective variances must be positive"))
+        length(variances) == n || throw(DimensionMismatch("covariance vector length must match observations"))
+        any(variances .<= 0.0) && throw(DomainError(variances, "all effective variances must be positive"))
         return DiagonalPreparedCovariance(variances, inv.(sqrt.(variances)), sum(log, variances))
     end
 
@@ -102,7 +102,7 @@ function _prepare_fit_cache(problem::FitProblem)
 end
 
 function _validated_model_values(values::AbstractVector, n::Int)
-    length(values) == n || throw(ArgumentError("model output length must match x length"))
+    length(values) == n || throw(DimensionMismatch("model output length must match x length"))
     all(value -> isfinite(_finite_value(value)), values) ||
         throw(ArgumentError("model output must contain only finite values"))
     return values
@@ -126,7 +126,7 @@ end
 function _model_dydx(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
     if problem.x_derivative !== nothing
         values = problem.x_derivative(x, p)
-        length(values) == length(x) || throw(ArgumentError("x_derivative output length must match x length"))
+        length(values) == length(x) || throw(DimensionMismatch("x_derivative output length must match x length"))
         collected = collect(values)
         finite_values = _finite_value.(collected)
         all(isfinite, finite_values) || throw(ArgumentError("x_derivative output must contain only finite values"))
@@ -314,7 +314,7 @@ function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::Abst
 
     if cov isa AbstractVector
         cov_values = _finite_value.(cov)
-        any(cov_values .<= 0.0) && throw(ArgumentError("all effective variances must be positive"))
+        any(cov_values .<= 0.0) && throw(DomainError(cov_values, "all effective variances must be positive"))
         return collect(residual ./ sqrt.(cov))
     end
 
@@ -381,8 +381,8 @@ end
 function _parameter_jacobian(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
     if problem.jacobian !== nothing
         J = problem.jacobian(x, p)
-        size(J, 1) == length(x) || throw(ArgumentError("jacobian row count must match x length"))
-        size(J, 2) == length(p) || throw(ArgumentError("jacobian column count must match parameter count"))
+        size(J, 1) == length(x) || throw(DimensionMismatch("jacobian row count must match x length"))
+        size(J, 2) == length(p) || throw(DimensionMismatch("jacobian column count must match parameter count"))
         return Matrix{Float64}(J)
     end
 
@@ -409,17 +409,6 @@ function _covariance_from_weighted_jacobian(
     end
 
     return cov
-end
-
-function _normalize_scale_covariance(scale_covariance)
-    if scale_covariance === true
-        return :always
-    elseif scale_covariance === false
-        return :never
-    elseif scale_covariance in (:auto, :always, :never)
-        return scale_covariance
-    end
-    throw(ArgumentError("scale_covariance must be :auto, :always, :never, true, or false"))
 end
 
 function _should_scale_covariance(problem::FitProblem, policy::Symbol)
@@ -513,20 +502,8 @@ function _lsqfit_incompatibility(problem::FitProblem, cost::Symbol)
     return nothing
 end
 
-function _solve_backend(problem::FitProblem, backend::Symbol, cost::Symbol)
-    backend in (:auto, :lsqfit, :optimization) || throw(ArgumentError(
-        "unsupported backend: $backend (use :auto, :lsqfit, or :optimization)",
-    ))
-    backend == :optimization && return :optimization
-
-    incompatibility = _lsqfit_incompatibility(problem, cost)
-    if backend == :lsqfit && incompatibility !== nothing
-        throw(ArgumentError(
-            "backend=:lsqfit cannot represent this fit because $incompatibility; " *
-            "use backend=:auto or backend=:optimization",
-        ))
-    end
-    return incompatibility === nothing ? :lsqfit : :optimization
+function _solve_backend(problem::FitProblem, cost::Symbol)
+    return _lsqfit_incompatibility(problem, cost) === nothing ? :lsqfit : :optimization
 end
 
 function _constraint_vectors(spec::ConstraintSpec, p::AbstractVector)

@@ -48,7 +48,8 @@ ErrorComponent(:shared, :y, :covariance, covariance_matrix)
 ### Fit Completion And Failure
 
 Non-finite observations, non-positive standard deviations, invalid bounds, and
-non-positive-definite covariance matrices raise `ArgumentError` before
+non-positive-definite covariance matrices raise `ArgumentError` or
+`DomainError` before
 optimization.
 
 For multistart fits, ScientificFitting returns the converged candidate with the lowest

@@ -21,12 +21,12 @@ end
 
 function _expand_free_parameters(problem, free_params::AbstractVector)
     if isempty(problem.fixed_parameters)
-        length(free_params) == length(problem.p0) || throw(ArgumentError("free parameter vector has wrong length"))
+        length(free_params) == length(problem.p0) || throw(DimensionMismatch("free parameter vector has wrong length"))
         return free_params
     end
 
     free_idx = _free_indices(problem)
-    length(free_params) == length(free_idx) || throw(ArgumentError("free parameter vector has wrong length"))
+    length(free_params) == length(free_idx) || throw(DimensionMismatch("free parameter vector has wrong length"))
 
     T = promote_type(eltype(problem.p0), eltype(free_params))
     full = Vector{T}(undef, length(problem.p0))
@@ -57,7 +57,7 @@ end
 function _embed_free_covariance(problem, free_cov::AbstractMatrix)
     n = length(problem.p0)
     free_idx = _free_indices(problem)
-    size(free_cov) == (length(free_idx), length(free_idx)) || throw(ArgumentError("free covariance has wrong shape"))
+    size(free_cov) == (length(free_idx), length(free_idx)) || throw(DimensionMismatch("free covariance has wrong shape"))
 
     cov = zeros(Float64, n, n)
     cov[free_idx, free_idx] .= free_cov
@@ -76,10 +76,34 @@ end
 
 function _full_jacobian_from_free(problem, free_jacobian::AbstractMatrix, nrows::Int)
     free_idx = _free_indices(problem)
-    size(free_jacobian) == (nrows, length(free_idx)) || throw(ArgumentError("free jacobian has wrong shape"))
+    size(free_jacobian) == (nrows, length(free_idx)) || throw(DimensionMismatch("free jacobian has wrong shape"))
     jacobian = zeros(Float64, nrows, length(problem.p0))
     jacobian[:, free_idx] .= free_jacobian
     return jacobian
+end
+
+"""Run one fit per candidate start and keep the preferred result.
+
+`run_candidate(candidate_problem)` performs the actual fit. Candidate errors
+are collected; if no candidate produces a result, the last error (or a generic
+failure) is thrown.
+"""
+function _fit_over_candidates(run_candidate, problem, initial_guesses, multistart::Int)
+    best_result = nothing
+    last_error = nothing
+    for candidate in _initial_candidates(problem, initial_guesses, multistart)
+        try
+            result = run_candidate(_with_p0(problem, candidate))
+            _prefer_fit(result, best_result) && (best_result = result)
+        catch err
+            last_error = err
+        end
+    end
+    if best_result === nothing
+        last_error === nothing || throw(last_error)
+        throw(ErrorException("fit failed for all initial guesses"))
+    end
+    return best_result
 end
 
 function _with_p0(problem::FitProblem, p0::AbstractVector)
@@ -169,7 +193,7 @@ function _initial_candidates(problem, initial_guesses, multistart::Int)
 
     fixed = _fixed_lookup(problem)
     for (candidate, name) in zip(candidates, candidate_names)
-        length(candidate) == length(problem.p0) || throw(ArgumentError("each initial guess must match parameter count"))
+        length(candidate) == length(problem.p0) || throw(DimensionMismatch("each initial guess must match parameter count"))
         for (idx, fp) in fixed
             candidate[idx] = fp.value
         end

@@ -594,7 +594,7 @@ function _action_key(action::String)
 end
 
 function _diagnostic_next_actions(findings::Vector{DiagnosticFinding}; max_actions::Int)
-    max_actions >= 0 || throw(ArgumentError("max_actions must be non-negative"))
+    max_actions >= 0 || throw(DomainError(max_actions, "max_actions must be non-negative"))
     max_actions == 0 && return String[]
     actions = String[]
     seen = Set{String}()
@@ -708,7 +708,7 @@ function _validate_diagnostic_plot_values(kind::Symbol, x, values, errors)
     all(isfinite, values) || throw(ArgumentError("$(kind) diagnostic values must be finite"))
     if errors !== nothing
         all(isfinite, errors) || throw(ArgumentError("$(kind) diagnostic errors must be finite"))
-        all(>=(0.0), errors) || throw(ArgumentError("$(kind) diagnostic errors must be non-negative"))
+        all(>=(0.0), errors) || throw(DomainError(errors, "$(kind) diagnostic errors must be non-negative"))
     end
     return nothing
 end

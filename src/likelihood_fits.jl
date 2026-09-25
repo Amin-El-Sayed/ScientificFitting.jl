@@ -96,9 +96,9 @@ function LikelihoodFitProblem(
     p0_vec = _float_vector(p0)
     length(p0_vec) > 0 || throw(ArgumentError("p0 must contain at least one parameter"))
     _assert_finite_vector("p0", p0_vec)
-    nobs > 0 || throw(ArgumentError("nobs must be positive"))
+    nobs > 0 || throw(DomainError(nobs, "nobs must be positive"))
     names = parameter_names === nothing ? nothing : collect(String, parameter_names)
-    names === nothing || length(names) == length(p0_vec) || throw(ArgumentError("parameter_names length must match p0"))
+    names === nothing || length(names) == length(p0_vec) || throw(DimensionMismatch("parameter_names length must match p0"))
     names === nothing || (all(name -> !isempty(name), names) && allunique(names)) ||
         throw(ArgumentError("parameter_names must be nonempty and unique"))
 
@@ -234,7 +234,7 @@ end
 
 """
     fit(problem::LikelihoodFitProblem; maxiters=1000, tol=nothing,
-        initial_guesses=nothing, multistart=1, optimizer=:auto,
+        initial_guesses=nothing, multistart=1,
         parameter_covariance=:auto, solver=nothing) -> LikelihoodFitResult
 
 Minimize a validated likelihood-scale or custom objective problem. Bounds,
@@ -249,16 +249,16 @@ if only non-converged finite candidates remain, the best one is returned with
 `converged == false`. If no candidate produces a finite result, the last
 objective, validation, or solver error is raised.
 
-`optimizer=:auto` selects LBFGS, or IPNewton with nonlinear constraints.
-Alternatively pass `solver=OptimizationSolver(algorithm)` or
-`solver=NativeMinuitSolver()` while leaving `optimizer=:auto`. Solver objects
-and their native settings are preserved in profile refits. This selection is
-independent of the requested local covariance calculation.
-`:nelder_mead` uses NLopt's bounded derivative-free simplex method for non-smooth
-or support-limited costs. It retains bounds, fixed parameters and Gaussian
-parameter terms, but rejects nonlinear constraints; those require `:ipnewton`.
-Start at finite cost inside the distribution's support. All methods are local
-optimizers of continuous parameters, not guarantees of a global minimum.
+The solver choice defaults to LBFGS, or IPNewton with nonlinear constraints.
+Pass `solver=OptimizationSolver(algorithm)` or `solver=NativeMinuitSolver()` to
+choose explicitly; solver objects and their native settings are preserved in
+profile refits, and every solver declares its capabilities, so incompatible
+combinations (for example nonlinear constraints with a derivative-free method)
+raise an error instead of being dropped. The shorthands `solver=:lbfgs`,
+`solver=:ipnewton`, and `solver=:nelder_mead` name the corresponding
+`OptimizationSolver` algorithms. Start at finite cost inside the
+distribution's support. All methods are local optimizers of continuous
+parameters, not guarantees of a global minimum.
 
 `parameter_covariance=:auto` chooses `:none` with Nelder-Mead and `:hessian`
 otherwise. Explicit `:hessian` computes `2 * inv(H)` for the complete cost;
@@ -283,61 +283,30 @@ function fit(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
-    solver !== nothing && optimizer != :auto && throw(ArgumentError(
-        "choose solver or optimizer, not both; leave optimizer=:auto with an explicit solver",
-    ))
-    constrained = has_constraints(problem.constraints)
-    optimizer = solver === nothing && optimizer == :auto ? (constrained ? :ipnewton : :lbfgs) : optimizer
+    solver = _resolve_solver_shorthand(solver)
     caps = solver isa AbstractFitSolver ? solver_capabilities(solver) : nothing
-    derivative_free = caps === nothing ? optimizer == :nelder_mead : !(caps.gradient || caps.hessian)
+    derivative_free = caps === nothing ? false : !(caps.gradient || caps.hessian)
     parameter_covariance = parameter_covariance == :auto ?
         (derivative_free ? :none : :hessian) : parameter_covariance
     options = FitOptions(
-        backend=:optimization,
         cost=problem.cost_name,
         maxiters=maxiters,
         tol=tol === nothing ? default_fit_tolerance(solver, problem.derivatives) : tol,
         scale_covariance=:never,
         multistart=multistart,
-        optimizer=optimizer,
         parameter_covariance=parameter_covariance,
         solver=solver,
     )
-    solver === nothing && constrained && optimizer != :ipnewton && throw(ArgumentError(
-        "nonlinear constraints require optimizer=:auto or :ipnewton; they cannot be dropped",
-    ))
-    solver === nothing && !constrained && optimizer == :ipnewton && throw(ArgumentError(
-        "optimizer=:ipnewton requires nonlinear constraints; use :auto, :lbfgs, or :nelder_mead",
-    ))
-
-    candidates = _initial_candidates(problem, initial_guesses, multistart)
-    best_result = nothing
-    last_error = nothing
-
-    for candidate in candidates
-        candidate_problem = _with_p0(problem, candidate)
-        try
-            result = if isempty(_free_indices(candidate_problem))
-                params = _expand_free_parameters(candidate_problem, Float64[])
-                _build_likelihood_result(candidate_problem, options, params, true, 0, "All parameters fixed")
-            else
-                _fit_scalar_candidate(candidate_problem, options)
-            end
-            _prefer_fit(result, best_result) && (best_result = result)
-        catch err
-            last_error = err
+    return _fit_over_candidates(problem, initial_guesses, multistart) do candidate_problem
+        if isempty(_free_indices(candidate_problem))
+            params = _expand_free_parameters(candidate_problem, Float64[])
+            return _build_likelihood_result(candidate_problem, options, params, true, 0, "All parameters fixed")
         end
+        return _fit_scalar_candidate(candidate_problem, options)
     end
-
-    if best_result === nothing
-        last_error === nothing || throw(last_error)
-        throw(ErrorException("fit failed for all initial guesses"))
-    end
-    return best_result
 end
 
 """
@@ -359,7 +328,7 @@ remains usable but those inferential fields are only arithmetic summaries.
 Common keywords are `bounds`, `constraints`, `parameter_priors`,
 `parameter_constraints`, `fixed_parameters`, `parameter_names`, `maxiters`,
 `tol`, `initial_guesses`, `multistart`, and `derivatives=:auto` (or `:finite`).
-`optimizer` and `parameter_covariance` independently control minimization and
+`solver` and `parameter_covariance` independently control minimization and
 local errors; see [`fit(::LikelihoodFitProblem)`](@ref) for choices and limits.
 Parameter callbacks receive the
 complete vector in `p0` order. `nobs` must be positive; invalid parameter
@@ -390,7 +359,6 @@ function fit_custom(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
@@ -408,7 +376,7 @@ function fit_custom(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance, solver)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 
 function _assert_finite_observations(name::AbstractString, values::AbstractVector)
@@ -418,7 +386,7 @@ end
 
 function _assert_count_observations(name::AbstractString, values::AbstractVector)
     _assert_finite_vector(name, values)
-    all(>=(0.0), values) || throw(ArgumentError("$name must be non-negative"))
+    all(>=(0.0), values) || throw(DomainError(values, "$name must be non-negative"))
     all(isinteger, values) || throw(ArgumentError("$name must contain integer-valued counts"))
     return values
 end
@@ -451,7 +419,7 @@ raise `ArgumentError`. Begin at finite cost inside the distribution's support.
 The package cannot verify that an arbitrary callback is normalized.
 
 The default gradient/Hessian backend requires a smooth objective near evaluated
-parameters, even for discrete *observations*. Choose `optimizer=:nelder_mead`
+parameters, even for discrete *observations*. Choose `solver=:nelder_mead`
 for non-smooth or moving-support likelihoods; it does not compute Hessian errors
 unless `parameter_covariance=:hessian` is explicitly requested. This does not
 support discrete fitted parameters. Use `fit_custom` for dependent observations with a joint
@@ -481,7 +449,7 @@ function fit_likelihood_model(
     cost_name::Symbol=:observation_likelihood, kwargs...,
 )
     x_vec, y_vec = _float_vector(x), _float_vector(y)
-    length(x_vec) == length(y_vec) || throw(ArgumentError("x and y must have equal length"))
+    length(x_vec) == length(y_vec) || throw(DimensionMismatch("x and y must have equal length"))
     _assert_finite_observations("x", x_vec)
     _assert_finite_observations("y", y_vec)
     (logprob === nothing) != (error === nothing) || throw(ArgumentError(
@@ -491,12 +459,12 @@ function fit_likelihood_model(
     objective = function (p)
         prediction = model(x_vec, p)
         prediction isa AbstractVector && length(prediction) == length(y_vec) ||
-            throw(ArgumentError("model must return one prediction per observation"))
+            throw(DimensionMismatch("model must return one prediction per observation"))
         all(isfinite, prediction) || throw(ArgumentError("model predictions must be finite"))
         error_model === nothing || return _minus2logprob(_error_loglikelihood(error_model, y_vec .- prediction))
         terms = logprob(y_vec, prediction, p)
         terms isa AbstractVector && length(terms) == length(y_vec) ||
-            throw(ArgumentError("logprob must return one log probability per observation"))
+            throw(DimensionMismatch("logprob must return one log probability per observation"))
         # Zero support stays impossible; never replace it with an arbitrary floor.
         all(v -> v isa Real && (isfinite(v) || v == -Inf), terms) ||
             throw(ArgumentError("logprob values must be finite or -Inf (zero probability)"))
@@ -507,9 +475,9 @@ end
 
 function _nonnegative_expectation(mu, n::Int)
     values = collect(mu)
-    length(values) == n || throw(ArgumentError("model expectation length must match observations"))
+    length(values) == n || throw(DimensionMismatch("model expectation length must match observations"))
     all(isfinite, values) || throw(ArgumentError("model expectation contains non-finite values"))
-    all(v -> v >= 0, values) || throw(ArgumentError("model expectation must be nonnegative"))
+    all(v -> v >= 0, values) || throw(DomainError(values, "model expectation must be nonnegative"))
     return values
 end
 
@@ -547,10 +515,10 @@ end
 """Validate and snapshot histogram input once, independently of its model adapter."""
 function _histogram_data(edges, counts)
     edges_vec, counts_vec = _float_vector(edges), _float_vector(counts)
-    length(edges_vec) == length(counts_vec) + 1 || throw(ArgumentError("edges length must be count length + 1"))
+    length(edges_vec) == length(counts_vec) + 1 || throw(DimensionMismatch("edges length must be count length + 1"))
     _assert_finite_observations("histogram edges", edges_vec)
     _assert_count_observations("counts", counts_vec)
-    any(diff(edges_vec) .<= 0) && throw(ArgumentError("histogram edges must be strictly increasing"))
+    any(diff(edges_vec) .<= 0) && throw(DomainError(edges_vec, "histogram edges must be strictly increasing"))
     return edges_vec, counts_vec
 end
 
@@ -587,13 +555,12 @@ function fit_poisson_model(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
     x_vec = _float_vector(x)
     counts_vec = _float_vector(counts)
-    length(x_vec) == length(counts_vec) || throw(ArgumentError("x and counts must have equal length"))
+    length(x_vec) == length(counts_vec) || throw(DimensionMismatch("x and counts must have equal length"))
     _assert_finite_observations("x", x_vec)
     _assert_count_observations("counts", counts_vec)
 
@@ -613,7 +580,7 @@ function fit_poisson_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance, solver)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 
 """
@@ -649,7 +616,6 @@ function fit_histogram_model(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
@@ -674,7 +640,7 @@ function fit_histogram_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance, solver)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 
 """Validate the vectorized density contract before reduction or buffer copying."""
@@ -758,13 +724,12 @@ function fit_histogram_density(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
     total = Float64(total_count)
-    isfinite(total) && total > 0 || throw(ArgumentError("total_count must be finite and > 0"))
-    isfinite(rtol) && rtol > 0 || throw(ArgumentError("rtol must be finite and > 0"))
+    isfinite(total) && total > 0 || throw(DomainError(total, "total_count must be finite and > 0"))
+    isfinite(rtol) && rtol > 0 || throw(DomainError(rtol, "rtol must be finite and > 0"))
 
     expected_counts = function (edge_values, p)
         mu = Vector{eltype(p)}(undef, length(edge_values) - 1)
@@ -792,7 +757,6 @@ function fit_histogram_density(
         tol=tol,
         initial_guesses=initial_guesses,
         multistart=multistart,
-        optimizer=optimizer,
         parameter_covariance=parameter_covariance,
         solver=solver,
     )
@@ -829,7 +793,6 @@ function fit_unbinned_model(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
@@ -850,7 +813,7 @@ function fit_unbinned_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance, solver)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 
 """
@@ -889,7 +852,6 @@ function fit_extended_unbinned_model(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
@@ -897,13 +859,13 @@ function fit_extended_unbinned_model(
     a, b = Float64(domain[1]), Float64(domain[2])
     isfinite(a) && isfinite(b) || throw(ArgumentError("domain endpoints must be finite"))
     a < b || throw(ArgumentError("domain must satisfy domain[1] < domain[2]"))
-    isfinite(rtol) && rtol > 0 || throw(ArgumentError("rtol must be finite and > 0"))
+    isfinite(rtol) && rtol > 0 || throw(DomainError(rtol, "rtol must be finite and > 0"))
     _assert_finite_observations("unbinned data", data_vec)
     all(x -> a <= x <= b, data_vec) || throw(ArgumentError("extended unbinned data must lie inside the domain"))
 
     objective = function (p)
         expected = _likelihood_integral(_density_integrand(rate, p, vectorized), a, b; rtol)
-        expected > 0 || throw(ArgumentError("integrated rate must be positive"))
+        expected > 0 || throw(DomainError(expected, "integrated rate must be positive"))
         return 2 * expected + _density_logcost(rate, data_vec, p, vectorized)
     end
 
@@ -921,56 +883,45 @@ function fit_extended_unbinned_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance, solver)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 
-function _gaussian_chi2_from_residual(residual::AbstractVector, sigma_y, cov_y)
+"""Validate the indexed-data uncertainty once and return a residual -> chi2 map.
+
+The covariance factorization happens here, once per fit, not once per
+objective evaluation.
+"""
+function _indexed_chi2(y_vec::Vector{Float64}, sigma_y, cov_y)
     if sigma_y !== nothing && cov_y !== nothing
         throw(ArgumentError("use either sigma_y or cov_y, not both"))
     elseif sigma_y !== nothing
         sigma = _float_vector(sigma_y)
-        length(sigma) == length(residual) || throw(ArgumentError("sigma_y length must match observations"))
+        length(sigma) == length(y_vec) || throw(DimensionMismatch("sigma_y length must match observations"))
         _assert_positive_sigma("sigma_y", sigma)
-        return sum(abs2, residual ./ sigma)
+        inv_sigma = inv.(sigma)
+        return residual -> sum(abs2, residual .* inv_sigma)
     elseif cov_y !== nothing
         cov = _float_matrix(cov_y)
-        size(cov) == (length(residual), length(residual)) || throw(ArgumentError("cov_y must be n x n"))
+        size(cov) == (length(y_vec), length(y_vec)) || throw(DimensionMismatch("cov_y must be n x n"))
         _assert_covariance_matrix("cov_y", cov)
-        z = _stable_cholesky(cov).L \ residual
-        return sum(abs2, z)
+        L = _stable_cholesky(cov).L
+        return residual -> sum(abs2, L \ residual)
     end
-    return sum(abs2, residual)
-end
-
-function _normalize_indexed_uncertainty(y_vec::Vector{Float64}, sigma_y, cov_y)
-    if sigma_y !== nothing && cov_y !== nothing
-        throw(ArgumentError("use either sigma_y or cov_y, not both"))
-    elseif sigma_y !== nothing
-        sigma = _float_vector(sigma_y)
-        length(sigma) == length(y_vec) || throw(ArgumentError("sigma_y length must match observations"))
-        _assert_positive_sigma("sigma_y", sigma)
-        return sigma, nothing
-    elseif cov_y !== nothing
-        cov = _float_matrix(cov_y)
-        size(cov) == (length(y_vec), length(y_vec)) || throw(ArgumentError("cov_y must be n x n"))
-        _assert_covariance_matrix("cov_y", cov)
-        return nothing, cov
-    end
-    return nothing, nothing
+    return residual -> sum(abs2, residual)
 end
 
 function _normalize_multi_sigma_sets(sigma_y, y_sets::AbstractVector)
     ndatasets = length(y_sets)
     sigma_y === nothing && return [nothing for _ in 1:ndatasets]
 
-    length(sigma_y) == ndatasets || throw(ArgumentError("sigma_y length must match models"))
+    length(sigma_y) == ndatasets || throw(DimensionMismatch("sigma_y length must match models"))
     sigma_sets = Vector{Union{Nothing, Vector{Float64}}}(undef, ndatasets)
     for i in 1:ndatasets
         if sigma_y[i] === nothing
             sigma_sets[i] = nothing
         else
             sigma = _float_vector(sigma_y[i])
-            length(sigma) == length(y_sets[i]) || throw(ArgumentError("sigma_y[$i] length mismatch"))
+            length(sigma) == length(y_sets[i]) || throw(DimensionMismatch("sigma_y[$i] length mismatch"))
             _assert_positive_sigma("sigma_y[$i]", sigma)
             sigma_sets[i] = sigma
         end
@@ -1014,20 +965,18 @@ function fit_indexed_model(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
     y_vec = _float_vector(y)
     _assert_finite_observations("y", y_vec)
-    length(indices) == length(y_vec) || throw(ArgumentError("indices and y must have equal length"))
-    sigma_vec, cov_mat = _normalize_indexed_uncertainty(y_vec, sigma_y, cov_y)
+    length(indices) == length(y_vec) || throw(DimensionMismatch("indices and y must have equal length"))
+    chi2_of_residual = _indexed_chi2(y_vec, sigma_y, cov_y)
 
     objective = function (p)
         yhat = model(indices, p)
-        length(yhat) == length(y_vec) || throw(ArgumentError("model output length must match y"))
-        residual = y_vec .- yhat
-        return _gaussian_chi2_from_residual(residual, sigma_vec, cov_mat)
+        length(yhat) == length(y_vec) || throw(DimensionMismatch("model output length must match y"))
+        return chi2_of_residual(y_vec .- yhat)
     end
 
     problem = LikelihoodFitProblem(
@@ -1044,7 +993,7 @@ function fit_indexed_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance, solver)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 
 """
@@ -1086,16 +1035,15 @@ function fit_multi_model(
     tol::Union{Nothing,Real}=nothing,
     initial_guesses=nothing,
     multistart::Int=1,
-    optimizer::Symbol=:auto,
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
     ndatasets = length(models)
     ndatasets > 0 || throw(ArgumentError("at least one dataset is required"))
-    length(xs) == ndatasets || throw(ArgumentError("xs length must match models"))
-    length(ys) == ndatasets || throw(ArgumentError("ys length must match models"))
+    length(xs) == ndatasets || throw(DimensionMismatch("xs length must match models"))
+    length(ys) == ndatasets || throw(DimensionMismatch("ys length must match models"))
     maps = parameter_map === nothing ? [nothing for _ in 1:ndatasets] : parameter_map
-    length(maps) == ndatasets || throw(ArgumentError("parameter_map length must match models"))
+    length(maps) == ndatasets || throw(DimensionMismatch("parameter_map length must match models"))
     for i in 1:ndatasets
         maps[i] === nothing && continue
         all(j -> 1 <= j <= length(p0), maps[i]) || throw(ArgumentError("parameter_map[$i] contains an out-of-range parameter index"))
@@ -1106,7 +1054,7 @@ function fit_multi_model(
     for i in 1:ndatasets
         _assert_finite_observations("x dataset $i", x_sets[i])
         _assert_finite_observations("y dataset $i", y_sets[i])
-        length(x_sets[i]) == length(y_sets[i]) || throw(ArgumentError("dataset $i has mismatched x/y lengths"))
+        length(x_sets[i]) == length(y_sets[i]) || throw(DimensionMismatch("dataset $i has mismatched x/y lengths"))
     end
     sigma_sets = _normalize_multi_sigma_sets(sigma_y, y_sets)
 
@@ -1115,7 +1063,7 @@ function fit_multi_model(
         for i in 1:ndatasets
             local_p = maps[i] === nothing ? p : p[maps[i]]
             yhat = models[i](x_sets[i], local_p)
-            length(yhat) == length(y_sets[i]) || throw(ArgumentError("model $i output length mismatch"))
+            length(yhat) == length(y_sets[i]) || throw(DimensionMismatch("model $i output length mismatch"))
             residual = y_sets[i] .- yhat
             if sigma_sets[i] === nothing
                 total += sum(abs2, residual)
@@ -1141,5 +1089,5 @@ function fit_multi_model(
         parameter_names=parameter_names,
         derivatives=derivatives,
     )
-    return fit(problem; maxiters, tol, initial_guesses, multistart, optimizer, parameter_covariance, solver)
+    return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end

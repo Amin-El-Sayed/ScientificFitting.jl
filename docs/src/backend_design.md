@@ -173,11 +173,12 @@ Solver selection follows the represented problem rather than a speed preference:
 | Unbounded, static Gaussian chi-square without extra parameter terms | LsqFit least-squares path |
 | Bounds, priors, parameter constraints, parameter-dependent covariance, or likelihood objective | Optimization.jl with LBFGS |
 | Nonlinear equality or inequality constraints | Optimization.jl with IPNewton |
-| Likelihood with explicit `optimizer=:nelder_mead` and no nonlinear constraints | OptimizationNLopt with native bounded Nelder-Mead, without derivatives |
+| Likelihood with explicit `solver=:nelder_mead` and no nonlinear constraints | OptimizationNLopt with native bounded Nelder-Mead, without derivatives |
 
-An explicit `backend=:lsqfit` request is rejected if it would discard any part
-of the statistical problem. Backend selection may change how the same objective
-is minimized; it must never change which objective is being minimized.
+There is no backend forcing: features outside static least squares route to
+the scalar solver automatically. Backend selection may change how the same
+objective is minimized; it must never change which objective is being
+minimized.
 
 ### The Solver Extension Boundary
 

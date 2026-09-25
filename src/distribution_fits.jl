@@ -26,7 +26,7 @@ end
 function _distribution_shape(d::Distribution, data)
     compatible = d isa UnivariateDistribution && data isa AbstractVector ||
                  d isa MultivariateDistribution && data isa AbstractMatrix && size(data, 1) == length(d)
-    compatible || throw(ArgumentError("observation shape does not match the distribution's variate dimension"))
+    compatible || throw(DimensionMismatch("observation shape does not match the distribution's variate dimension"))
     return nothing
 end
 
@@ -72,7 +72,7 @@ Distributions._logpdf(d::MixtureLogAdapter{Multivariate}, x::AbstractVector{<:Re
 function Distributions.logpdf(d::PDFLogAdapter, x::Real)
     density = pdf(d.distribution, x)
     density isa Real && isfinite(density) && density >= 0 ||
-        throw(ArgumentError("density must be finite and nonnegative"))
+        throw(DomainError(density, "density must be finite and nonnegative"))
     return log(density)
 end
 
@@ -164,7 +164,7 @@ end
 
 _prepare_error_distribution(d::UnivariateDistribution, n) = deepcopy(d)
 function _prepare_error_distribution(d::MultivariateDistribution, n)
-    length(d) == n || throw(ArgumentError("joint error distribution dimension must match y"))
+    length(d) == n || throw(DimensionMismatch("joint error distribution dimension must match y"))
     return deepcopy(d)
 end
 function _prepare_error_distribution(ds::AbstractVector, n)
@@ -417,9 +417,9 @@ function fit_distribution(make_distribution, edges::AbstractVector, counts::Abst
                           p0::AbstractVector, total_count=nothing,
                           integration::Symbol=:auto, rtol::Real=1e-8, kwargs...)
     integration in (:auto, :cdf, :quadgk) || throw(ArgumentError("integration must be :auto, :cdf, or :quadgk"))
-    isfinite(rtol) && rtol > 0 || throw(ArgumentError("rtol must be finite and positive"))
+    isfinite(rtol) && rtol > 0 || throw(DomainError(rtol, "rtol must be finite and positive"))
     total_count === nothing || (total_count isa Real && isfinite(total_count) && total_count > 0) ||
-        throw(ArgumentError("total_count must be finite and positive"))
+        throw(DomainError(total_count, "total_count must be finite and positive"))
     edge_values, observations = _histogram_data(edges, counts)
     bins = DistributionHistogram(edge_values, observations,
         total_count === nothing ? nothing : Float64(total_count), integration, Float64(rtol))

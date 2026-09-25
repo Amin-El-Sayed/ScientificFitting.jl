@@ -112,7 +112,7 @@ function _covariance_logdet(cov, n::Int)
         return zero(Float64)
     elseif cov isa AbstractVector
         cov_values = _finite_value.(cov)
-        any(cov_values .<= 0.0) && throw(ArgumentError("all effective variances must be positive"))
+        any(cov_values .<= 0.0) && throw(DomainError(cov_values, "all effective variances must be positive"))
         return sum(log, cov)
     end
 

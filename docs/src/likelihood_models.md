@@ -34,7 +34,7 @@ location(x, p) = fill(p[1], length(x))
 # Known scale b = 1; retain the normalizing constant.
 logprob(y, mu, p) = -abs.(y .- mu) .- log(2.0)
 result = fit_likelihood_model(location, collect(eachindex(y)), y;
-    logprob, p0=[0.1], optimizer=:nelder_mead)
+    logprob, p0=[0.1], solver=:nelder_mead)
 (location=round(only(result.params); digits=6), local_error=only(result.param_stderr))
 ```
 

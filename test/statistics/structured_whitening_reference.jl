@@ -173,7 +173,7 @@ end
         p0=[1.0, 0.0],
         whitening=WhiteningOperator(vector_only!; logdet_covariance=0.0),
     )
-    @test_throws ArgumentError fit_model(
+    @test_throws DimensionMismatch fit_model(
         model,
         x,
         y;

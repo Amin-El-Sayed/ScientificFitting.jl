@@ -89,7 +89,7 @@ function style_variant_plot(
             show_panel=false,
             show_legend=true,
             legend_position=:lt,
-            figure_size=nothing,
+            style=FitPlotStyle(figure_size=nothing),
         ) : (
             show_panel=true,
             show_legend=true,
@@ -655,7 +655,7 @@ style_variant_plot(
     show_legend=true,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(figure_size=DOC_FIT_SIZE),
 )
 
 # The same fit rendered with the two visual contracts. Panel visibility is
@@ -691,7 +691,7 @@ if render_asset_group("plot_style")
             show_panel=false,
             show_legend=true,
             legend_position=:lt,
-            figure_size=nothing,
+            style=FitPlotStyle(figure_size=nothing),
         )
         figure = plot_fit(
             quick_result;
@@ -759,8 +759,7 @@ style_variant_plot(
     stats_position=:right,
     stats_mode=:full,
     # Compact observations keep short measured uncertainties visible.
-    data_markersize=5.0,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(data_markersize=5.0, figure_size=DOC_FIT_SIZE),
 )
 
 # 2. Photoelectric work-function extraction from the intersection of two regimes.
@@ -906,7 +905,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(figure_size=DOC_FIT_SIZE),
 )
 
 # 4. Effective-variance fit with x and y uncertainties.
@@ -965,8 +964,7 @@ style_variant_plot(
     stats_position=:right,
     stats_mode=:full,
     # Compact observations keep both uncertainty components visible.
-    data_markersize=5.0,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(data_markersize=5.0, figure_size=DOC_FIT_SIZE),
 )
 
 # 5. Bounds, prior, profile, and a genuinely non-elliptic contour.
@@ -1037,7 +1035,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(figure_size=DOC_FIT_SIZE),
 )
 amplitude_interval = profile_interval(saturation_result, 1; npoints=81, nsigma=4)
 emit_doc_output_snapshot("constraints_profiles") do
@@ -1094,7 +1092,7 @@ if render_asset_group("constraints_profiles")
             ylabel=style == :tex ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
             local_covariance=saturation_result.param_covariance,
             local_center=saturation_result.params[[1, 2]],
-            figure_size=(980, 720),
+            style=FitPlotStyle(figure_size=(980, 720)),
         )
         save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
@@ -1106,7 +1104,7 @@ if render_asset_group("constraints_profiles")
             parameter_names=matrix_parameter_names,
             theme=style,
             appearance=appearance,
-            figure_size=(1020, 980),
+            style=FitPlotStyle(figure_size=(1020, 980)),
         )
         save_gallery_figure("saturation_profile_matrix_$(style)_$(appearance).png", matrix_figure)
     end

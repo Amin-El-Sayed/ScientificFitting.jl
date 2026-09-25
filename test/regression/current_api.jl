@@ -129,7 +129,7 @@ using Test
         short_derivative(x, p) = fill(p[1], length(x) - 1)
         bad_derivative(x, p) = fill(NaN, length(x))
 
-        @test_throws ArgumentError fit_model(
+        @test_throws DimensionMismatch fit_model(
             model,
             x,
             y;

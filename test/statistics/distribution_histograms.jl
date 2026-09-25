@@ -156,10 +156,10 @@ end
     @test isnan(zero_rate.stats.pvalue)
 
     @test_throws ArgumentError fit_distribution(normal, [0., 1.], [2]; p0=p)
-    @test_throws ArgumentError fit_distribution(normal, [0., 1.], [2]; p0=p, total_count=-1.)
-    @test_throws ArgumentError fit_distribution(normal, [0., 1.], [2]; p0=p, total_count=3., rtol=0.)
+    @test_throws DomainError fit_distribution(normal, [0., 1.], [2]; p0=p, total_count=-1.)
+    @test_throws DomainError fit_distribution(normal, [0., 1.], [2]; p0=p, total_count=3., rtol=0.)
     @test_throws ArgumentError fit_distribution(normal, [0., 1.], [2]; p0=p, total_count=3., integration=:guess)
-    @test_throws ArgumentError fit_distribution(normal, [1., 0.], [2]; p0=p, total_count=3.)
+    @test_throws DomainError fit_distribution(normal, [1., 0.], [2]; p0=p, total_count=3.)
     @test_throws ArgumentError fit_distribution(normal, [0., 1.], [2.5]; p0=p, total_count=3.)
     @test_throws ArgumentError fit_distribution(p -> Bernoulli(p[1]), [-0.5, 0.5, 1.5], [2, 3];
         p0=[0.5], total_count=5., integration=:quadgk)

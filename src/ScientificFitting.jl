@@ -72,6 +72,7 @@ export profile_interval
 export contour
 export profile_matrix
 export fitplot
+export FitPlotStyle
 export plot_fit
 export fit_axis
 export add_curve!

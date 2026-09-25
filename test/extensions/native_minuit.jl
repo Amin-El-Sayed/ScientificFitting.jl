@@ -86,7 +86,7 @@ end
         constraints=(ineq=p -> [sum(p)-2],), solver)
     @test_throws ArgumentError NativeMinuitSolver(errordef=0.5)
     @test_throws ArgumentError NativeMinuitSolver(grad=identity)
-    @test_throws ArgumentError NativeMinuitSolver(steps=[1., 0.])
+    @test_throws DomainError NativeMinuitSolver(steps=[1., 0.])
     for options in ((; fix_mu=true), (; limit_mu=(-10., 10.)), (; error_mu=0.2),
                     (; fix_channel_gain=true))
         @test_throws ArgumentError NativeMinuitSolver(; options...)

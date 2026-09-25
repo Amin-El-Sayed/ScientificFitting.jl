@@ -209,7 +209,7 @@ theme = plot_theme(:sans; appearance=:dark)
 style = plot_palette(:sans; appearance=:dark)
 ```
 
-`plot_theme(style; appearance, theme_override)` returns the Makie `Theme` used
+`plot_theme(theme; appearance, theme_override)` returns the Makie `Theme` used
 by ScientificFitting. `plot_palette(style; appearance)` returns the corresponding named
 tuple of visual tokens: data/fit/band colors, multi-series colors, marker and
 line sizes, typography, grids and spines, report-panel spacing, and default
@@ -289,11 +289,13 @@ not a substitute for export resolution.
 |---|---|
 | CairoMakie extension not loaded | `ArgumentError` naming the required extension |
 | Invalid style, appearance, band, stats position, or fit range | `ArgumentError` |
-| Non-positive/non-finite `nsigma`, negative/non-finite `limit_padding` | `ArgumentError` |
+| Non-positive/non-finite `nsigma` | `DomainError` |
+| Negative/non-finite `limit_padding` | `ArgumentError` |
 | Prediction band without matrix-free marginal errors | `ArgumentError` with the required remedy |
-| Wrong number of `parameter_names` | `ArgumentError` |
-| Non-finite or dimensionally inconsistent annotation data | `ArgumentError` |
-| Non-positive/non-finite layout dimensions | `ArgumentError` |
+| Wrong number of `parameter_names` | `DimensionMismatch` |
+| Non-finite annotation data | `ArgumentError` |
+| Dimensionally inconsistent annotation lengths | `DimensionMismatch` |
+| Non-positive/non-finite layout dimensions | `DomainError` |
 
 ## API Documentation
 
@@ -308,6 +310,7 @@ ScientificFitting.add_hline!
 ScientificFitting.add_vband!
 ScientificFitting.add_hband!
 ScientificFitting.plot_theme
+ScientificFitting.FitPlotStyle
 ScientificFitting.plot_palette
 ScientificFitting.plot_info_panel!
 ScientificFitting.resize_plot_to_layout!

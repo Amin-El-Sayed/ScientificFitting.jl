@@ -62,7 +62,7 @@ end
 
     # Neither run may move with a one-evaluation budget; the second is better.
     custom = fit_custom(p -> (p[1]-2)^2; p0=[0.], initial_guesses=[[1.]],
-        multistart=2, nobs=10, optimizer=:nelder_mead, maxiters=1)
+        multistart=2, nobs=10, solver=:nelder_mead, maxiters=1)
     @test !custom.converged
     @test custom.params == [1.]
     @test custom.stats.cost_min == 1.

@@ -105,73 +105,60 @@ ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=
     ErrorComponent(name, target, mode, values, active)
 
 """
-    FitOptions(; backend=:auto, cost=:auto, maxiters=500, tol=1e-10,
-                scale_covariance=:auto, multistart=1,
-                optimizer=:auto, parameter_covariance=:auto, solver=nothing)
+    FitOptions(; cost=:auto, maxiters=500, tol=1e-10, scale_covariance=:auto,
+                multistart=1, parameter_covariance=:auto, solver=nothing)
 
 Normalized solver and covariance options stored in a `FitResult`. User-facing
 fit functions expose these as keyword arguments; constructing `FitOptions`
-directly is mainly useful for lower-level workflows and tests. Invalid backend,
-iteration, tolerance, covariance-scaling, and multistart
-settings fail during construction rather than inside a solver.
-Likelihood fits additionally select `optimizer` and `parameter_covariance`;
-their resolved choices are stored here and preserved by profile refits.
-Unlike the public fit keywords, `tol` here is a resolved positive number,
-not `nothing`; see [`default_fit_tolerance`](@ref).
+directly is mainly useful for lower-level workflows and tests. Invalid
+iteration, tolerance, covariance-scaling, and multistart settings fail during
+construction rather than inside a solver. `solver` is either `nothing` (the
+automatic choice) or a concrete `AbstractFitSolver`; the resolved choice is
+preserved by profile refits, and the backend that actually solved a fit is
+recorded on the result. Unlike the public fit keywords, `tol` here is a
+resolved positive number, not `nothing`; see [`default_fit_tolerance`](@ref).
 """
 Base.@kwdef struct FitOptions{S}
-    backend::Symbol = :auto
     cost::Symbol = :auto
     maxiters::Int = 500
     tol::Float64 = 1e-10
     scale_covariance::Symbol = :auto
     multistart::Int = 1
-    optimizer::Symbol = :auto
     parameter_covariance::Symbol = :auto
     solver::S = nothing
 
     function FitOptions(
-        backend::Symbol,
         cost::Symbol,
         maxiters::Integer,
         tol::Real,
         scale_covariance::Symbol,
         multistart::Integer,
-        optimizer::Symbol=:auto,
         parameter_covariance::Symbol=:auto,
         solver=nothing,
     )
         maxiters_value = Int(maxiters)
         tol_value = Float64(tol)
         multistart_value = Int(multistart)
-        backend in (:auto, :lsqfit, :optimization) || throw(ArgumentError(
-            "backend must be :auto, :lsqfit, or :optimization",
-        ))
         scale_covariance in (:auto, :always, :never) || throw(ArgumentError(
             "scale_covariance must be :auto, :always, or :never",
-        ))
-        optimizer in (:auto, :lbfgs, :ipnewton, :nelder_mead) || throw(ArgumentError(
-            "optimizer must be :auto, :lbfgs, :ipnewton, or :nelder_mead",
         ))
         parameter_covariance in (:auto, :hessian, :none) || throw(ArgumentError(
             "parameter_covariance must be :auto, :hessian, or :none",
         ))
-        maxiters_value > 0 || throw(ArgumentError("maxiters must be > 0"))
+        maxiters_value > 0 || throw(DomainError(maxiters_value, "maxiters must be > 0"))
         isfinite(tol_value) && tol_value > 0 || throw(ArgumentError(
             "tol must be finite and > 0",
         ))
-        multistart_value > 0 || throw(ArgumentError("multistart must be >= 1"))
+        multistart_value > 0 || throw(DomainError(multistart_value, "multistart must be >= 1"))
         solver === nothing || solver isa AbstractFitSolver || throw(ArgumentError(
             "solver must be an AbstractFitSolver, for example OptimizationSolver(algorithm)",
         ))
         return new{typeof(solver)}(
-            backend,
             cost,
             maxiters_value,
             tol_value,
             scale_covariance,
             multistart_value,
-            optimizer,
             parameter_covariance,
             solver,
         )
@@ -289,7 +276,7 @@ function _validate_whitening_operator(operator::WhiteningOperator, n::Int)
 
     marginal_sigma = operator.marginal_sigma
     if marginal_sigma isa AbstractVector && length(marginal_sigma) != n
-        throw(ArgumentError("marginal_sigma length must match y"))
+        throw(DimensionMismatch("marginal_sigma length must match y"))
     end
     return nothing
 end
@@ -502,7 +489,7 @@ end
 
 function _assert_positive_sigma(name::AbstractString, values::AbstractVector)
     _assert_finite_vector(name, values)
-    all(>(0.0), values) || throw(ArgumentError("$name entries must be > 0"))
+    all(>(0.0), values) || throw(DomainError(values, "$name entries must be > 0"))
     return nothing
 end
 
@@ -538,9 +525,9 @@ function _normalize_bounds(bounds, nparams::Int)
     end
     lower = _float_vector(bounds[1])
     upper = _float_vector(bounds[2])
-    length(lower) == nparams || throw(ArgumentError("lower bounds length must equal parameter count"))
-    length(upper) == nparams || throw(ArgumentError("upper bounds length must equal parameter count"))
-    any(lower .> upper) && throw(ArgumentError("each lower bound must be <= corresponding upper bound"))
+    length(lower) == nparams || throw(DimensionMismatch("lower bounds length must equal parameter count"))
+    length(upper) == nparams || throw(DimensionMismatch("upper bounds length must equal parameter count"))
+    any(lower .> upper) && throw(DomainError((lower, upper), "each lower bound must be <= corresponding upper bound"))
     all(isinf.(lower) .& (lower .< 0.0)) && all(isinf.(upper) .& (upper .> 0.0)) && return nothing
     return (lower, upper)
 end
@@ -584,9 +571,9 @@ function _normalize_parameter_priors(parameter_priors, nparams::Int)
         1 <= prior.index <= nparams || throw(ArgumentError("parameter prior index $(prior.index) is out of range 1:$nparams"))
         isfinite(prior.mean) || throw(ArgumentError("parameter prior mean must be finite"))
         isfinite(prior.sigma_minus) && prior.sigma_minus > 0 ||
-            throw(ArgumentError("parameter prior sigma_minus must be finite and > 0"))
+            throw(DomainError(prior.sigma_minus, "parameter prior sigma_minus must be finite and > 0"))
         isfinite(prior.sigma_plus) && prior.sigma_plus > 0 ||
-            throw(ArgumentError("parameter prior sigma_plus must be finite and > 0"))
+            throw(DomainError(prior.sigma_plus, "parameter prior sigma_plus must be finite and > 0"))
         push!(priors, prior)
     end
 
@@ -617,7 +604,7 @@ function _normalize_parameter_constraints(parameter_constraints, nparams::Int)
 
         k = length(constraint.indices)
         k > 0 || throw(ArgumentError("parameter constraint must contain at least one index"))
-        length(constraint.mean) == k || throw(ArgumentError("parameter constraint mean length must match indices"))
+        length(constraint.mean) == k || throw(DimensionMismatch("parameter constraint mean length must match indices"))
         size(constraint.covariance) == (k, k) || throw(ArgumentError("parameter constraint covariance must be k x k"))
         all(1 .<= constraint.indices .<= nparams) || throw(ArgumentError("parameter constraint index out of range 1:$nparams"))
         length(unique(constraint.indices)) == k || throw(ArgumentError("parameter constraint indices must be unique"))
@@ -667,7 +654,7 @@ function _normalize_error_components(error_components, nobs::Int)
             throw(ArgumentError("x error components do not support :model_relative mode"))
 
         if component.values isa AbstractVector
-            length(component.values) == nobs || throw(ArgumentError("error component vector length must match data length"))
+            length(component.values) == nobs || throw(DimensionMismatch("error component vector length must match data length"))
             _assert_finite_vector("error component $(component.name)", component.values)
         elseif component.values isa AbstractMatrix
             size(component.values) == (nobs, nobs) || throw(ArgumentError("error component covariance must be n x n"))
@@ -681,12 +668,12 @@ function _normalize_error_components(error_components, nobs::Int)
         component.mode != :covariance && component.values isa AbstractMatrix &&
             throw(ArgumentError("non-covariance error components require a scalar or vector"))
         if component.mode == :covariance && component.values isa AbstractVector
-            all(>(0.0), component.values) || throw(ArgumentError("covariance error component vector entries must be > 0"))
+            all(>(0.0), component.values) || throw(DomainError(component.values, "covariance error component vector entries must be > 0"))
         elseif component.mode != :covariance
             if component.values isa Number
-                component.values > 0.0 || throw(ArgumentError("error component sigma entries must be > 0"))
+                component.values > 0.0 || throw(DomainError(component.values, "error component sigma entries must be > 0"))
             else
-                all(>(0.0), component.values) || throw(ArgumentError("error component sigma entries must be > 0"))
+                all(>(0.0), component.values) || throw(DomainError(component.values, "error component sigma entries must be > 0"))
             end
         end
 
@@ -725,9 +712,9 @@ function _normalize_fixed_parameters(fixed_parameters, nparams::Int)
         1 <= fp.index <= nparams || throw(ArgumentError("fixed parameter index $(fp.index) is out of range 1:$nparams"))
         isfinite(fp.value) || throw(ArgumentError("fixed parameter value must be finite"))
         isfinite(fp.sigma_minus) && fp.sigma_minus >= 0 ||
-            throw(ArgumentError("fixed parameter sigma_minus must be finite and >= 0"))
+            throw(DomainError(fp.sigma_minus, "fixed parameter sigma_minus must be finite and >= 0"))
         isfinite(fp.sigma_plus) && fp.sigma_plus >= 0 ||
-            throw(ArgumentError("fixed parameter sigma_plus must be finite and >= 0"))
+            throw(DomainError(fp.sigma_plus, "fixed parameter sigma_plus must be finite and >= 0"))
         fp.index in seen && throw(ArgumentError("fixed parameter index $(fp.index) appears more than once"))
         push!(seen, fp.index)
         push!(fixed, fp)
@@ -842,7 +829,7 @@ function FitProblem(
 
     n = length(y_vec)
     n > 0 || throw(ArgumentError("x and y must contain at least one observation"))
-    length(x_vec) == n || throw(ArgumentError("x and y must have equal length"))
+    length(x_vec) == n || throw(DimensionMismatch("x and y must have equal length"))
     length(p0_vec) > 0 || throw(ArgumentError("p0 must contain at least one parameter"))
     _assert_finite_vector("x", x_vec)
     _assert_finite_vector("y", y_vec)
@@ -890,8 +877,8 @@ function FitProblem(
         _validate_whitening_operator(whitening, n)
     end
 
-    sigma_y_vec !== nothing && length(sigma_y_vec) != n && throw(ArgumentError("sigma_y length must match y"))
-    sigma_x_vec !== nothing && length(sigma_x_vec) != n && throw(ArgumentError("sigma_x length must match x"))
+    sigma_y_vec !== nothing && length(sigma_y_vec) != n && throw(DimensionMismatch("sigma_y length must match y"))
+    sigma_x_vec !== nothing && length(sigma_x_vec) != n && throw(DimensionMismatch("sigma_x length must match x"))
     sigma_y_vec !== nothing && _assert_positive_sigma("sigma_y", sigma_y_vec)
     sigma_x_vec !== nothing && _assert_positive_sigma("sigma_x", sigma_x_vec)
 
