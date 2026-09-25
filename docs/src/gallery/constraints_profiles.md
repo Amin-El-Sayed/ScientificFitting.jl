@@ -6,14 +6,7 @@ answer is not enough. The fitted curve looks well determined over the measured
 interval, but two physical parameters remain strongly and nonlinearly coupled.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained saturation fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_sans_panel_dark.png" alt="Constrained saturation fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_sans_plot_light.png" alt="Constrained saturation fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_sans_plot_dark.png" alt="Constrained saturation fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_tex_panel_light.png" alt="Constrained saturation fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_tex_plot_light.png" alt="Constrained saturation fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/constraints_priors_tex_panel_dark.png" alt="Constrained saturation fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="constraints-priors" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/constraints_priors_tex_plot_dark.png" alt="Constrained saturation fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained saturation fit in sans style with result panel">
 ```
 
 ## Scientific Question
@@ -264,10 +257,7 @@ approximation near the minimum.
 ## Profile: Is The One-Parameter Error Symmetric?
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_sans_light.png" alt="Saturation amplitude profile in sans style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_sans_dark.png" alt="Saturation amplitude profile in dark sans style">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_tex_light.png" alt="Saturation amplitude profile in tex style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_tex_dark.png" alt="Saturation amplitude profile in dark tex style">
+<img class="scientificfitting-plot" src="../assets/gallery/saturation_profile_sans_light.png" alt="Saturation amplitude profile in sans style">
 ```
 
 For every fixed amplitude, the profile scan refits ``\tau`` and ``c`` and
@@ -306,10 +296,7 @@ interval construction rather than a qualitative curve inspection.
 ## Contour: Which Parameter Combinations Survive?
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="sans" src="../assets/gallery/amplitude_timescale_contour_sans_light.png" alt="Amplitude-timescale contour in sans style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="sans" src="../assets/gallery/amplitude_timescale_contour_sans_dark.png" alt="Amplitude-timescale contour in dark sans style">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="tex" src="../assets/gallery/amplitude_timescale_contour_tex_light.png" alt="Amplitude-timescale contour in tex style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="amplitude-timescale-contour" data-scientificfitting-plot-style="tex" src="../assets/gallery/amplitude_timescale_contour_tex_dark.png" alt="Amplitude-timescale contour in dark tex style">
+<img class="scientificfitting-plot" src="../assets/gallery/amplitude_timescale_contour_sans_light.png" alt="Amplitude-timescale contour in sans style">
 ```
 
 The filled regions are the actual profiled one- and two-sigma regions. At every
@@ -345,10 +332,7 @@ codes, and the first recommended action. That is the text-first route when you
 want a run to fail or warn before anyone opens the figure.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_matrix_sans_light.png" alt="Saturation profile matrix in sans style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="sans" src="../assets/gallery/saturation_profile_matrix_sans_dark.png" alt="Saturation profile matrix in dark sans style">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_matrix_tex_light.png" alt="Saturation profile matrix in tex style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="saturation-profile-matrix" data-scientificfitting-plot-style="tex" src="../assets/gallery/saturation_profile_matrix_tex_dark.png" alt="Saturation profile matrix in dark tex style">
+<img class="scientificfitting-plot" src="../assets/gallery/saturation_profile_matrix_sans_light.png" alt="Saturation profile matrix in sans style">
 ```
 
 The useful reading order is mechanical:

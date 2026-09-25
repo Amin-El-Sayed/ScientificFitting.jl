@@ -352,7 +352,7 @@ end
 if RENDER_PLOTS
     if RENDER_DOC_ASSETS
         mkpath(DOC_ASSET_DIR)
-        for style in (:sans, :tex), show_panel in (true, false), appearance in (:light, :dark)
+        for style in (:sans,), show_panel in (true,), appearance in (:light,)
             panel_suffix = show_panel ? "panel" : "plot"
             save_model_comparison(
                 joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(panel_suffix)_$(appearance).png");

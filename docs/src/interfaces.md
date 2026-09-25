@@ -200,17 +200,12 @@ nothing # hide
 ```
 
 ```@setup interfaces
-for style in (:sans, :tex), appearance in (:light, :dark)
-    figure = plot_profile(scan; theme=style, appearance, plot_options...)
-    save("interface_profile_$(style)_$(appearance).svg", figure)
-end
+figure = plot_profile(scan; theme=:sans, appearance=:light, plot_options...)
+save("interface_profile_sans_light.svg", figure)
 ```
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="interface-profile" data-scientificfitting-plot-style="sans" src="interface_profile_sans_light.svg" alt="Refitted component-location profile compared with the local covariance parabola, sans style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="interface-profile" data-scientificfitting-plot-style="sans" src="interface_profile_sans_dark.svg" alt="Refitted component-location profile compared with the local covariance parabola, dark sans style">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="interface-profile" data-scientificfitting-plot-style="tex" src="interface_profile_tex_light.svg" alt="Refitted component-location profile compared with the local covariance parabola, tex style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="interface-profile" data-scientificfitting-plot-style="tex" src="interface_profile_tex_dark.svg" alt="Refitted component-location profile compared with the local covariance parabola, dark tex style">
+<img class="scientificfitting-plot" src="interface_profile_sans_light.svg" alt="Refitted component-location profile compared with the local covariance parabola, sans style">
 ```
 
 ## Posterior Inference

@@ -140,14 +140,7 @@ Next actions:
 ```
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Quickstart calibration fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_dark.png" alt="Quickstart calibration fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_light.png" alt="Quickstart calibration fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_dark.png" alt="Quickstart calibration fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_light.png" alt="Quickstart calibration fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_light.png" alt="Quickstart calibration fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_dark.png" alt="Quickstart calibration fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_dark.png" alt="Quickstart calibration fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Quickstart calibration fit in sans style with result panel">
 ```
 
 `show_panel=true` puts the numerical summary beside the axes;

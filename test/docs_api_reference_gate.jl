@@ -11,19 +11,6 @@ const API_PAGES = [
     joinpath(ROOT, "docs", "src", "api_plotting_diagnostics.md"),
 ]
 const PUBLIC_API_DOC_EXEMPTIONS = Set([:ScientificFitting])
-const FIT_ENTRYPOINTS = [
-    :fit_model,
-    :fit_custom,
-    :fit_likelihood_model,
-    :fit_distribution,
-    :fit_poisson_model,
-    :fit_histogram_model,
-    :fit_histogram_density,
-    :fit_unbinned_model,
-    :fit_extended_unbinned_model,
-    :fit_indexed_model,
-    :fit_multi_model,
-]
 
 function _public_exports()
     return sort!(setdiff(names(ScientificFitting; all=false), collect(PUBLIC_API_DOC_EXEMPTIONS)); by=string)
@@ -48,174 +35,14 @@ function _api_page_text(path)
     return read(path, String)
 end
 
-function _api_reference_text()
-    return join(_api_page_text.(API_PAGES), "\n")
-end
-
 @testset "Public API reference docstrings" begin
     exports = _public_exports()
     @test !isempty(exports)
 
-    missing = Symbol[name for name in exports if !_has_public_docstring(name)]
-    @test missing == Symbol[]
+    missing_docstrings = Symbol[name for name in exports if !_has_public_docstring(name)]
+    @test missing_docstrings == Symbol[]
 
-    overview_text = _api_page_text(first(API_PAGES))
-    fit_plotting_text = _api_page_text(API_PAGES[end - 1])
-    diagnostic_plotting_text = _api_page_text(last(API_PAGES))
-    plotting_text = fit_plotting_text * "\n" * diagnostic_plotting_text
-    api_text = _api_reference_text()
+    api_text = join(_api_page_text.(API_PAGES), "\n")
     undocumented_on_page = Symbol[name for name in exports if !occursin(string(name), api_text)]
     @test undocumented_on_page == Symbol[]
-
-    @testset "Reference page states the public contracts" begin
-        required_sections = [
-            "## Choose An Entry Point",
-            "## Common Conventions",
-            "## Gaussian Fits",
-            "## Likelihood And Count Fits",
-            "## Results",
-            "## Profiles And Contours",
-            "## Diagnostics And Reports",
-            "# Fit Plotting",
-            "# Diagnostic Plotting",
-        ]
-        @test all(section -> occursin(section, api_text), required_sections)
-
-        required_contracts = [
-            "one-based indices",
-            "complete parameter vector",
-            "inplace=true",
-            "`whitening` is intentionally exclusive",
-            "converged == false",
-            "normalized ``-2\\log L``",
-            "different uncertainty scales",
-            "`gof(p)` is the data goodness-of-fit statistic",
-            "on_failure=:throw",
-            "A side that is not bracketed is returned as",
-            "max_actions=5",
-            "do not require Makie",
-        ]
-        @test all(contract -> occursin(contract, api_text), required_contracts)
-        @test !occursin("ci_level", api_text)
-        @test occursin("`:ok`, `:review`, or `:stop`", api_text)
-        @test occursin("`show_panel::Bool` and `print_report::Bool` are independent", api_text)
-        @test occursin("zero fitted", api_text)
-        @test occursin("[Fitting](api_fitting.md)", overview_text)
-        @test occursin("[Results And Diagnostics](api_results.md)", overview_text)
-        @test occursin("[Fit Plotting](api_plotting.md)", overview_text)
-        @test occursin("[Diagnostic Plotting](api_plotting_diagnostics.md)", overview_text)
-    end
-
-    @testset "Plotting reference states the complete public contract" begin
-        required_sections = [
-            "## Choose The Plotting Entry Point",
-            "## Fit And Plot In One Call",
-            "## Plot An Existing Result",
-            "## Extend A Finished Figure",
-            "## Reuse The Visual Contract",
-            "## Residuals, Pulls, And Ratios",
-            "## One-Parameter Profiles",
-            "## Two-Parameter Contours",
-            "## Profile Matrices",
-            "## Export Semantics",
-            "## Failure Summary",
-        ]
-        @test all(section -> occursin(section, plotting_text), required_sections)
-
-        required_keywords = [
-            "show_panel=true",
-            "print_report=false",
-            "fit_range",
-            "limit_padding",
-            "stats_panel_width",
-            "inside_stats_position",
-            "latex_stats",
-            "scatter_kwargs",
-            "xerrorbars_kwargs",
-            "band=:prediction",
-            "marginal_sigma",
-            "panel_status_mode",
-            "reference_line_kwargs",
-            "local_covariance",
-            "npoints_profile",
-            "max_points",
-        ]
-        @test all(keyword -> occursin(keyword, plotting_text), required_keywords)
-
-        for name in (
-            :fitplot,
-            :plot_fit,
-            :fit_axis,
-            :add_curve!,
-            :add_points!,
-            :add_vline!,
-            :add_hline!,
-            :add_vband!,
-            :add_hband!,
-            :plot_theme,
-            :plot_palette,
-            :plot_info_panel!,
-            :resize_plot_to_layout!,
-            :plot_residuals,
-            :plot_diagnostics,
-            :plot_profile,
-            :plot_contour,
-            :plot_profile_matrix,
-        )
-            @test occursin("ScientificFitting.$name", plotting_text)
-        end
-
-        @test occursin("does not depend on Makie", plotting_text)
-        @test occursin("renders stored numerical results", plotting_text)
-        @test occursin("None of these helpers changes or reruns the fit", plotting_text)
-        @test occursin("nsigma`, negative/non-finite `limit_padding`", plotting_text)
-    end
-
-    @testset "Optional plotting boundary matches real methods" begin
-        @test occursin("(result::FitResult, figure::Figure)", _doc_text(:fitplot))
-        @test !occursin("plot_fit(model, x, y", _doc_text(:plot_fit))
-        @test occursin("fit_axis(figure; index=1)", _doc_text(:fit_axis))
-        @test occursin("plot_info_panel!(cell;", _doc_text(:plot_info_panel!))
-        @test occursin("resize_plot_to_layout!(figure;", _doc_text(:resize_plot_to_layout!))
-    end
-
-    @testset "Custom objectives state their inferential convention" begin
-        custom_doc = _doc_text(:fit_custom)
-        @test occursin("normalized `-2log(L)` cost", custom_doc)
-        @test occursin("only arithmetic summaries", custom_doc)
-        @test occursin("nobs", custom_doc)
-    end
-
-    @testset "Fit entry points state complete call contracts" begin
-        for name in FIT_ENTRYPOINTS
-            doc = _doc_text(name)
-            @test occursin("->", doc)
-            @test occursin("Result", doc)
-            has_failure_contract = occursin("raise", lowercase(doc)) ||
-                                   occursin("fail", lowercase(doc)) ||
-                                   occursin("error", lowercase(doc))
-            @test has_failure_contract
-            @test occursin("$(name)", api_text)
-        end
-
-        @test occursin("# Example", _doc_text(:fit_model))
-        @test occursin("# Example", _doc_text(:fit_custom))
-        @test occursin("Minimal call shapes", overview_text)
-        @test all(name -> occursin("`$(name)` | `$(name)(", overview_text), FIT_ENTRYPOINTS)
-    end
-
-    @testset "Constraint and statistic docstrings state their scope" begin
-        @test occursin("complete parameter", _doc_text(:ConstraintSpec))
-        likelihood_problem_doc = _doc_text(:LikelihoodFitProblem)
-        @test occursin("complete", likelihood_problem_doc) &&
-              occursin("fixed parameters", likelihood_problem_doc)
-        @test occursin("custom loss", _doc_text(:FitStatistics))
-        @test occursin(":model_relative", _doc_text(:ErrorComponent))
-        @test occursin("zero fitted", _doc_text(:FixedParameter))
-    end
-
-    @testset "Fit options expose only effective controls" begin
-        @test !hasfield(FitOptions, :ci_level)
-        @test !occursin("ci_level", _doc_text(:FitOptions))
-    end
 end

@@ -31,9 +31,6 @@ const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
 const DOC_PLOT_VARIANTS = (
     (style=:sans, show_panel=true),
-    (style=:sans, show_panel=false),
-    (style=:tex, show_panel=true),
-    (style=:tex, show_panel=false),
 )
 
 if RENDER_DOC_ASSETS
@@ -85,7 +82,7 @@ function style_variant_plot(
 )
     render_asset_group(name) || return nothing
 
-    for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+    for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
         style, show_panel = variant.style, variant.show_panel
         typography = style == :tex ? latex : plain
         output_defaults = !show_panel ? (
@@ -820,7 +817,7 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     println("emission")
     println(diagnostic_dashboard_text(emission_result))
 end
-for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
     save_photoelectric_work_function(
         emission_result,
         baseline_result,
@@ -1074,7 +1071,7 @@ if render_asset_group("constraints_profiles")
         max_refinements=1,
     )
 
-    for style in (:sans, :tex), appearance in (:light, :dark)
+    for style in (:sans,), appearance in (:light,)
         profile_figure = plot_profile(
             prof;
             theme=style,
@@ -1101,7 +1098,7 @@ if render_asset_group("constraints_profiles")
         )
         save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
-    for style in (:sans, :tex), appearance in (:light, :dark)
+    for style in (:sans,), appearance in (:light,)
         matrix_parameter_names = style == :tex ? [L"A", L"\tau", L"c"] :
             profile_overview_names
         matrix_figure = plot_profile_matrix(
@@ -1145,7 +1142,7 @@ emit_doc_output_snapshot("poisson_decay") do
     @printf("P(D) = %.3f\n", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
-for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
     save_poisson_counts(
         poisson_result,
         x_counts,
@@ -1193,7 +1190,7 @@ emit_doc_output_snapshot("histogram_likelihood") do
     @printf("P(D) = %.3f\n", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
-for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
     save_histogram_fit(
         hist_result,
         edges,

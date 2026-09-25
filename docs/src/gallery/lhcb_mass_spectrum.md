@@ -280,21 +280,12 @@ nothing # hide
 ```
 
 ```@setup lhcb
-for style in (:sans, :tex), appearance in (:light, :dark), panel in (true, false)
-    fig = spectrum_figure(; theme=style, appearance, show_panel=panel)
-    save("lhcb_mass_$(style)_$(appearance)_$(panel).svg", fig)
-end
+fig = spectrum_figure(; theme=:sans, appearance=:light, show_panel=true)
+save("lhcb_mass_sans_light_true.svg", fig)
 ```
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="lhcb_mass_sans_light_true.svg" alt="LHCb mass spectrum, fitted signal and background, local mean band and deviance residuals, sans with panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="lhcb_mass_sans_dark_true.svg" alt="LHCb mass spectrum and residuals, dark sans with panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="lhcb_mass_sans_light_false.svg" alt="LHCb mass spectrum and residuals, sans without panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="lhcb_mass_sans_dark_false.svg" alt="LHCb mass spectrum and residuals, dark sans without panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="lhcb_mass_tex_light_true.svg" alt="LHCb mass spectrum and residuals, TeX with panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="lhcb_mass_tex_dark_true.svg" alt="LHCb mass spectrum and residuals, dark TeX with panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="lhcb_mass_tex_light_false.svg" alt="LHCb mass spectrum and residuals, TeX without panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-mass" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="lhcb_mass_tex_dark_false.svg" alt="LHCb mass spectrum and residuals, dark TeX without panel">
+<img class="scientificfitting-plot" src="lhcb_mass_sans_light_true.svg" alt="LHCb mass spectrum, fitted signal and background, local mean band and deviance residuals, sans with panel">
 ```
 
 The lower axis shows signed Poisson deviance residuals: look for runs of bins
@@ -355,17 +346,12 @@ nothing # hide
 ```
 
 ```@setup lhcb
-for style in (:sans, :tex), appearance in (:light, :dark)
-    fig = plot_profile(scan; theme=style, appearance, profile_options...)
-    save("lhcb_yield_profile_$(style)_$(appearance).svg", fig)
-end
+fig = plot_profile(scan; theme=:sans, appearance=:light, profile_options...)
+save("lhcb_yield_profile_sans_light.svg", fig)
 ```
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-yield-profile" data-scientificfitting-plot-style="sans" src="lhcb_yield_profile_sans_light.svg" alt="Signal-yield profile and local covariance parabola, sans style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-yield-profile" data-scientificfitting-plot-style="sans" src="lhcb_yield_profile_sans_dark.svg" alt="Signal-yield profile and local covariance parabola, dark sans style">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-yield-profile" data-scientificfitting-plot-style="tex" src="lhcb_yield_profile_tex_light.svg" alt="Signal-yield profile and local covariance parabola, TeX style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-yield-profile" data-scientificfitting-plot-style="tex" src="lhcb_yield_profile_tex_dark.svg" alt="Signal-yield profile and local covariance parabola, dark TeX style">
+<img class="scientificfitting-plot" src="lhcb_yield_profile_sans_light.svg" alt="Signal-yield profile and local covariance parabola, sans style">
 ```
 
 The curve is close to a parabola in the relevant range. Its crossings at
@@ -392,17 +378,12 @@ nothing # hide
 ```
 
 ```@setup lhcb
-for style in (:sans, :tex), appearance in (:light, :dark)
-    fig = plot_contour(joint; theme=style, appearance, contour_options...)
-    save("lhcb_yield_contour_$(style)_$(appearance).svg", fig)
-end
+fig = plot_contour(joint; theme=:sans, appearance=:light, contour_options...)
+save("lhcb_yield_contour_sans_light.svg", fig)
 ```
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-yield-contour" data-scientificfitting-plot-style="sans" src="lhcb_yield_contour_sans_light.svg" alt="Joint profiled signal and background confidence regions with local covariance ellipses, sans style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-yield-contour" data-scientificfitting-plot-style="sans" src="lhcb_yield_contour_sans_dark.svg" alt="Joint profiled signal and background confidence regions with local covariance ellipses, dark sans style">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="lhcb-yield-contour" data-scientificfitting-plot-style="tex" src="lhcb_yield_contour_tex_light.svg" alt="Joint profiled signal and background confidence regions with local covariance ellipses, TeX style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="lhcb-yield-contour" data-scientificfitting-plot-style="tex" src="lhcb_yield_contour_tex_dark.svg" alt="Joint profiled signal and background confidence regions with local covariance ellipses, dark TeX style">
+<img class="scientificfitting-plot" src="lhcb_yield_contour_sans_light.svg" alt="Joint profiled signal and background confidence regions with local covariance ellipses, sans style">
 ```
 
 The filled regions use ``\Delta(-2\log L)=2.30,6.18`` for approximate **joint

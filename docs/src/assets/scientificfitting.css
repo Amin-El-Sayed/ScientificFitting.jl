@@ -94,53 +94,6 @@ html.theme--documenter-dark #documenter .docs-main header.docs-navbar {
   color: var(--scientificfitting-ink);
 }
 
-.scientificfitting-toolbar-control {
-  align-items: center;
-  background: color-mix(in srgb, var(--scientificfitting-panel) 88%, var(--scientificfitting-accent-soft));
-  border: 1px solid var(--scientificfitting-line);
-  border-radius: 999px;
-  color: var(--scientificfitting-muted);
-  display: inline-flex;
-  font-size: 0.82rem;
-  font-weight: 650;
-  gap: 0.45rem;
-  margin-left: 0.8rem;
-  padding: 0.35rem 0.45rem 0.35rem 0.75rem;
-  white-space: nowrap;
-}
-
-.scientificfitting-toolbar-select {
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  color: var(--scientificfitting-ink);
-  font: inherit;
-  font-weight: 760;
-  padding: 0.18rem 0.35rem;
-}
-
-#documenter .docs-main .docs-navbar .docs-right .docs-settings-button,
-#documenter .docs-main .docs-navbar .docs-right .docs-article-toggle-button,
-#documenter .docs-main .docs-navbar .docs-right #documenter-settings-button,
-#documenter .docs-main .docs-navbar .docs-right #documenter-article-toggle-button,
-#documenter .docs-main .docs-navbar .docs-right button[aria-label="Settings"],
-#documenter .docs-main .docs-navbar .docs-right a[aria-label="Settings"] {
-  display: none !important;
-}
-
-.scientificfitting-js-plot-style-ready [data-scientificfitting-plot-group][data-scientificfitting-plot-style] {
-  display: none !important;
-}
-
-.scientificfitting-js-plot-style-ready [data-scientificfitting-plot-group][data-scientificfitting-plot-style].scientificfitting-style-visible {
-  display: block !important;
-}
-
-[data-scientificfitting-plot-group][data-scientificfitting-plot-style]:not([data-scientificfitting-plot-style="sans"]),
-[data-scientificfitting-plot-group][data-scientificfitting-plot-style="sans"][data-scientificfitting-plot-panel="hide"] {
-  display: none !important;
-}
-
 #documenter .docs-main article.content {
   padding-top: 0.6rem;
 }
@@ -552,18 +505,6 @@ html.theme--documenter-dark .scientificfitting-hero {
     padding: 0.55rem 0.65rem;
     width: auto !important;
   }
-
-  .scientificfitting-toolbar-control {
-    font-size: 0.74rem;
-    gap: 0.2rem;
-    margin-left: 0.35rem;
-    padding: 0.25rem 0.3rem 0.25rem 0.5rem;
-  }
-
-  .scientificfitting-toolbar-select {
-    max-width: 5.5rem;
-    padding: 0.12rem 0.2rem;
-  }
 }
 
 .scientificfitting-gallery-grid {
@@ -607,35 +548,6 @@ html.theme--documenter-dark .scientificfitting-hero {
     transform: none;
     width: min(1120px, calc(100vw - 22rem)) !important;
   }
-}
-
-html:not(.theme--documenter-dark) .scientificfitting-plot-light {
-  display: block !important;
-}
-
-html:not(.theme--documenter-dark) .scientificfitting-plot-dark {
-  display: none !important;
-}
-
-html.theme--documenter-dark .scientificfitting-plot-light {
-  display: none !important;
-}
-
-html.theme--documenter-dark .scientificfitting-plot-dark {
-  display: block !important;
-}
-
-html:not(.theme--documenter-dark).scientificfitting-js-plot-style-ready [data-scientificfitting-plot-group][data-scientificfitting-plot-style],
-html.theme--documenter-dark.scientificfitting-js-plot-style-ready [data-scientificfitting-plot-group][data-scientificfitting-plot-style] {
-  display: none !important;
-}
-
-html:not(.theme--documenter-dark).scientificfitting-js-plot-style-ready [data-scientificfitting-plot-group][data-scientificfitting-plot-style].scientificfitting-style-visible.scientificfitting-plot-light {
-  display: block !important;
-}
-
-html.theme--documenter-dark.scientificfitting-js-plot-style-ready [data-scientificfitting-plot-group][data-scientificfitting-plot-style].scientificfitting-style-visible.scientificfitting-plot-dark {
-  display: block !important;
 }
 
 .scientificfitting-gallery-item div {

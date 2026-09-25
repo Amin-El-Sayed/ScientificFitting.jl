@@ -16,14 +16,7 @@ an adequate description of the recorded motion, or whether the data require a
 small additional frequency drift.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator model comparison in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_sans_panel_dark.png" alt="Damped oscillator model comparison in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_sans_plot_light.png" alt="Damped oscillator model comparison in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_sans_plot_dark.png" alt="Damped oscillator model comparison in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_tex_panel_light.png" alt="Damped oscillator model comparison in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_tex_plot_light.png" alt="Damped oscillator model comparison in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/damped_oscillator_decay_tex_panel_dark.png" alt="Damped oscillator model comparison in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="damped-oscillator" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/damped_oscillator_decay_tex_plot_dark.png" alt="Damped oscillator model comparison in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator model comparison in sans style with result panel">
 ```
 
 The main panel alone barely distinguishes the two models. The pull panels do:

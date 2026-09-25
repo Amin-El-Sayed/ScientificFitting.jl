@@ -41,14 +41,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 ```@raw html
 <div class="scientificfitting-gallery-grid">
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/linear_calibration_sans_panel_light.png" alt="Linear calibration in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/linear_calibration_sans_panel_dark.png" alt="Linear calibration in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/linear_calibration_sans_plot_light.png" alt="Linear calibration in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/linear_calibration_sans_plot_dark.png" alt="Linear calibration in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/linear_calibration_tex_panel_light.png" alt="Linear calibration in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/linear_calibration_tex_plot_light.png" alt="Linear calibration in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/linear_calibration_tex_panel_dark.png" alt="Linear calibration in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/linear_calibration_tex_plot_dark.png" alt="Linear calibration in dark tex style without result panel">
+<img src="assets/gallery/linear_calibration_sans_panel_light.png" alt="Linear calibration in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">first fit</span>
 <span class="scientificfitting-tag">prediction band</span>
@@ -57,14 +50,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/xy_uncertainties_sans_panel_dark.png" alt="XY uncertainty fit in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/xy_uncertainties_sans_plot_light.png" alt="XY uncertainty fit in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/xy_uncertainties_sans_plot_dark.png" alt="XY uncertainty fit in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/xy_uncertainties_tex_panel_light.png" alt="XY uncertainty fit in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/xy_uncertainties_tex_plot_light.png" alt="XY uncertainty fit in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/xy_uncertainties_tex_panel_dark.png" alt="XY uncertainty fit in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-xy" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/xy_uncertainties_tex_plot_dark.png" alt="XY uncertainty fit in dark tex style without result panel">
+<img src="assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">effective variance</span>
 <span class="scientificfitting-tag">x errors</span>
@@ -73,14 +59,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance fit in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/full_covariance_decay_sans_panel_dark.png" alt="Full covariance fit in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/full_covariance_decay_sans_plot_light.png" alt="Full covariance fit in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/full_covariance_decay_sans_plot_dark.png" alt="Full covariance fit in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/full_covariance_decay_tex_panel_light.png" alt="Full covariance fit in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/full_covariance_decay_tex_plot_light.png" alt="Full covariance fit in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/full_covariance_decay_tex_panel_dark.png" alt="Full covariance fit in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/full_covariance_decay_tex_plot_dark.png" alt="Full covariance fit in dark tex style without result panel">
+<img src="assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">covariance</span>
 <span class="scientificfitting-tag">correlations</span>
@@ -89,14 +68,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator fit in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/damped_oscillator_decay_sans_panel_dark.png" alt="Damped oscillator fit in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_sans_plot_light.png" alt="Damped oscillator fit in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_sans_plot_dark.png" alt="Damped oscillator fit in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/damped_oscillator_decay_tex_panel_light.png" alt="Damped oscillator fit in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_tex_plot_light.png" alt="Damped oscillator fit in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/damped_oscillator_decay_tex_panel_dark.png" alt="Damped oscillator fit in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-damped" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/damped_oscillator_decay_tex_plot_dark.png" alt="Damped oscillator fit in dark tex style without result panel">
+<img src="assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">real data</span>
 <span class="scientificfitting-tag">nonlinear</span>
@@ -106,14 +78,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/photoelectric_threshold_sans_panel_dark.png" alt="Photoelectric work-function fit in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/photoelectric_threshold_sans_plot_light.png" alt="Photoelectric work-function fit in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/photoelectric_threshold_sans_plot_dark.png" alt="Photoelectric work-function fit in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/photoelectric_threshold_tex_panel_light.png" alt="Photoelectric work-function fit in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/photoelectric_threshold_tex_plot_light.png" alt="Photoelectric work-function fit in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/photoelectric_threshold_tex_panel_dark.png" alt="Photoelectric work-function fit in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-photoelectric" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/photoelectric_threshold_tex_plot_dark.png" alt="Photoelectric work-function fit in dark tex style without result panel">
+<img src="assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">x/y errors</span>
 <span class="scientificfitting-tag">line intersection</span>
@@ -122,14 +87,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/poisson_counts_sans_panel_light.png" alt="Poisson count fit in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/poisson_counts_sans_panel_dark.png" alt="Poisson count fit in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/poisson_counts_sans_plot_light.png" alt="Poisson count fit in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/poisson_counts_sans_plot_dark.png" alt="Poisson count fit in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/poisson_counts_tex_panel_light.png" alt="Poisson count fit in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/poisson_counts_tex_plot_light.png" alt="Poisson count fit in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/poisson_counts_tex_panel_dark.png" alt="Poisson count fit in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-poisson" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/poisson_counts_tex_plot_dark.png" alt="Poisson count fit in dark tex style without result panel">
+<img src="assets/gallery/poisson_counts_sans_panel_light.png" alt="Poisson count fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">likelihood</span>
 <span class="scientificfitting-tag">counts</span>
@@ -138,14 +96,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained fit in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/constraints_priors_sans_panel_dark.png" alt="Constrained fit in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/constraints_priors_sans_plot_light.png" alt="Constrained fit in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/constraints_priors_sans_plot_dark.png" alt="Constrained fit in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/constraints_priors_tex_panel_light.png" alt="Constrained fit in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/constraints_priors_tex_plot_light.png" alt="Constrained fit in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/constraints_priors_tex_panel_dark.png" alt="Constrained fit in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-constraints" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/constraints_priors_tex_plot_dark.png" alt="Constrained fit in dark tex style without result panel">
+<img src="assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">constraints</span>
 <span class="scientificfitting-tag">profiles</span>
@@ -154,14 +105,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_sans_panel_light.png" alt="Multi-dataset fit in sans style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_sans_panel_dark.png" alt="Multi-dataset fit in dark sans style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_sans_plot_light.png" alt="Multi-dataset fit in sans style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_sans_plot_dark.png" alt="Multi-dataset fit in dark sans style without result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_tex_panel_light.png" alt="Multi-dataset fit in tex style with result panel">
-<img class="scientificfitting-plot-light" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_tex_plot_light.png" alt="Multi-dataset fit in tex style without result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/multi_dataset_shared_slope_tex_panel_dark.png" alt="Multi-dataset fit in dark tex style with result panel">
-<img class="scientificfitting-plot-dark" data-scientificfitting-plot-group="gallery-multi" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/multi_dataset_shared_slope_tex_plot_dark.png" alt="Multi-dataset fit in dark tex style without result panel">
+<img src="assets/gallery/multi_dataset_shared_slope_sans_panel_light.png" alt="Multi-dataset fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">multi-fit</span>
 <span class="scientificfitting-tag">shared parameters</span>

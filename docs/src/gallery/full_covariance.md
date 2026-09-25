@@ -6,14 +6,7 @@ statistical problem. A covariance matrix is not a prettier way to draw error
 bars; it tells the fit which residual patterns are plausible together.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance exponential fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_sans_panel_dark.png" alt="Full covariance exponential fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_light.png" alt="Full covariance exponential fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_sans_plot_dark.png" alt="Full covariance exponential fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_light.png" alt="Full covariance exponential fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_light.png" alt="Full covariance exponential fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/full_covariance_decay_tex_panel_dark.png" alt="Full covariance exponential fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="full-covariance" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/full_covariance_decay_tex_plot_dark.png" alt="Full covariance exponential fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/full_covariance_decay_sans_panel_light.png" alt="Full covariance exponential fit in sans style with result panel">
 ```
 
 ## Question

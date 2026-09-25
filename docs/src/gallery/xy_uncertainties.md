@@ -6,14 +6,7 @@ feature: if the model is steep enough, uncertainty in ``x`` contributes to the
 statistical cost and to the fitted parameter errors.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_dark.png" alt="XY uncertainty fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_light.png" alt="XY uncertainty fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_dark.png" alt="XY uncertainty fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_light.png" alt="XY uncertainty fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_light.png" alt="XY uncertainty fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_dark.png" alt="XY uncertainty fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_dark.png" alt="XY uncertainty fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
 ```
 
 ## Question

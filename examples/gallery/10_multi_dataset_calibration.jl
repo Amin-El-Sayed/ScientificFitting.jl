@@ -347,7 +347,7 @@ end
 
 if MULTI_RENDER_DOC_ASSETS
     mkpath(MULTI_DOC_ASSET_DIR)
-    for style in (:sans, :tex), show_panel in (true, false), appearance in (:light, :dark)
+    for style in (:sans,), show_panel in (true,), appearance in (:light,)
         panel_suffix = show_panel ? "panel" : "plot"
         save_multi_dataset_calibration(
             joinpath(MULTI_DOC_ASSET_DIR, "multi_dataset_shared_slope_$(style)_$(panel_suffix)_$(appearance).png");

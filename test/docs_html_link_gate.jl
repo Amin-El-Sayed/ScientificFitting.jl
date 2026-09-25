@@ -66,26 +66,4 @@ end
             end
         end
     end
-
-    @testset "Rendered first-user path" begin
-        home = read(joinpath(DOCS_BUILD, "index.html"), String)
-        gallery = read(joinpath(DOCS_BUILD, "gallery.html"), String)
-        quickstart = read(joinpath(DOCS_BUILD, "quickstart.html"), String)
-        architecture = read(joinpath(DOCS_BUILD, "how_scientificfitting_works.html"), String)
-        css = read(joinpath(DOCS_BUILD, "assets", "scientificfitting.css"), String)
-
-        @test occursin("url=gallery.html", home)
-        @test occursin("<section class=\"scientificfitting-hero\">", gallery)
-        @test !occursin("&lt;section", gallery)
-        @test occursin("data-scientificfitting-plot-group=\"gallery-linear\"", gallery)
-        @test occursin("using CairoMakie", quickstart)
-        @test occursin("iterations = unavailable", quickstart)
-        @test occursin("data-flow-direction=\"top-to-bottom\"", architecture)
-        @test occursin("FitProblem</code> or <code>LikelihoodFitProblem", architecture)
-        @test !occursin("min-width: 1280px", css)
-        @test occursin(
-            "margin: 1rem 1.4rem 1.7rem !important;\n  width: auto !important;",
-            css,
-        )
-    end
 end

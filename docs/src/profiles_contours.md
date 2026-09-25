@@ -98,10 +98,7 @@ view. It is computed from the same constrained saturation fit used in the
 the selector in the documentation header changes only the rendering style.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in sans style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="sans" src="assets/gallery/saturation_profile_matrix_sans_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark sans style">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in tex style">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="statistics-profile-matrix" data-scientificfitting-plot-style="tex" src="assets/gallery/saturation_profile_matrix_tex_dark.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in dark tex style">
+<img class="scientificfitting-plot" src="assets/gallery/saturation_profile_matrix_sans_light.png" alt="Profile matrix comparing one- and two-parameter likelihood geometry with local covariance in sans style">
 <p class="scientificfitting-figure-note">Diagonal: refitted one-parameter profiles against the local parabolic approximation. Lower triangle: filled one- and two-sigma profiled regions against dashed local covariance ellipses. Upper triangle: local correlation coefficients.</p>
 ```
 

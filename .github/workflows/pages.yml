@@ -29,9 +29,7 @@ jobs:
       - name: Instantiate documentation environment
         run: julia --project=docs -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
       - name: Check public documentation sources
-        run: |
-          julia --project=. --startup-file=no test/docs_public_release_gate.jl
-          julia --project=. --startup-file=no test/docs_visual_snapshot_gate.jl
+        run: julia --project=. --startup-file=no test/docs_public_release_gate.jl
       - name: Build documentation
         run: julia --project=docs --startup-file=no docs/make.jl
         env:

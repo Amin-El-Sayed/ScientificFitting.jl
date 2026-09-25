@@ -24,14 +24,7 @@ T_{1/2} = \frac{\log 2}{\lambda}.
 ```
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_sans_panel_light.png" alt="Radioactive decay count fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_sans_panel_dark.png" alt="Radioactive decay count fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_sans_plot_light.png" alt="Radioactive decay count fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_sans_plot_dark.png" alt="Radioactive decay count fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_tex_panel_light.png" alt="Radioactive decay count fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_tex_plot_light.png" alt="Radioactive decay count fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/poisson_counts_tex_panel_dark.png" alt="Radioactive decay count fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="poisson-counts" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/poisson_counts_tex_plot_dark.png" alt="Radioactive decay count fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/poisson_counts_sans_panel_light.png" alt="Radioactive decay count fit in sans style with result panel">
 ```
 
 The observed points deliberately have no ``\sqrt n`` error bars. Such bars are
@@ -237,14 +230,7 @@ quantities are peak yield ``N``, centroid ``m``, Gaussian width ``s``, and
 background density ``\rho_B``.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_sans_panel_light.png" alt="Histogram likelihood fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_sans_panel_dark.png" alt="Histogram likelihood fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_sans_plot_light.png" alt="Histogram likelihood fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_sans_plot_dark.png" alt="Histogram likelihood fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_tex_panel_light.png" alt="Histogram likelihood fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_tex_plot_light.png" alt="Histogram likelihood fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/histogram_likelihood_tex_panel_dark.png" alt="Histogram likelihood fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="histogram-likelihood" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/histogram_likelihood_tex_plot_dark.png" alt="Histogram likelihood fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/histogram_likelihood_sans_panel_light.png" alt="Histogram likelihood fit in sans style with result panel">
 ```
 
 The model must return the expected count in each bin, not the density evaluated

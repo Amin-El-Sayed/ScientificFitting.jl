@@ -22,7 +22,6 @@ makedocs(;
         assets=[
             "assets/favicon.ico",
             "assets/scientificfitting.css",
-            "assets/scientificfitting.js",
         ],
     ),
     pages=[
