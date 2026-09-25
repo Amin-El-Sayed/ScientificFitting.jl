@@ -108,8 +108,10 @@ end
     end
 
     @testset "Repository root stays package-facing" begin
-        root_markdown = sort(filter(name -> endswith(name, ".md"), readdir(ROOT)))
-        # Both distributable packages need a public README, not internal notes.
+        # Git visibility is the criterion: internal notes are gitignored and
+        # must never become part of the published tree.
+        @test filter(name -> !occursin('/', name), markdown_outside_docs()) == ["README.md"]
+        @test markdown_outside_docs() == ["README.md", "python/README.md"]
     end
 
     @testset "Configured public files exist" begin
