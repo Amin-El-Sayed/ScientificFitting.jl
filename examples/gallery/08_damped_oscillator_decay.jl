@@ -63,6 +63,7 @@ constant_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060],
     ],
     multistart=3, # p0 and the two additional starts.
+    solver=:ipnewton,
     maxiters=3000,
     tol=1e-7,
 )
@@ -80,6 +81,7 @@ drift_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
     multistart=3,
+    solver=:ipnewton,
     maxiters=4000,
     tol=1e-7,
 )

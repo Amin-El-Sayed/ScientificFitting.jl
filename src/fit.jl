@@ -238,12 +238,19 @@ function _build_scalar_result(problem::FitProblem, options, answer)
                             answer.iterations, answer.message, nothing, answer)
 end
 
-"""Prefer convergence first, then the lowest finite cost within that status."""
+"""Prefer the lowest finite cost; convergence status only breaks exact ties.
+
+A converged stop at a worse minimum must not displace a better minimum whose
+solver stopped without a formal convergence code: the cost is the fitted
+quantity, and a non-converged winner is reported as such instead of being
+silently replaced.
+"""
 function _prefer_fit(candidate, incumbent)
     isfinite(candidate.stats.cost_min) || return false
     incumbent === nothing && return true
-    candidate.converged != incumbent.converged && return candidate.converged
-    return candidate.stats.cost_min < incumbent.stats.cost_min
+    candidate.stats.cost_min != incumbent.stats.cost_min &&
+        return candidate.stats.cost_min < incumbent.stats.cost_min
+    return candidate.converged && !incumbent.converged
 end
 
 """

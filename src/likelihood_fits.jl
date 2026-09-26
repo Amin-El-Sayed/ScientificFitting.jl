@@ -244,10 +244,10 @@ count, and cost name are already stored in `problem`.
 `initial_guesses` may contain additional complete parameter vectors. `multistart`
 is the total candidate budget including `p0`; its default of one uses only `p0`.
 Remaining slots use deterministic bounded candidates when finite bounds are
-available. ScientificFitting returns the converged candidate with the lowest finite cost;
-if only non-converged finite candidates remain, the best one is returned with
-`converged == false`. If no candidate produces a finite result, the last
-objective, validation, or solver error is raised.
+available. ScientificFitting returns the candidate with the lowest finite cost;
+convergence status only breaks exact cost ties, and a non-converged winner is
+returned with `converged == false`. If no candidate produces a finite result,
+the last objective, validation, or solver error is raised.
 
 The solver choice defaults to LBFGS, or IPNewton with nonlinear constraints.
 Pass `solver=OptimizationSolver(algorithm)` or `solver=NativeMinuitSolver()` to

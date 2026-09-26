@@ -320,7 +320,8 @@ def fit_model(model, x, y, *, p0, **options):
     singly or as a sequence. `multistart` is the total candidate budget including
     p0 (default 1); set it to 3 to try p0 plus two distinct supplied starts.
     The core fills remaining slots with deterministic candidates where possible
-    and selects the converged result with the lowest objective.
+    and selects the result with the lowest objective; convergence status only
+    breaks exact ties.
 
     With `inplace=True`, use `model(out, x, **parameters)` and optionally
     `jacobian(out, x, **parameters)`. Fill every output entry and return None;
