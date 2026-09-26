@@ -416,6 +416,7 @@ function fit_model(
     multistart::Int=1,
     solver=nothing,
 )
+    inplace || (model = _finite_model_boundary(model, derivatives))
     problem = FitProblem(
         model,
         x,

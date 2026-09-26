@@ -106,6 +106,15 @@ function LikelihoodFitProblem(
     normalized_fixed = _normalize_fixed_parameters(fixed_parameters, length(p0_vec))
     _assert_fixed_parameters_within_bounds(normalized_fixed, normalized_bounds)
 
+    # Finite differences never see dual numbers, so every objective can share
+    # one precompiled pipeline through the typed-callback boundary.
+    if derivatives == :finite
+        objective isa Function && !(objective isa _TypedCallback) &&
+            (objective = _TypedCallback{Float64}(objective))
+        gof isa Function && !(gof isa _TypedCallback) &&
+            (gof = _TypedCallback{Float64}(gof))
+    end
+
     return LikelihoodFitProblem{typeof(objective), typeof(gof), derivatives}(
         objective,
         gof,
@@ -558,6 +567,7 @@ function fit_poisson_model(
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
+    model = _finite_model_boundary(model, derivatives)
     x_vec = _float_vector(x)
     counts_vec = _float_vector(counts)
     length(x_vec) == length(counts_vec) || throw(DimensionMismatch("x and counts must have equal length"))
@@ -619,6 +629,7 @@ function fit_histogram_model(
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
+    expected_counts = _finite_model_boundary(expected_counts, derivatives)
     edges_vec, counts_vec = _histogram_data(edges, counts)
 
     objective = p -> _poisson_minus2loglik_terms(
@@ -968,6 +979,7 @@ function fit_indexed_model(
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
+    model = _finite_model_boundary(model, derivatives)
     y_vec = _float_vector(y)
     _assert_finite_observations("y", y_vec)
     length(indices) == length(y_vec) || throw(DimensionMismatch("indices and y must have equal length"))
@@ -1038,6 +1050,7 @@ function fit_multi_model(
     parameter_covariance::Symbol=:auto,
     solver=nothing,
 )
+    models = map(m -> _finite_model_boundary(m, derivatives), models)
     ndatasets = length(models)
     ndatasets > 0 || throw(ArgumentError("at least one dataset is required"))
     length(xs) == ndatasets || throw(DimensionMismatch("xs length must match models"))

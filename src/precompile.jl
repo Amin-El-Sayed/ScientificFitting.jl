@@ -9,14 +9,14 @@
 
     @compile_workload begin
         for derivatives in (:auto, :finite)
-            callback = derivatives == :finite ? _TypedCallback{Vector{Float64}}(model) : model
-            result = fit_model(callback, x, y; p0=[1.0, 0.0], sigma_y=fill(0.2, length(x)), derivatives)
+            # derivatives=:finite wraps models in the typed-callback boundary
+            # inside FitProblem, so this precompiles the shared pipeline.
+            result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.2, length(x)), derivatives)
             predict(result, x; uncertainty=true)
             report_text(result)
             diagnostic_dashboard_text(result)
 
-            rate_callback = derivatives == :finite ? _TypedCallback{Vector{Float64}}(rate_model) : rate_model
-            poisson = fit_poisson_model(rate_callback, x[1:3], counts;
+            poisson = fit_poisson_model(rate_model, x[1:3], counts;
                                         p0=[5.0], derivatives)
             report_text(poisson)
             diagnostic_dashboard_text(poisson)

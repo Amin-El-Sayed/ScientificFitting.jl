@@ -11,6 +11,11 @@ struct _TypedCallback{R}
 end
 (callback::_TypedCallback{R})(args...) where {R} = callback.f(args...)::R
 
+"""Share one precompiled pipeline across model types when finite differences apply."""
+_finite_model_boundary(model, derivatives::Symbol) =
+    derivatives == :finite && model isa Function && !(model isa _TypedCallback) ?
+        _TypedCallback{Vector{Float64}}(model) : model
+
 """Validate the differentiation policy stored with a problem and its refits."""
 function _validate_derivatives(mode::Symbol)
     mode in (:auto, :finite) || throw(ArgumentError("derivatives must be :auto or :finite"))

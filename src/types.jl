@@ -899,6 +899,12 @@ function FitProblem(
     _assert_fixed_parameters_within_bounds(fixed, bnd)
 
     model_impl = inplace ? _InPlaceModel(model) : model
+    # Finite differences never see dual numbers, so every model can share one
+    # precompiled pipeline through the typed-callback boundary: a new model
+    # function then costs milliseconds instead of a fresh specialization.
+    if derivatives == :finite && !inplace && model_impl isa Function && !(model_impl isa _TypedCallback)
+        model_impl = _TypedCallback{Vector{Float64}}(model_impl)
+    end
     jacobian_impl = inplace && jacobian !== nothing ? _InPlaceJacobian(jacobian) : jacobian
 
     return FitProblem{typeof(model_impl), typeof(whitening), derivatives}(
