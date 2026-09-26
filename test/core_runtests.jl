@@ -4,6 +4,7 @@ using Test
     for file in (
         "regression/current_api.jl",
         "statistics/scaling_consistency_reference.jl",
+        "statistics/nist_strd_reference.jl",
         "statistics/covariance_semantics_reference.jl",
         "statistics/diagnostics_reference.jl",
         "statistics/linear_gaussian_reference.jl",
