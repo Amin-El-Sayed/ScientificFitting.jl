@@ -1,7 +1,7 @@
 # Poisson Counts and Histograms
 
-Counts are not measurements with an automatically attached symmetric error bar.
-They are realizations of a discrete probability distribution. This page follows
+Counts are realizations of a discrete probability distribution, not
+measurements with a symmetric error bar. This page follows
 two common detector workflows: a radioactive decay measured in repeated time
 windows and a pulse-height spectrum collected in unequal bins.
 
@@ -27,46 +27,37 @@ T_{1/2} = \frac{\log 2}{\lambda}.
 <img class="scientificfitting-plot" src="../assets/gallery/poisson_counts_sans_panel_light.png" alt="Radioactive decay count fit in sans style with result panel">
 ```
 
-The observed points deliberately have no ``\sqrt n`` error bars. Such bars are
-only a large-count visual approximation; near zero they cannot represent the
-strongly asymmetric sampling distribution and assign no visible uncertainty to
-a zero-count observation. The shaded region instead spans the 16th to 84th
-percentiles of future Poisson counts predicted by the fitted model. It is a
-**prediction interval for discrete observations**, not a confidence band for
-the mean curve. It is conditional on the fitted mean and does not include
-parameter uncertainty. Because counts are discrete, its actual coverage changes
-in steps and is generally not exactly 68%.
+The observed points have no ``\sqrt n`` error bars: near zero, such bars
+cannot represent the strongly asymmetric sampling distribution
+([Poisson Counts And Histograms](../statistics.md#Poisson-Counts-And-Histograms)).
+The shaded region instead spans the 16th to 84th percentiles of future Poisson
+counts predicted by the fitted model. It is a **prediction interval for
+discrete observations**, not a confidence band for the mean curve; it is
+conditional on the fitted mean and does not include parameter uncertainty.
+Because counts are discrete, its actual coverage changes in steps and is
+generally not exactly 68%.
 
-The edges of this band are intentionally stepped. Poisson observations are
-integers, so the 16th and 84th percentiles can change only by whole counts as
-``\mu(t)`` varies. ScientificFitting therefore renders each change as a vertical edge,
-without interpolating through impossible fractional count quantiles. The
-plateaus become wider at late times because the exponential mean approaches
-the background more slowly: ``|\mathrm{d}\mu/\mathrm{d}t|`` decreases. The
-lower and upper edges jump at different times because the 16th and 84th
-percentiles cross different probability thresholds. All three features are
-properties of the fitted count distribution, not optimizer noise.
+The band edges are stepped: Poisson observations are integers, so the 16th and
+84th percentiles can change only by whole counts as ``\mu(t)`` varies, and
+ScientificFitting renders each change as a vertical edge instead of
+interpolating fractional count quantiles. The plateaus become wider at late
+times because the exponential mean approaches the background more slowly:
+``|\mathrm{d}\mu/\mathrm{d}t|`` decreases. The lower and upper edges jump at
+different times because the two percentiles cross different probability
+thresholds.
 
 ## Data
 
-The count arrays are listed explicitly in the fit sections. They are controlled
-teaching records, not measurements attributed to a particular isotope or
-detector campaign. No hidden random generator is involved: the listed integers
-are the complete input. The first series has a low-count tail; the second is an
-unequally binned pulse-height spectrum with one empty bin. Those features are
-intentional because they expose where Gaussian error-bar shortcuts become
-misleading.
+The count arrays are listed explicitly in the fit sections. They are
+controlled teaching records, not measurements attributed to a particular
+isotope or detector campaign; the listed integers are the complete input. The
+first series has a low-count tail; the second is an unequally binned
+pulse-height spectrum with one empty bin.
 
-A one-bin sanity check shows why this matters. If the model predicts
-``\mu=0.7`` counts, observing ``n=0`` is not pathological; it has probability
-``e^{-0.7}\approx0.50``. A Gaussian least-squares fit with ``\sqrt n`` would
-assign zero uncertainty to the same observation. The likelihood handles it
-without inventing an error bar.
-
-For a Gaussian measurement a central 68% interval would be called roughly
-``1σ``. For Poisson counts the plotted interval is the discrete analogue: it is
-computed from the count distribution itself, not from a symmetric standard
-deviation drawn around the observed count.
+A one-bin sanity check: if the model predicts ``\mu=0.7`` counts, observing
+``n=0`` is not pathological; it has probability ``e^{-0.7}\approx0.50``. A
+Gaussian least-squares fit with ``\sqrt n`` would assign zero uncertainty to
+the same observation.
 
 ## Poisson Likelihood and Deviance
 
@@ -76,9 +67,8 @@ For independent counts,
 n_i \sim \operatorname{Poisson}(\mu_i).
 ```
 
-This statement carries experimental assumptions. Acquisition windows must be
-disjoint, events independent, exposure and efficiency known, and the background
-stable. Substantial dead time, pile-up, clustering, or an unmodelled exposure
+This statement assumes disjoint acquisition windows, independent events, known
+exposure and efficiency, and a stable background. Substantial dead time, pile-up, clustering, or an unmodelled exposure
 change breaks the model. If exposure differs between windows, that exposure
 belongs inside each ``\mu_i`` rather than in an after-the-fact rescaling.
 
@@ -95,8 +85,7 @@ C(p)
 \right].
 ```
 
-The factorial term does not move the optimum, but retaining it gives the full
-Poisson cost. The goodness-of-fit quantity is the Poisson deviance:
+The goodness-of-fit quantity is the Poisson deviance:
 
 ```math
 D
@@ -127,10 +116,6 @@ isolated large values, or dependence on the expected count level suggest a
 missing component or a wrong count model.
 
 ## Complete Decay Fit
-
-The dataset is controlled and reproducible, but intentionally includes the
-irregular fluctuations and low-count tail expected in a short counting
-experiment.
 
 ```julia
 using ScientificFitting
@@ -186,9 +171,8 @@ No next action required by the current diagnostic checks.</pre>
 </div>
 ```
 
-Multiple initial guesses are cheap insurance for this nonlinear signal-plus-
-background model. They do not replace diagnostics, but they reduce the chance
-that one poor starting point defines the reported result.
+Multiple initial guesses reduce the chance that one poor starting point
+defines the reported result for this nonlinear signal-plus-background model.
 
 ## Interpretation: Decay Result
 
@@ -203,9 +187,10 @@ T_{1/2} = 4.23 \pm 0.86\ \mathrm{min}.
 The fitted background is ``0.792\pm2.189`` counts per window in the local
 quadratic approximation. That symmetric interval extends below the physical
 positivity bound because the acquisition ends with only a few low-count
-windows. It should not be reported as the final background interval. A profile
-scan asks how far the background can move while the signal parameters are
-refitted; if the lower threshold is cut off by zero, report an asymmetric
+windows, and should not be reported as the final background interval. A
+profile scan ([Profiles And Contours](../statistics.md#Profiles-And-Contours))
+refits the signal parameters at each forced background value; if the lower
+threshold is cut off by zero, report an asymmetric
 interval or a one-sided upper limit. A longer background-only acquisition would
 separate source and detector background more directly.
 
@@ -214,18 +199,17 @@ The half-life uncertainty above is first-order propagation of the local
 half-life uncertainty is central to the scientific conclusion.
 
 The deviance is approximately ``16.24`` for ``16`` degrees of freedom, giving
-an asymptotic p-value near ``0.44``. This is compatible with the model; it is
-not proof that the exponential-plus-background law is uniquely correct.
+an asymptotic p-value near ``0.44``, compatible with the model
+([Goodness Of Fit](../statistics.md#Goodness-Of-Fit)).
 
 ## Question Two: Where Is The Spectral Peak?
 
 A pulse-height spectrum contains a Gaussian-like detector peak above a uniform
-background. The bins are deliberately unequal, including one empty low-amplitude
-bin. Narrow bins retain shape resolution near the populated peak, while bins
-become wider in the sparse high-amplitude tail so that the display is not
-dominated by a long sequence of nearly empty intervals. This is a defensible
-analysis choice only when the edges are fixed independently of the observed
-fluctuations and the model is integrated over those exact edges. The fitted
+background. The bins are unequal, including one empty low-amplitude bin:
+narrow bins retain shape resolution near the populated peak, wider bins keep
+the sparse high-amplitude tail from dominating the display. This is defensible
+only when the edges are fixed independently of the observed fluctuations and
+the model is integrated over those exact edges. The fitted
 quantities are peak yield ``N``, centroid ``m``, Gaussian width ``s``, and
 background density ``\rho_B``.
 
@@ -249,15 +233,13 @@ N
 \rho_B(e_{i+1}-e_i).
 ```
 
-Integrating the model is essential when bins have different widths or the
-density changes significantly across a bin. Evaluating only at bin centers can
-bias the peak position, width, and yield.
+Evaluating the density only at bin centers can bias the peak position, width,
+and yield when bins differ in width or the density changes across a bin.
 
-The likelihood uses the integrated counts ``\mu_i`` exactly as written above.
 For display only, the upper panel divides observed and expected counts by each
-bin width. The resulting bar area still equals the bin count, while a uniform
-background appears flat instead of becoming artificially taller in wider bins.
-The lower-panel deviance residuals continue to use the original integer counts.
+bin width: the bar area still equals the bin count, and a uniform background
+appears flat instead of growing taller in wider bins. The likelihood and the
+lower-panel deviance residuals use the original integer counts.
 
 ## Complete Histogram Fit
 
@@ -333,25 +315,20 @@ s = 1.270 \pm 0.100\ \mathrm{V}.
 ```
 
 The empty first bin remains informative: it penalizes models that predict too
-many low-amplitude events. Replacing its uncertainty by ``\sqrt{0}=0`` in a
-Gaussian least-squares fit would either make the calculation singular or tempt
-the analyst to invent an arbitrary error bar.
+many low-amplitude events.
 
 ## Diagnostics
 
 The deviance is approximately ``6.84`` for ``6`` degrees of freedom, with an
-asymptotic p-value near ``0.34``. That is a useful first check, but not the whole
-diagnosis: a count model can have an acceptable global deviance while still
-missing structure in a narrow peak, a tail, or the empty bins. The deviance
-residual panel is therefore the practical object to inspect next. Look for runs
-of same-sign residuals, one tail that is systematically high, or a peak that is
-too narrow.
+asymptotic p-value near ``0.34``. A count model can have an acceptable global
+deviance while still missing structure in a narrow peak, a tail, or the empty
+bins, so inspect the deviance residual panel next: look for runs of same-sign
+residuals, one tail that is systematically high, or a peak that is too narrow.
 
 The automatic dashboard reports `ok` because the optimizer converged, the
-covariance estimate is usable, and no generic fit pathology was detected. It
-does not prove that the Poisson process is the correct physical counting model.
-For sparse counts, active bounds, or claims that depend on tail probabilities,
-calibrate the deviance by simulation before treating the p-value as final.
+covariance estimate is usable, and no generic fit pathology was detected; it
+does not prove that the Poisson process is the correct physical counting
+model.
 
 ## What Can Go Wrong
 
@@ -381,4 +358,4 @@ report a one-sided limit when appropriate.
 
 Next useful pages: [Constraints and Profiles](@ref),
 [Fitting for Practitioners](@ref), and
-[Likelihoods and Model Comparison](../likelihood_models.md).
+[Likelihoods and Model Comparison](../statistics.md#Observation-Likelihoods).

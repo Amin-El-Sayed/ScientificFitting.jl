@@ -14,7 +14,7 @@ fit reports, and profile/contour diagnostics:
 
 kafe2 offers a Python/YAML fitting workflow with Matplotlib. ScientificFitting
 has a Julia numerical core, optional Makie plotting, and a Python interface
-with native Matplotlib plots. Neither requires adopting the other's workflow.
+with native Matplotlib plots.
 
 ScientificFitting also uses Julia packages for differentiation, quadrature, and
 plotting. When an upstream method contributes materially to a publication,
@@ -24,10 +24,9 @@ follow that project's citation guidance as well.
 
 ScientificFitting includes a root-level `CITATION.cff` with the author, package
 version, and license. If the software contributes to a scientific result,
-citation is requested. Record the exact release or commit together with the
-Julia version and the uncertainty or likelihood model used in the analysis.
-
-Citation is a request for scientific attribution, not a condition of use.
+citation is requested; it is not a condition of use. Record the exact release
+or commit together with the Julia version and the uncertainty or likelihood
+model used in the analysis.
 
 ## License
 
@@ -35,5 +34,5 @@ ScientificFitting is distributed under the
 [MIT License](https://opensource.org/license/mit). The copyright and permission
 notice must remain with copies or substantial portions of the software.
 
-ScientificFitting was made with care and with assistance from AI tools; every
-released change remains subject to human review and approval.
+ScientificFitting was developed with assistance from AI tools; every released
+change remains subject to human review and approval.

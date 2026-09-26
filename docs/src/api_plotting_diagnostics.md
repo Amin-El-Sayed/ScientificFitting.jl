@@ -1,8 +1,6 @@
 # Diagnostic Plotting
 
 These functions visualize an existing fit result or a stored profile scan.
-Only `plot_profile_matrix(result)` performs new fits; passing a
-`ProfileMatrixResult` renders stored numerical results.
 
 ```julia
 using ScientificFitting
@@ -19,8 +17,10 @@ using CairoMakie
 | Is a parameter pair described by a covariance ellipse? | [`plot_contour`](@ref) | no |
 | Which parameters need closer inspection? | [`plot_profile_matrix`](@ref) | yes for a fit result; no for a stored matrix |
 
-All functions accept `theme=:sans` or `:tex`, `appearance=:light` or
-`:dark`, an optional `theme_override`, and standard file output keywords.
+All functions accept `theme=:sans` or `:tex`, `appearance=:light` or `:dark`,
+an optional `theme_override`, visual token overrides through the `style`
+keyword ([`FitPlotStyle`](@ref)), and the file output keywords `filename` and
+`format`.
 
 ## Residuals, Pulls, And Ratios
 
@@ -36,14 +36,13 @@ plot_diagnostics(result)
 | `:ratio` | ``y_i/f_i`` with propagated y-error ratio | 1 |
 
 With dense covariance, whitened coordinates are not pointwise pulls in the
-original measurement order. Ratios are rejected when a fitted value is zero or
-non-finite.
+original measurement order
+([Residuals And Pulls](statistics.md#Residuals-And-Pulls)).
 
-Shared keywords are `filename`, `format`, `theme`, `appearance`,
-`theme_override`, `figure_size`, `xlabel`, `color`, `reference_color`,
-`marker`, `markersize`, `error_whiskerwidth`, `axis_kwargs`,
-`scatter_kwargs`, and `errorbars_kwargs`. `plot_diagnostics` also accepts
-`reference_line_kwargs`.
+Beyond the shared output and style keywords, both functions accept `xlabel`,
+`color`, `reference_color`, `marker`, `markersize`, `error_whiskerwidth`,
+`axis_kwargs`, `scatter_kwargs`, and `errorbars_kwargs`; `plot_diagnostics`
+also accepts `reference_line_kwargs`.
 
 ## One-Parameter Profiles
 
@@ -53,16 +52,16 @@ plot_profile(profile_result; local_sigma=result.param_stderr[i])
 
 | Concern | Keywords |
 |---|---|
-| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `figure_size` |
+| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `style` |
 | Labels | `title`, `xlabel`, `ylabel` |
 | Profile | `line_color`, `line_width`, `profile_label`, `line_kwargs` |
 | Local parabola | `local_sigma`, `local_color`, `local_linewidth`, `local_linestyle`, `local_label`, `local_line_kwargs` |
 | Threshold | `threshold_color`, `threshold_label`, `threshold_kwargs` |
 | Layout | `show_legend`, `legend_position`, `delta_max`, `axis_kwargs`, `legend_kwargs` |
 
-`local_sigma` and `delta_max` must be positive. `delta_max` changes only the
-displayed range. The default legend occupies a row below the data axis;
-`legend_position=:right` selects a bounded side column.
+`delta_max` changes only the displayed range. The default legend occupies a
+row below the data axis; `legend_position=:right` selects a bounded side
+column.
 
 ## Two-Parameter Contours
 
@@ -76,7 +75,7 @@ plot_contour(
 
 | Concern | Keywords |
 |---|---|
-| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `figure_size` |
+| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `style` |
 | Labels | `title`, `xlabel`, `ylabel`, `axis_kwargs` |
 | Profile regions | `show_regions`, `show_profile_lines`, `level_colors`, `region_colors`, `line_color`, `contour_kwargs` |
 | Optional heatmap | `show_heatmap`, `colormap`, `heatmap_kwargs` |
@@ -100,7 +99,7 @@ Its scan controls are `parameters`, `parameter_names`, `npoints_profile`,
 `max_refinements`, and `max_points`.
 
 Both methods accept `filename`, `format`, `theme`, `appearance`,
-`theme_override`, `panel_status_mode`, `delta_max`, and `figure_size`.
+`theme_override`, `style`, `panel_status_mode`, and `delta_max`.
 `panel_status_mode` is `:issues`, `:all`, or `:none` and controls labels
 independently of visual style.
 

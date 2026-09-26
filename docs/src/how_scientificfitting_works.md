@@ -3,8 +3,6 @@
 ScientificFitting is built around one rule: statistical assumptions become explicit
 problem objects before a solver is selected. Reports, diagnostics, profiles,
 and plots then read the fitted result instead of reconstructing the analysis.
-This makes the one-line interface and the low-level API two views of the same
-pipeline.
 
 ```@raw html
 <div class="scientificfitting-fit-flow" aria-label="ScientificFitting fit pipeline" data-flow-direction="top-to-bottom">
@@ -116,21 +114,15 @@ Every ordinary fit starts with four concepts:
 - **Parameter control:** starting values, bounds, fixed parameters, priors, and
   Gaussian parameter constraints.
 
-Gaussian x-y workflows become a `FitProblem`; count, histogram, sample, indexed,
-and multi-dataset likelihood workflows become a `LikelihoodFitProblem`.
-Convenience functions build these objects for common cases, but the normalized
-problem is what the solver receives.
+Gaussian x-y workflows become a `FitProblem`, which retains x-y observations,
+model predictions, residuals, and a Gaussian uncertainty model. Count,
+histogram, sample, indexed, and multi-dataset likelihood workflows become a
+`LikelihoodFitProblem`, which retains a scalar ``-2\log L`` objective, an
+optional goodness-of-fit statistic, and the number of observations; a generic
+likelihood need not have a y residual or a natural fit curve.
 
-The distinction is the information available to the core. A `FitProblem`
-retains x-y observations, model predictions, residuals, and a Gaussian
-uncertainty model. A `LikelihoodFitProblem` retains an already defined scalar
-``-2\log L`` objective, an optional goodness-of-fit statistic, and the number of
-observations; a generic likelihood need not have a y residual or even a natural
-fit curve. Both support the same parameter controls, diagnostics, local
-covariance, profiles, and contours.
-
-The explicit core path is short. Assuming `model`, `x`, `y`, and `sigma_y` are
-the measured inputs from the [Quickstart](@ref):
+With the measured inputs `model`, `x`, `y`, and `sigma_y` from the
+[Quickstart](@ref), the explicit core path is:
 
 ```julia
 problem = FitProblem(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
@@ -138,55 +130,23 @@ result = fit(problem)
 summary = report_text(result)
 ```
 
-`fit_model(...)` performs the first two lines. After `using CairoMakie`,
-`fitplot(...)` combines the same fit with the plotting workflow.
+`fit_model(...)` performs the first two lines; after `using CairoMakie`,
+`fitplot(...)` adds the plotting workflow.
 
 ## What Happens Internally
 
-For Gaussian fits, ScientificFitting builds residuals and turns uncertainty assumptions
-into a weighted cost. Independent errors divide residuals by their standard
-deviation. Dense covariance is handled by factorization and whitening:
+For Gaussian fits, the uncertainty model — pointwise ``\sigma_i``, dense or
+sparse covariance, or a matrix-free `WhiteningOperator` — becomes one whitened
+residual cost; the derivation and worked examples are in
+[Correlated Measurements And Whitening](statistics.md#Correlated-Measurements-And-Whitening).
 
-```math
-V = L L^\mathsf{T}, \qquad
-\chi^2 = \lVert L^{-1}(y-f(x,p)) \rVert^2.
-```
+Likelihood fits minimize the appropriate ``-2\log L`` objective or deviance on
+the scale fixed by [The Cost Convention](statistics.md#The-Cost-Convention);
+Poisson and histogram workflows do not invent Gaussian error bars for low
+counts.
 
-Here ``V=LL^T`` is a Cholesky factorization and
-``z=L^{-1}(y-f(x,p))`` is the whitened residual vector. Multiplication by
-``L^{-1}`` removes the scale and correlation encoded by ``V``; under a correct
-Gaussian model, ``\operatorname{Cov}(z)=I`` and ``\chi^2=z^Tz``. Whitening is
-therefore a coordinate transformation of the residuals, not filtering or
-smoothing of the data.
-
-For scale, a residual of ``0.2`` with an independent standard deviation of
-``0.1`` contributes ``(0.2/0.1)^2=4`` to ``\chi^2``. If several measurements
-share the same offset or gain fluctuation, treating those errors independently
-would count the same information repeatedly; the covariance or whitening
-operator represents that shared motion.
-
-For large structured covariance, a `WhiteningOperator` supplies the equivalent
-``L^{-1}`` action without storing the dense matrix. The statistical cost is the
-same; only the representation and asymptotic scaling change.
-
-For likelihood fits, ScientificFitting minimizes the appropriate ``-2\log L`` objective
-or deviance. This common scale makes likelihood-ratio thresholds, Hessian
-covariance, and information criteria use one convention throughout the
-package. Poisson and histogram workflows do not invent Gaussian error bars for
-low counts.
-
-After validation and objective construction, the backend is selected by the
-problem:
-
-- simple static least-squares fits use the fast `LsqFit` path,
-- bounds, constraints, effective variance, priors, and likelihoods use the
-  `Optimization.jl` path,
-- incompatible explicit backend choices fail before optimization rather than
-  silently ignoring bounds, priors, constraints, or uncertainty terms.
-
-Profiles and contours are post-fit analyses, not a third primary solver. They
-reuse the normalized problem, hold one or two parameters at requested values,
-and repeatedly refit the remaining nuisance parameters.
+Backend dispatch (stage 04) follows from the problem; an explicitly requested
+incompatible backend fails before optimization.
 
 ## What A `FitResult` Contains
 
@@ -201,12 +161,9 @@ statistical interpretation:
 - enough problem metadata for plots, reports, profiles, contours, and
   downstream analysis.
 
-The important design rule is that output functions consume this result. They do
-not carry a second copy of the model, parameters, or fit statistics.
-
 ## Output Is Switchable
 
-`fitplot` keeps output surfaces independent. Use these controls deliberately:
+`fitplot` keeps output surfaces independent:
 
 - `print_report=true` prints a text report.
 - `show_panel=false` removes the statistics panel from a plot.
@@ -214,16 +171,14 @@ not carry a second copy of the model, parameters, or fit statistics.
 - `stats_position=:right` keeps results outside the data axis.
 - `stats_position=:inside` uses a compact in-axis box when space is limited.
 
-Diagnostics are separate. `diagnostic_dashboard(result)` and
-`diagnostic_dashboard_text(result)` are for deciding what to inspect next; they
-are not mandatory output.
+`diagnostic_dashboard(result)` and `diagnostic_dashboard_text(result)` are
+separate and suggest what to inspect next.
 
 ## Plots Stay Extensible
 
-After `using CairoMakie`, `plot_fit(result)` returns a Makie `Figure`. You can
-add experiment-specific content without fitting again. The following is a
-fragment that assumes the named physical values and reference function already
-exist:
+After `using CairoMakie`, `plot_fit(result)` returns a Makie `Figure`; the
+fragment below adds experiment-specific content without refitting and assumes
+the named values and reference function exist:
 
 ```julia
 fig = plot_fit(result; show_panel=true, show_legend=true)
@@ -235,21 +190,16 @@ add_points!(ax, x_special, y_special; marker=:star5, color=:gray25)
 ```
 
 Use this for thresholds, extrapolations, accepted regions, literature values,
-or derived-quantity markers. The fit remains a `FitResult`; the extra visual
-elements remain Makie objects.
+or derived-quantity markers.
 
 ## Why Profiles and Contours Exist
 
-Local covariance assumes the cost is approximately parabolic near the minimum.
-That is often good for well-constrained linear problems. It can fail for weak
-data, bounds, nonlinear parameters, or asymmetric likelihoods.
-
-Profiles and contours answer a practical question: if one or two parameters are
-moved away from the minimum, how much worse can the best refitted model become
-after all nuisance parameters are optimized again? If the profile is not
-parabolic, or a contour does not resemble the local covariance ellipse, report
-profile intervals or contour regions instead of treating symmetric local errors
-as the final uncertainty statement.
+Local covariance is a parabolic approximation at the minimum and can fail for
+weak data, bounds, nonlinear parameters, or asymmetric likelihoods;
+[Profiles And Contours](statistics.md#Profiles-And-Contours) derives the
+nuisance-parameter refit and its thresholds. When a profile is not parabolic,
+or a contour does not resemble the local covariance ellipse, report profile
+intervals or contour regions instead of symmetric local errors.
 
 Next useful pages: [Quickstart](@ref), the [worked examples](gallery.md), and
-[Statistical Foundations](@ref).
+the [Statistics Reference](statistics.md).

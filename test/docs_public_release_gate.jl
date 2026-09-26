@@ -10,7 +10,6 @@ const PUBLIC_DOC_PAGES = [
     "quickstart.md",
     "how_scientificfitting_works.md",
     "gallery.md",
-    "gallery/linear_calibration.md",
     "gallery/xy_uncertainties.md",
     "gallery/full_covariance.md",
     "gallery/resonance_decay.md",
@@ -22,11 +21,11 @@ const PUBLIC_DOC_PAGES = [
     "fitting_for_practitioners.md",
     "interfaces.md",
     "plotting_design.md",
-    "statistical_foundations.md",
-    "gaussian_models.md",
-    "parameter_inference.md",
-    "profiles_contours.md",
-    "likelihood_models.md",
+    "statistics.md",
+    "validation.md",
+    "limits.md",
+    "migration.md",
+    "glossary.md",
     "api.md",
     "api_fitting.md",
     "api_results.md",
@@ -34,7 +33,6 @@ const PUBLIC_DOC_PAGES = [
     "api_plotting_diagnostics.md",
     "citation.md",
     "backend_design.md",
-    "performance.md",
 ]
 
 const PUBLIC_TEXT_FILES = vcat(joinpath.(DOCS_SRC, PUBLIC_DOC_PAGES), [joinpath(ROOT, "README.md")])
@@ -103,7 +101,7 @@ end
     end
 
     @testset "Documenter navigation covers every page" begin
-        @test documenter_navigation_pages() == sort(setdiff(PUBLIC_DOC_PAGES, ["index.md"]))
+        @test documenter_navigation_pages() == sort(PUBLIC_DOC_PAGES)
         @test docs_source_markdown_pages() == sort(PUBLIC_DOC_PAGES)
     end
 

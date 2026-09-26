@@ -8,8 +8,8 @@ parameter ordering and solver conventions are listed in the
 
 ### Observation Uncertainty
 
-Choose one representation for each physical uncertainty source. ScientificFitting
-rejects contradictory combinations instead of guessing how they combine.
+Choose one representation for each physical uncertainty source; contradictory
+combinations are rejected.
 
 | Keyword | Accepted value | Statistical role |
 |---|---|---|
@@ -20,19 +20,18 @@ rejects contradictory combinations instead of guessing how they combine.
 | `error_components` | named [`ErrorComponent`](@ref)s | Additive absolute, relative, model-relative, or covariance contributions. |
 | `whitening` | [`WhiteningOperator`](@ref) | Complete static covariance represented by ``W^\mathsf{T}W=C^{-1}``. |
 
-`whitening` is intentionally exclusive with every other observation-uncertainty
-keyword. It describes the complete covariance; adding another source without an
-explicit derivation would double-count uncertainty.
+`whitening` is exclusive with every other observation-uncertainty keyword: it
+already represents the complete covariance
+([Structured Whitening](statistics.md#Structured-Whitening)).
 
-With no supplied observation uncertainty, `fit_model` performs unweighted least
-squares and `scale_covariance=:auto` estimates residual scale from
-``\chi^2/\mathrm{ndf}``. With physical uncertainties, `:auto` leaves their scale
-unchanged.
+With no supplied observation uncertainty, `fit_model` performs unweighted
+least squares; the `scale_covariance` policy is specified in
+[Covariance Scaling](statistics.md#Covariance-Scaling).
 
 ### Error Components
 
-An error component has a stable name and can be activated or deactivated without
-rewriting the fit:
+An error component has a stable name and can be activated or deactivated
+without rewriting the fit:
 
 ```julia
 ErrorComponent(:readout, :y, :absolute, sigma_readout)
@@ -52,11 +51,10 @@ non-positive-definite covariance matrices raise `ArgumentError` or
 `DomainError` before
 optimization.
 
-For multistart fits, ScientificFitting returns the converged candidate with the lowest
-finite cost. If no candidate converges but one returns a finite result, it is
-returned with `converged == false`; inspect the status or use
-[`diagnostic_dashboard`](@ref). If every candidate fails, the underlying error
-is raised.
+Multistart fits return the candidate with the lowest finite cost — convergence
+status only breaks exact ties — reported with its own `converged` flag;
+inspect the status or use [`diagnostic_dashboard`](@ref). If every candidate
+fails, the underlying error is raised.
 
 ```@docs
 ScientificFitting.fit(::ScientificFitting.FitProblem)
@@ -67,19 +65,16 @@ ScientificFitting.FitOptions
 
 ## Likelihood And Count Fits
 
-Poisson, histogram, unbinned, and extended-unbinned entry points minimize costs
-on the ``-2\log L`` scale. Poisson and histogram fits also compute Poisson
-deviance, so `chi2`, `chi2_ndf`, and `pvalue` are available as goodness-of-fit
-summaries. Ordinary and extended unbinned fits do not invent a chi-square
-statistic; those fields are `NaN`.
-If a Poisson expectation is exactly zero, the regular chi-square reference no
-longer applies and goodness-of-fit fields are also `NaN`. The likelihood itself
-still handles zero observations without an artificial probability floor.
+Poisson, histogram, unbinned, and extended-unbinned entry points minimize
+costs on the ``-2\log L`` scale. Poisson and histogram fits fill `chi2`,
+`chi2_ndf`, and `pvalue` from the
+[Poisson deviance](statistics.md#Poisson-Counts-And-Histograms);
+[ordinary and extended unbinned fits](statistics.md#Unbinned-And-Extended-Likelihoods),
+and any fit with an exactly zero Poisson expectation, leave those fields `NaN`.
 
-`fit_indexed_model` and `fit_multi_model` minimize chi-square but omit additive
-Gaussian normalization constants. Their AIC/BIC values may compare models fit
-to the same observations with the same uncertainty model; they must not compare
-different uncertainty scales or datasets.
+`fit_indexed_model` and `fit_multi_model` minimize chi-square but omit
+additive Gaussian normalization constants, so their AIC/BIC compare only
+models fit to the same observations with the same uncertainty model.
 
 | Entry point | Additional contract |
 |---|---|
@@ -93,19 +88,18 @@ different uncertainty scales or datasets.
 | `fit_indexed_model` | Supports `sigma_y` or `cov_y`; indices may be any container accepted by the model. |
 | `fit_multi_model` | Supports per-dataset `sigma_y`; `parameter_map[i]` selects global parameters passed to model `i`. |
 
-For `fit_custom`, `objective` should be a normalized ``-2\log L`` cost if local
-covariance, AIC, and BIC are to retain their standard interpretation. With an
-arbitrarily scaled loss, optimization still works, but these inferential fields
-are only arithmetic summaries. `nobs` must count statistically independent
-observations. If supplied, `gof(p)` is the data goodness-of-fit statistic;
-ScientificFitting adds quadratic contributions and dimensions from Gaussian parameter
-priors and constraints.
+For `fit_custom`, `objective` should be a normalized ``-2\log L`` cost
+([The Cost Convention](statistics.md#The-Cost-Convention)); with an
+arbitrarily scaled loss, local covariance, AIC, and BIC are only arithmetic
+summaries. `nobs` must count statistically independent observations. An
+optional `gof(p)` supplies the data goodness-of-fit statistic; Gaussian
+parameter priors and constraints contribute as in
+[Degrees Of Freedom](statistics.md#Degrees-Of-Freedom).
 
 ### Minimization And Local Errors
 
 All likelihood helpers accept these independent controls; Gaussian `fit_model`
-uses `scale_covariance`. Both families accept `solver` objects as an alternative
-to their legacy `backend` or `optimizer` shortcuts.
+uses `scale_covariance` instead.
 
 | Keyword | Choices and behavior |
 |---|---|
@@ -113,19 +107,18 @@ to their legacy `backend` or `optimizer` shortcuts.
 | `parameter_covariance` | `:auto` selects `:none` with derivative-free solvers, `:hessian` otherwise. `:hessian` requires a locally smooth cost; `:none` leaves free-parameter errors as `NaN` and preserves explicitly supplied fixed-parameter errors. |
 
 Nelder-Mead uses NLopt's native box bounds without numerical derivatives or a
-custom penalty. Fixed values, Gaussian priors and correlated parameter terms
-remain active. Nonlinear constraints require a capable solver, such as IPNewton;
-incompatible methods reject them, never ignore them. All methods optimize continuous parameters and
-are local searches. Begin at finite cost inside the likelihood's support.
+custom penalty; fixed values, Gaussian priors, and correlated parameter terms
+remain active. Incompatible solvers reject nonlinear constraints, never ignore
+them. All methods are local searches over continuous parameters; begin at
+finite cost inside the likelihood's support.
 
-For Nelder-Mead, `maxiters` is an **objective-evaluation budget**, not an
-iteration count; `result.iterations` is `missing`. `tol` sets absolute/relative
-parameter stopping tolerances, so choose parameter units/scales accordingly.
-Function-value stopping is disabled: distant simplex vertices can have equal
-costs without locating the minimum. Reaching the budget is
-not convergence. Profiles preserve both controls; use explicit `values` grids
-when no local errors exist. [Non-regular likelihoods](likelihood_models.md#A-Moving-Support-Boundary)
-need more than a successful minimization to justify confidence intervals.
+For Nelder-Mead, `maxiters` is an **objective-evaluation budget**,
+`result.iterations` is `missing`, and reaching the budget is not convergence.
+`tol` sets absolute/relative parameter stopping tolerances, so choose
+parameter units accordingly; function-value stopping is disabled. Profiles
+preserve both controls; use explicit `values` grids when no local errors
+exist. [Non-regular likelihoods](statistics.md#Observation-Likelihoods) need
+more than a successful minimization to justify confidence intervals.
 
 ```@docs
 ScientificFitting.fit(::ScientificFitting.LikelihoodFitProblem)
@@ -144,8 +137,7 @@ ScientificFitting.LikelihoodFitProblem
 
 ### Distribution Objects
 
-Choose the interface according to what is random. These are different models,
-not different numerical solvers:
+Choose the interface according to what is random:
 
 ```@example distribution_objects
 using ScientificFitting, Distributions
@@ -159,8 +151,10 @@ println(report_text(result))
 ```
 
 For binned events, pass edges and counts instead. The following example treats
-50 events as an independently known expected full-support yield. It does **not**
-estimate that number from the observed histogram, whose window may omit events.
+50 events as an independently known expected full-support yield, **not** a
+number estimated from the observed histogram, whose window may omit events; an
+estimated total needs a fitted yield parameter, not `total_count=sum(counts)`
+treated as known.
 
 ```@example distribution_bins
 using ScientificFitting, Distributions
@@ -172,15 +166,6 @@ result = fit_distribution(p -> Normal(p[1], 1.), edges, counts;
     p0=[0.], total_count=50., parameter_names=["mean"])
 println(report_text(result))
 ```
-
-Bin masses use CDF differences, not midpoint density times width.
-`integration=:quadgk` requests adaptive integration instead; `:auto` also handles
-PDF-only components that lack a CDF. With DistributionsHEP, a function returning
-`ExtendedMixtureModel` supplies its own fitted yields: omit `total_count`.
-Neither path renormalizes a distribution over the supplied edges. For discrete
-observations, bins are right-closed `(a, b]`; half-integer edges separate integer
-outcomes unambiguously. An estimated total needs a fitted yield parameter, not
-`total_count=sum(counts)` treated as known.
 
 ```@example distribution_errors
 using ScientificFitting, Distributions
@@ -194,26 +179,14 @@ result = fit_likelihood_model(line, x, y;
 println(report_text(result))
 ```
 
-A single `error=TDist(4)` applies the same independent Student-t error to each
-residual. `error=MvNormal(zeros(length(y)), covariance)` instead evaluates one
-joint log density; it does not multiply marginal errors. For a Poisson or other
-prediction-dependent observation model, retain the `logprob` callback.
-
-Model-construction functions may return DistributionsHEP or NumericalDistributions objects.
-The latter's normalization runs once when the model function constructs the distribution,
-then is reused for all observations. ScientificFitting differentiates that
-normalization too; a constructor that cannot accept dual numbers needs explicit
-`derivatives=:finite`. A `pdf`-only object uses `log(pdf)`, with the tail precision
-of its implementation. No interpolated or moving-support model is assumed smooth.
+Model-construction functions may return DistributionsHEP or
+NumericalDistributions objects; the latter's normalization runs once per
+constructed distribution, is reused for all observations, and is
+differentiated with the model.
 
 With `using BuildConstructors`, `fit_distribution(constructor, events)` takes
-names, starts, bounds and fixed/shared state from the constructor. Optional
-`p0=(mu=0.2,)` overrides free starting values. Change bounds/fixed state on the
-constructor, not through duplicate fit keywords. Metadata `uncertainty` values
-do not create priors or statistical errors. The model is snapshotted for fitting
-and profiling; `fitted_model(result)` reconstructs the fitted distribution or
-intensity. `parameter_values(result)` provides named fitted values for an explicit
-`update!` of the original constructor. The integration does not require Minuit.
+names, starts, bounds, and fixed/shared state from the constructor
+([Named Model Construction](interfaces.md#Named-Model-Construction)).
 
 ```@docs
 ScientificFitting.fitted_model
@@ -234,54 +207,47 @@ result = fit_custom(cost; p0=[0., 0.], nobs=10,
 println(report_text(result))
 ```
 
-With the optional NativeMinuit package installed, use
-`import NativeMinuit` and `solver=NativeMinuitSolver(steps=[0.2, 0.3])` instead.
-`import` activates the extension without importing NativeMinuit's own `profile`
-name; use `ScientificFitting.profile` for our result-based refits and
-`NativeMinuit.profile` for its native API.
-NativeMinuit requires Julia 1.11 or later; the core still supports Julia 1.10.
-It is an LGPL-licensed dependency, not bundled or copied into ScientificFitting.
-Its MIGRAD adapter supports box bounds, fixed parameters and all statistical
-parameter terms, but rejects nonlinear equality/inequality constraints.
+With the optional NativeMinuit package installed
+([Minimizers](interfaces.md#Minimizers)), `import NativeMinuit` — keeping its
+own `profile` name out of scope — and pass
+`solver=NativeMinuitSolver(steps=[0.2, 0.3])`. The MIGRAD adapter supports box
+bounds, fixed parameters, and all statistical parameter terms, but rejects
+nonlinear equality/inequality constraints.
 
 `steps` contains numerical initial step sizes in **full parameter order**, not
-measurement uncertainties. `tol` is Minuit's EDM tolerance, defaulting to `0.1`;
-`maxiters` is its requested MIGRAD function-call budget, not a hard limit on
-all SF evaluations (gradient/covariance checks are additional). A failed or independently rejected
-attempt may restart once from the returned point, using only the remaining
-budget. The tolerance and strategy stay unchanged; diagnostics record the restart.
-Other native constructor options,
-such as `strategy=2`, are retained by profile refits. No solver setting changes
-the objective's ``\chi^2``/``-2\log L`` scale (`errordef=1`).
+measurement uncertainties. `tol` is Minuit's EDM tolerance, defaulting to
+`0.1`; `maxiters` is the requested MIGRAD function-call budget —
+gradient/covariance checks are additional. A failed or rejected attempt may
+restart once from the returned point within the remaining budget, with
+unchanged tolerance and strategy; diagnostics record the restart. Native
+constructor options such as `strategy=2` are retained by profile refits. No
+solver setting changes the objective's ``\chi^2``/``-2\log L`` scale
+(`errordef=1`).
 
 For smooth interior fits with positive local covariance, SF also checks
 ``g^{\mathsf T}\operatorname{Cov}(\hat p)g/4``: the estimated remaining cost
-decrease using a fresh gradient and SF's curvature, not the solver's iterative
-approximation. It follows Minuit's acceptance limit, ten times the nominal
-EDM goal ``0.002\,\mathrm{tol}``. A failed check sets `converged=false` and
-reports `not_stationary`.
-This check does not establish a global minimum and is not applied at active
-bounds, with nonlinear constraints, or without usable local curvature.
+decrease using a fresh gradient and SF's curvature. It follows Minuit's
+acceptance limit, ten times the nominal EDM goal ``0.002\,\mathrm{tol}``; a
+failed check sets `converged=false` and reports `not_stationary`. The check
+does not establish a global minimum and is not applied at active bounds, with
+nonlinear constraints, or without usable local curvature.
 
-`result.solver_result.raw` exposes the native solver result. For NativeMinuit,
-this is the `Minuit` object for native HESSE/MINOS/contour operations. Its vector
-order is `result.solver_result.parameter_indices`; parameters already fixed by
-ScientificFitting are absent. Mutating that object does not update the stored
-ScientificFitting result. Local errors in `param_covariance` still follow
-ScientificFitting's covariance policy, not an implicit replacement by MINOS.
-For native MINOS results, inspect validity and parameter-limit flags: reaching
-a bound is not finding a likelihood-threshold crossing.
+`result.solver_result.raw` exposes the native solver result — for
+NativeMinuit, the `Minuit` object for native HESSE/MINOS/contour operations.
+Its vector order is `result.solver_result.parameter_indices`; parameters
+already fixed by ScientificFitting are absent, and mutating the object does
+not update the stored result. `param_covariance` keeps ScientificFitting's
+covariance policy. For native MINOS results, inspect validity and
+parameter-limit flags: reaching a bound is not finding a likelihood-threshold
+crossing.
 
 Named likelihood problems carry their unique, nonempty `parameter_names` into
 the native object, including during reduced nuisance-parameter refits.
 
-Third-party adapters implement two methods: capabilities and `solve_fit`.
-They may specialize `default_fit_tolerance(solver, derivatives)` for a different
-stopping rule. `tol=nothing` resolves this default once; an explicit positive
-`tol` bypasses it. The resolved value is retained in all profile refits.
-They receive a standard `OptimizationProblem` with the complete objective and
-free-coordinate constraints. The statistical result is constructed by the
-shared core. See [Backend Design](backend_design.md#The-Solver-Extension-Boundary).
+Third-party adapters implement `solver_capabilities` and `solve_fit`, and may
+specialize `default_fit_tolerance(solver, derivatives)`; the extension
+contract is specified in
+[Backend Design](backend_design.md#The-Solver-Extension-Boundary).
 
 ```@docs
 ScientificFitting.AbstractFitSolver

@@ -13,7 +13,7 @@
     figure without rewriting the fit.
   </p>
   <div class="scientificfitting-hero-actions">
-    <a class="scientificfitting-button primary" href="gallery/linear_calibration.html">Start with a complete fit</a>
+    <a class="scientificfitting-button primary" href="quickstart.html">Start with a complete fit</a>
     <a class="scientificfitting-button" href="install.html">Install</a>
   </div>
 </section>
@@ -24,10 +24,10 @@ observation distribution. Reported parameter errors are local covariance
 approximations; profile-likelihood scans show where that approximation breaks
 down. A band for the fitted model does not include the scatter of future
 measurements unless explicitly stated. ScientificFitting uses optimization,
-not posterior sampling. The [statistical chapters](statistical_foundations.md)
+not posterior sampling. The [statistical chapters](statistics.md)
 explain these distinctions and the assumptions behind interval coverage.
 
-Start with [Linear Calibration](gallery/linear_calibration.md) for the shortest
+Start with [Linear Calibration](quickstart.md) for the shortest
 complete analysis, or choose the example closest to your data below. Every page
 contains the measurements, assumptions, executable code, actual program output,
 diagnostics, and scientific interpretation.
@@ -41,21 +41,12 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 ```@raw html
 <div class="scientificfitting-gallery-grid">
 <div class="scientificfitting-gallery-item">
-<img src="assets/gallery/linear_calibration_sans_panel_light.png" alt="Linear calibration in sans style with result panel">
-<div>
-<span class="scientificfitting-tag">first fit</span>
-<span class="scientificfitting-tag">prediction band</span>
-<h3><a href="gallery/linear_calibration.html">Linear calibration</a></h3>
-<p>Estimate a calibration law from heteroscedastic measurements. This page is the controlled baseline for reading parameters, bands, residuals, and goodness of fit.</p>
-</div>
-</div>
-<div class="scientificfitting-gallery-item">
 <img src="assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
 <div>
 <span class="scientificfitting-tag">effective variance</span>
 <span class="scientificfitting-tag">x errors</span>
 <h3><a href="gallery/xy_uncertainties.html">XY uncertainties</a></h3>
-<p>Include uncertainty in the independent variable through the local model slope. This example is useful when calibration, frequency, voltage, or position errors are not negligible.</p>
+<p>Include uncertainty in the independent variable through the local model slope, when calibration, frequency, voltage, or position errors are not negligible.</p>
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
@@ -64,7 +55,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 <span class="scientificfitting-tag">covariance</span>
 <span class="scientificfitting-tag">correlations</span>
 <h3><a href="gallery/full_covariance.html">Full covariance</a></h3>
-<p>Use a dense covariance matrix when measurements share readout noise. The point is not syntax; it is how correlations change parameter uncertainty and goodness-of-fit interpretation.</p>
+<p>Use a dense covariance matrix when measurements share readout noise, and see how correlations change parameter uncertainty and goodness-of-fit interpretation.</p>
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
@@ -101,7 +92,7 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 <span class="scientificfitting-tag">constraints</span>
 <span class="scientificfitting-tag">profiles</span>
 <h3><a href="gallery/constraints_profiles.html">Constraints and profiles</a></h3>
-<p>An early saturation measurement leaves amplitude and time constant nonlinearly coupled. Profiles and two-parameter regions show exactly why the local covariance summary fails.</p>
+<p>An early saturation measurement leaves amplitude and time constant nonlinearly coupled. Profiles and two-parameter regions show why the local covariance summary fails.</p>
 </div>
 </div>
 <div class="scientificfitting-gallery-item">
@@ -118,5 +109,5 @@ sensitivity to the peak shape. Includes source DOI and reproducible ROOT selecti
 ```
 
 Need help judging a result? Continue with [Fitting for Practitioners](@ref).
-For derivations, use [Statistical Foundations](@ref); for exact signatures and
+For derivations, use [Statistical Foundations](statistics.md); for exact signatures and
 defaults, use the [API Reference](@ref).

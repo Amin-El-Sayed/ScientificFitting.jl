@@ -7,13 +7,7 @@ mechanical oscillator to answer two questions:
 1. What damping rate and oscillation frequency describe the record?
 2. Is a constant-frequency damped oscillator an adequate model?
 
-The second question changes the conclusion.
-
 ## Question
-
-The measurement asks whether a standard constant-frequency damped oscillator is
-an adequate description of the recorded motion, or whether the data require a
-small additional frequency drift.
 
 ```@raw html
 <img class="scientificfitting-plot" src="../assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator model comparison in sans style with result panel">
@@ -48,13 +42,9 @@ the angle uncertainty stored in the file is
 
 This is an instrument-based assignment, not a standard deviation estimated
 from repeated decay records. The analysis keeps it unchanged and assigns a
-0.5 ms standard timestamp uncertainty from the acquisition timing resolution.
-Both x and y uncertainty therefore enter the fit. Whether an independent
-Gaussian model is compatible with those assignments is a result to diagnose,
-not a scale to tune after seeing the residuals.
-
-The record has dense sampling, periodic parameters, a slowly changing envelope,
-and residual structure that a plot of the fitted curve can hide.
+0.5 ms standard timestamp uncertainty from the acquisition timing resolution,
+so both x and y uncertainty enter the fit. Whether an independent Gaussian
+model is compatible with those assignments is a result to diagnose.
 
 ## Model: Start With The Physical Baseline
 
@@ -65,7 +55,7 @@ For a torsion oscillator with moment of inertia ``\Theta``, damping coefficient
 \Theta\ddot\phi+b\dot\phi+D\phi=0.
 ```
 
-In the underdamped regime its solution can be written as
+In the underdamped regime the solution is
 
 ```math
 \phi(t)
@@ -83,9 +73,9 @@ The parameters are:
 - ``\omega_\mathrm{ref}``: damped angular frequency,
 - ``\phi_\mathrm{ref}``: phase at the reference time.
 
-The time coordinate is centered at the middle of the record. This is not a
-cosmetic rewrite. Without centering, phase and frequency must compensate for a
-large arbitrary time origin and become more strongly correlated.
+The time coordinate is centered at the middle of the record: without
+centering, phase and frequency must compensate for a large arbitrary time
+origin and become more strongly correlated.
 
 The damping time is the derived quantity
 
@@ -105,11 +95,12 @@ For the constant-coefficient model,
 ## Diagnostics: Fit and Diagnose the Baseline
 
 The fit uses a Gaussian likelihood with the assigned angle uncertainty and
-effective-variance propagation of timestamp uncertainty. Multiple initial
-guesses are important because phase-periodic models have repeated local minima.
-The explicit `tol=1e-7` is a numerical stopping tolerance, not a measurement
-uncertainty. Tightening it further does not change the reported digits here,
-but can make LBFGS chase floating-point changes below that precision.
+effective-variance propagation of timestamp uncertainty
+([Uncertainty In X](../statistics.md#Uncertainty-In-X)).
+`solver=:ipnewton` selects the interior-point solver, which handles the box
+bounds directly and converges cleanly from every start used here. The
+explicit `tol=1e-7` is a numerical stopping tolerance; tightening it further
+does not change the reported digits.
 
 For this diagonal uncertainty model, the plotted pulls are
 
@@ -120,15 +111,12 @@ r_i
 \left(\partial f/\partial t\right)_i^2\sigma_{t,i}^2}}.
 ```
 
-Independent standard-normal pulls should fluctuate without long runs and have
-roughly unit width. Coherent waves indicate missing model structure; a much
-narrower cloud indicates conservative uncertainties or correlations between
-samples.
+Their expected behavior under a correct model is described in
+[Residuals And Pulls](../statistics.md#Residuals-And-Pulls).
 
-Oscillatory models can have several local minima. Here `multistart=3` tries
-`p0` and two additional frequency/phase guesses, then keeps the converged fit
-with the lowest cost. This checks a few plausible starting points; it does not
-prove that the minimum is global.
+Phase-periodic models have repeated local minima. Here `multistart=3` tries
+`p0` and two additional frequency/phase guesses, then keeps the fit with the
+lowest cost; this does not prove that the minimum is global.
 
 ```julia
 using ScientificFitting
@@ -168,6 +156,7 @@ constant_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060],
     ],
     multistart=3, # p0 and the two additional starts.
+    solver=:ipnewton,
     maxiters=3000,
     tol=1e-7,
 )
@@ -182,10 +171,11 @@ println(diagnostic_dashboard_text(constant_result))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>Fit report
+<pre>
+Fit report
 backend = optimization
 converged = true
-iterations = 35
+iterations = 43
 message = Success
 
 Parameters:
@@ -206,19 +196,20 @@ Statistics:
   BIC = -1666.77
 Fit diagnostic dashboard
 status = critical - fix before use
-critical = 1, warning = 2, info = 0
-1 critical issue(s), 2 warning(s). Fix the issue before using this result for conclusions.
+critical = 1, warning = 3, info = 0
+1 critical issue(s), 3 warning(s). Fix the issue before using this result for conclusions.
 
 Next actions:
   1. Under the stated assumptions this fit is statistically implausible. Inspect residuals and the uncertainty model.
   2. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
   3. Inspect residuals near the largest pull. One point may dominate the result or the uncertainty model may be too optimistic.
+  4. Look for missing model structure, drift, a calibration offset, or correlated uncertainty in that interval.
 </pre>
 </div>
 ```
 
-The fit converges and gives plausible parameter values, but convergence answers
-only whether the optimizer found a minimum. It does not validate the model.
+The fit converges and gives plausible parameter values, but convergence does
+not validate the model.
 
 For this fit,
 
@@ -229,12 +220,12 @@ P(\chi^2) = 1.77\times 10^{-9}.
 ```
 
 Under the stated independent Gaussian uncertainty model, residuals this
-incompatible with the fit would be extraordinarily unlikely. ScientificFitting therefore
-returns a critical dashboard status, not `ok`.
+incompatible would be extraordinarily unlikely
+([Goodness Of Fit](../statistics.md#Goodness-Of-Fit)), and the dashboard
+status is critical.
 
-The first pull panel explains why. The deviations change coherently over time
-instead of scattering without structure around zero. Adding more digits to the
-reported damping rate would not repair this.
+The first pull panel explains why: the deviations change coherently over time
+instead of scattering around zero.
 
 ## Test A Specific Missing Effect
 
@@ -261,8 +252,8 @@ where
 =\omega_\mathrm{ref}+\beta\tau.
 ```
 
-The new parameter ``\beta`` has units ``\mathrm{rad\,s^{-2}}`` and measures the
-rate of change of angular frequency. This is a phenomenological test, not yet a
+The new parameter ``\beta`` has units ``\mathrm{rad\,s^{-2}}``.
+This is a phenomenological test, not yet a
 claim about mechanism: amplitude-dependent stiffness, temperature drift, or a
 small timing-scale error could all produce accumulated phase structure.
 
@@ -287,6 +278,7 @@ drift_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
     multistart=3,
+    solver=:ipnewton,
     maxiters=4000,
     tol=1e-7,
 )
@@ -352,8 +344,8 @@ The fitted drift and damping parameters are
 ```
 
 The quoted damping-time uncertainty is the local first-order propagation
-``\sigma_{\tau_d}=\sigma_\lambda/\lambda^2``. It inherits the same local
-covariance and uncertainty-model limitations as the fitted ``\lambda`` error.
+``\sigma_{\tau_d}=\sigma_\lambda/\lambda^2`` and inherits the limitations of
+the local ``\lambda`` covariance.
 
 Across the recorded interval, the fitted angular frequency changes by
 
@@ -366,10 +358,10 @@ Across the recorded interval, the fitted angular frequency changes by
 That change is only about 0.15% of ``\omega_\mathrm{ref}``, yet its phase effect
 accumulates over many cycles and becomes obvious in the pulls.
 
-The two fits use the same observations and likelihood, so their AIC values may
-be compared. The drift model improves AIC by approximately 388 despite adding
-only one parameter. The constant-frequency model is therefore inadequate for
-this record.
+The two fits share observations and likelihood, so their AIC values are
+comparable ([Model Comparison With AIC And BIC](../statistics.md#Model-Comparison-With-AIC-And-BIC)).
+The drift model improves AIC by approximately 388 despite adding only one
+parameter: the constant-frequency model is inadequate for this record.
 
 The drift model removes the coherent phase pattern, but its pulls are now much
 narrower than a unit Gaussian:
@@ -380,10 +372,9 @@ narrower than a unit Gaussian:
 P(\chi^2_\mathrm{drift})\approx 1.
 ```
 
-That is not evidence of an exceptionally perfect experiment. It suggests that
-the assigned angle uncertainty is conservative, that neighboring samples are
-not independent, or both. ScientificFitting therefore returns `review`, not `ok`. The
-data strongly support an accumulated phase correction, but the local parameter
+This suggests a conservative assigned angle uncertainty, non-independent
+neighboring samples, or both; the dashboard status is `review`. The data
+strongly support an accumulated phase correction, but the local parameter
 errors should not be treated as final until the uncertainty model has been
 validated with instrument specifications or repeated decay records.
 
@@ -398,13 +389,13 @@ The main panel shows the drift model's **local 1σ prediction band**. It combine
 + \left(\frac{\partial\phi}{\partial t}\sigma_t\right)^2.
 ```
 
-The band is narrow compared with the full oscillation amplitude and is
-therefore difficult to judge in the main panel. The pull panels display the
-same uncertainty scale directly: the darker region is ``\pm1\sigma`` and the
-lighter region is ``\pm2\sigma``.
+The band is narrow compared with the full oscillation amplitude and difficult
+to judge in the main panel; the pull panels display the same uncertainty scale
+directly: the darker region is ``\pm1\sigma`` and the lighter region is
+``\pm2\sigma``.
 
-This band uses the local covariance matrix. It is conditional on the fitted
-model and does not include uncertainty about whether frequency drift is the
+The band uses the local covariance matrix and is conditional on the fitted
+model; it does not include uncertainty about whether frequency drift is the
 correct physical explanation.
 
 ## Complete Reproducible Figure
@@ -417,12 +408,11 @@ julia --project=docs examples/gallery/08_damped_oscillator_decay.jl
 ```
 
 It prints both diagnostic dashboards and writes
-`examples/output/08_damped_oscillator_decay.png`. Running the public example
-does not modify the documentation source tree.
+`examples/output/08_damped_oscillator_decay.png`.
 
 ## What To Do Before Reporting A Physical Result
 
-For a critical analysis, the next work is experimental rather than cosmetic:
+For a critical analysis, the next work is experimental:
 
 1. Determine whether neighboring angle samples share acquisition or filtering
    correlations.
@@ -434,9 +424,8 @@ For a critical analysis, the next work is experimental rather than cosmetic:
 5. Refit after defining the correct covariance model, then reassess pulls and
    parameter intervals.
 
-The correct conclusion from this page is not “the more flexible model wins.”
-It is: **the baseline model fails; frequency drift explains the dominant
-structure; the uncertainty model still requires investigation.**
+**The baseline model fails; frequency drift explains the dominant structure;
+the uncertainty model still requires investigation.**
 
 To model shared sample noise explicitly, revisit
 [Full Covariance](full_covariance.md). Continue with

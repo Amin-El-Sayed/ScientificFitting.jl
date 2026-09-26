@@ -12,10 +12,10 @@ Source: **LHCb collaboration (2017)**, *Matter Antimatter Differences
 (B meson decays to three hadrons) - Data Files*, CERN Open Data,
 [DOI: 10.7483/OPENDATA.LHCB.AOF7.JH09](https://doi.org/10.7483/OPENDATA.LHCB.AOF7.JH09).
 These are real 2011 proton-proton collision data at 7 TeV, released under
-CC0-1.0. Each candidate is a combination of three charged tracks. Assigning
-each track the kaon mass gives one reconstructed parent mass ``m``. Decays
-``B^\pm\to K^\pm K^+K^-`` produce a peak; unrelated track combinations form
-a broad background. Detector resolution gives the peak its finite width.
+CC0-1.0. Each candidate combines three charged tracks; assigning each track
+the kaon mass gives one reconstructed parent mass ``m``. Decays
+``B^\pm\to K^\pm K^+K^-`` produce a peak, unrelated track combinations a broad
+background, and detector resolution gives the peak its finite width.
 
 LHCb supplied candidates that already pass trigger, momentum and vertex
 selections ([preselection notebook](https://github.com/lhcb/opendata-project/blob/master/Background-Information-Notebooks/DataSelection.ipynb)).
@@ -70,7 +70,6 @@ println("Candidates in fit window: ", sum(counts))
 Use two Gaussians with a common center for the peak, and an exponential for
 the background. A narrow core plus a wider component approximates a mixture
 of detector resolutions; it represents **one peak, not two particles**.
-The exponential describes a smoothly falling background with one slope.
 
 For ``W=[m_{\mathrm{lo}},m_{\mathrm{hi}})=[5200,5600)`` in ``\mathrm{MeV}/c^2``, define
 
@@ -138,9 +137,11 @@ The deviance is **69.44 for 73 degrees of freedom**, with an approximate
 ``p=0.60``: this check does not detect an overall lack of fit. Inspect the
 residuals next, then test the peak-shape assumption below.
 
-Bounds keep widths and yields physical; they are not priors. The reported
-errors come from local curvature. `fitted_model(result)` returns an
-`ExtendedMixtureModel`, so plotting or evaluating it does not refit.
+Bounds keep widths and yields physical; they are
+[not priors](../statistics.md#Fixed-Parameters-And-Bounds). The reported errors
+come from [local curvature](../statistics.md#Local-Parameter-Covariance).
+`fitted_model(result)` returns an `ExtendedMixtureModel`, so plotting or
+evaluating it does not refit.
 
 **What SF adds here:** the model itself comes from DistributionsHEP and
 BuildConstructors; MIGRAD comes from NativeMinuit.
@@ -152,17 +153,16 @@ BuildConstructors; MIGRAD comes from NativeMinuit.
 | Fit to inference | Return covariance, deviance, AIC and named values; retain the model and solver for profile refits and plots. |
 
 [NativeMinuit](https://github.com/fkguo/NativeMinuit.jl) also provides binned
-likelihoods, HESSE, MINOS and contours. A direct implementation can reach the
-same result. SF supplies the distribution/constructor adapters and a common
-result and diagnostics API across solvers; it does not make MIGRAD inherently
-faster. The custom spectrum drawing below remains ordinary Makie code.
+likelihoods, HESSE, MINOS and contours; a direct implementation can reach the
+same result. SF supplies the adapters above and a common result and diagnostics
+API across solvers. The custom spectrum drawing below remains ordinary Makie
+code.
 
 ## Inspect The Spectrum
 
 Evaluate each fitted component over the bin edges. The mean band uses
 ``\sigma_{\nu_i}^2 = J_i\operatorname{Cov}(\hat p)J_i^\mathsf{T}``, where
-``J_{ij}=\partial\nu_i/\partial p_j``. These are post-fit calculations, not
-another optimization.
+``J_{ij}=\partial\nu_i/\partial p_j``; these are post-fit calculations.
 
 For the data points, ``n\pm\sqrt n`` is a poor guide at small counts: an empty
 bin would even get a zero-width bar. Instead use **Garwood intervals** for
@@ -215,9 +215,9 @@ step_x = repeat(edges; inner=2)[2:end-1]  # vertical steps at the actual bin edg
 @assert isapprox(sum(abs2, residual), result.stats.chi2; atol=1e-8) # hide
 ```
 
-Compose two ordinary Makie axes from these arrays. The function below only
-builds the figure; `theme`, `appearance` and `show_panel` are independent
-options. Change the Makie calls directly to add or restyle elements.
+Compose two ordinary Makie axes from these arrays; `theme`, `appearance` and
+`show_panel` are independent options. Change the Makie calls directly to add
+or restyle elements.
 
 ```@example lhcb
 using CairoMakie, LaTeXStrings
@@ -295,7 +295,7 @@ contains parameter uncertainty, not the additional fluctuation of future counts.
 ## Check Shape Dependence
 
 Set the core fraction to one and fix the now-unused width ratio: the same
-constructor becomes a single-Gaussian model. No likelihood rewrite is needed.
+constructor becomes a single-Gaussian model.
 
 ```@example lhcb
 single = deepcopy(constructor)
@@ -357,7 +357,8 @@ save("lhcb_yield_profile_sans_light.svg", fig)
 The curve is close to a parabola in the relevant range. Its crossings at
 ``\Delta(-2\log L)=1`` give about ``[6391,6579]`` candidates, consistent with
 ``N_s\pm94``. This is an approximate **one-parameter 68.3% interval**, with the
-shape and background refitted, not frozen.
+shape and background refitted rather than frozen
+([why a profile is not a slice](../statistics.md#Why-A-Profile-Is-Not-A-Slice)).
 
 To see the trade-off between signal and background, vary both yields together.
 At each grid point, refit the five shape parameters:
@@ -389,9 +390,10 @@ save("lhcb_yield_contour_sans_light.svg", fig)
 The filled regions use ``\Delta(-2\log L)=2.30,6.18`` for approximate **joint
 68.3% and 95.45% coverage**; dashed ellipses show the local covariance
 approximation. Their tilt shows how increasing one yield can be compensated
-by decreasing the other. The one-dimensional interval above uses a different
-threshold because it answers a one-parameter question. Neither calculation
-includes uncertainty from choosing the wrong peak or background shape.
+by decreasing the other; one- and two-parameter thresholds differ
+([Profiles And Contours](../statistics.md#Profiles-And-Contours)). Neither
+calculation includes uncertainty from choosing the wrong peak or background
+shape.
 
 The [independent numerical check](lhcb_reference.py), run from the repository
 with NumPy, SciPy and iminuit, compares both fits and the signal-yield MINOS
@@ -407,6 +409,5 @@ background shapes, then corrects detector and production effects to measure
 CP asymmetry. Its ``22\,119\pm164`` yield is therefore not a target for this fit.
 
 We do not apply its charm veto, so ``B\to DK``, ``D\to KK`` decays can also
-contribute to the peak. This example estimates a selected yield, not a charmless
-branching fraction or CP asymmetry. A precision mass measurement would also
-require momentum-scale calibration.
+contribute to the peak. A precision mass measurement would also require
+momentum-scale calibration.

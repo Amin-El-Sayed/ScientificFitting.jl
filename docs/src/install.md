@@ -1,18 +1,15 @@
 # Installation
 
 ScientificFitting supports Julia 1.10 and later. CI targets Julia 1.10 and the
-latest stable Julia for the core and full-package tests. The optional
-NativeMinuit adapter requires Julia 1.11+; its integration tests also target
-that minimum version. Documentation rendering stays pinned to Julia 1.12.
-
-For Python, see [Python Interface](python.md).
+latest stable Julia; the optional NativeMinuit adapter requires Julia 1.11+.
+Documentation rendering is pinned to Julia 1.12.
 
 For bug reports, include a minimal example, package versions and the complete
 diagnostic output.
 
 ## Install The Julia Package
 
-Install the registered package from Julia's General registry:
+Install from Julia's General registry:
 
 ```julia
 using Pkg
@@ -30,7 +27,7 @@ reports. It does **not** load Makie.
 
 ## Work From A Checkout
 
-From a terminal, instantiate the numerical core in the repository root:
+Instantiate the numerical core in the repository root:
 
 ```bash
 cd /path/to/ScientificFitting
@@ -43,9 +40,8 @@ Start a Julia session in that environment:
 julia --project=.
 ```
 
-The checked-out repository keeps plotting and documentation dependencies in a
-separate environment. Instantiate it when running the gallery or building the
-site:
+Plotting and documentation dependencies live in a separate environment.
+Instantiate it when running the gallery or building the site:
 
 ```bash
 julia --project=docs --startup-file=no -e 'using Pkg; Pkg.instantiate()'
@@ -64,9 +60,6 @@ using ScientificFitting
 using CairoMakie
 ```
 
-Keeping CairoMakie optional is deliberate. A batch analysis can fit data,
-create reports, and run diagnostics without compiling a graphics stack.
-
 ## First Use And Compilation
 
 The first `using ScientificFitting` in a new environment compiles the numerical core.
@@ -82,8 +75,8 @@ release gate. A core-only check is enough:
 julia --project=. --startup-file=no -e 'using ScientificFitting; println("ScientificFitting core ready")'
 ```
 
-For plotting, run the tracked quickstart example shown above. It exercises the
-same API used by the first tutorial and confirms CairoMakie export.
+For plotting, run the tracked quickstart example shown above; it confirms
+CairoMakie export.
 
 ## Python Interface
 
@@ -111,4 +104,4 @@ status are on the [Python Interface](python.md) page.
 | Package versions will not resolve | Confirm Julia is at least 1.10 and instantiate a clean environment rather than mixing incompatible manifests. |
 
 Continue with the [Quickstart](quickstart.md). For package internals and scaling
-limits, see [Backend Design](backend_design.md) and [Performance](performance.md).
+limits, see [Backend Design](backend_design.md) and [Performance](backend_design.md).

@@ -1,9 +1,8 @@
 # Constraints and Profiles
 
-Local covariance errors answer a local question: how curved is the cost
-function immediately around the optimum? This workflow shows a case where that
-answer is not enough. The fitted curve looks well determined over the measured
-interval, but two physical parameters remain strongly and nonlinearly coupled.
+This workflow shows a case where local covariance errors are not enough: the
+fitted curve looks well determined over the measured interval, but two physical
+parameters remain strongly and nonlinearly coupled.
 
 ```@raw html
 <img class="scientificfitting-plot" src="../assets/gallery/constraints_priors_sans_panel_light.png" alt="Constrained saturation fit in sans style with result panel">
@@ -22,7 +21,7 @@ where ``A`` is the response above baseline, ``\tau`` is the time constant, and
 ``c`` is the baseline. The measurement stops before the response reaches its
 plateau.
 
-The analysis must answer more than "does the curve pass through the points?"
+The analysis must answer:
 
 - Can the available time window determine ``A`` and ``\tau`` separately?
 - Is a symmetric covariance error a defensible uncertainty statement?
@@ -34,9 +33,9 @@ The analysis must answer more than "does the curve pass through the points?"
 The controlled dataset below mimics an early-time step-response measurement:
 the plateau is not reached, each time point has its own uncertainty, and an
 independent baseline calibration supplies external information. It is a
-teaching record rather than a measurement attributed to a particular sensor.
-All four input arrays are printed in the fit cell; no hidden random generator or
-unknown true parameter enters the analysis.
+teaching record, not a measurement of a particular sensor. All four input
+arrays are printed in the fit cell; no hidden random generator or unknown true
+parameter enters the analysis.
 
 ## Why The Parameters Become Degenerate
 
@@ -52,9 +51,8 @@ so the measured response is approximately
 y(t) \approx \frac{A}{\tau}t + c.
 ```
 
-Early data therefore determine the ratio ``A/\tau`` much better than ``A`` or
-``\tau`` individually. A larger amplitude can be compensated by a longer time
-constant. This is a property of the experiment, not an optimizer defect.
+Early data determine the ratio ``A/\tau`` much better than ``A`` or ``\tau``
+individually: a larger amplitude can be compensated by a longer time constant.
 
 The controlled dataset includes individual absolute uncertainties in both time
 and response:
@@ -65,9 +63,7 @@ and response:
 \sigma_{y,i} = 0.045 + 0.008t_i\ \mathrm{V}.
 ```
 
-The observations contain visible scatter and do not sit on a perfect
-model-generated curve. An independent zero measurement supplies the Gaussian
-prior
+An independent zero measurement supplies the Gaussian prior
 
 ```math
 c = 0.10 \pm 0.08\ \mathrm{V}.
@@ -83,8 +79,8 @@ Amplitude and time constant must be positive. Those statements are hard bounds:
 0.1\ \mathrm{s} \le \tau \le 20\ \mathrm{s}.
 ```
 
-The baseline calibration is different. It is uncertain external information,
-so it enters as a Gaussian term rather than a fixed value. Define
+The baseline calibration is uncertain external information, so it enters as a
+Gaussian term rather than a fixed value. Define
 
 ```math
 s_i^2(p)
@@ -111,12 +107,9 @@ C(p) =
 \left(\frac{c-0.10}{0.08}\right)^2.
 ```
 
-The effective-variance term propagates time uncertainty through the local model
-slope. It is appropriate when the time uncertainties are small enough for this
-first-order approximation. The log-variance term is essential because it
-prevents the optimizer from improving the residual term merely by inflating a
-parameter-dependent variance. A latent-variable or orthogonal-distance model
-is needed when the first-order approximation is not adequate.
+The effective-variance approximation, its first-order validity range, and the
+role of the log-variance term are derived in
+[Uncertainty In X](../statistics.md#Uncertainty-In-X).
 
 ## Complete Fit
 
@@ -230,9 +223,9 @@ Next actions:
 </div>
 ```
 
-Multiple starting points are deliberate. They do not cure an under-informative
-experiment, but they make it less likely that a local optimizer accident is
-mistaken for the physical minimum.
+Multiple starting points do not cure an under-informative experiment, but they
+make it less likely that a local optimizer accident is mistaken for the
+physical minimum.
 
 The fit returns approximately
 
@@ -244,15 +237,14 @@ A = 4.75 \pm 0.78\ \mathrm{V},
 c = 0.121 \pm 0.041\ \mathrm{V}.
 ```
 
-Those symmetric errors are only the local covariance summary. The fitted
-correlation between ``A`` and ``\tau`` is approximately ``0.9928``. That number
-is already a warning to inspect the cost away from the minimum.
+Those symmetric errors are only the local covariance summary; the fitted
+correlation between ``A`` and ``\tau`` of approximately ``0.9928`` is already
+a warning to inspect the cost away from the minimum.
 
 ## Diagnostics: Profile and Contour Checks
 
-The diagnostics are the profiles and contours. They answer whether the local
-covariance matrix is a faithful uncertainty summary or only a tangent
-approximation near the minimum.
+The profiles and contours answer whether the local covariance matrix is a
+faithful uncertainty summary or only a tangent approximation near the minimum.
 
 ## Profile: Is The One-Parameter Error Symmetric?
 
@@ -288,10 +280,10 @@ not ``4.75 \pm 0.78\ \mathrm{V}``. The asymmetry is scientifically relevant:
 large amplitudes remain plausible because a longer time constant can hide the
 plateau beyond the measured interval.
 
-Here ``C=-2\log L`` up to constants. Under the usual regular likelihood-ratio
-assumptions, ``\Delta C=1`` is the asymptotic one-sigma threshold for one
-profiled parameter. The threshold line therefore turns the scan into an
-interval construction rather than a qualitative curve inspection.
+The ``\Delta C=1`` threshold and the assumptions behind it are derived in
+[Profiles And Contours](../statistics.md#Profiles-And-Contours); the threshold
+line turns the scan into an interval construction rather than a qualitative
+curve inspection.
 
 ## Contour: Which Parameter Combinations Survive?
 
@@ -303,40 +295,35 @@ The filled regions are the actual profiled one- and two-sigma regions. At every
 grid point in ``(A,\tau)``, ScientificFitting refits the baseline. The dashed curves are
 the local covariance ellipses.
 
-For two parameters under the same regular likelihood-ratio assumptions, the
-common thresholds are
+For two parameters the thresholds are
 
 ```math
 \Delta C = 2.30 \quad \text{and} \quad \Delta C = 6.18
 ```
 
-for one and two sigma respectively. They differ from the one-parameter profile
-thresholds because a two-dimensional region must contain the stated
-probability.
+for one and two sigma respectively; why joint regions need different thresholds
+is explained in [Profiles And Contours](../statistics.md#Profiles-And-Contours).
 
-The profile region bends along combinations with similar early-time slope.
-The local ellipse cannot follow that curvature. Reporting only the covariance
+The profile region bends along combinations with similar early-time slope; the
+local ellipse cannot follow that curvature. Reporting only the covariance
 matrix would hide which high-``A``, high-``\tau`` combinations remain
 compatible with the measurement.
 
 ## Matrix: Where Should You Look First?
 
 For three or more fitted parameters, separate profile and contour plots become
-hard to triage. `profile_matrix` computes the same checks as data first:
-diagonal panels are one-parameter profiles, lower-triangle panels are
-two-parameter contours, and upper-triangle panels show the local correlation
-coefficient. The plot is only a rendering layer over that diagnostic object.
-For automated notebooks or CI checks, `profile_overview.panel_status` holds the
-same judgement per panel (`:ok`, `:review`, `:stop`), and
-`diagnose(profile_overview).findings` carries the structured finding codes and
-recommended actions. That is the text-first route when you want a run to fail
-or warn before anyone opens the figure.
+hard to triage. `profile_matrix` computes the same checks as data first; the
+panel layout is described in
+[The Profile Matrix](../statistics.md#The-Profile-Matrix). For automated
+notebooks or CI checks, `profile_overview.panel_status` holds the judgement per
+panel (`:ok`, `:review`, `:stop`), and `diagnose(profile_overview).findings`
+carries the structured finding codes and recommended actions.
 
 ```@raw html
 <img class="scientificfitting-plot" src="../assets/gallery/saturation_profile_matrix_sans_light.png" alt="Saturation profile matrix in sans style">
 ```
 
-The useful reading order is mechanical:
+The reading order is mechanical:
 
 1. Start in the upper triangle. Correlations near ``\pm1`` identify parameter
    pairs whose local covariance errors are fragile.
@@ -348,16 +335,12 @@ The useful reading order is mechanical:
 
 In this example the amplitude-time-constant block is the dominant warning. The
 baseline parameter is still constrained by the independent calibration, so it
-does not produce the same long degeneracy direction. That distinction is the
-reason to look at the matrix rather than only at the largest correlation
-number.
+does not produce the same long degeneracy direction.
 
 ## Decision In The Laboratory
 
-The contour does not merely say "the fit is correlated." It identifies why:
-the experiment has not observed enough of the saturation plateau.
-
-The useful next action is therefore specific:
+The contour identifies why the fit is degenerate: the experiment has not
+observed enough of the saturation plateau. The next actions are specific:
 
 1. Extend the acquisition to times comparable to or larger than the fitted
    ``\tau``.
@@ -388,14 +371,15 @@ across the degeneracy than along it.
 though the cost were unconstrained. State the bound and use a profile-based
 limit or interval.
 
-**The local band looks narrow although the parameters are uncertain.** This is
-possible: the measured part of the curve can be predicted well while its
-physical decomposition into ``A`` and ``\tau`` remains uncertain. Prediction
-uncertainty and parameter identifiability answer different questions.
+**The local band looks narrow although the parameters are uncertain.** The
+measured part of the curve can be predicted well while its physical
+decomposition into ``A`` and ``\tau`` remains uncertain; prediction uncertainty
+and parameter identifiability answer different questions.
 
 **The effective-variance approximation is questionable.** If time uncertainty
 is large or the model is strongly curved over one ``\sigma_t``, use a more
-complete errors-in-variables model instead of trusting first-order propagation.
+complete errors-in-variables model
+([Uncertainty In X](../statistics.md#Uncertainty-In-X)).
 
 Next useful pages: [Fitting for Practitioners](@ref),
-[Profiles and Contours](../profiles_contours.md), and [XY Uncertainties](@ref).
+[Profiles and Contours](../statistics.md#Profiles-And-Contours), and [XY Uncertainties](@ref).

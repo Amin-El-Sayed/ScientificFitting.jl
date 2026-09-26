@@ -10,9 +10,9 @@ python -m pip install scipy
 ```
 
 Omit `[plot]` for fitting and reports only. JuliaCall provisions Julia and the
-compatible 0.3.x core on first use, with network access and compilation.
-This does **not** remove the Julia runtime's size or startup cost.
-Importing `scientificfitting` alone does not start Julia.
+compatible 0.3.x core on first use, with network access and compilation; the
+Julia runtime's size and startup cost remain. Importing `scientificfitting`
+alone does not start Julia.
 
 [PyPI](https://pypi.org/project/scientificfitting/) ·
 [Conda-forge recipe status](https://github.com/conda-forge/staged-recipes/pull/34795).
@@ -47,7 +47,7 @@ plt.close(fig)
 coordinate. `x` is read-only. `p0` keys bind parameters by name and set result-array
 order. Use deterministic models; derivatives use finite differences, including
 profile refits. Optional `jacobian` and `x_derivative` callbacks differentiate the
-unweighted model. `tol` controls optimization, not statistical uncertainty.
+unweighted model.
 
 ```python
 # Read values directly; never parse the terminal report.
@@ -70,19 +70,14 @@ convergence, not model validity; an unknown iteration count is `None`.
 
 ## Choose The Error Model
 
-| Data / uncertainty | Entry point or option |
-|:---|:---|
-| Gaussian x/y errors | `fit_model(..., sigma_x=..., sigma_y=...)` |
-| Dense or SciPy sparse covariance | `fit_model(..., cov_x=..., cov_y=...)` |
-| Named error sources | `ErrorComponent`; see `help(ErrorComponent)` |
-| Non-Gaussian measurement errors | `fit_likelihood_model(..., logprob=...)` |
-| Poisson observations | `fit_poisson_model(...)` |
-| Bin counts | `fit_histogram_model(...)` for expected counts; `fit_histogram_density(...)` to integrate a density |
-| Independent events | `fit_unbinned_model(...)`; `fit_extended_unbinned_model(...)` also fits event yields |
-| Dependent observations / custom likelihood | `fit_custom(...)` with the joint `-2 log L` and `nobs` |
+The entry point is selected by the observation model; the table in
+[Choose An Entry Point](api.md#Choose-An-Entry-Point) applies unchanged, with
+identical function names in Python. Gaussian errors enter as
+`sigma_x`/`sigma_y`, dense or SciPy sparse covariance as `cov_x`/`cov_y`, and
+named error sources as `ErrorComponent` inputs (`help(ErrorComponent)`).
 
-Student-t errors allow heavier tails than Gaussian errors. Here the scales are
-known separately for each observation:
+Student-t errors allow heavier tails; here the scales are known separately for
+each observation:
 
 ```python
 from scipy import stats
@@ -103,10 +98,9 @@ robust_result = fit_likelihood_model(
 print(robust_result.report())
 ```
 
-For `df=4`, standard deviation = ``\sqrt{2}\times`` scale. The last point has
-less influence, but is not discarded. Choose the distribution from the error
-process, not to conceal a wrong mean model. Discrete observations need a log
-**mass** (`logpmf`); dependent observations need a joint likelihood. No universal
+For `df=4`, standard deviation = ``\sqrt{2}\times`` scale. Choose the
+distribution from the error process, not to conceal a wrong mean model.
+Discrete observations need a log **mass** (`logpmf`); no universal
 goodness-of-fit p-value is assigned to this custom distribution.
 
 ```python
@@ -129,8 +123,8 @@ with plt.rc_context(plot_style("sans")):
 
 ### Non-Smooth Likelihoods
 
-A Laplace location fit estimates the sample median. Its cost has corners;
-use a derivative-free solver rather than interpreting a Hessian there:
+A Laplace location fit estimates the sample median; its cost has corners, so
+use a derivative-free solver:
 
 ```python
 readings_laplace = np.array([-1.2, -0.1, 0.2, 0.4, 0.8, 1.3, 5.0])
@@ -152,12 +146,11 @@ nonlinear constraints. It defaults to `parameter_covariance="none"` (`NaN`
 free errors, not zero); `maxiters` limits function evaluations. Select
 `"hessian"` only for a locally smooth cost. Zero probability returns `-np.inf`;
 start at a finite likelihood. Moving support can invalidate standard profile
-thresholds: see the [support-boundary calculation](likelihood_models.md#A-Moving-Support-Boundary).
+thresholds: see the [support-boundary calculation](statistics.md#Observation-Likelihoods).
 
 ## Profiles And Contours
 
-A profile fixes one parameter and refits the others. Four exposures with one
-observed event give an asymmetric rate interval:
+Four exposures with one observed event give an asymmetric rate interval:
 
 ```python
 from scientificfitting import fit_poisson_model
@@ -171,9 +164,10 @@ interval = count_fit.profile_interval("rate", npoints=61, nsigma=4)
 print(interval.lower, interval.upper)  # expected counts per exposure
 ```
 
-`delta_cost=1` has an **asymptotic**, not exact low-count, 68.27% interpretation.
-Two-parameter 68.27%/95.45% regions instead use `[2.30, 6.18]`. Missing crossings
-remain `NaN`; failed refits remain gaps. See [Profiles and Contours](profiles_contours.md).
+`delta_cost=1` has an **asymptotic**, not exact low-count, 68.27% interpretation;
+two-parameter 68.27%/95.45% regions use `[2.30, 6.18]`
+([Profiles and Contours](statistics.md#Profiles-And-Contours)). Missing crossings
+remain `NaN`; failed refits remain gaps.
 
 ```python
 from scientificfitting import (plot_contour, plot_diagnostics, plot_profile,
@@ -239,16 +233,18 @@ plt.close(fig)
 | Show asymmetric estimates | Pass a completed `FitReport` to `add_report` |
 
 Use `layout="constrained"` for outside reports on your figures. `expand=True`
-allows canvas growth; an explicitly fixed tiny canvas can still be too small.
+allows canvas growth; an explicitly fixed tiny canvas stays too small.
 `plot_fit` and x-y residual helpers target Gaussian results; other fit families
 use ordinary Matplotlib plus `add_report`. Correlated pulls are whitened
-residuals; their unit bands are reference guides, not coverage intervals.
+residuals ([Residuals and Pulls](statistics.md#Residuals-And-Pulls)); their unit
+bands are reference guides, not coverage intervals.
 
 ## Large Datasets And In-Place Models
 
 SciPy sparse `cov_x`/`cov_y` inputs are not densified. Static y-covariance reuses
 its factorization; parameter-dependent covariance does not. Sparse factors can
-still fill in. A known whitening operator avoids storing the matrix:
+still fill in. A known whitening operator avoids storing the matrix
+([Structured Whitening](statistics.md#Structured-Whitening)):
 
 ```python
 from scientificfitting import WhiteningOperator
@@ -276,14 +272,15 @@ inplace_result = fit_model(line_inplace, x, y, p0={"slope": 1., "offset": 0.},
 
 Whitening replaces other observation errors. In-place callbacks fill every
 entry and return `None`; never retain the borrowed arrays. An in-place Jacobian
-fills an `(n, k)` matrix, columns in `p0` order. This avoids output copies, not all
-allocations. Without `x_derivative`, the model must also be defined near the
-measured coordinates for finite differencing.
+fills an `(n, k)` matrix, columns in `p0` order. Without `x_derivative`, the
+model must also be defined near the measured coordinates for finite
+differencing.
 
 ## Event Densities And Complete Workflows
 
-An unbinned fit models the observations themselves. For uncensored positive
-waiting times, evaluate the exponential density in one NumPy call:
+For uncensored positive waiting times
+([Unbinned and Extended Likelihoods](statistics.md#Unbinned-And-Extended-Likelihoods)),
+evaluate the exponential density in one NumPy call:
 
 ```python
 from scientificfitting import fit_unbinned_model
@@ -301,7 +298,7 @@ waiting_fit = fit_unbinned_model(
 `tau` estimates the mean waiting time. A detection threshold requires a
 correspondingly normalized truncated density. `vectorized=True` also supports
 extended likelihoods and adaptive histogram integration; `rtol` controls the
-integral accuracy. For known bin integrals, use `fit_histogram_model` directly.
+integral accuracy.
 
 | Complete script in `examples/python/` | Demonstrates |
 |:---|:---|
@@ -309,9 +306,9 @@ integral accuracy. For known bin integrals, use `fit_histogram_model` directly.
 | `likelihood_workflows.py` | Poisson decay and unequal-width bins; expectations integrated per bin |
 | `multi_dataset_calibration.py` | Named `parameter_map`, shared gains, full covariance of their difference, nested-model comparison |
 
-The scripts fit and scan once, then render. Poisson quantile bands describe count
-fluctuations conditional on the fitted mean, not parameter uncertainty.
-Backgrounds near zero need profiles; local symmetric errors can cross the bound.
+Poisson quantile bands describe count fluctuations conditional on the fitted
+mean, not parameter uncertainty. Backgrounds near zero need profiles; local
+symmetric errors can cross the bound.
 
 ## Development Setup
 
@@ -329,5 +326,5 @@ python -m pytest python/tests
 Use a **fresh environment** for registry-installation checks. Installed-wheel
 checks live in `python/tests/check_install.py`; register the Julia core before
 publishing a Python release that depends on it. See
-[Python startup measurements](performance.md#Python-Startup) for installation
-size, latency, and reproducible benchmarks rather than timing promises.
+[Python startup measurements](backend_design.md#Performance-Checks) for installation
+size, latency, and reproducible benchmarks.

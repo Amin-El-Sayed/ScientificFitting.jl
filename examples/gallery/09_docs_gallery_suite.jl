@@ -706,62 +706,6 @@ if render_asset_group("plot_style")
     end
 end
 
-# 1. Linear calibration with visible heteroscedastic uncertainties.
-x = [0.0, 0.3704, 0.7407, 1.1111, 1.4815, 1.8519, 2.2222, 2.5926,
-     2.9630, 3.3333, 3.7037, 4.0741, 4.4444, 4.8148, 5.1852, 5.5556,
-     5.9259, 6.2963, 6.6667, 7.0370, 7.4074, 7.7778, 8.1481, 8.5185,
-     8.8889, 9.2593, 9.6296, 10.0]
-y = [0.8596, 1.5216, 2.1594, 2.8399, 3.5361, 4.1533, 4.6783, 5.2132,
-     5.8284, 6.4639, 7.0427, 7.6164, 8.2992, 9.0838, 9.8358, 10.4881,
-     11.1291, 11.8393, 12.5375, 13.0958, 13.5503, 14.0656, 14.6970,
-     15.3255, 15.8751, 16.4603, 17.2153, 18.0676]
-sigma_y = [0.1000, 0.1044, 0.1089, 0.1133, 0.1178, 0.1222, 0.1267,
-           0.1311, 0.1356, 0.1400, 0.1444, 0.1489, 0.1533, 0.1578,
-           0.1622, 0.1667, 0.1711, 0.1756, 0.1800, 0.1844, 0.1889,
-           0.1933, 0.1978, 0.2022, 0.2067, 0.2111, 0.2156, 0.2200]
-calibration_model(x, p) = @. p[1] * x + p[2]
-linear_result = fit_model(calibration_model, x, y; p0=[1.5, 0.5], sigma_y=sigma_y)
-emit_doc_output_snapshot("linear_calibration") do
-    println(report_text(linear_result; parameter_names=["m", "b"]))
-    println(diagnostic_dashboard_text(linear_result))
-end
-style_variant_plot(
-    linear_result,
-    "linear_calibration";
-    plain=(
-        title="Sensor calibration",
-        model_label="U(x) = m x + b",
-        xlabel="x",
-        xunit="mm",
-        ylabel="U",
-        yunit="V",
-        parameter_names=["m", "b"],
-        latex_labels=false,
-        latex_stats=false,
-        band_label="1σ prediction band",
-    ),
-    latex=(
-        title=L"\mathrm{Sensor\ calibration}",
-        model_label=L"U(x)=m x + b",
-        xlabel=L"x",
-        xunit=L"\mathrm{mm}",
-        ylabel=L"U",
-        yunit=L"\mathrm{V}",
-        parameter_names=[L"m", L"b"],
-        latex_labels=true,
-        latex_stats=true,
-        band_label=L"1\sigma\ \mathrm{prediction\ band}",
-    ),
-    band=:prediction,
-    nsigma=1,
-    show_legend=true,
-    legend_position=:lt,
-    stats_position=:right,
-    stats_mode=:full,
-    # Compact observations keep short measured uncertainties visible.
-    style=FitPlotStyle(data_markersize=5.0, figure_size=DOC_FIT_SIZE),
-)
-
 # 2. Photoelectric work-function extraction from the intersection of two regimes.
 frequency_THz = [350.0, 380.0, 410.0, 440.0, 470.0, 495.0, 515.0, 532.0,
                  565.0, 590.0, 620.0, 655.0, 690.0, 730.0, 775.0, 825.0, 880.0, 940.0]

@@ -5,7 +5,6 @@ const DOCS_SRC = joinpath(ROOT, "docs", "src")
 
 const ALL_OUTPUT_EXPECTATIONS = [
     ("quickstart.md", "quickstart", 1),
-    (joinpath("gallery", "linear_calibration.md"), "linear_calibration", 1),
     (joinpath("gallery", "xy_uncertainties.md"), "xy_uncertainties", 1),
     (joinpath("gallery", "full_covariance.md"), "full_covariance", 1),
     (joinpath("gallery", "resonance_decay.md"), "resonance_constant", 1),

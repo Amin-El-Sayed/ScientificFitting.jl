@@ -1,14 +1,13 @@
 # Results And Diagnostics
 
-This page defines fitted results, local and profile uncertainty, and diagnostic
-output. Fit construction is covered by [Fitting](api_fitting.md).
+Fit construction is covered by [Fitting](api_fitting.md).
 
 ## Results
 
 ### Fit Result Fields
 
 `FitResult` and `LikelihoodFitResult` use the same parameter and status field
-names. `FitResult` additionally contains x-y-specific model and residual data.
+names.
 
 | Field | Meaning |
 |---|---|
@@ -27,17 +26,15 @@ names. `FitResult` additionally contains x-y-specific model and residual data.
 | `solver_result` | [`FitSolverResult`](@ref) with native details and free-parameter mapping for scalar adapters; otherwise `nothing`. |
 
 Only `FitResult` has `model_y`, `residuals`, `weighted_residuals`, and
-`jacobian`. `weighted_residuals` are pulls only when the uncertainty model
-supports that pointwise interpretation; with full whitening they are whitened
-coordinates.
+`jacobian`. With a non-diagonal covariance, `weighted_residuals` are whitened
+coordinates, not pointwise pulls
+([Residuals And Pulls](statistics.md#Residuals-And-Pulls)).
 
 ### Predictions Without A Plotting Backend
 
-`predict(result, x)` evaluates a Gaussian fit on new coordinates. With
-`uncertainty=true`, it also returns the local standard uncertainty of the
-fitted mean. This is `sqrt(diag(J * Cov(p) * J'))`, **not** the scatter of a
-future observation. No Makie installation is needed. The Jacobian follows the
-problem's differentiation mode, or the supplied analytic `jacobian` callback.
+`predict(result, x)` evaluates a Gaussian fit on new coordinates; with
+`uncertainty=true` it also returns the local standard uncertainty of the
+fitted mean.
 
 ```@docs
 ScientificFitting.predict
@@ -56,11 +53,11 @@ ScientificFitting.predict
 | `pvalue` | Upper-tail chi-square probability when a reference distribution exists. |
 | `aic`, `bic` | Information criteria; meaningful only for compatible likelihood normalizations. |
 
-An arbitrary custom loss has no likelihood interpretation. For indexed and
-multi-dataset wrappers, `minus2loglik_min` equals the chi-square objective only
-when no normalized Gaussian parameter terms are present. See
-[Likelihoods and Model Comparison](likelihood_models.md) before comparing AIC
-or BIC across different data or uncertainty models.
+An arbitrary custom loss has no likelihood interpretation, and for indexed and
+multi-dataset wrappers `minus2loglik_min` equals the chi-square objective only
+when no normalized Gaussian parameter terms are present; see
+[Likelihoods and Model Comparison](statistics.md#Observation-Likelihoods) before comparing AIC
+or BIC.
 
 ```@docs
 ScientificFitting.FitResult
@@ -71,10 +68,10 @@ ScientificFitting.FitDiagnostics
 
 ## [Parameter Covariance](@id parameter-covariance-reference)
 
-`param_covariance` is a local quadratic approximation. It can be misleading for
-nonlinear models, weak data, active bounds, asymmetric likelihoods, or multiple
-minima. `scale_covariance` changes only residual-scale treatment; it does not
-make a non-quadratic likelihood Gaussian.
+`param_covariance` is a local quadratic approximation; its failure modes are
+derived in [Local Parameter Covariance](statistics.md#Local-Parameter-Covariance)
+and the `scale_covariance` policy in
+[Covariance Scaling](statistics.md#Covariance-Scaling).
 
 Use [`profile_interval`](@ref) for asymmetric one-parameter intervals and
 [`profile_matrix`](@ref) when several parameters may be correlated or
@@ -83,27 +80,22 @@ non-parabolic.
 ## Profiles And Contours
 
 Profiles fix the displayed parameter or parameter pair and re-optimize every
-remaining free parameter. A scan point is therefore a fit, not merely an
-evaluation of the original model. The same functions accept `FitResult` and
-`LikelihoodFitResult`.
+remaining free parameter
+([Profiles And Contours](statistics.md#Profiles-And-Contours)). The same
+functions accept `FitResult` and `LikelihoodFitResult`.
 
-For costs on the ``-2\log L`` or chi-square scale, common asymptotic thresholds
-are:
+Common asymptotic thresholds on the ``-2\log L`` or chi-square scale:
 
 | Coverage | One profiled parameter | Two profiled parameters |
 |---:|---:|---:|
 | 68.27% | `threshold = 1.00` | `levels = [2.30]` |
 | 95.45% | `threshold = 4.00` | `levels = [6.18]` |
 
-Defaults are `1.00` for profiles and `[2.30, 6.18]` for contours. These are
-Wilks-theorem approximations, not universal finite-sample guarantees.
+Defaults are `1.00` for profiles and `[2.30, 6.18]` for contours.
 
-`adaptive=true` refines threshold crossings or contour cells instead of making
-the entire rectangular grid dense. Failed refits become `Inf` by default and
-are surfaced by diagnostics; use `on_failure=:throw` to stop at the first failed
-point. A finite objective from a non-converged nuisance fit also counts as a
-failure, not as a profile minimum. Refits inherit the original solver limits
-and tolerances.
+Failed refits become `Inf` by default and are surfaced by diagnostics; a
+finite objective from a non-converged nuisance fit also counts as a failure.
+Refits inherit the original solver limits and tolerances.
 
 | Scan control | Meaning |
 |---|---|
@@ -115,14 +107,12 @@ and tolerances.
 | `max_refinements`, `max_points` | Bound adaptive work and total scan size. |
 | `on_failure` | `:inf` records a failed refit; `:throw` stops immediately. |
 
-`profile_interval` linearly interpolates threshold crossings.
-A side that is not bracketed is returned as `NaN`, not silently extrapolated.
-The search stops at failed grid points rather than interpolating across gaps.
-Pass a completed `ProfileResult` to extract its interval without additional
-refits. Reports requested with `errors=:profile` likewise leave unbracketed
-sides as `NaN` instead of silently substituting local symmetric errors.
-`profile_matrix` accepts `parameters` and `parameter_names`; `profile_tolerance`
-and `contour_tolerance` compare scans with local quadratic geometry.
+`profile_interval` linearly interpolates threshold crossings; a side that is
+not bracketed is returned as `NaN`. The search stops at failed grid points
+rather than interpolating across gaps. Pass a completed `ProfileResult` to
+extract its interval without additional refits. `profile_matrix` accepts
+`parameters` and `parameter_names`; `profile_tolerance` and
+`contour_tolerance` compare scans with local quadratic geometry.
 
 ```@docs
 ScientificFitting.profile
@@ -146,16 +136,16 @@ ScientificFitting.ProfileMatrixResult
 | Structured fit report | [`fit_report`](@ref) | [`ScientificFitting.FitReport`](@ref) |
 | Console or notebook report | [`report_text`](@ref) | `String` |
 
-Dashboard status is `:ok`, `:review`, or `:stop`. Text output renders `:stop` as
-`critical - fix before use`. The dashboard summarizes implemented checks;
-`:ok` is not proof that the physical model is true.
+Text output renders `:stop` as `critical - fix before use`; `:ok` is not proof
+that the physical model is true.
 
-`diagnostic_dashboard(...; max_actions=5)` limits the deduplicated action list.
-Use `max_actions=0` to suppress that list without removing any findings.
+`max_actions=0` suppresses the deduplicated action list without removing any
+findings.
 `fit_report(...; errors=:profile)` replaces local symmetric display errors with
-profile intervals and therefore performs additional fits. Its
-`profile_threshold`, `profile_npoints`, and `profile_nsigma` keywords control
-those scans. `report_text(...; sigdigits=6)` controls numerical formatting only.
+profile intervals, performs the additional fits, and leaves unbracketed sides
+as `NaN`. Its `profile_threshold`, `profile_npoints`, and `profile_nsigma`
+keywords control those scans. `report_text(...; sigdigits=6)` controls
+numerical formatting only.
 
 ```@docs
 ScientificFitting.DiagnosticFinding

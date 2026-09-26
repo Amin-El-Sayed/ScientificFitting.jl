@@ -11,8 +11,7 @@ it still follows the same logic as a real analysis:
 
 The data below are controlled rather than archival measurements. Their smooth
 residual pattern is intentional: the first fit should teach both the convenient
-path and the fact that a good-looking line can still need review. Real workflows
-start in the [Gallery](gallery.md).
+path and the fact that a good-looking line can still need review. Complete analyses live in the [Gallery](gallery.md).
 
 ## Question
 
@@ -108,7 +107,8 @@ println(diagnostic_dashboard_text(result))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>Fit report
+<pre>
+Fit report
 backend = lsqfit
 converged = true
 iterations = unavailable
@@ -131,11 +131,13 @@ Statistics:
 
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 1, info = 0
-1 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.</pre>
+  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+  2. Look for missing model structure, drift, a calibration offset, or correlated uncertainty in that interval.
+</pre>
 </div>
 ```
 
@@ -233,10 +235,11 @@ The report prints reader-facing status labels:
 - `critical - fix before use`: at least one critical issue exists and must be
   fixed before the result is used for conclusions.
 
-For this controlled example, `review - inspect diagnostics` follows directly
-from the low chi-square and smooth residual pattern. The next action is therefore
-to inspect acquisition order and replace the independent-error model if a shared
-or time-correlated component is physically justified.
+For this controlled example, `review - inspect diagnostics` follows from the
+low chi-square and from the smooth residual pattern. Both warnings point to
+the same inspection: check the residuals in acquisition order and replace the
+independent-error model if a shared or time-correlated component is
+physically justified.
 
 The dashboard does not prove the model is true. It only catches common failure
 modes quickly: bad goodness-of-fit, active bounds, ill-conditioned covariance,
@@ -266,12 +269,11 @@ cont = ScientificFitting.contour(result, 1, 2; adaptive=true)
 
 ## Next Steps
 
-- See [Linear Calibration](gallery/linear_calibration.md) for the same workflow
-  as a polished gallery example with generated light/dark plots.
-- See [How ScientificFitting Works](how_scientificfitting_works.md) for the object flow behind
-  the one-line interface.
-- See [Fitting for Practitioners](fitting_for_practitioners.md) for practical
+- [Assessing a Fit](fitting_for_practitioners.md) for practical
   troubleshooting rules.
-- See [Gaussian Fits and Covariance](gaussian_models.md) for the derivation of
-  weighted chi-square and [Profiles and Contours](profiles_contours.md) when a
-  local symmetric error is not enough.
+- [How ScientificFitting Works](how_scientificfitting_works.md) for the object
+  flow behind the one-line interface.
+- [Gaussian least squares](statistics.md#Gaussian-Least-Squares) for the
+  derivation of weighted chi-square, and
+  [profiles](statistics.md#Profiles-And-Contours) when a local symmetric error
+  is not enough.
