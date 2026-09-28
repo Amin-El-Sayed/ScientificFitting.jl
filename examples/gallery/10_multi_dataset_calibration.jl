@@ -119,9 +119,8 @@ fmt(x, digits=4) = @sprintf("%.*g", digits, x)
 
 function save_multi_dataset_calibration(
     filename;
-    dark::Union{Nothing, Bool}=nothing,
     style::Symbol=:sans,
-    appearance::Symbol=dark === nothing ? :light : (dark ? :dark : :light),
+    appearance::Symbol=:light,
     show_panel::Bool=true,
 )
     MULTI_RENDER_PLOTS || return nothing
@@ -337,10 +336,10 @@ end
 if MULTI_RENDER_PLOTS
     mkpath(MULTI_OUTPUT_DIR)
 
-    for (dark, suffix) in ((false, "light"), (true, "dark"))
+    for appearance in (:light, :dark)
         save_multi_dataset_calibration(
-            joinpath(MULTI_OUTPUT_DIR, "10_multi_dataset_calibration_$(suffix).png");
-            dark=dark,
+            joinpath(MULTI_OUTPUT_DIR, "10_multi_dataset_calibration_$(appearance).png");
+            appearance=appearance,
         )
     end
 end
@@ -358,20 +357,9 @@ if MULTI_RENDER_DOC_ASSETS
     end
 end
 
-println("All-shared-gain hypothesis")
-println(report_text(all_shared_result))
-println()
-println("Partial-sharing model")
-println(report_text(partial_shared_result))
-@printf("gain C - gain A/B = %.5f +/- %.5f\n", gain_gap, sigma_gain_gap)
-@printf("nested test: delta chi2 = %.5f for 1 dof, p = %.4g\n",
-        delta_chi2, nested_pvalue)
-println()
-println("All-shared diagnostic dashboard")
-println(diagnostic_dashboard_text(all_shared_result))
-println("Partial-sharing diagnostic dashboard")
-println(diagnostic_dashboard_text(partial_shared_result))
-emit_multi_doc_output_snapshot("multi_dataset") do
+# One print function keeps the terminal output and the documented snapshot
+# from drifting apart.
+function print_multi_results()
     println("All-shared-gain hypothesis")
     println(report_text(all_shared_result))
     println()
@@ -386,3 +374,6 @@ emit_multi_doc_output_snapshot("multi_dataset") do
     println("Partial-sharing diagnostic dashboard")
     println(diagnostic_dashboard_text(partial_shared_result))
 end
+
+print_multi_results()
+emit_multi_doc_output_snapshot(print_multi_results, "multi_dataset")

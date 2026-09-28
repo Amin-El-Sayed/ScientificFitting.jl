@@ -2,14 +2,21 @@ using ScientificFitting
 using LinearAlgebra
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
-# Full y-covariance: correlated readout noise.
+# Full y-covariance: correlated readout noise with correlation time 0.3 s,
+# built from the time axis so off-diagonal terms follow |x_i - x_j|.
 x = collect(range(0.0, 2.5; length=18))
 model(x, p) = @. p[1] * exp(p[2] * x) + p[3]
 n = length(x)
 base_sigma = 0.05
-corr_len = 2.0
-cov_y = [base_sigma^2 * exp(-abs(i - j) / corr_len) for i in 1:n, j in 1:n]
-y = model(x, [2.0, -1.1, 0.25]) .+ 0.6 .* base_sigma .* (sin.(1.7 .* x) .+ 0.3 .* cos.(2.9 .* x))
+correlation_time = 0.3  # s
+cov_y = [base_sigma^2 * exp(-abs(x[i] - x[j]) / correlation_time) for i in 1:n, j in 1:n]
+# One fixed noise realization drawn from N(0, cov_y): the Cholesky factor of
+# cov_y applied to a standard-normal vector, pasted literally so the script
+# is reproducible without a random number generator and the printed chi2/ndf
+# is consistent with the stated covariance.
+y = [2.24655, 1.93747, 1.6677, 1.49308, 1.28078, 1.09324, 0.906305, 0.852075,
+     0.750124, 0.673371, 0.581348, 0.57533, 0.508985, 0.497965, 0.403454,
+     0.366872, 0.310196, 0.265903]
 
 cov_fit = fitplot(
     model,
@@ -27,13 +34,19 @@ cov_fit = fitplot(
     print_report=true,
 )
 
-# Effective variance: x-errors contribute through the local model derivative.
+# Effective variance: x-errors enter through the model derivative,
+# sigma_eff^2 = sigma_y^2 + (m * sigma_x)^2. For a straight line with constant
+# sigma_x this weight is the same at every point; the x-errors still act
+# through the m-dependence of sigma_eff in the likelihood, including its
+# log-determinant term.
 x_true = collect(range(0.0, 4.0; length=16))
 linear_model(x, p) = @. p[1] * x + p[2]
 sigma_x = fill(0.16, length(x_true))
 sigma_y = fill(0.10, length(x_true))
+# The response is generated at the TRUE abscissa; only the recorded x is
+# perturbed. The declared x uncertainty therefore really is in the data.
 x_obs = x_true .+ sigma_x .* cos.(2.2 .* x_true)
-y_obs = linear_model(x_obs, [0.9, 1.2]) .+ sigma_y .* sin.(3.1 .* x_obs)
+y_obs = linear_model(x_true, [0.9, 1.2]) .+ sigma_y .* sin.(3.1 .* x_true)
 
 xy_fit = fitplot(
     linear_model,

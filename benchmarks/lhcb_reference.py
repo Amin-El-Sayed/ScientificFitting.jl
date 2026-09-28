@@ -1,7 +1,8 @@
 """Independent gallery check with SciPy and C++ Minuit2 (no Julia/SF import).
 
 Run from a checkout with numpy, scipy and iminuit installed. Reads the literal
-counts from the executable page; its linked ROOT extraction retains provenance.
+counts from the executable page; the page's linked prepare.jl documents how
+those counts derive from the checksummed ROOT file.
 """
 from pathlib import Path
 import re
@@ -26,7 +27,7 @@ def expected(edges, center, width, width_ratio, core_fraction,
 def compare():
     page = Path(__file__).resolve().parents[1] / "docs/src/gallery/lhcb_mass_spectrum.md"
     text = re.search(r"counts = \[\n(.*?)\n\]", page.read_text(), flags=re.S).group(1)
-    counts = np.fromstring(text.replace("\n", ""), sep=",")
+    counts = np.array([float(v) for v in text.split(",") if v.strip()])
     edges = np.arange(5200., 5601., 5.)
     assert len(counts) == 80 and counts.sum() == 7368
 
@@ -50,7 +51,8 @@ def compare():
         assert abs(deviance-target) < 1e-5
         print("\none width" if single else "\ntwo widths")
         print(f"D/ndf = {deviance:.8f}/{80-fit.nfit}; p = {chi2.sf(deviance, 80-fit.nfit):.8f}")
-        # Local curvature errors, not Minuit's bound-transformed errors.
+        # No parameter sits at a limit (asserted above), so these equal the
+        # unconstrained curvature errors.
         for name in fit.parameters:
             print(f"{name:18s} = {fit.values[name]:.10g} +/- {np.sqrt(fit.covariance[name,name]):.7g}")
         if not single:

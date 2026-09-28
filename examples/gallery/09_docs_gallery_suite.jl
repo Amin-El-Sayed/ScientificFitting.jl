@@ -29,6 +29,9 @@ const DOC_ASSET_DIR = get(
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
+# Only the sans/panel variant is rendered. The :tex and legend-only branches
+# in the save_* functions below are kept deliberately so future variants can
+# be re-enabled here without rebuilding those code paths.
 const DOC_PLOT_VARIANTS = (
     (style=:sans, show_panel=true),
 )
@@ -243,7 +246,6 @@ function save_poisson_counts(
 
     half_life = log(2) / result.params[2]
     sigma_half_life = log(2) * result.param_stderr[2] / result.params[2]^2
-    deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
     article = style == :tex
     parameter_lines = article ? Any[
         LaTeXString("S_0 = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))\\;\\mathrm{counts}"),
@@ -258,10 +260,10 @@ function save_poisson_counts(
     ]
     statistic_lines = article ? Any[
         LaTeXString("D/\\mathrm{ndf} = $(fmt_tex(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_tex(result.stats.chi2_ndf, 4))"),
-        LaTeXString("P(D) = $(fmt_tex(deviance_pvalue, 4))"),
+        LaTeXString("P(D) = $(fmt_tex(result.stats.pvalue, 4))"),
     ] : Any[
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
-        "P(D) = $(fmt_sig(deviance_pvalue, 4))",
+        "P(D) = $(fmt_sig(result.stats.pvalue, 4))",
     ]
     gallery_output!(
         fig;
@@ -358,7 +360,6 @@ function save_histogram_fit(
     hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
     linkxaxes!(ax, residual_ax)
 
-    deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
     parameter_lines = article ? Any[
         LaTeXString("N_{\\mathrm{peak}} = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))"),
         LaTeXString("\\mu = $(fmt_tex(result.params[2], 5)) \\pm $(fmt_tex(result.param_stderr[2], 2))\\;\\mathrm{V}"),
@@ -372,10 +373,10 @@ function save_histogram_fit(
     ]
     statistic_lines = article ? Any[
         LaTeXString("D/\\mathrm{ndf} = $(fmt_tex(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_tex(result.stats.chi2_ndf, 4))"),
-        LaTeXString("P(D) = $(fmt_tex(deviance_pvalue, 4))"),
+        LaTeXString("P(D) = $(fmt_tex(result.stats.pvalue, 4))"),
     ] : Any[
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
-        "P(D) = $(fmt_sig(deviance_pvalue, 4))",
+        "P(D) = $(fmt_sig(result.stats.pvalue, 4))",
     ]
     gallery_output!(
         fig;
@@ -654,11 +655,10 @@ style_variant_plot(
     nsigma=1,
     show_legend=true,
     stats_position=:right,
-    stats_mode=:full,
     style=FitPlotStyle(figure_size=DOC_FIT_SIZE),
 )
 
-# The same fit rendered with the two visual contracts. Panel visibility is
+# 1. Quickstart fit rendered in both visual contracts. Panel visibility is
 # deliberately held constant so this comparison isolates visual style.
 if render_asset_group("plot_style")
     for style in (:sans, :tex)

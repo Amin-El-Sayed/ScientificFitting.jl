@@ -4,7 +4,7 @@
 Rebuild the unweighted KKK mass histogram used in the LHCb gallery page.
 Input: CERN Open Data record 4900, B2HHH_MagnetUp.root (CC0-1.0).
 The SHA-256 below was computed after verifying CERN's Adler-32 0568274c.
-Requires UnROOT.jl 0.11.11; neither ROOT nor the fitting package is needed.
+Tested with UnROOT.jl 0.11.11; neither ROOT nor the fitting package is needed.
 """
 function prepare_lhcb(path)
     @assert filesize(path) == 444723234 "Wrong or incomplete ROOT file"
@@ -20,6 +20,8 @@ function prepare_lhcb(path)
         event.H1_ProbPi < 0.5 && event.H2_ProbPi < 0.5 && event.H3_ProbPi < 0.5 || continue
         iszero(event.H1_isMuon) && iszero(event.H2_isMuon) && iszero(event.H3_isMuon) || continue
         selected += 1
+        # Sanity check, not a cut: each preselected candidate is a charged B,
+        # so the three track charges must sum to +-1.
         @assert abs(event.H1_Charge + event.H2_Charge + event.H3_Charge) == 1
         px = (event.H1_PX, event.H2_PX, event.H3_PX)
         py = (event.H1_PY, event.H2_PY, event.H3_PY)
@@ -43,6 +45,9 @@ function prepare_lhcb(path)
     end
     @assert selected == invalid + below + above + sum(counts)
     @assert invalid == 0
+    # Self-verification against the documented selection: a successful run
+    # certifies reproduction of the published histogram.
+    @assert length(tree) == 3420295 && selected == 9717 && sum(counts) == 7368
     return (; candidates=length(tree), selected, below, above, edges, counts)
 end
 

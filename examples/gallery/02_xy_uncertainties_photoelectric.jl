@@ -3,8 +3,9 @@ using ScientificFitting
 using LinearAlgebra
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
-# Controlled teaching data: two experimentally distinguishable linear regimes,
-# with individual x/y standard uncertainties at every point.
+# Controlled teaching data: two experimentally distinguishable linear regimes.
+# The per-point x/y standard uncertainties are assigned for the exercise, not
+# derived from an instrument model.
 const elementary_charge = 1.602176634e-19
 
 frequency_THz = [350.0, 380.0, 410.0, 440.0, 470.0, 495.0, 515.0, 532.0,
@@ -39,14 +40,20 @@ emission = fit_model(
     p0=[0.0042, 0.02],
     sigma_x=sigma_frequency_THz[emission_mask],
     sigma_y=sigma_voltage_V[emission_mask],
+    # Physical constraint: the photoelectric slope cannot be negative. The
+    # bounds are inactive at the solution, so they do not affect the covariance.
     bounds=([0.0, -5.0], [0.02, 5.0]),
 )
 
 me, ce = emission.params
 mb, cb = baseline.params
+# The baseline slope belongs to the readout chain, not to the photoelectric
+# effect; the physical slope is the difference m_gamma = m_emit - m_base.
 photoelectric_slope = me - mb
+# Threshold = line intersection: nu0 = nu_ref + (c_base - c_emit) / m_gamma.
 threshold_offset_THz = (cb - ce) / photoelectric_slope
 threshold_THz = reference_frequency_THz + threshold_offset_THz
+# First-order error propagation: gradients of nu0 w.r.t. (slope, intercept).
 gradient_emission = [
     -threshold_offset_THz / photoelectric_slope,
     -1 / photoelectric_slope,
@@ -55,17 +62,24 @@ gradient_baseline = [
     threshold_offset_THz / photoelectric_slope,
     1 / photoelectric_slope,
 ]
+# The two fits use disjoint data points, so the joint covariance is block
+# diagonal and the two contributions add.
 threshold_variance =
     dot(gradient_emission, emission.param_covariance * gradient_emission) +
     dot(gradient_baseline, baseline.param_covariance * gradient_baseline)
 sigma_threshold_THz = sqrt(threshold_variance)
 
+# m_gamma is V per THz, so m_gamma / 1e12 is V per Hz = h/e and
+# h = m_gamma * e / 1e12 in J s.
 h_fit = photoelectric_slope * elementary_charge / 1e12
 sigma_photoelectric_slope = sqrt(
     emission.param_covariance[1, 1] + baseline.param_covariance[1, 1],
 )
 sigma_h = sigma_photoelectric_slope * elementary_charge / 1e12
 
+# Phi = h*nu0 in eV equals m_gamma[V/THz] * nu0[THz]; substituting nu0 gives
+# Phi = m_gamma*nu_ref + c_base - c_emit, with the constant gradients below.
+# Full derivation: docs gallery page "Photoelectric Work Function".
 work_function_eV = photoelectric_slope * threshold_THz
 work_gradient_emission = [reference_frequency_THz, -1.0]
 work_gradient_baseline = [-reference_frequency_THz, 1.0]
@@ -74,9 +88,9 @@ work_variance =
     dot(work_gradient_baseline, baseline.param_covariance * work_gradient_baseline)
 sigma_work_function_eV = sqrt(work_variance)
 
-# ScientificFitting returns Makie objects, so derived quantities and annotations remain
-# ordinary Makie operations rather than a special plotting mini-language.
-style = :analysis
+# ScientificFitting returns Makie objects, so derived quantities and
+# annotations are ordinary Makie calls on the returned figure.
+style = :sans
 appearance = :light
 palette = plot_palette(style; appearance=appearance)
 baseline_color = palette.secondary_color
@@ -136,6 +150,8 @@ add_points!(
     color=threshold_color,
     label="intersection",
 )
+# The panel states the baseline-subtracted relation ΔU(ν) = U_emit − U_base =
+# mγ (ν − ν₀); the axes show the two regime lines it is built from.
 plot_info_panel!(
     fig[1, 2];
     legend_source=ax,
@@ -144,7 +160,7 @@ plot_info_panel!(
         "photoelectric slope = $(round(photoelectric_slope; sigdigits=5)) V/THz",
         "h = $(round(h_fit; sigdigits=4)) ± $(round(sigma_h; sigdigits=2)) J s",
         "baseline slope = $(round(mb; sigdigits=4)) V/THz",
-        "ν0 = $(round(threshold_THz; sigdigits=5)) ± $(round(sigma_threshold_THz; sigdigits=2)) THz",
+        "ν₀ = $(round(threshold_THz; sigdigits=5)) ± $(round(sigma_threshold_THz; sigdigits=2)) THz",
         "Φ = $(round(work_function_eV; sigdigits=5)) ± $(round(sigma_work_function_eV; sigdigits=2)) eV",
     ],
     statistic_lines=[

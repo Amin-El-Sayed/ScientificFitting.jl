@@ -3,6 +3,11 @@ using ScientificFitting
 using Printf
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
+# Synthetic saturation-curve data: A * (1 - exp(-t / tau)) + offset with truth
+# near (A, tau, offset) = (4.5 V, 3.0 s, 0.1 V) and Gaussian noise per the
+# listed sigma_x/sigma_y. Only the early rise (t <= 2.2 s) is measured, so
+# amplitude and time constant are strongly correlated. "Constraints" in this
+# example means box bounds plus a Gaussian parameter prior.
 x = [
     0.150000, 0.270588, 0.391176, 0.511765, 0.632353, 0.752941,
     0.873529, 0.994118, 1.114706, 1.235294, 1.355882, 1.476471,
@@ -25,7 +30,7 @@ sigma_y = [
 ]
 model(t, p) = @. p[1] * (1 - exp(-t / p[2])) + p[3]
 
-fit = fitplot(
+saturation = fitplot(
     model,
     x,
     y;
@@ -33,9 +38,12 @@ fit = fitplot(
     sigma_y=sigma_y,
     sigma_x=sigma_x,
     bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
+    # Independent zero measurement of the baseline offset: 0.10 +/- 0.08 V.
+    # parameter_priors adds it to the cost as a normalized Gaussian term
+    # (an auxiliary measurement): the data may pull the offset away, but
+    # pay that cost.
     parameter_priors=(index=3, mean=0.10, sigma=0.08),
-    initial_guesses=[[6.0, 5.0, 0.1], [3.0, 2.0, 0.1]],
-    multistart=3, # p0 and the two additional starts.
+    initial_guesses=[[6.0, 5.0, 0.1], [3.0, 2.0, 0.1]], # always tried in addition to p0
     maxiters=2000,
     filename=example_output("05_constraints_priors_fit.pdf"),
     title="Early saturation measurement",
@@ -46,9 +54,14 @@ fit = fitplot(
     print_report=true,
 )
 
-result = fit.result
+result = saturation.result
+# threshold=1 (default): delta cost 1 marks the 68.3% (one-sigma) interval
+# for a single parameter.
 interval = profile_interval(result, 1; npoints=81, nsigma=4)
 prof = interval.profile_result
+# Qualified name: CairoMakie also exports contour. npoints=121 with the
+# default non-adaptive grid means 121 x 121 = 14,641 refits; reduce npoints
+# for a quick look.
 cont = ScientificFitting.contour(result, 1, 2; npoints=121, nsigma=4)
 
 plot_profile(
@@ -70,7 +83,7 @@ plot_contour(
 )
 
 @printf(
-    "Profile interval for amplitude: %.3f -%.3f +%.3f V\n",
+    "68.3%% (1 sigma) profile interval for amplitude: %.3f -%.3f +%.3f V\n",
     result.params[1],
     interval.uncertainty_minus,
     interval.uncertainty_plus,
