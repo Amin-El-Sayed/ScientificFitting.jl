@@ -4,19 +4,18 @@ NumPy model functions, the Julia numerical core, editable Matplotlib figures.
 Python 3.10+ is required; Makie is neither installed nor loaded.
 
 ```bash
-python -m pip install 'scientificfitting[plot]'
-# Optional: SciPy distributions and sparse covariance matrices.
-python -m pip install scipy
+# [sparse]: SciPy distributions and sparse covariance matrices.
+python -m pip install 'scientificfitting[plot,sparse]'
 ```
 
-Omit `[plot]` for fitting and reports only. JuliaCall provisions Julia and the
+Omit the extras for fitting and reports only. JuliaCall provisions Julia and the
 compatible 0.3.x core on first use, with network access and compilation; the
 Julia runtime's size and startup cost remain. Importing `scientificfitting`
 alone does not start Julia.
 
-[PyPI](https://pypi.org/project/scientificfitting/) ·
-[Conda-forge recipe status](https://github.com/conda-forge/staged-recipes/pull/34795).
-The pip command also works inside a Conda environment.
+[PyPI](https://pypi.org/project/scientificfitting/). A Conda-forge recipe is
+under review; until it lands, the pip command also works inside a Conda
+environment.
 
 ## Fit, Inspect, Plot
 
@@ -71,8 +70,12 @@ convergence, not model validity; an unknown iteration count is `None`.
 ## Choose The Error Model
 
 The entry point is selected by the observation model; the table in
-[Choose An Entry Point](api.md#Choose-An-Entry-Point) applies unchanged, with
-identical function names in Python. Gaussian errors enter as
+[Choose An Entry Point](api.md#Choose-An-Entry-Point) applies with the same
+function names, with two exceptions. `fit_distribution` is Julia-only: in
+Python, write the density explicitly and use `fit_unbinned_model` (unbinned
+observations) or `fit_histogram_density` (binned counts). The model-contract
+column shows the Julia convention `model(x, p)`; Python callbacks receive
+parameters by keyword, `model(x, **parameters)`, as above. Gaussian errors enter as
 `sigma_x`/`sigma_y`, dense or SciPy sparse covariance as `cov_x`/`cov_y`, and
 named error sources as `ErrorComponent` inputs (`help(ErrorComponent)`).
 
@@ -98,7 +101,8 @@ robust_result = fit_likelihood_model(
 print(robust_result.report())
 ```
 
-For `df=4`, standard deviation = ``\sqrt{2}\times`` scale. Choose the
+The Student-t standard deviation is ``\sqrt{df/(df-2)}\times`` scale
+(``\sqrt{2}`` for `df=4`, defined for `df > 2`). Choose the
 distribution from the error process, not to conceal a wrong mean model.
 Discrete observations need a log **mass** (`logpmf`); no universal
 goodness-of-fit p-value is assigned to this custom distribution.
@@ -137,13 +141,15 @@ laplace_result = fit_likelihood_model(
     p0={"location": 0.1}, solver="nelder_mead", tol=1e-10,
 )
 print(laplace_result.report())
-# No local covariance scale: supply the actual trial values.
+# Nelder-Mead reports no local errors, so the automatic profile grid
+# is unavailable: pass explicit scan values.
 scan = laplace_result.profile("location", values=[-0.2, 0., 0.4, 0.7, 1.])
 ```
 
 Nelder-Mead supports bounds, fixed values and Gaussian parameter terms, but not
-nonlinear constraints. It defaults to `parameter_covariance="none"` (`NaN`
-free errors, not zero); `maxiters` limits function evaluations. Select
+nonlinear constraints. It defaults to `parameter_covariance="none"`
+(free-parameter errors are reported as `NaN`, not zero); `maxiters` limits
+function evaluations. Select
 `"hessian"` only for a locally smooth cost. Zero probability returns `-np.inf`;
 start at a finite likelihood. Moving support can invalidate standard profile
 thresholds: see the [support-boundary calculation](statistics.md#Observation-Likelihoods).
@@ -164,8 +170,9 @@ interval = count_fit.profile_interval("rate", npoints=61, nsigma=4)
 print(interval.lower, interval.upper)  # expected counts per exposure
 ```
 
-`delta_cost=1` has an **asymptotic**, not exact low-count, 68.27% interpretation;
-two-parameter 68.27%/95.45% regions use `[2.30, 6.18]`
+The default `threshold=1` cut on the profile cost has an **asymptotic** 68.27%
+interpretation; at low counts it is not exact. Two-parameter 68.27%/95.45%
+regions use `[2.30, 6.18]`
 ([Profiles and Contours](statistics.md#Profiles-And-Contours)). Missing crossings
 remain `NaN`; failed refits remain gaps.
 
@@ -243,7 +250,9 @@ bands are reference guides, not coverage intervals.
 
 SciPy sparse `cov_x`/`cov_y` inputs are not densified. Static y-covariance reuses
 its factorization; parameter-dependent covariance does not. Sparse factors can
-still fill in. A known whitening operator avoids storing the matrix
+still fill in: the factorization of a sparse covariance can be much denser
+than the matrix itself, so memory use can grow. A known whitening operator
+avoids storing the matrix
 ([Structured Whitening](statistics.md#Structured-Whitening)):
 
 ```python
@@ -269,6 +278,10 @@ def line_inplace(out, x, slope, offset):
 inplace_result = fit_model(line_inplace, x, y, p0={"slope": 1., "offset": 0.},
                            sigma_y=0.2, inplace=True)
 ```
+
+For AR(1), ``\det(C) = \sigma^{2n}(1-\rho^2)^{n-1}``, which gives the
+log-determinant above. Verify a custom operator's log-determinant against
+`np.linalg.slogdet` of a small dense ``C`` before using it at scale.
 
 Whitening replaces other observation errors. In-place callbacks fill every
 entry and return `None`; never retain the borrowed arrays. An in-place Jacobian
@@ -305,10 +318,12 @@ integral accuracy.
 | `numpy_matplotlib.py` | Nonlinear decay, editable reports, residuals, profiles, both styles |
 | `likelihood_workflows.py` | Poisson decay and unequal-width bins; expectations integrated per bin |
 | `multi_dataset_calibration.py` | Named `parameter_map`, shared gains, full covariance of their difference, nested-model comparison |
+| `fit_from_python.py` | Raw JuliaCall interop without the Python wrapper package; runs against a repository checkout with only `pip install juliacall` |
 
-Poisson quantile bands describe count fluctuations conditional on the fitted
-mean, not parameter uncertainty. Backgrounds near zero need profiles; local
-symmetric errors can cross the bound.
+The count bands drawn in `likelihood_workflows.py` are Poisson quantile bands:
+they describe count fluctuations conditional on the fitted mean, not parameter
+uncertainty. For backgrounds near zero, use profile intervals; local symmetric
+errors can cross the physical lower bound.
 
 ## Development Setup
 
@@ -325,6 +340,10 @@ python -m pytest python/tests
 `develop.py` persistently selects this checkout in its JuliaPkg environment.
 Use a **fresh environment** for registry-installation checks. Installed-wheel
 checks live in `python/tests/check_install.py`; register the Julia core before
-publishing a Python release that depends on it. See
-[Python startup measurements](backend_design.md#Performance-Checks) for installation
-size, latency, and reproducible benchmarks.
+publishing a Python release that depends on it. Python startup and
+restart-latency measurements live in `python/benchmarks/startup.py` (run it
+after installation and precompilation; an empty JuliaPkg environment
+additionally times provisioning), callback overhead in
+`python/benchmarks/callbacks.py`. The Julia core's reproducible benchmarks and
+fresh-process loading gate are described under
+[Performance Checks](backend_design.md#Performance-Checks).

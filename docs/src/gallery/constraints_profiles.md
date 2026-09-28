@@ -1,6 +1,7 @@
 # Constraints and Profiles
 
-This workflow shows a case where local covariance errors are not enough: the
+This workflow shows a case where the symmetric ``\pm\sigma`` parameter errors
+taken from the local covariance matrix (`param_stderr`) are not enough: the
 fitted curve looks well determined over the measured interval, but two physical
 parameters remain strongly and nonlinearly coupled.
 
@@ -37,6 +38,21 @@ teaching record, not a measurement of a particular sensor. All four input
 arrays are printed in the fit cell; no hidden random generator or unknown true
 parameter enters the analysis.
 
+The dataset includes individual absolute uncertainties in both time and
+response:
+
+```math
+\sigma_{t,i} = 0.010 + 0.004t_i\ \mathrm{s},
+\qquad
+\sigma_{y,i} = 0.045 + 0.008t_i\ \mathrm{V}.
+```
+
+An independent zero measurement supplies the Gaussian prior
+
+```math
+c = 0.10 \pm 0.08\ \mathrm{V}.
+```
+
 ## Why The Parameters Become Degenerate
 
 For times much shorter than the time constant,
@@ -54,33 +70,26 @@ y(t) \approx \frac{A}{\tau}t + c.
 Early data determine the ratio ``A/\tau`` much better than ``A`` or ``\tau``
 individually: a larger amplitude can be compensated by a longer time constant.
 
-The controlled dataset includes individual absolute uncertainties in both time
-and response:
-
-```math
-\sigma_{t,i} = 0.010 + 0.004t_i\ \mathrm{s},
-\qquad
-\sigma_{y,i} = 0.045 + 0.008t_i\ \mathrm{V}.
-```
-
-An independent zero measurement supplies the Gaussian prior
-
-```math
-c = 0.10 \pm 0.08\ \mathrm{V}.
-```
-
 ## Bounds, Prior, And Cost
 
-Amplitude and time constant must be positive. Those statements are hard bounds:
+Amplitude and time constant must be positive. The fit enforces this through
+generous windows and keeps the baseline in a wide, physically plausible range:
 
 ```math
-0.1 \le A \le 20,
+0.1\ \mathrm{V} \le A \le 20\ \mathrm{V},
 \qquad
-0.1\ \mathrm{s} \le \tau \le 20\ \mathrm{s}.
+0.1\ \mathrm{s} \le \tau \le 20\ \mathrm{s},
+\qquad
+-0.5\ \mathrm{V} \le c \le 1.0\ \mathrm{V}.
 ```
 
+The windows are deliberately loose: they exclude the unphysical branch without
+constraining the minimum.
+
 The baseline calibration is uncertain external information, so it enters as a
-Gaussian term rather than a fixed value. Define
+Gaussian term rather than a fixed value. Write the model as ``f(t,p)`` with
+parameter vector ``p=(A,\tau,c)``, so ``f(t,p)=A\left(1-e^{-t/\tau}\right)+c``
+is the response model from above. The effective variance of point ``i`` is
 
 ```math
 s_i^2(p)
@@ -90,8 +99,9 @@ s_i^2(p)
 \left(\frac{\partial f(t_i,p)}{\partial t}\sigma_{t,i}\right)^2.
 ```
 
-Because this effective variance depends on the fitted parameters, `cost=:auto`
-selects the full Gaussian likelihood cost on the ``-2\log L`` scale:
+Because this effective variance depends on the fitted parameters, the default
+`cost=:auto` selects the full Gaussian likelihood cost on the ``-2\log L``
+scale; the fit cell below therefore passes no `cost` keyword:
 
 ```math
 C(p) =
@@ -106,6 +116,12 @@ C(p) =
 +
 \left(\frac{c-0.10}{0.08}\right)^2.
 ```
+
+The sum is the Gaussian data term with the parameter-dependent effective
+variance; the last two terms are the ``-2\log L`` contribution of the baseline
+prior, evaluated at the baseline component ``c`` of ``p``. In the fit cell
+below, `model(t, p)` implements ``f`` with ``A`` as `p[1]`, ``\tau`` as
+`p[2]`, and ``c`` as `p[3]`.
 
 The effective-variance approximation, its first-order validity range, and the
 role of the log-variance term are derived in
@@ -150,11 +166,10 @@ result = fit_model(
     sigma_x=sigma_t,
     bounds=([0.1, 0.1, -0.5], [20.0, 20.0, 1.0]),
     parameter_priors=(index=3, mean=0.10, sigma=0.08),
-    initial_guesses=[
+    initial_guesses=[ # explicit starts are always tried in addition to p0
         [6.0, 5.0, 0.1],
         [3.0, 2.0, 0.1],
     ],
-    multistart=3, # p0 and the two additional starts.
     maxiters=2000,
 )
 
@@ -227,7 +242,8 @@ Multiple starting points do not cure an under-informative experiment, but they
 make it less likely that a local optimizer accident is mistaken for the
 physical minimum.
 
-The fit returns approximately
+The fit returns approximately (read from the result panel in the figure at the
+top of this page; programmatically `result.params` and `result.param_stderr`)
 
 ```math
 A = 4.75 \pm 0.78\ \mathrm{V},
@@ -237,7 +253,8 @@ A = 4.75 \pm 0.78\ \mathrm{V},
 c = 0.121 \pm 0.041\ \mathrm{V}.
 ```
 
-Those symmetric errors are only the local covariance summary; the fitted
+The near-equal errors on ``A`` and ``\tau`` are a coincidence of this dataset,
+not a typo. Those symmetric errors are only the local covariance summary; the fitted
 correlation between ``A`` and ``\tau`` of approximately ``0.9928`` is already
 a warning to inspect the cost away from the minimum.
 
@@ -260,14 +277,19 @@ records
 \widehat{\widehat{c}}(A)\right) - C_{\min}.
 ```
 
-The double hat means "refitted while ``A`` is held fixed." The dashed parabola
-is what the local covariance matrix predicts:
+The double hat means "refitted while ``A`` is held fixed," and ``C_{\min}`` is
+the cost at the unconstrained best fit. The dashed parabola is what the local
+covariance matrix predicts:
 
 ```math
 \Delta C_{\mathrm{local}}(A)
 =
 \left(\frac{A-\hat A}{\sigma_A}\right)^2.
 ```
+
+Here ``\hat A = 4.75\ \mathrm{V}`` is the best-fit amplitude and
+``\sigma_A = 0.78\ \mathrm{V}`` its symmetric covariance error from above
+(`result.param_stderr[1]`, passed to `plot_profile` as `local_sigma`).
 
 The actual profile rises more slowly toward larger amplitudes. The one-sigma
 profile interval is approximately
@@ -312,8 +334,10 @@ compatible with the measurement.
 ## Matrix: Where Should You Look First?
 
 For three or more fitted parameters, separate profile and contour plots become
-hard to triage. `profile_matrix` computes the same checks as data first; the
-panel layout is described in
+hard to triage. `profile_matrix` computes the same profiles and contours and
+returns them as plain data; rendering with `plot_profile_matrix` is a separate
+step, so the scans also run without a plotting backend. The panel layout is
+described in
 [The Profile Matrix](../statistics.md#The-Profile-Matrix). For automated
 notebooks or CI checks, `profile_overview.panel_status` holds the judgement per
 panel (`:ok`, `:review`, `:stop`), and `diagnose(profile_overview).findings`
@@ -333,17 +357,25 @@ The reading order is mechanical:
 3. Check the diagonal profile for the parameter you want to quote. If the
    profile is skewed, use the profile interval instead of ``\hat p\pm\sigma``.
 
-In this example the amplitude-time-constant block is the dominant warning. The
-baseline parameter is still constrained by the independent calibration, so it
-does not produce the same long degeneracy direction.
+Panels labelled `inspect` correspond to `panel_status == :review`; a `fix`
+label would mark `:stop`. Here every panel involving ``A`` or ``\tau`` is
+flagged, including the baseline pairs with their moderate correlations
+(``\rho = 0.68`` and ``0.75``). But the profiled baseline regions stay close
+to the local ellipses, while the ``A``-``\tau`` panel shows the long curved
+degeneracy; that contrast makes the amplitude-time-constant block the panel to
+act on. The independent calibration answers the question from the start of the
+page: the fitted baseline error of ``0.041\ \mathrm{V}`` is half the prior
+width of ``0.08\ \mathrm{V}``, so data and calibration jointly pin ``c`` and
+keep its panels close to elliptical.
 
 ## Decision In The Laboratory
 
 The contour identifies why the fit is degenerate: the experiment has not
 observed enough of the saturation plateau. The next actions are specific:
 
-1. Extend the acquisition to times comparable to or larger than the fitted
-   ``\tau``.
+1. Extend the acquisition to several time constants (``t`` of order
+   ``2\hat\tau`` to ``3\hat\tau``, here roughly ``7`` to ``10\ \mathrm{s}``),
+   where the response approaches the plateau ``A + c``.
 2. Keep the independent baseline measurement, because it prevents ``c`` from
    absorbing part of the early rise.
 3. Report the profile interval or the profile contour until the added data make
@@ -377,9 +409,12 @@ decomposition into ``A`` and ``\tau`` remains uncertain; prediction uncertainty
 and parameter identifiability answer different questions.
 
 **The effective-variance approximation is questionable.** If time uncertainty
-is large or the model is strongly curved over one ``\sigma_t``, use a more
-complete errors-in-variables model
-([Uncertainty In X](../statistics.md#Uncertainty-In-X)).
+is large or the model is strongly curved over one ``\sigma_t``, the
+first-order effective-variance treatment is no longer sufficient. Such cases
+need an explicit errors-in-variables formulation with latent true time values,
+which this package's effective-variance treatment does not provide;
+[Uncertainty In X](../statistics.md#Uncertainty-In-X) states the validity
+limits.
 
 Next useful pages: [Fitting for Practitioners](@ref),
 [Profiles and Contours](../statistics.md#Profiles-And-Contours), and [XY Uncertainties](@ref).

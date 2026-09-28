@@ -1,7 +1,7 @@
 # API Reference
 
-Start with [Quickstart](quickstart.md) for a first fit or
-[Statistical Foundations](statistics.md) for the derivations behind each
+Start with [Quickstart](quickstart.md) for a first fit or the
+[Statistics Reference](statistics.md) for the derivations behind each
 method.
 
 ## Choose An Entry Point
@@ -10,8 +10,8 @@ method.
 |---|---|---|---|
 | Numeric ``x`` and ``y`` with Gaussian uncertainties | [`fit_model`](@ref) | `model(x, p) -> y_hat` | [`FitResult`](@ref) |
 | Independent observations with a custom distribution | [`fit_likelihood_model`](@ref) | `model(x, p)` and `logprob(y, y_hat, p)` | [`LikelihoodFitResult`](@ref) |
-| Events described by an upstream distribution | [`fit_distribution`](@ref) | `make_distribution(p) -> Distribution`, or an optional BuildConstructors model | [`LikelihoodFitResult`](@ref) |
-| Binned events described by an upstream distribution | [`fit_distribution`](@ref) | Same factory, `edges, counts`; known `total_count` or extended mixture yields | [`LikelihoodFitResult`](@ref) |
+| Events described by an upstream distribution | [`fit_distribution`](@ref) | `make_distribution(p) -> Distribution`; with `using BuildConstructors`, an `AbstractConstructor` can replace the factory (see [`fit_distribution`](@ref)) | [`LikelihoodFitResult`](@ref) |
+| Binned events described by an upstream distribution | [`fit_distribution`](@ref) | Same factory with `edges, counts`; a normalized distribution requires `total_count`, an `ExtendedMixtureModel` (DistributionsHEP) fits its component yields instead | [`LikelihoodFitResult`](@ref) |
 | Independent counts | [`fit_poisson_model`](@ref) | `model(x, p) -> expected_counts` | [`LikelihoodFitResult`](@ref) |
 | Histogram with expected bin counts | [`fit_histogram_model`](@ref) | `expected_counts(edges, p) -> mu` | [`LikelihoodFitResult`](@ref) |
 | Histogram from a normalized density | [`fit_histogram_density`](@ref) | `pdf(x, p) -> density` | [`LikelihoodFitResult`](@ref) |
@@ -21,7 +21,10 @@ method.
 | Several datasets sharing parameters | [`fit_multi_model`](@ref) | one `model_i(x_i, p_i)` per dataset | [`LikelihoodFitResult`](@ref) |
 | A custom scalar objective | [`fit_custom`](@ref) | `objective(p) -> scalar` | [`LikelihoodFitResult`](@ref) |
 
-Minimal call shapes, with required keywords shown:
+Typical minimal calls. `p0` is required everywhere, `nobs` for `fit_custom`,
+and exactly one of `logprob`/`error` for `fit_likelihood_model`; the
+uncertainty keywords shown are optional but recommended, and `total_count`
+shows its default:
 
 | Entry point | Minimal call |
 |---|---|
@@ -92,21 +95,24 @@ A `FixedParameter` uncertainty is report metadata, never an objective term; see
 
 | Keyword | Default | Contract |
 |---|---:|---|
-| `solver` | `nothing` | Optional [`OptimizationSolver`](@ref) or [`NativeMinuitSolver`](@ref); leave legacy `backend`/`optimizer` at `:auto`. |
+| `solver` | `nothing` | `nothing` selects the backend automatically (see [Backend Design](backend_design.md)). Explicit choices: [`OptimizationSolver`](@ref)`(algorithm)`, [`NativeMinuitSolver`](@ref)`()`, or a shorthand `:lbfgs`, `:ipnewton`, `:nelder_mead`. |
 | `maxiters` | `500` for `fit_model`, `1000` for likelihood wrappers | Positive per-candidate budget: iterations for LsqFit/Optim, objective calls for NLopt/NativeMinuit. |
-| `tol` | `1e-10`, or `1e-6` with `derivatives=:finite` | Positive solver-specific stopping tolerance, not a statistical error; see [Solver Adapters](api_fitting.md#Solver-Adapters). |
+| `tol` | `nothing` → [`default_fit_tolerance`](@ref) | Positive solver-specific stopping tolerance, not a statistical error: `1e-10` for LsqFit/Optimization (`1e-6` with `derivatives=:finite`), EDM `0.1` for NativeMinuit; see [Solver Adapters](api_fitting.md#Solver-Adapters). |
+| `derivatives` | `:auto` | `:auto` or `:finite`; finite differencing for models that cannot evaluate dual numbers, see [`FitProblem`](@ref). |
 | `initial_guesses` | `nothing` | Additional complete starting vectors. |
-| `multistart` | `1` | Total candidate budget including `p0`. Additional `initial_guesses` are tried next, then deterministic candidates from bounds or scaled `p0` where available. Set this above 1 to use additional starts. |
+| `multistart` | `1` | Total candidate budget including `p0`. Explicit `initial_guesses` are always tried, even at the default; values above `1 + length(initial_guesses)` add deterministic generated candidates (bound midpoints and quartiles, or scaled `p0`). |
 
 `fit_model` additionally accepts:
 
 | Keyword | Default | Contract |
 |---|---:|---|
-| `backend` | `:auto` | `:auto`, `:lsqfit`, or `:optimization`. |
 | `cost` | `:auto` | `:chi2` or full `:gaussian_likelihood` on the ``-2\log L`` scale; `:auto` uses the latter for parameter-dependent covariance. |
 | `scale_covariance` | `:auto` | `:auto`, `:always`, or `:never`; see [Parameter Covariance](@ref parameter-covariance-reference). |
 | `jacobian` | `nothing` | Analytic model Jacobian, allocating or in-place according to `inplace`. |
-| `x_derivative` | `nothing` | Vector ``\partial f/\partial x`` for efficient x-uncertainty propagation. |
+| `x_derivative` | `nothing` | Function `(x, p) -> dy_dx` returning the model derivative ``\partial f/\partial x`` at every observation (one value per point); replaces the default per-point AD path for x-uncertainty propagation. |
+
+The likelihood wrappers accept `parameter_covariance` (`:auto`, `:hessian`,
+`:none`) in place of `scale_covariance`; see [Fitting](api_fitting.md).
 
 Automatic backend routing is specified in
 [Backend Design](backend_design.md); `result.backend` records the choice.

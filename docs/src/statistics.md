@@ -23,8 +23,10 @@ For a static Gaussian covariance the optimizer may minimize only ``\chi^2``,
 because the omitted normalization is constant in the parameters. The two
 quantities stay separate in the result: `stats.cost_min` is the objective that
 was minimized, while `stats.minus2loglik_min` also includes the Gaussian
-normalization ``n\log(2\pi)+\log\det V`` and normalized auxiliary terms. They
-have the same minimizer only while the covariance is parameter-independent.
+normalization ``n\log(2\pi)+\log\det V`` — where ``n`` is the number of
+observations and ``V`` their covariance — and normalized auxiliary terms (see
+[External Parameter Information](@ref)). They have the same minimizer only
+while the covariance is parameter-independent.
 
 ## Residuals And Pulls
 
@@ -45,12 +47,14 @@ z_i=\frac{d_i-m_i(\theta)}{\sigma_i}.
 
 Under a correct model these fluctuate around zero with scale near one and no
 visible structure. At the fitted parameters they are not independent
-``\mathcal N(0,1)`` draws: estimating parameters projects out fitted
-directions, and pointwise leverage changes their variance. Use pull plots to
+``\mathcal N(0,1)`` draws: the fit has already used the data to place the
+curve, so the residuals are slightly smaller and mutually correlated, most
+strongly at points that pull hardest on the fit. Use pull plots to
 localize problems; the goodness-of-fit test is separate. With a non-diagonal
-covariance, whitened residual components no longer correspond to individual
-data points, so the order- and position-based residual diagnostics apply only
-to diagonal covariance.
+covariance, whitened residual components (see
+[Correlated Measurements And Whitening](@ref)) no longer correspond to
+individual data points, so the order- and position-based residual diagnostics
+apply only to diagonal covariance.
 
 ## Gaussian Least Squares
 
@@ -222,12 +226,16 @@ minimizer coincides with least squares. If ``V`` changes with ``\theta``, the
 determinant term changes the optimum and must not be dropped: a model whose
 uncertainty is a fraction of its prediction would otherwise be rewarded for
 inflating its own error bars. `cost=:auto` selects `:gaussian_likelihood`
-exactly when the covariance is parameter-dependent — effective x-uncertainty
-propagation and active model-relative uncertainty components.
+exactly when the covariance is parameter-dependent, which happens in two
+cases: x uncertainties propagated through the model slope (next section) and
+active error components whose size scales with the fitted prediction
+(`mode=:model_relative`).
 
 ## Uncertainty In X
 
-For ``y=f(x,\theta)``, first-order propagation of x uncertainty gives
+For ``y=f(x,\theta)`` with y-measurement covariance ``V_y`` and covariance
+``V_x`` of the measured x values, first-order propagation of x uncertainty
+gives
 
 ```math
 V_\mathrm{eff}(\theta)
@@ -266,14 +274,16 @@ Classical effective-variance fitting (York, Orear, `scipy.odr`, kafe2)
 minimizes only the quadratic form and omits the ``\log\det V_\mathrm{eff}``
 term. ScientificFitting keeps it, because the effective covariance depends on
 the parameters. The two conventions therefore give reproducibly different —
-though close — results: in a Monte-Carlo check on ``y=A e^{-x/\tau}``
-(``n=25``, ``\sigma_x=0.15``, 3000 replications) both estimators stayed within
-1% bias of the truth, with neither systematically better, and the exact
-errors-in-variables profile likelihood between them. With ``\sigma_x`` but no
-``\sigma_y``, the determinant term is required: without it the objective is
-scale-invariant in the slope and the problem is unbounded. Expect small,
-reproducible differences when cross-checking against ODR-convention tools; see
-[Migrating](migration.md).
+though close — results; Monte-Carlo checks found neither estimator
+systematically better, with the exact errors-in-variables profile likelihood
+between the two. With ``\sigma_x`` but no ``\sigma_y`` the entire effective
+covariance is parameter-dependent, so the determinant term is no longer an
+additive constant and the two conventions differ most visibly. For a straight
+line, minimizing the quadratic form alone reduces to the weighted
+least-squares regression of x on y — the exact likelihood of the functional
+errors-in-variables model in this limit — while the retained determinant term
+shifts the slope by a small, reproducible amount. Expect such differences when
+cross-checking against ODR-convention tools; see [Migrating](migration.md).
 
 ## External Parameter Information
 
@@ -392,6 +402,14 @@ C(\hat\theta)
 \frac{2}{C''(\hat\theta)}.
 ```
 
+Here ``\sigma_\theta`` is the standard error of ``\hat\theta``: a Gaussian
+estimate ``\hat\theta\sim\mathcal N(\theta,\sigma_\theta^2)`` has, up to an
+additive constant,
+``C(\hat\theta+\delta)-C(\hat\theta)=(\delta/\sigma_\theta)^2`` — one unit per
+standard error, the same structure as the Gaussian data term above — and
+matching this to the quadratic term identifies
+``\tfrac12 C''(\hat\theta)=1/\sigma_\theta^2``.
+
 For several Gaussian-fit parameters, let ``W`` whiten the observations and
 define the weighted model Jacobian
 ``(J_w)_{ij}=\left[W\,\partial m/\partial\theta_j\right]_i``. Near the
@@ -404,8 +422,10 @@ solution ``z(\hat\theta+\delta)\approx z(\hat\theta)-J_w\delta``, so
 +\delta^T J_w^T J_w\delta,
 ```
 
-the linear term vanishes at the optimum, and comparison with
-``\Delta\chi^2\approx\delta^T\operatorname{Cov}(\hat\theta)^{-1}\delta`` gives
+the linear term vanishes at the optimum, and the multivariate form of the
+same matching — a Gaussian estimate with covariance
+``\operatorname{Cov}(\hat\theta)`` has
+``\Delta\chi^2=\delta^T\operatorname{Cov}(\hat\theta)^{-1}\delta`` — gives
 
 ```math
 \operatorname{Cov}(\hat\theta)
@@ -511,6 +531,7 @@ and the upper-triangle correlation as a pointer to pairs worth checking.
 
 ```julia
 interval = profile_interval(result, 1; threshold=1.0)
+# Qualified because Makie also exports `contour`.
 pair = ScientificFitting.contour(result, 1, 2; levels=[2.30, 6.18], adaptive=true)
 matrix = profile_matrix(result; parameters=[1, 2, 3], adaptive=true)
 
@@ -526,8 +547,9 @@ complete workflow.
 ## Observation Likelihoods
 
 Counts, histogram bins, and individual events carry their own sampling
-process. For independent observations with normalized density or mass
-``q_i(y_i\mid f(x_i,p),p)``, the cost is
+process. Writing ``p`` for the parameter vector ``\theta``, matching the
+callback argument in the code, the cost for independent observations with
+normalized density or mass ``q_i(y_i\mid f(x_i,p),p)`` is
 
 ```math
 C(p)=-2\sum_i\log q_i(y_i\mid f(x_i,p),p).
@@ -560,16 +582,19 @@ fabricated. Profiles still evaluate the actual cost over explicit `values`.
 ### A Moving Support Boundary
 
 For a trigger time ``\mu`` followed by exponential delays of known scale
-``b`` (``Y_i=\mu+E_i``), the likelihood is zero for ``\mu>\min_i y_i`` and
-within its support
+``b`` (``Y_i=\mu+E_i``, density ``q(y\mid\mu)=e^{-(y-\mu)/b}/b`` for
+``y\ge\mu``), the likelihood is zero for ``\mu>\min_i y_i`` and within its
+support
 
 ```math
 \hat\mu=\min_i y_i,\qquad
 \Delta C(\mu)=\frac{2n}{b}(\hat\mu-\mu),\quad\mu\le\hat\mu.
 ```
 
-There is no parabolic minimum, and ``\hat\mu-\mu`` is exponential with rate
-``n/b``: the interval ``[\hat\mu-db/(2n),\hat\mu]`` covers with probability
+There is no parabolic minimum, and since ``\hat\mu-\mu=\min_i E_i`` with
+``P(\min_i E_i>t)=P(E_1>t)^n=e^{-nt/b}``, the gap ``\hat\mu-\mu`` is
+exponential with rate ``n/b``: the interval ``[\hat\mu-db/(2n),\hat\mu]``
+covers with probability
 ``1-e^{-d/2}``, so the usual ``d=1`` threshold covers only **39.3%**. For
 68.3% use ``d=-2\log(1-0.683)``. This is a property of the sampling model;
 non-regular likelihoods need their own calibration.
@@ -595,13 +620,15 @@ The factorial term is constant for optimization but keeps likelihood values
 and information criteria on a defined scale. A zero-count bin is not a
 zero-uncertainty measurement: with ``n=0`` and ``\mu=0.5`` it contributes a
 finite cost and a deviance of ``1``, where the Gaussian shortcut
-``\sigma=\sqrt n`` breaks down. For histogram fits, integrate the density over
-each bin,
+``\sigma=\sqrt n`` breaks down. For histogram fits with bin edges
+``e_1 < e_2 < \dots`` and expected total event count ``N`` (the `total_count`
+keyword of `fit_histogram_density`, default `sum(counts)`), integrate the
+density over each bin,
 
 ```math
 \mu_i(\theta)
 =
-N\int_{b_i}^{b_{i+1}} f(x\mid\theta)\,dx
+N\int_{e_i}^{e_{i+1}} f(x\mid\theta)\,dx
 ```
 
 (`fit_histogram_density` integrates; `fit_histogram_model` takes expected
@@ -642,6 +669,11 @@ C_\mathrm{ext}(\theta)
 -2\sum_{i=1}^{n}\log\lambda(x_i\mid\theta).
 ```
 
+The constant ``2\log n!`` of the Poisson factor is omitted; ``n`` is fixed by
+the data, so comparisons among extended fits of the same events are
+unaffected, but do not compare this value against a binned Poisson cost, which
+retains its factorial terms.
+
 `fit_unbinned_model` uses the density; `fit_extended_unbinned_model`
 integrates the intensity over the declared domain. Acceptance, truncation,
 resolution, and selection must appear in ``f`` or ``\lambda``.
@@ -663,10 +695,12 @@ For ``k`` fitted parameters and maximized normalized likelihood ``L_{\max}``,
 
 Smaller is preferred within a valid comparison. Without observation
 uncertainties, the profiled ``\hat\sigma`` counts toward ``k`` (see
-[Unknown Residual Scale](@ref)). `nobs` supplies ``n``, including Gaussian
-auxiliary dimensions; for strongly correlated data there may be no unique
-effective sample size, so state what ``n`` means before using BIC as
-evidence. Compare only candidates that share the observations, the likelihood
+[Unknown Residual Scale](@ref)). ``n`` is the number of observations plus one
+dimension per Gaussian auxiliary term; likelihood fits take the observation
+count from the `nobs` keyword and add the auxiliary dimensions themselves.
+For strongly correlated data there may be no unique effective sample size, so
+state what ``n`` means before using BIC as evidence. Compare only candidates
+that share the observations, the likelihood
 normalization, the treatment of auxiliary information, and the definitions of
 ``n`` and ``k``. When Gaussian terms are read as priors, ordinary AIC/BIC lose
 their maximum-likelihood interpretation. A lower criterion prefers one
@@ -694,4 +728,4 @@ A reproducible result states:
 - [Baker and Cousins](https://doi.org/10.1016/0167-5087(84)90016-4) — chi-square and likelihood functions for histogram fits.
 - [Wilks](https://doi.org/10.1214/aoms/1177732360) — the theorem behind the profile thresholds.
 - [Akaike](https://doi.org/10.1109/TAC.1974.1100705) — the information criterion.
-- [York](https://doi.org/10.1016/0012-821X(66)90056-6) — the classical effective-variance line fit this package generalizes.
+- [York](https://doi.org/10.1139/p66-090) — the classical effective-variance line fit this package generalizes.

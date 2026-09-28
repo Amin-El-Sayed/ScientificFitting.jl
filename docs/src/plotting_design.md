@@ -68,7 +68,7 @@ res_fig = plot_residuals(result; style=project_style)
 
 ## Reports, Legends, And Panels
 
-The one-call interface uses independent switches:
+Report, panel, and legend are independent switches:
 
 - `show_panel=true` includes the numerical result panel in the figure;
 - `print_report=true` prints `report_text(result)` to the terminal;
@@ -92,30 +92,35 @@ the same left-aligned panel; with `stats_position=:inside`, `legend_position`
 and `inside_stats_position` set the in-axis locations. `show_panel=false`
 removes the panel.
 
-The sans style defaults to `(1040, 640)` with a right-side panel and
-`(860, 560)` without one; the TeX style uses `(1000, 640)` and `(760, 520)`.
+The `:sans` theme preset (the default; see Two Visual Styles below) uses a
+`(1040, 640)` logical-pixel canvas with a right-side panel and `(860, 560)`
+without one; `:tex` uses `(1000, 640)` and `(760, 520)`.
 `style=FitPlotStyle(figure_size=(width, height))` requests a minimum logical
 canvas: a request too small for the measured legends, labels, and panel
 content grows rather than clips, and extra width goes to the flexible data
 axis once the panel has its natural width.
 
-`stats_panel_width=:auto` uses that natural width; a numeric value sets the
-preferred wrapping width for plain text. Legends and unbreakable TeX
-expressions may widen the panel.
+`stats_panel_width=:auto` uses that natural width; a value above 1 sets the
+preferred wrapping width in logical pixels, and a value in (0, 1] is a
+fraction of the figure width, clamped to 300–560 px. Legends and unbreakable
+TeX expressions may widen the panel.
 
 ## Two Visual Styles
 
 A theme describes visual properties only; it never changes data, fit,
-uncertainty band, statistics, or whether a panel is present. Diagnostic
-status labels are controlled separately through `panel_status_mode`.
+uncertainty band, statistics, or whether a panel is present. Warning labels
+on diagnostic figures are controlled separately through the diagnostic plot
+functions' `panel_status_mode` keyword (`:issues`, `:all`, or `:none`; see
+[the diagnostics API](api_plotting_diagnostics.md)).
 
-- `theme=:sans` is the default: Makie's direct line-and-band grammar with
-  sans-serif type, neutral filled observations, a saturated blue fit, visible
-  guides, strong open axes, and a left-aligned title.
-- `theme=:tex` is a documented delta over `:sans`: TeX typography, a full
-  axis frame with inward ticks and no grid, hollow observations, and the
-  print-safe Okabe-Ito blue/vermillion pair when multiple curves require
-  color.
+- `theme=:sans` is the default: sans-serif type, neutral filled
+  observations, a saturated blue fit, visible grid guides, open axes (no top
+  or right frame line), and a left-aligned title.
+- `theme=:tex` differs from `:sans` only in the following: TeX typography, a
+  full axis frame with inward ticks and no grid, hollow observations, and
+  the blue/vermillion pair from the Okabe-Ito palette (designed to stay
+  distinguishable in print and for color-vision deficiency) when multiple
+  curves require color.
 
 ```@raw html
 <div class="scientificfitting-gallery-grid scientificfitting-style-grid">
@@ -149,10 +154,20 @@ plot_fit(
 )
 ```
 
-Plain strings stay text even under LaTeX typography; pass a `LaTeXString`,
-such as `L"\nu"`, when a label contains mathematical symbols.
-`latex_stats=true` applies to the structured right-side panel; the compact
-in-axis text box stays plain text.
+Under TeX typography alone (`latex_labels=false`), plain strings are passed
+through unchanged. With `latex_labels=true`, a plain string containing `\`,
+`^`, or `_` is interpreted as TeX math; other strings render as upright
+text. Pass a `LaTeXString`, such as `L"\nu"`, whenever a label contains
+mathematical symbols, to make the intent explicit.
+
+`latex_stats=true` applies to the structured right-side panel only; the
+in-axis text box renders plain text, and combining `latex_stats=true` with
+`stats_position=:inside` raises an `ArgumentError`.
+
+Use `:sans` and `:tex` in new code. The former screen-oriented names
+`:analysis`, `:presentation`, `:screen`, `:lab`, `:workbench`, `:modern`,
+`:clean`, `:minimal`, and `:showcase` resolve to `:sans`; `:article`,
+`:publication`, `:paper`, and `:latex` resolve to `:tex`.
 
 ## Figure Size Is Not Resolution
 
@@ -167,19 +182,17 @@ save("fit.png", fig; px_per_unit=2)  # sharper raster, unchanged layout
 save("fit.svg", fig)                 # vector output for scalable documents
 ```
 
-Use `:sans` and `:tex` in new code. The former screen-oriented names
-`:analysis`, `:presentation`, `:screen`, `:lab`, `:workbench`, `:modern`,
-`:clean`, `:minimal`, and `:showcase` resolve to `:sans`; `:article`,
-`:publication`, `:paper`, and `:latex` resolve to `:tex`.
-
 ## State What The Band Means
 
 `plot_fit` defaults to a one-sigma confidence band:
 
 - `band=:confidence` propagates the local parameter covariance to the fitted
   mean curve;
-- `band=:prediction` adds the observation uncertainty in y and the effective x
-  uncertainty, answering where a new measurement may land;
+- `band=:prediction` adds the observation uncertainty in y and the x
+  uncertainty converted to y through the local model slope (contribution
+  ``(\sigma_x\,|df/dx|)^2``; see
+  [Uncertainty In X](statistics.md#Uncertainty-In-X)), answering where a new
+  measurement may land;
 - `band=:none` hides the band;
 - `nsigma` multiplies the displayed standard-deviation scale.
 
@@ -199,11 +212,15 @@ plot_fit(
 
 The band comes from
 [local covariance propagation](statistics.md#Local-Parameter-Covariance), so
-`nsigma=2` is not exact 95% coverage for a nonlinear, bounded, or
-non-Gaussian fit; for asymmetric profiles or non-elliptic contours, report
+the nominal coverage (95.45% at `nsigma=2`) holds only approximately for a
+nonlinear, bounded, or non-Gaussian fit; for asymmetric profiles or
+non-elliptic contours, report
 [profile-based intervals](statistics.md#Profiles-And-Contours) instead.
 
-A matrix-free `WhiteningOperator` must provide `marginal_sigma` before
+A matrix-free [`WhiteningOperator`](@ref) (a covariance supplied as an
+operator instead of a matrix; see
+[Structured Whitening](statistics.md#Structured-Whitening)) must provide
+per-point standard deviations via its `marginal_sigma` field before
 `band=:prediction` can draw pointwise observation uncertainty; without it,
 use `band=:confidence`.
 
@@ -224,8 +241,9 @@ fractional breathing room. With `auto_limits=false` and manual Makie limits
 that extend the model domain, pass a matching `xgrid`; the plotting layer
 does not infer a new sampling grid from Makie axis attributes.
 
-Leave `plot_aspect` unset unless equal or prescribed axis geometry carries
-scientific meaning.
+`plot_aspect` fixes the axis width-to-height ratio (Makie `AxisAspect`;
+`plot_aspect=1` gives a square axis). Leave it unset unless equal or
+prescribed axis geometry carries scientific meaning.
 
 ## Customize Through Makie, Not Around It
 
@@ -335,8 +353,9 @@ already define the vertical hierarchy.
 
 Diagnostic plots — `plot_residuals`, `plot_diagnostics`, `plot_profile`,
 `plot_contour`, and `plot_profile_matrix` — use the same `theme` and
-`appearance` contract; which figure answers which question is the
-[Choose A Figure](api_plotting_diagnostics.md#Choose-A-Figure) table.
+`appearance` contract; the
+[Choose A Figure](api_plotting_diagnostics.md#Choose-A-Figure) table lists
+which figure answers which question.
 
 Single-profile and contour legends default to `legend_position=:below`,
 keeping the full content width even when confidence labels are descriptive;

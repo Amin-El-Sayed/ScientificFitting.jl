@@ -18,6 +18,7 @@ the stopping-voltage excess measures the maximum kinetic energy:
 ```math
 e\,[U_\mathrm{emit}(\nu)-U_\mathrm{base}(\nu)]
 = h(\nu-\nu_0),
+\qquad \nu \ge \nu_0,
 \qquad
 \Phi=h\nu_0.
 ```
@@ -31,8 +32,15 @@ function ``\Phi`` from the threshold energy, and the threshold frequency
 This is a controlled teaching dataset, not archival experimental data. The
 columns are frequency, stopping voltage, and individual standard uncertainties
 in both quantities: eight points resolve the baseline below the transition,
-ten the emission regime. The uncertainties are heteroskedastic because
-frequency calibration and voltage readout precision change across the scan.
+ten the emission regime. The uncertainties differ from point to point
+(heteroskedastic) because frequency calibration and voltage readout precision
+change across the scan.
+
+Below the threshold no photoelectrons are emitted, so no stopping voltage
+exists there in the strict sense; the voltage recorded in that regime is the
+zero-current readout of the measurement chain (offset and drift). That is why
+those eight points enter the fit as an instrument baseline instead of being
+forced to zero.
 
 The regime assignment is an experimental decision made before the fit, not an
 opportunistic choice of whichever line a transition-region point happens to
@@ -79,7 +87,9 @@ lines would let the same voltage noise move the intersection by a large
 amount; the covariance matrices of both fitted lines are propagated through
 this formula.
 
-The work function follows from the threshold photon energy:
+The work function follows from the threshold photon energy: since
+``\Phi = h\nu_0`` and ``h = 10^{-12}\,e\,m_\gamma``, the factors of ``e`` and
+``10^{12}`` cancel when ``\Phi`` is expressed in eV and ``\nu_0`` in THz:
 
 ```math
 \Phi[\mathrm{eV}] = m_\gamma[\mathrm{V/THz}]\,
@@ -88,8 +98,16 @@ The work function follows from the threshold photon energy:
 
 ## Fit
 
-The plot in the next section is constructed from the same two `FitResult`s;
-no refit occurs during rendering.
+The plot in the Plot Construction section below is constructed from the same
+two `FitResult`s; no refit occurs during rendering.
+
+The start values come from the physics: for a nearly flat baseline the
+expected emission slope is ``10^{12}h/e \approx 4.1\times10^{-3}\,\mathrm{V/THz}``,
+so `p0` starts the emission slope at `0.0042`; the baseline starts at zero
+slope for the same reason. No bounds are set — the fit reaches the same
+minimum even from a flat-slope start, and a fit that ends on an active bound
+would make the local covariance unreliable (see
+[Fixed Parameters And Bounds](../statistics.md#Fixed-Parameters-And-Bounds)).
 
 ```julia
 using ScientificFitting
@@ -131,7 +149,6 @@ emission = fit_model(
     p0=[0.0042, 0.02],
     sigma_y=sigma_voltage_V[emission_mask],
     sigma_x=sigma_frequency_THz[emission_mask],
-    bounds=([0.0, -5.0], [0.02, 5.0]),
 )
 
 me, ce = emission.params
@@ -212,6 +229,18 @@ covariances are retained in full when computing ``\nu_0`` and ``\Phi``, and a
 quiet dashboard would not justify dropping slope-intercept correlation
 either.
 
+The warning names its own check: plot the pulls in acquisition order. Doing
+that here shows no trend, no drift, and no cluster of same-sign residuals;
+the flag comes from the lag-1 autocorrelation of the pulls, which is negative
+— neighboring residuals alternate in sign slightly more often than chance
+predicts, just past the 2σ threshold of that check. A drift or a missing
+systematic would produce the opposite signature, positive autocorrelation
+with runs of same-sign residuals, so the suggested fixes do not apply. With
+ten points, one check slightly past its threshold is accepted as a false
+alarm, and the propagated uncertainties are quoted as they stand. With real
+data, repeat this inspection against the acquisition log before quoting
+them.
+
 ## Interpretation
 
 The fitted quantities are
@@ -237,8 +266,8 @@ propagation, not the SI constant or a particular photocathode material.
 
 The numerical work is already in `baseline`, `emission`, and the propagated
 intersection quantities; the figure layers experiment-specific Makie
-annotations on top of ScientificFitting's style contract and information
-panel. This is the intended lab-notebook pattern: fit once, keep the
+annotations on top of ScientificFitting's plot theme, palette, and
+information panel. This is the intended lab-notebook pattern: fit once, keep the
 `FitResult`s, then add annotations such as the threshold, an accepted region,
 or a literature line.
 
@@ -342,8 +371,12 @@ V_\mathrm{emit} & 0 \\
 \end{pmatrix}.
 ```
 
-For ``D=m_\gamma`` and ``x_0=\nu_0-\nu_\mathrm{ref}``, the threshold gradients
-with respect to the centered line parameters ``(m,c)`` are:
+For ``D=m_\gamma`` and ``x_0=\nu_0-\nu_\mathrm{ref}``, differentiating
+``\nu_0=\nu_\mathrm{ref}+(c_\mathrm{base}-c_\mathrm{emit})/D`` with respect
+to each of the four line parameters, with
+``\partial D/\partial m_\mathrm{emit}=1`` and
+``\partial D/\partial m_\mathrm{base}=-1``, gives the threshold gradients
+with respect to the centered line parameters ``(m,c)``:
 
 ```math
 \nabla_\mathrm{emit}\nu_0 =
@@ -387,8 +420,11 @@ slope.
 
 The vertical shaded interval is the propagated 1σ uncertainty of the line
 intersection — not the width of the physical transition and not a prediction
-interval for future observations. Horizontal and vertical error bars show the
-individual measurement uncertainties.
+interval for future observations. The shaded band along each fitted line is
+the 1σ uncertainty of the fitted mean line, propagated from the parameter
+covariance; it excludes new-observation noise and is narrower than a
+prediction band. Horizontal and vertical error bars show the individual
+measurement uncertainties.
 
 ## Diagnostics
 
@@ -396,7 +432,9 @@ First checks for this workflow:
 
 - ``\chi^2/\mathrm{ndf}`` should be of order one if the linear model and
   uncertainties are realistic
-  ([Goodness Of Fit](../statistics.md#Goodness-Of-Fit)).
+  ([Goodness Of Fit](../statistics.md#Goodness-Of-Fit)); the info panel in
+  the figure reports 0.8713 for the baseline fit and 0.8357 for the emission
+  fit.
 - Residuals within either regime should not bend systematically; curvature would
   signal contact potentials, wavelength calibration errors, or a bad threshold
   selection.
@@ -424,4 +462,4 @@ scientific report.
 
 Next useful pages: [XY Uncertainties](@ref),
 [Constraints and Profiles](@ref), and
-[Parameters and Fit Quality](../statistics.md#External-Parameter-Information).
+[External Parameter Information](../statistics.md#External-Parameter-Information).

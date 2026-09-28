@@ -63,7 +63,7 @@ and plots then read the fitted result instead of reconstructing the analysis.
           <div class="scientificfitting-fit-node"><code>LsqFit</code> fast path <span>static, unconstrained Gaussian least squares</span></div>
           <div class="scientificfitting-fit-node"><code>Optimization.jl</code> path <span>bounds, parameter-dependent uncertainty, priors, constraints, and likelihoods</span></div>
         </div>
-        <div class="scientificfitting-fit-note">Explicitly incompatible backend requests fail instead of silently dropping statistical terms.</div>
+        <div class="scientificfitting-fit-note">An explicitly requested solver that cannot represent the problem fails instead of silently dropping statistical terms.</div>
       </div>
     </section>
     <div class="scientificfitting-fit-arrow" aria-hidden="true">↓</div>
@@ -76,7 +76,7 @@ and plots then read the fitted result instead of reconstructing the analysis.
         <div class="scientificfitting-fit-branch">
           <div class="scientificfitting-fit-node">minimum and parameters <span>solver status and best-fit values</span></div>
           <div class="scientificfitting-fit-node">local uncertainty <span>Jacobian/Hessian covariance and correlations</span></div>
-          <div class="scientificfitting-fit-node">fit statistics <span>residuals, cost, ndf, p-value, AIC/BIC where meaningful</span></div>
+          <div class="scientificfitting-fit-node">fit statistics <span>residuals, cost, degrees of freedom (ndf), p-value, AIC/BIC where meaningful</span></div>
         </div>
         <div class="scientificfitting-fit-merge"><code>FitResult</code> or <code>LikelihoodFitResult</code></div>
       </div>
@@ -109,8 +109,10 @@ Every ordinary fit starts with four concepts:
 - **Model:** a Julia function that maps data coordinates and parameters to
   predictions.
 - **Uncertainty model:** `sigma_y`, `sigma_x`, dense/sparse covariance,
-  matrix-free static whitening, named error components, Poisson counts,
-  histogram likelihoods, or custom objectives.
+  matrix-free static whitening (a parameter-independent covariance applied as
+  a linear operation, never stored as a matrix; see the
+  [Glossary](glossary.md)), named error components, Poisson counts, histogram
+  likelihoods, or custom objectives.
 - **Parameter control:** starting values, bounds, fixed parameters, priors, and
   Gaussian parameter constraints.
 
@@ -140,13 +142,18 @@ sparse covariance, or a matrix-free `WhiteningOperator` — becomes one whitened
 residual cost; the derivation and worked examples are in
 [Correlated Measurements And Whitening](statistics.md#Correlated-Measurements-And-Whitening).
 
-Likelihood fits minimize the appropriate ``-2\log L`` objective or deviance on
+Likelihood fits minimize the appropriate ``-2\log L`` objective or
+[deviance](statistics.md#Poisson-Counts-And-Histograms) on
 the scale fixed by [The Cost Convention](statistics.md#The-Cost-Convention);
 Poisson and histogram workflows do not invent Gaussian error bars for low
 counts.
 
-Backend dispatch (stage 04) follows from the problem; an explicitly requested
-incompatible backend fails before optimization.
+Backend dispatch (stage 04) follows from the problem: with the default
+`solver=nothing`, `fit` picks the least-squares or scalar-minimization backend
+automatically. An explicitly passed `solver` that cannot represent the
+problem — parameter bounds or nonlinear constraints it does not support —
+fails with an error before optimization instead of silently dropping those
+terms.
 
 ## What A `FitResult` Contains
 
@@ -201,5 +208,5 @@ nuisance-parameter refit and its thresholds. When a profile is not parabolic,
 or a contour does not resemble the local covariance ellipse, report profile
 intervals or contour regions instead of symmetric local errors.
 
-Next useful pages: [Quickstart](@ref), the [worked examples](gallery.md), and
-the [Statistics Reference](statistics.md).
+Next useful pages: [Quickstart](@ref), the [worked examples](gallery.md), the
+[Statistics Reference](statistics.md), and the [Glossary](glossary.md).

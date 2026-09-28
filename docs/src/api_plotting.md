@@ -18,7 +18,7 @@ Without `using CairoMakie`, every plotting entry point raises an
 | Fit arrays and plot immediately | [`fitplot`](@ref) | `(result, figure)` | yes |
 | Plot an existing x-y fit | [`plot_fit`](@ref) | `Figure` | no |
 | Add content to the data axis | [`fit_axis`](@ref), `add_*!` | `Axis` or Makie plot object | no |
-| Compose a custom themed figure | [`plot_theme`](@ref), [`plot_palette`](@ref), [`plot_info_panel!`](@ref), [`resize_plot_to_layout!`](@ref) | themed layout blocks or a fitted `Figure` | no |
+| Compose a custom themed figure | [`plot_theme`](@ref), [`plot_palette`](@ref), [`plot_info_panel!`](@ref), [`resize_plot_to_layout!`](@ref) | `Theme`, token `NamedTuple`, `GridLayout`, or the resized `Figure` | no |
 
 Complete composition examples live in
 [Plotting And Customization](plotting_design.md); this page is the argument
@@ -92,10 +92,10 @@ maintained names. Unknown styles and appearances raise `ArgumentError`.
 | `title` | `nothing` | Figure title; `nothing` produces no title. |
 | `model_label` | automatic for the built-in line | Model expression shown in the right panel. |
 | `xlabel`, `ylabel` | `"x"`, `"y"` | Axis quantity labels. |
-| `xunit`, `yunit` | `nothing` | Appended in SI quantity-calculus form as `label / unit`; units are never inferred. |
+| `xunit`, `yunit` | `nothing` | Appended as `label / unit` (quantity-calculus notation: a tick value 2 on an axis labeled `t / s` means t = 2 s); units are never inferred. |
 | `latex_labels` | `false` | Convert suitable labels to Makie `LaTeXString` content. Pass explicit `L"..."` strings for mathematical notation. |
 | `xgrid` | `nothing` | Explicit finite model-sampling coordinates; authoritative when supplied. |
-| `fit_range` | `:axis` | `:axis` samples over padded visible x limits; `:data` samples from the first to last measured x. |
+| `fit_range` | `:axis` | `:axis` samples the data x range extended by `limit_padding`; `:data` samples from the smallest to the largest measured x. |
 | `auto_limits` | `true` | Include data, errors, model, and displayed band in both axis limits. |
 | `limit_padding` | `0.08` | Finite non-negative fractional padding around automatic content limits. |
 | `plot_aspect` | `nothing` | Optional numeric `AxisAspect`; leave unset unless geometry carries meaning. |
@@ -111,7 +111,7 @@ model; pass a matching `xgrid` for intentional extrapolation.
 |---|---:|---|
 | `band` | `:confidence` | `:confidence`, `:prediction`, or `:none`. |
 | `nsigma` | `1.0` | Finite positive multiplier for the displayed standard-deviation scale. |
-| `band_label` | `"1-sigma band"` | Legend text; update it whenever `nsigma` or the band meaning changes. |
+| `band_label` | `nothing` | Legend text. `nothing` derives `"<nsigma>-sigma band"` from `nsigma`, e.g. `"2-sigma band"` for `nsigma=2`. The derived label does not name the band type; set the label explicitly when the meaning should be named, e.g. `band_label="2-sigma prediction band"` with `band=:prediction`. |
 | `band_kwargs` | `NamedTuple()` | Makie `band!` attributes applied last. |
 
 Band color and opacity are the `band_color` and `band_alpha` fields of
@@ -132,13 +132,13 @@ and raises `ArgumentError` otherwise. `band=:confidence` remains available.
 |---|---:|---|
 | `show_panel` | `true` | Show the structured right panel or compact in-axis panel. Independent of visual style. |
 | `stats_position` | `:right` | `:right` or `:inside`. |
-| `inside_stats_position` | `:lt` | `:lt`, `:lb`, `:rt`, `:rb` and their long aliases. |
+| `inside_stats_position` | `:lt` | `:lt`/`:lefttop`, `:lb`/`:leftbottom`, `:rt`/`:righttop`, `:rb`/`:rightbottom`. |
 | `stats_panel_width` | `:auto` | Natural Makie width, a fraction `0 < w <= 1`, or a positive wrapping width. Fractions are clamped to 300--560 px; unbreakable TeX or legend content may expand the panel. |
 | `stats_mode` | `:compact` | `:compact` or `:full`. |
 | `stats_sigdigits` | `5` | Significant digits used only for displayed values. |
-| `parameter_names` | `nothing` | Display names; length must equal the number of fitted parameters. |
+| `parameter_names` | `nothing` | Display names; length must equal the total number of model parameters, including fixed ones (fixed parameters are marked `(fixed)` in the panel). |
 | `stats_title` | `nothing` | Optional title above the structured right panel. |
-| `latex_stats` | `false` | Render structured right-panel symbols and numbers as LaTeX. |
+| `latex_stats` | `false` | Render structured right-panel symbols and numbers as LaTeX; requires `stats_position=:right` (the inside box renders plain text and rejects the combination with `ArgumentError`). |
 | `show_legend` | `true` | Show data, fit, and band labels. With a right panel, the legend is placed above the report. |
 | `legend_position` | `:rt` | In-axis Makie legend position when no right-side panel owns the legend. |
 | `legend_kwargs` | `NamedTuple()` | Makie legend attributes applied last. |
@@ -148,8 +148,8 @@ Panel gap, panel text size, and the in-axis box background and border are the
 [`FitPlotStyle`](@ref).
 
 In the right panel, `stats_mode=:full` adds cost, AIC, and BIC to the compact
-parameter, chi-square, p-value, and ndf rows; the in-axis box gains the raw
-chi-square. AIC and BIC are displayed values; their comparison rules are in
+parameter, chi-square, chi-square/ndf, p-value, and ndf rows; the in-axis box
+gains the raw chi-square. AIC and BIC are displayed values; their comparison rules are in
 [Results And Diagnostics](api_results.md#Results-And-Diagnostics).
 
 ### Data, fit, and error-bar styling
@@ -278,8 +278,10 @@ down its text.
 | Failure | Result |
 |---|---|
 | CairoMakie extension not loaded | `ArgumentError` naming the required extension |
-| Invalid style, appearance, band, stats position, or fit range | `ArgumentError` |
+| Invalid style, appearance, band, stats position, stats mode, or fit range | `ArgumentError` |
+| `latex_stats=true` with `stats_position=:inside` | `ArgumentError` |
 | Non-positive/non-finite `nsigma` | `DomainError` |
+| Unordered band bounds or `n < 2` curve samples | `DomainError` |
 | Negative/non-finite `limit_padding` | `ArgumentError` |
 | Prediction band without matrix-free marginal errors | `ArgumentError` with the required remedy |
 | Wrong number of `parameter_names` | `DimensionMismatch` |

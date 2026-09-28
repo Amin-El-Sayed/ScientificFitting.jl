@@ -15,10 +15,10 @@ combinations are rejected.
 |---|---|---|
 | `sigma_y` | positive vector | Independent y standard deviations. |
 | `cov_y` | dense or sparse SPD matrix | Complete y covariance. Mutually exclusive with `sigma_y`. |
-| `sigma_x` | positive vector | Independent x standard deviations propagated through ``\partial f/\partial x``. |
+| `sigma_x` | positive vector | Independent x standard deviations propagated through the model derivative ``\partial f/\partial x``. |
 | `cov_x` | dense or sparse SPD matrix | Complete x covariance. Mutually exclusive with `sigma_x`. |
 | `error_components` | named [`ErrorComponent`](@ref)s | Additive absolute, relative, model-relative, or covariance contributions. |
-| `whitening` | [`WhiteningOperator`](@ref) | Complete static covariance represented by ``W^\mathsf{T}W=C^{-1}``. |
+| `whitening` | [`WhiteningOperator`](@ref) | Complete static covariance represented by ``W^\mathsf{T}W=C^{-1}``, where ``C`` is the observation covariance and ``W`` the operator applied to residuals. |
 
 `whitening` is exclusive with every other observation-uncertainty keyword: it
 already represents the complete covariance
@@ -48,8 +48,8 @@ ErrorComponent(:shared, :y, :covariance, covariance_matrix)
 
 Non-finite observations, non-positive standard deviations, invalid bounds, and
 non-positive-definite covariance matrices raise `ArgumentError` or
-`DomainError` before
-optimization.
+`DomainError` before optimization; length and shape mismatches raise
+`DimensionMismatch`.
 
 Multistart fits return the candidate with the lowest finite cost — convergence
 status only breaks exact ties — reported with its own `converged` flag;
@@ -73,7 +73,8 @@ costs on the ``-2\log L`` scale. Poisson and histogram fits fill `chi2`,
 and any fit with an exactly zero Poisson expectation, leave those fields `NaN`.
 
 `fit_indexed_model` and `fit_multi_model` minimize chi-square but omit
-additive Gaussian normalization constants, so their AIC/BIC compare only
+additive Gaussian normalization constants, so their
+[AIC/BIC](statistics.md#Model-Comparison-With-AIC-And-BIC) compare only
 models fit to the same observations with the same uncertainty model.
 
 | Entry point | Additional contract |
@@ -98,12 +99,13 @@ parameter priors and constraints contribute as in
 
 ### Minimization And Local Errors
 
-All likelihood helpers accept these independent controls; Gaussian `fit_model`
-uses `scale_covariance` instead.
+All likelihood helpers accept these independent controls. Gaussian `fit_model`
+accepts the same `solver` keyword but controls local errors with
+`scale_covariance` instead of `parameter_covariance`.
 
 | Keyword | Choices and behavior |
 |---|---|
-| `optimizer` | `:auto` selects LBFGS, or IPNewton for nonlinear constraints. Explicit `:lbfgs`, `:ipnewton`, and `:nelder_mead` are available. |
+| `solver` | `nothing` (default) selects LBFGS, or IPNewton when nonlinear constraints are present. Shorthands `:lbfgs`, `:ipnewton`, and `:nelder_mead`, or any `AbstractFitSolver` such as `OptimizationSolver(algorithm)` or `NativeMinuitSolver()`; see [Solver Adapters](#Solver-Adapters). |
 | `parameter_covariance` | `:auto` selects `:none` with derivative-free solvers, `:hessian` otherwise. `:hessian` requires a locally smooth cost; `:none` leaves free-parameter errors as `NaN` and preserves explicitly supplied fixed-parameter errors. |
 
 Nelder-Mead uses NLopt's native box bounds without numerical derivatives or a
@@ -119,6 +121,18 @@ parameter units accordingly; function-value stopping is disabled. Profiles
 preserve both controls; use explicit `values` grids when no local errors
 exist. [Non-regular likelihoods](statistics.md#Observation-Likelihoods) need
 more than a successful minimization to justify confidence intervals.
+
+After every converged fit through these solvers — all likelihood fits, and
+Gaussian `fit_model` fits not handled by the LsqFit backend — ScientificFitting
+recomputes ``g^{\mathsf T}\operatorname{Cov}(\hat p)\,g/4``, where ``g`` is a
+freshly computed gradient of the minimized cost at the returned parameters
+``\hat p``: on the ``-2\log L`` scale with ``\operatorname{Cov}=2H^{-1}``
+(``H`` the local cost Hessian), this is the quadratic estimate of the
+remaining cost decrease. If it exceeds `tol * max(|cost|, 1)`, the solver's
+convergence flag is rejected: `converged=false`, and the diagnostics report
+`not_stationary` with both the estimate and the applied limit. The check is
+skipped at active bounds, with nonlinear constraints, or without positive
+local curvature, and does not establish a global minimum.
 
 ```@docs
 ScientificFitting.fit(::ScientificFitting.LikelihoodFitProblem)
@@ -151,10 +165,11 @@ println(report_text(result))
 ```
 
 For binned events, pass edges and counts instead. The following example treats
-50 events as an independently known expected full-support yield, **not** a
-number estimated from the observed histogram, whose window may omit events; an
-estimated total needs a fitted yield parameter, not `total_count=sum(counts)`
-treated as known.
+50 as an expected event count known independently of this histogram, over the
+distribution's full support. Do **not** pass `total_count=sum(counts)`: the
+observed total is an estimate, and the histogram window may not cover all
+events. When the total must be estimated from the data, fit a yield parameter
+instead (for example with an `ExtendedMixtureModel`).
 
 ```@example distribution_bins
 using ScientificFitting, Distributions
@@ -200,8 +215,10 @@ from the corresponding Optimization.jl solver packages. For example:
 ```@example solver_choice
 using ScientificFitting, OptimizationOptimJL
 
-# Same data likelihood; only the numerical minimizer is selected here.
+# The objective is unchanged by the solver choice; only the numerical
+# minimizer differs.
 cost(p) = (p[1] - 2)^2 + (p[2] + 1)^2 / 4
+# nobs counts the statistically independent observations behind the cost.
 result = fit_custom(cost; p0=[0., 0.], nobs=10,
                     solver=OptimizationSolver(BFGS()))
 println(report_text(result))
@@ -215,8 +232,12 @@ bounds, fixed parameters, and all statistical parameter terms, but rejects
 nonlinear equality/inequality constraints.
 
 `steps` contains numerical initial step sizes in **full parameter order**, not
-measurement uncertainties. `tol` is Minuit's EDM tolerance, defaulting to
-`0.1`; `maxiters` is the requested MIGRAD function-call budget —
+measurement uncertainties. `tol` is Minuit's EDM tolerance, defaulting to the
+native `0.1`. The EDM (estimated distance to minimum) is MIGRAD's convergence
+measure: the predicted remaining decrease of the cost between the current
+point and the minimum of its local quadratic model; MIGRAD stops when the EDM
+falls below `0.002 * tol` on the `errordef=1` cost scale.
+`maxiters` is the requested MIGRAD function-call budget —
 gradient/covariance checks are additional. A failed or rejected attempt may
 restart once from the returned point within the remaining budget, with
 unchanged tolerance and strategy; diagnostics record the restart. Native
@@ -224,16 +245,16 @@ constructor options such as `strategy=2` are retained by profile refits. No
 solver setting changes the objective's ``\chi^2``/``-2\log L`` scale
 (`errordef=1`).
 
-For smooth interior fits with positive local covariance, SF also checks
-``g^{\mathsf T}\operatorname{Cov}(\hat p)g/4``: the estimated remaining cost
-decrease using a fresh gradient and SF's curvature. It follows Minuit's
-acceptance limit, ten times the nominal EDM goal ``0.002\,\mathrm{tol}``; a
-failed check sets `converged=false` and reports `not_stationary`. The check
-does not establish a global minimum and is not applied at active bounds, with
-nonlinear constraints, or without usable local curvature.
+For this solver, the stationarity check
+([Minimization And Local Errors](#Minimization-And-Local-Errors)) replaces the
+general limit with Minuit's own acceptance rule: ten times the nominal EDM
+goal ``0.002\,\mathrm{tol}``, i.e. ``0.02\,\mathrm{tol}``. The recomputed
+``g^{\mathsf T}\operatorname{Cov}(\hat p)\,g/4`` is this EDM, evaluated with a
+fresh gradient and ScientificFitting's own curvature.
 
 `result.solver_result.raw` exposes the native solver result — for
-NativeMinuit, the `Minuit` object for native HESSE/MINOS/contour operations.
+NativeMinuit, the `Minuit` object for native HESSE (curvature-based symmetric
+errors), MINOS (profile-based asymmetric intervals), and contour operations.
 Its vector order is `result.solver_result.parameter_indices`; parameters
 already fixed by ScientificFitting are absent, and mutating the object does
 not update the stored result. `param_covariance` keeps ScientificFitting's
@@ -242,7 +263,9 @@ parameter-limit flags: reaching a bound is not finding a likelihood-threshold
 crossing.
 
 Named likelihood problems carry their unique, nonempty `parameter_names` into
-the native object, including during reduced nuisance-parameter refits.
+the native object, including during profile refits, where the scanned
+parameter is fixed and the native object sees only the remaining free
+parameters.
 
 Third-party adapters implement `solver_capabilities` and `solve_fit`, and may
 specialize `default_fit_tolerance(solver, derivatives)`; the extension

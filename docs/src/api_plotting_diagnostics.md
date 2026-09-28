@@ -1,6 +1,9 @@
 # Diagnostic Plotting
 
 These functions visualize an existing fit result or a stored profile scan.
+`plot_residuals` and `plot_diagnostics` require a `FitResult` (x-y Gaussian
+fit); profile, contour, and profile-matrix plots accept scans from both
+`FitResult` and `LikelihoodFitResult`.
 
 ```julia
 using ScientificFitting
@@ -17,7 +20,8 @@ using CairoMakie
 | Is a parameter pair described by a covariance ellipse? | [`plot_contour`](@ref) | no |
 | Which parameters need closer inspection? | [`plot_profile_matrix`](@ref) | yes for a fit result; no for a stored matrix |
 
-All functions accept `theme=:sans` or `:tex`, `appearance=:light` or `:dark`,
+All functions accept `theme=:sans` or `:tex`, `appearance=:auto` (the
+default, currently resolving to `:light`), `:light`, or `:dark`,
 an optional `theme_override`, visual token overrides through the `style`
 keyword ([`FitPlotStyle`](@ref)), and the file output keywords `filename` and
 `format`.
@@ -29,14 +33,17 @@ plot_residuals(result; kind=:pull)
 plot_diagnostics(result)
 ```
 
+Here ``y_i`` is the measured value and ``f_i`` the fitted model value at
+``x_i``.
+
 | `kind` | Displayed value | Reference line |
 |---|---|---:|
 | `:residual` | ``y_i-f_i`` with available y errors | 0 |
 | `:pull` | weighted or whitened residual coordinate | 0 |
 | `:ratio` | ``y_i/f_i`` with propagated y-error ratio | 1 |
 
-With dense covariance, whitened coordinates are not pointwise pulls in the
-original measurement order
+With a non-diagonal covariance, whitened coordinates are not pointwise pulls
+in the original measurement order
 ([Residuals And Pulls](statistics.md#Residuals-And-Pulls)).
 
 Beyond the shared output and style keywords, both functions accept `xlabel`,
@@ -47,8 +54,13 @@ also accepts `reference_line_kwargs`.
 ## One-Parameter Profiles
 
 ```julia
+profile_result = profile(result, i)
 plot_profile(profile_result; local_sigma=result.param_stderr[i])
 ```
+
+Profile and contour scans are produced by [`profile`](@ref) and
+[`contour`](@ref ScientificFitting.contour)
+([Results And Diagnostics](api_results.md)).
 
 | Concern | Keywords |
 |---|---|
@@ -66,6 +78,7 @@ column.
 ## Two-Parameter Contours
 
 ```julia
+contour_result = contour(result, i, j)
 plot_contour(
     contour_result;
     local_covariance=result.param_covariance,
@@ -99,7 +112,9 @@ Its scan controls are `parameters`, `parameter_names`, `npoints_profile`,
 `max_refinements`, and `max_points`.
 
 Both methods accept `filename`, `format`, `theme`, `appearance`,
-`theme_override`, `style`, `panel_status_mode`, and `delta_max`.
+`theme_override`, `style`, `panel_status_mode`, and `delta_max`; the matrix
+method additionally accepts `parameter_names` to replace display labels
+without recomputing the scans.
 `panel_status_mode` is `:issues`, `:all`, or `:none` and controls labels
 independently of visual style.
 
@@ -110,7 +125,7 @@ independently of visual style.
 | CairoMakie extension not loaded | `ArgumentError` naming CairoMakie |
 | Unsupported residual kind or non-finite coordinates | `ArgumentError` |
 | Ratio with a zero/non-finite model prediction | `ArgumentError` |
-| Non-positive profile display scale | `DomainError` |
+| Non-positive `local_sigma` or `delta_max` | `DomainError` |
 | Incompatible local covariance or contour geometry | `ArgumentError` |
 | Invalid profile-matrix status mode or display names | `ArgumentError` |
 

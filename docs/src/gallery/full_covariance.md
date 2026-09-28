@@ -18,8 +18,9 @@ several samples at once. The scientific question is:
 U(t) = A e^{-\lambda t} + C,
 ```
 
-where ``A`` and ``C`` are voltages and the positive decay rate ``\lambda`` has
-units ``\mathrm{s^{-1}}``.
+where ``t`` is the time since the start of the record in seconds, ``A`` and
+``C`` are voltages, and the positive decay rate ``\lambda`` has units
+``\mathrm{s^{-1}}``.
 
 If the correlations are ignored, the fit can look artificially precise: many
 small residuals in the same direction carry less independent information than
@@ -27,15 +28,19 @@ the same number of uncorrelated residuals.
 
 ## Data and Covariance
 
-The record below is controlled and deliberately imperfect, with a known
-correlation time. Each point has two kinds of uncertainty:
+The record below is a controlled teaching record, not archival experimental
+data: it is constructed so that the covariance model given next describes its
+noise, and the three noise parameters are known by construction rather than
+estimated. Each point has two kinds of uncertainty:
 
 - a local statistical part, such as readout noise that changes independently
   from sample to sample,
 - a shared part, such as baseline drift, temperature drift, filtering, or
   electronics noise that affects nearby samples in similar directions.
 
-The compact model used here keeps those contributions separate:
+The compact model used here keeps those contributions separate; the
+covariance ``V_{ij}`` between the voltage measurements at times ``t_i`` and
+``t_j`` is modeled as
 
 ```math
 V_{ij}
@@ -54,11 +59,20 @@ this record,
 \tau_\mathrm{corr}=0.28\,\mathrm{s}.
 ```
 
+For real data these three numbers are inputs to the fit, not outputs of it:
+they come from characterizing the acquisition chain, for example from the
+sample variance of repeated baseline records and the autocorrelation of
+signal-free samples.
+
 The marginal uncertainty of one point is
 ``\sqrt{\sigma_\mathrm{stat}^2+\sigma_\mathrm{corr}^2}=0.0394\,\mathrm{V}``,
-but adjacent points have correlation coefficient ``\rho\approx0.52``: two
-neighboring residuals with the same sign are less surprising than for
-independent ``0.0394\,\mathrm{V}`` errors.
+but adjacent points (spacing ``\Delta t = 0.119\,\mathrm{s}``) have total
+correlation coefficient
+``\rho = \sigma_\mathrm{corr}^2\,e^{-\Delta t/\tau_\mathrm{corr}}/(\sigma_\mathrm{stat}^2+\sigma_\mathrm{corr}^2)\approx0.52``
+— smaller than the shared term's own
+``e^{-\Delta t/\tau_\mathrm{corr}}\approx0.65`` because the independent
+readout variance dilutes it. Two neighboring residuals with the same sign are
+therefore less surprising than for independent ``0.0394\,\mathrm{V}`` errors.
 
 This is a useful first model when the acquisition chain has a finite memory:
 baseline estimates, smoothing filters, thermal drift, or slowly varying
@@ -79,13 +93,18 @@ V =
 \underbrace{\sigma_\mathrm{corr}^2
 \begin{pmatrix}1&\rho_1&\rho_2\\\rho_1&1&\rho_1\\\rho_2&\rho_1&1\end{pmatrix}}_{\text{shared disturbance}},
 \qquad
-\rho_k=e^{-\Delta t_k/\tau_\mathrm{corr}}.
+\rho_k=e^{-\Delta t_k/\tau_\mathrm{corr}},
 ```
+
+where ``\Delta t_k`` is the time separation between samples ``k`` steps
+apart; the sketch assumes uniform spacing, as in the record below.
 
 ## Model and Cost
 
 With a full covariance matrix ``V``, the Gaussian cost is the quadratic form
-``\chi^2 = r^\mathsf{T} V^{-1} r`` with ``r_i = y_i - f(t_i,p)``.
+``\chi^2 = r^\mathsf{T} V^{-1} r`` with ``r_i = y_i - f(t_i,p)``, where
+``y_i`` is the measured voltage at time ``t_i``, ``f`` is the model ``U(t)``
+above, and ``p = (A, \lambda, C)`` is the parameter vector.
 ScientificFitting evaluates it through Cholesky whitening and never forms the
 explicit inverse; the derivation is in
 [Correlated Measurements And Whitening](../statistics.md#Correlated-Measurements-And-Whitening).
@@ -104,8 +123,8 @@ using CairoMakie
 using LinearAlgebra
 using Printf
 
-# Measured decay samples. The values are listed explicitly because the fit
-# should read like an analysis notebook, not like a data simulator.
+# Synthetic decay record; the noise model below (sigma_stat, sigma_corr,
+# correlation_time) is known by construction.
 t = [0.0, 0.1190, 0.2381, 0.3571, 0.4762, 0.5952, 0.7143, 0.8333,
      0.9524, 1.0714, 1.1905, 1.3095, 1.4286, 1.5476, 1.6667, 1.7857,
      1.9048, 2.0238, 2.1429, 2.2619, 2.3810, 2.5]
@@ -220,6 +239,9 @@ No next action required by the current diagnostic checks.
 </div>
 ```
 
+The `backend` line names the solver implementation that `fit_model` selected
+automatically; it is controlled by the `solver` keyword.
+
 The visible 1σ prediction band combines parameter uncertainty with the
 marginal observation uncertainty; the side report is computed from the full
 covariance model.
@@ -228,8 +250,9 @@ covariance model.
 
 For a full-covariance fit, inspect more than the parameter table:
 
-- Verify that `cov_U` is symmetric and positive definite; an invalid covariance
-  matrix is a scientific input error.
+- Verify that `cov_U` is symmetric and positive definite
+  (`issymmetric(cov_U) && isposdef(cov_U)` from LinearAlgebra); an invalid
+  covariance matrix is a scientific input error.
 - Compare with a diagonal-error fit only as a diagnostic; agreement in central
   values does not make the uncertainties equivalent.
 - Inspect residuals in acquisition order. Long same-sign runs are less
@@ -237,16 +260,18 @@ For a full-covariance fit, inspect more than the parameter table:
 - Check that the instrument or acquisition process justifies the covariance
   model; mathematical validity is not physical validity.
 
-Both dashboards report `ok`: at n = 20 the residual-structure checks have
-little power against the correlation the diagonal model ignores. A silent
+Both dashboards report `ok`: with only n = 22 points the residual-structure
+checks rarely detect correlation of this strength. A silent
 dashboard does not validate the uncertainty model; whether the covariance is
 required is settled by the acquisition process, not by residual checks.
 
 ## Interpretation
 
 The fitted amplitude ``A`` and offset ``C`` describe the voltage scale and
-baseline; the model uses the positive physical decay rate directly as
-``A\exp(-\lambda t)+C``, with no hidden sign conversion.
+baseline. The parametrization ``A\exp(-\lambda t)+C`` reports ``\lambda``
+directly as the positive physical decay rate; a parametrization of the form
+``A e^{p t}`` would return ``p=-\lambda`` and require a sign conversion
+before reporting.
 
 For the dataset shown here, the fit gives approximately
 
@@ -256,12 +281,14 @@ A = (1.939 \pm 0.059)\,\mathrm{V},\qquad
 C = (0.210 \pm 0.056)\,\mathrm{V}.
 ```
 
-The full-covariance result has ``\chi^2/\mathrm{ndf}=0.752`` and
-``P(\chi^2)=0.767``. Its local uncertainty on the decay rate is
-``0.079\,\mathrm{s^{-1}}``. Keeping the same marginal error bars but discarding
-their off-diagonal covariance gives ``0.056\,\mathrm{s^{-1}}`` and a structured
-residual warning. In this record, the diagonal approximation understates the
-decay-rate uncertainty by about 30%.
+The full-covariance result has ``\chi^2/\mathrm{ndf}=0.752`` and a chi-square
+p-value of 0.767 (the probability of a larger ``\chi^2`` under a correct
+model; `pvalue` in the report). Its decay-rate uncertainty from the
+[local (Hessian-based) parameter covariance](../statistics.md#Local-Parameter-Covariance)
+is ``0.079\,\mathrm{s^{-1}}``. Keeping the same marginal error bars but
+discarding their off-diagonal covariance gives ``0.056\,\mathrm{s^{-1}}``. In
+this record, the diagonal approximation understates the decay-rate
+uncertainty by about 30%.
 
 That direction and size are not universal, but off-diagonal terms determine
 how much independent evidence a residual pattern contains, and they cannot be

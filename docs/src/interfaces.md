@@ -14,7 +14,7 @@ on collision data.
 
 | Package | Interface in ScientificFitting |
 |:---|:---|
-| [Distributions.jl](https://juliastats.org/Distributions.jl/stable/) | Pass a fixed distribution as `error`, or a function `p -> distribution` to `fit_distribution`. Supports continuous, discrete and multivariate observations. |
+| [Distributions.jl](https://juliastats.org/Distributions.jl/stable/) | Pass a function `p -> distribution` to `fit_distribution` to model the observations themselves, or a fixed distribution as the `error` keyword of `fit_likelihood_model` to model additive residuals. Supports continuous, discrete and multivariate observations. |
 | [NumericalDistributions.jl](https://github.com/mmikhasenko/NumericalDistributions.jl) | Numerically normalized densities, also inside mixtures and products. Bin probabilities use a CDF or adaptive quadrature when no CDF is available. |
 | [DistributionsHEP.jl](https://github.com/JuliaHEP/DistributionsHEP.jl) | Reuse compatible shapes and native `ExtendedMixtureModel` objects. Extended fits retain component yields for both event samples and histograms. |
 
@@ -45,12 +45,14 @@ println("Slope, intercept: ", round.(regression.params; digits=4))
 @assert isapprox(regression.params, [1.05, 0.05]; atol=1e-5) # hide
 ```
 
-For multivariate samples, set `obsdim` explicitly; each vector observation
-uses its joint density
+For multivariate samples pass a matrix and set `obsdim=1` (events in rows) or
+`obsdim=2` (events in columns); each vector observation uses its joint density
 ([dependence needs a joint likelihood](statistics.md#Observation-Likelihoods)).
 
-Preserve numeric types in the model-construction function for automatic
-differentiation, or select `derivatives=:finite`; see
+Automatic differentiation passes dual numbers through the model-construction
+function, so do not force `Float64` inside it (for example via `Float64(p[1])`
+or a `Vector{Float64}` buffer); if that is unavoidable, select
+`derivatives=:finite`. See
 [Distribution Objects](api_fitting.md#Distribution-Objects) for support,
 truncation and bin-boundary conventions.
 
@@ -63,7 +65,9 @@ shares that parameter between components.
 **Data:** illustrative counts in 20 equal bins on ``[0,10]``.
 **Model:** a Gaussian peak with fixed width ``0.4``, plus a uniform background.
 Fit the center and expected signal/background counts ``N_s,N_b``.
-Both densities are normalized within the observation window:
+Both densities are normalized within the observation window. With bin edges
+``e_1<\dots<e_{21}`` and normalized signal and background densities ``f_s``
+and ``f_b``, the expected count in bin ``i`` is
 
 ```math
 \mu_i=N_s\int_{e_i}^{e_{i+1}}f_s(x)\,dx
@@ -104,14 +108,22 @@ println(report_text(optim))
 @assert optim.converged # hide
 ```
 
-`::P` marks a parameter descriptor; conflicting metadata for shared names is
-rejected. `fixed=true` treats the width as exactly known; an uncertain
+`::P` marks a parameter descriptor; plain fields such as `window` and
+`background` are fixed structural arguments, filled positionally (here
+`(0.0, 10.0)` and `Uniform(0.0, 10.0)`). Conflicting metadata for shared names
+is rejected. Inside the `begin ... end` body, the macro supplies `pars`, the
+container of current parameter values (the second argument of the generated
+`build_model` method); pass it through to nested constructors —
+`build_model(peak, pars)` resolves the peak's parameters from the same
+container — while a plain distribution such as `background` is used as-is.
+`fixed=true` treats the width as exactly known; an uncertain
 calibration needs an explicit
 [parameter constraint](api_fitting.md#Constraints-And-Uncertainty-Objects), not
 `uncertainty` metadata.
 
-Component yields set the normalization: omit `total_count`, which a
-non-extended distribution instead requires. For individual events
+A normalized distribution needs the keyword `total_count` (the known expected
+event count on its full support); an `ExtendedMixtureModel` carries its
+component yields, so omit it here. For individual events
 use `fit_distribution(constructor, events; solver=...)`.
 
 ## Minimizers
@@ -120,8 +132,8 @@ use `fit_distribution(constructor, events; solver=...)`.
 |:---|:---|
 | [LsqFit.jl](https://julianlsolvers.github.io/LsqFit.jl/latest/) | Levenberg-Marquardt for compatible Gaussian residual problems; used by the least-squares path. |
 | [Optimization.jl](https://docs.sciml.ai/Optimization/stable/) / [Optim.jl](https://docs.sciml.ai/Optimization/stable/optimization_packages/optim/) | Solver interface / Julia algorithms for scalar objectives. Select `OptimizationSolver(algorithm)`; bounds and nonlinear constraints require a compatible algorithm. |
-| [NativeMinuit.jl](https://github.com/fkguo/NativeMinuit.jl) | Optional Julia-native MIGRAD adapter: `NativeMinuitSolver()`. Requires Julia 1.11+ for NativeMinuit 0.7; the core still supports Julia 1.10. |
-| [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl) | Provides the bounded Nelder-Mead path, `solver=:nelder_mead`. This derivative-free choice does not imply the objective has a meaningful Hessian. |
+| [NativeMinuit.jl](https://github.com/fkguo/NativeMinuit.jl) | Optional Julia-native adapter for MIGRAD, Minuit's gradient-based minimizer: `NativeMinuitSolver()`. Requires Julia 1.11+ for NativeMinuit 0.7; the core still supports Julia 1.10. |
+| [NLopt.jl](https://github.com/jump-dev/NLopt.jl) | Provides the bounded Nelder-Mead path, `solver=:nelder_mead`. Derivative-free fitting is typically chosen for non-smooth costs, so `parameter_covariance=:auto` selects `:none` on this path: free-parameter errors are `NaN`; supply explicit profile ranges instead. |
 | [NonlinearSolve.jl](https://docs.sciml.ai/NonlinearSolve/stable/solvers/nonlinear_least_squares_solvers/) | Julia residual-based solvers; not currently integrated. |
 | [Minuit2.jl](https://github.com/JuliaHEP/Minuit2.jl) | Julia bindings to C++ Minuit2; distinct from NativeMinuit and not currently integrated. |
 
@@ -147,10 +159,13 @@ Julia's [`import`](https://docs.julialang.org/en/v1/manual/modules/#Standalone-u
 avoids the `profile` name clash.
 
 Omit `tol` for solver defaults: `1e-10` for Optim with automatic derivatives,
-`1e-6` with finite differences, and MIGRAD's native `0.1`. This example
-tightens MIGRAD's tolerance so both costs agree within `1e-6`.
+`1e-6` with finite differences, and MIGRAD's native `0.1`. This example sets
+both tolerances explicitly — `1e-7` for Optim and `1e-3` in place of MIGRAD's
+native `0.1` — so both costs agree within `1e-6`.
 
-The adapter sets `errordef=1`; the covariance policy and the native
+The adapter sets `errordef=1`, Minuit's convention that a cost increase of 1
+marks one standard error, matching the ``-2\log L`` scale; the covariance
+policy and the native
 `result.solver_result.raw` object are specified in
 [Solver Adapters](api_fitting.md#Solver-Adapters).
 
@@ -172,12 +187,17 @@ comparison = profile(optim, 1; values=scan.values, on_failure=:throw) # hide
 @assert isfinite(interval.lower) && isfinite(interval.upper) # hide
 ```
 
-`model(x)` evaluates the fitted intensity; `MixtureModel(model)` gives the
-normalized distribution. Reconstruction and plotting do not refit.
+`model(x)` evaluates the fitted intensity (expected events per unit ``x``, the
+density times the total yield); `MixtureModel(model)` gives the normalized
+distribution. Reconstruction and plotting do not refit.
 
 Coverage and failure modes of the ``\Delta(-2\log L)=1`` crossing are derived
 in [Profiles and Contours](statistics.md#Profiles-And-Contours); increase the
 grid resolution before quoting more digits.
+
+`local_sigma` overlays the parabola implied by the local standard error,
+``\Delta=((\theta-\hat\theta)/\sigma)^2``; agreement with the profile curve
+indicates a nearly quadratic cost.
 
 ```@example interfaces
 using CairoMakie  # only needed for the figure
@@ -200,13 +220,20 @@ save("interface_profile_sans_light.svg", figure)
 ## Posterior Inference
 
 [Turing's external-likelihood interface](https://turinglang.org/docs/usage/external-likelihoods/index.html)
-reuses an SF data likelihood directly; no extension is needed. Here eight
-illustrative counts have equal exposures: ``n_i\sim\operatorname{Poisson}(r)``.
-The prior ``r\sim\operatorname{Gamma}(2,3)`` uses **shape and scale**. The exact
-posterior is ``\operatorname{Gamma}(2+\sum_i n_i,\;[1/3+8]^{-1})``.
+reuses a ScientificFitting (SF) data likelihood directly; no extension is
+needed. Here eight illustrative counts, taken under identical conditions
+(equal exposure), share one rate ``r``: ``n_i\sim\operatorname{Poisson}(r)``.
+The prior ``r\sim\operatorname{Gamma}(2,3)`` uses **shape and scale**. It is
+conjugate to the Poisson rate: the posterior shape gains the total count, and
+the posterior rate (the inverse scale, ``1/3`` for this prior) gains one unit
+of exposure per observation, so the exact posterior is
+``\operatorname{Gamma}(2+\sum_i n_i,\;[1/3+8]^{-1})``.
 
 Install `Turing` and `FlexiChains` for this example, tested with Turing 0.48.
-NUTS requires a differentiable log likelihood in the chosen parameterization.
+NUTS, Turing's gradient-based Hamiltonian Monte Carlo sampler (here 500
+adaptation steps, target acceptance 0.85, and four serial chains of 2000
+draws), requires a differentiable log likelihood in the chosen
+parameterization.
 
 ```@example posterior
 using ScientificFitting, Distributions, Turing, Random, Statistics, Printf
@@ -215,7 +242,7 @@ using FlexiChains: rhat, ess, Extra
 counts = [0, 3, 1, 4, 2, 5, 0, 2]
 mle = fit_distribution(p -> Poisson(p[1]), counts;
     p0=[2.], bounds=([0.], [Inf]))
-data_cost = mle.problem.objective  # normalized -2log(L), without SF parameter terms
+data_cost = mle.problem.objective  # full data -2log(L), constants retained; no SF priors or constraints
 
 @model function rate_posterior(data_cost)
     rate ~ Gamma(2., 3.)  # specify the prior once, here
@@ -241,13 +268,17 @@ exact = Gamma(2 + sum(counts), inv(1/3 + length(counts)))
 ```
 
 The posterior mean differs from the maximum-likelihood estimate because it
-includes the prior. ``\widehat R`` and ESS diagnose sampling, not whether the
-Poisson model describes the experiment.
+includes the prior. ``\widehat R`` near 1 (below about 1.01) means the four
+chains agree; the effective sample size (ESS) counts roughly independent
+draws; any divergent transitions signal unreliable exploration. These diagnose
+sampling, not whether the Poisson model describes the experiment.
 
 `LikelihoodFitResult.problem.objective` does **not** transfer SF bounds, fixed
 parameters or auxiliary parameter terms; define the corresponding support and
-auxiliary observations explicitly in Turing — its Gamma transform keeps `rate`
-positive here. Do not reuse a penalized cost as data, count a prior twice, or
+auxiliary observations explicitly in Turing. Here the bound ``r\ge 0`` needs
+no extra handling, because Turing samples a Gamma-distributed variable on an
+internally transformed (log) scale that keeps it positive.
+Do not reuse a penalized cost as data, count a prior twice, or
 treat a custom loss as a log likelihood unless it matches the
 [cost convention](statistics.md#The-Cost-Convention). Posterior credible
 intervals are not profile confidence intervals.

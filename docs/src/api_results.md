@@ -11,19 +11,19 @@ names.
 
 | Field | Meaning |
 |---|---|
-| `problem` | Validated problem used for the selected candidate. |
+| `problem` | Validated problem for the selected multistart candidate ([Fitting](api_fitting.md)). |
 | `options` | Normalized solver options. |
 | `backend` | Selected backend, for example `:lsqfit`, `:optimization`, `:native_minuit`, or `:fixed`. |
 | `converged` | Whether the selected solver reported convergence. |
 | `iterations` | Iteration count, or `missing` when unavailable. |
 | `message` | Native solver termination message. |
 | `params` | Best-fit parameter vector. |
-| `param_stderr` | Local one-standard-deviation estimates from the covariance diagonal. |
+| `param_stderr` | Square roots of the `param_covariance` diagonal: local one-standard-deviation estimates. |
 | `param_covariance` | Local parameter covariance matrix. |
 | `param_correlation` | Correlation matrix derived from that covariance. |
 | `stats` | [`ScientificFitting.FitStatistics`](@ref). |
 | `diagnostics` | Numerical checks computed during result construction. |
-| `solver_result` | [`FitSolverResult`](@ref) with native details and free-parameter mapping for scalar adapters; otherwise `nothing`. |
+| `solver_result` | [`FitSolverResult`](@ref) with native details and the free-to-full parameter mapping when a scalar-objective backend solved the fit (`:optimization`, `:native_minuit`); `nothing` for the least-squares path (`:lsqfit`) and when every parameter is fixed (`:fixed`). |
 
 Only `FitResult` has `model_y`, `residuals`, `weighted_residuals`, and
 `jacobian`. With a non-diagonal covariance, `weighted_residuals` are whitened
@@ -49,15 +49,17 @@ ScientificFitting.predict
 | `minus2loglik_min` | Value used for likelihood-derived summaries. It is a normalized ``-2\log L`` only when the objective follows that convention. |
 | `chi2` | Chi-square or deviance goodness-of-fit statistic, otherwise `NaN`. |
 | `chi2_ndf` | `chi2 / ndf` when defined. |
-| `ndf` | Independent observations and Gaussian constraint dimensions minus free parameters. |
+| `ndf` | Observations plus Gaussian parameter-term dimensions (one per scalar prior, `q` per correlated constraint on `q` parameters) minus free parameters ([Degrees Of Freedom](statistics.md#Degrees-Of-Freedom)). |
 | `pvalue` | Upper-tail chi-square probability when a reference distribution exists. |
 | `aic`, `bic` | Information criteria; meaningful only for compatible likelihood normalizations. |
 
-An arbitrary custom loss has no likelihood interpretation, and for indexed and
-multi-dataset wrappers `minus2loglik_min` equals the chi-square objective only
-when no normalized Gaussian parameter terms are present; see
-[Likelihoods and Model Comparison](statistics.md#Observation-Likelihoods) before comparing AIC
-or BIC.
+An arbitrary custom loss has no likelihood interpretation, and for
+[`fit_indexed_model`](@ref) and [`fit_multi_model`](@ref) `minus2loglik_min`
+equals the chi-square objective only when no normalized Gaussian parameter
+terms are present; see
+[Observation Likelihoods](statistics.md#Observation-Likelihoods) and
+[Model Comparison With AIC And BIC](statistics.md#Model-Comparison-With-AIC-And-BIC)
+before comparing AIC or BIC.
 
 ```@docs
 ScientificFitting.FitResult
@@ -94,18 +96,19 @@ Common asymptotic thresholds on the ``-2\log L`` or chi-square scale:
 Defaults are `1.00` for profiles and `[2.30, 6.18]` for contours.
 
 Failed refits become `Inf` by default and are surfaced by diagnostics; a
-finite objective from a non-converged nuisance fit also counts as a failure.
+finite objective from a refit whose remaining free parameters did not converge
+also counts as a failure.
 Refits inherit the original solver limits and tolerances.
 
 | Scan control | Meaning |
 |---|---|
-| `values`, `xvalues`, `yvalues` | Explicit finite scan coordinates; replace the automatic range. |
+| `values` (`profile`, `profile_interval`), `xvalues`, `yvalues` (`contour`) | Explicit finite scan coordinates; replace the automatic range. |
 | `npoints` | Resolution of an automatically generated axis. |
 | `nsigma` | Half-width of the automatic range in local standard errors. |
 | `threshold`, `levels` | Positive delta-cost thresholds for intervals or regions. |
 | `adaptive` | Refine only threshold-crossing intervals or cells. |
 | `max_refinements`, `max_points` | Bound adaptive work and total scan size. |
-| `on_failure` | `:inf` records a failed refit; `:throw` stops immediately. |
+| `on_failure` (`profile`, `contour`) | `:inf` records a failed refit; `:throw` stops immediately. `profile_interval` and `profile_matrix` always use `:inf`. |
 
 `profile_interval` linearly interpolates threshold crossings; a side that is
 not bracketed is returned as `NaN`. The search stops at failed grid points

@@ -22,18 +22,27 @@ y_i = f(x_i,p) + \epsilon_i,
 \epsilon \sim \mathcal{N}(0,V).
 ```
 
+Here ``y_i`` is the observed value at the setting ``x_i``, ``f`` is the model
+function with parameter vector ``p``, and ``\epsilon = (\epsilon_1, \dots,
+\epsilon_n)`` collects the measurement errors, modeled as jointly Gaussian
+with mean zero and covariance matrix ``V``. Section 2 is about choosing ``V``:
+`sigma_y` supplies its diagonal as standard uncertainties
+(``V_{ii} = \sigma_i^2``), and `cov_y` supplies ``V`` in full.
+
 ## 2. Build The Uncertainty Model
 
 ### Independent y uncertainty
 
 When ``V`` is diagonal, each residual is divided by its own standard
-uncertainty ([Gaussian Least Squares](statistics.md#Gaussian-Least-Squares)).
+uncertainty and the squared ratios are summed
+([Gaussian Least Squares](statistics.md#Gaussian-Least-Squares)).
 The uncertainty scale is part of the model being fitted: two residuals of
 ``+0.2`` and ``-0.2`` contribute ``\chi^2=8`` when ``\sigma=0.1``, but only
 ``\chi^2=2`` when ``\sigma=0.2``.
 
 Use `sigma_y` only when the entries are standard uncertainties and the
-off-diagonal covariances are negligible. Heteroskedastic values are expected.
+off-diagonal covariances are negligible. The entries may differ from point to
+point; no equal-uncertainty assumption is made.
 
 ### Correlated uncertainty
 
@@ -44,8 +53,9 @@ explicitly
 Positive correlation makes a common residual pattern more plausible than an
 opposing one; a diagonal approximation erases that experimental information.
 
-Use `cov_y` for a moderate dense covariance (roughly ``O(n^2)`` memory,
-``O(n^3)`` factorization). For a large time series or detector vector with
+Use `cov_y` for a dense covariance of moderate size (for ``n`` data points:
+roughly ``O(n^2)`` memory and ``O(n^3)`` factorization cost). For a large
+time series or detector vector with
 known structure, use a
 [structured `WhiteningOperator`](statistics.md#Structured-Whitening), verified
 against a small dense reference before use at scale.
@@ -54,8 +64,10 @@ against a small dense reference before use at scale.
 
 Not every systematic effect belongs in `cov_y`. A shared gain
 ``g=1.000\pm0.015`` that the model can contain explicitly is fitted as a
-nuisance parameter with a Gaussian `ParameterPrior`, which propagates the
-shared uncertainty into every parameter that depends on it.
+nuisance parameter — a parameter included in the fit only to carry its
+uncertainty, not as a result of interest — with a Gaussian `ParameterPrior`,
+which propagates the shared uncertainty into every parameter that depends on
+it.
 
 Reserve `FixedParameter` for a quantity treated as exact: fixing an uncertain
 calibration constant hides its contribution, and an uncertainty attached to
@@ -113,7 +125,7 @@ sophistication:
 
 | problem type | what it stores | typical constructors |
 | --- | --- | --- |
-| `FitProblem` | x-y observations, model predictions, and a Gaussian residual covariance | `fit_model`, direct `FitProblem` |
+| `FitProblem` | x-y observations, the model function, and a Gaussian residual covariance | `fit_model`, direct `FitProblem` |
 | `LikelihoodFitProblem` | a complete ``-2\log L`` objective, optional goodness-of-fit statistic, and observation count | Poisson, histogram, unbinned, indexed, multi-dataset, and `fit_custom` helpers |
 
 Direct construction is useful when a problem must be stored or inspected
@@ -191,8 +203,8 @@ recommended action — and `diagnostic_dashboard` summarizes them.
   than individual parameters. Reparameterize or inspect a two-parameter
   contour.
 - **Ill-conditioned covariance or Hessian:** local symmetric errors are
-  numerically or statistically fragile. Rescale and inspect profiles/contours
-  before reporting intervals.
+  numerically or statistically fragile. Rescale the parameters and inspect
+  profiles/contours before reporting intervals.
 - **Active bound:** the local Gaussian approximation is truncated. Decide
   whether the bound is physical, then use a profile interval.
 
@@ -233,14 +245,16 @@ fig = plot_profile(
 )
 ```
 
-Under regular one-parameter likelihood assumptions, ``\Delta C=1`` corresponds
-approximately to a 68.3% interval. Read the profile shape, not only the
-crossings:
+Under regular one-parameter likelihood assumptions, an increase
+``\Delta C = C - C_{\min} = 1`` of the cost ``C`` above its minimum
+``C_{\min}`` — the `threshold=1.0` in the call above, on the ``-2\log L``
+scale — corresponds approximately to a 68.3% interval. Read the profile shape,
+not only the crossings:
 
 - a symmetric parabola supports the local standard error;
 - different left and right crossings require an asymmetric interval;
-- one missing crossing means the scan range is too narrow or the parameter is
-  not bounded on that side;
+- one missing crossing means the scan range is too narrow, or the data do not
+  constrain the parameter on that side (the interval is unbounded there);
 - clipping at a physical bound calls for a one-sided interpretation;
 - a second minimum means the local covariance describes only one basin.
 
@@ -280,6 +294,9 @@ fig = plot_contour(
 )
 ```
 
+The call is written `ScientificFitting.contour` because Makie also exports a
+`contour` function; with CairoMakie loaded, the unqualified name is ambiguous.
+
 For two parameters under regular likelihood assumptions, ``\Delta C=2.30`` and
 ``6.18`` are the approximate 68.3% and 95.4% joint-confidence thresholds. In
 the resulting plot, the filled regions show the profiled cost; the dashed line
@@ -305,8 +322,8 @@ Before reporting a fit, work through the
 [reporting checklist](statistics.md#Reporting-Checklist) in the statistics
 reference.
 
-For complete worked examples, follow the gallery progression from
-[Linear Calibration](quickstart.md) through
+For complete worked examples, follow the gallery progression from the
+linear-calibration [Quickstart](quickstart.md) through
 [XY Uncertainties](gallery/xy_uncertainties.md),
 [Full Covariance](gallery/full_covariance.md), and
 [Constraints and Profiles](gallery/constraints_profiles.md).

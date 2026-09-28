@@ -9,18 +9,26 @@ the same likelihood used for the subsequent profile.
 ## Data And Selection
 
 Source: **LHCb collaboration (2017)**, *Matter Antimatter Differences
-(B meson decays to three hadrons) - Data Files*, CERN Open Data,
+(B meson decays to three hadrons) - Data Files*, CERN Open Data Portal,
 [DOI: 10.7483/OPENDATA.LHCB.AOF7.JH09](https://doi.org/10.7483/OPENDATA.LHCB.AOF7.JH09).
 These are real 2011 proton-proton collision data at 7 TeV, released under
-CC0-1.0. Each candidate combines three charged tracks; assigning each track
-the kaon mass gives one reconstructed parent mass ``m``. Decays
-``B^\pm\to K^\pm K^+K^-`` produce a peak, unrelated track combinations a broad
-background, and detector resolution gives the peak its finite width.
+CC0-1.0. Each candidate combines three charged tracks. Each track's measured
+momentum ``\vec p_i`` and the assigned kaon mass give an energy
+``E_i=\sqrt{|\vec p_i|^2+m_K^2}`` (units with ``c=1``); the invariant mass of
+the combination is ``m=\sqrt{(\sum_i E_i)^2-|\sum_i \vec p_i|^2}``. When the
+three tracks come from one ``B^\pm\to K^\pm K^+K^-`` decay, energy and
+momentum conservation make ``m`` equal the ``B`` mass, smeared by detector
+resolution; unrelated track combinations have no preferred ``m`` and form a
+smooth, broad background.
 
-LHCb supplied candidates that already pass trigger, momentum and vertex
-selections ([preselection notebook](https://github.com/lhcb/opendata-project/blob/master/Background-Information-Notebooks/DataSelection.ipynb)).
+LHCb supplied candidates that already pass the trigger (record abstract) and
+an offline preselection on track momenta, vertex quality and a wide mass
+window, ``5.05<m_{KKK}<6.30\,\mathrm{GeV}/c^2`` under the kaon hypothesis
+([preselection notebook](https://github.com/lhcb/opendata-project/blob/master/Background-Information-Notebooks/DataSelection.ipynb)).
 We then apply the particle-identification cuts below to the **whole MagnetUp
-file**, without random subsampling. MagnetDown is not used.
+file**, without random subsampling. LHCb periodically reverses its dipole
+magnet's polarity, and the record provides one file per polarity; one polarity
+is enough for this yield estimate, so MagnetDown is not used.
 
 | Choice | Definition |
 |:---|:---|
@@ -32,6 +40,21 @@ file**, without random subsampling. MagnetDown is not used.
 
 The thresholds follow the starting cuts in the
 [LHCb project notebook](https://github.com/lhcb/opendata-project/blob/master/LHCb_Open_Data_Project.ipynb).
+`ProbK` and `ProbPi` are the detector's per-track particle-identification
+outputs, scores between 0 and 1 for how kaon-like and how pion-like the track
+is; `isMuon` flags tracks matched to the muon system. Requiring three
+kaon-like, non-pion-like, non-muon tracks suppresses combinations that
+contain a wrong particle type.
+
+The lower window edge is a physics choice: partially reconstructed ``B``
+decays, four-body decays with a missed pion or photon, populate the spectrum
+below the kinematic endpoint ``m_B-m_\pi\approx 5140\,\mathrm{MeV}/c^2`` (the
+ARGUS-shaped component in Fig. 1 of the
+[LHCb publication](https://arxiv.org/abs/1306.1246) cited below). Starting at
+``5200\,\mathrm{MeV}/c^2`` leaves only smooth combinatorial background inside
+the window, so a single exponential can describe it. A wider window would
+require an additional background component.
+
 The kaon mass is from the
 [Particle Data Group](https://pdg.lbl.gov/2025/reviews/rpp2025-rev-charged-kaon-mass.pdf).
 [Download the UnROOT preparation script](lhcb_prepare.jl) to rebuild the
@@ -68,7 +91,9 @@ println("Candidates in fit window: ", sum(counts))
 ## Model And Fit
 
 Use two Gaussians with a common center for the peak, and an exponential for
-the background. A narrow core plus a wider component approximates a mixture
+the background: random track combinations produce a smooth, slowly falling
+mass distribution, and the residual panel below checks this choice against
+the data. A narrow core plus a wider component approximates a mixture
 of detector resolutions; it represents **one peak, not two particles**.
 
 For ``W=[m_{\mathrm{lo}},m_{\mathrm{hi}})=[5200,5600)`` in ``\mathrm{MeV}/c^2``, define
@@ -84,7 +109,7 @@ B(m)=\frac{e^{-(m-m_{\mathrm{lo}})/\tau}}
 
 Both densities vanish outside ``W`` and integrate to one inside it.
 ``\mu,\sigma,r,f`` set the peak shape, ``\tau`` the background slope, and
-``N_s,N_b`` the signal and background counts in the window. For each bin,
+``N_s,N_b`` the expected signal and background counts in the window. For each bin,
 
 ```math
 \nu_i=N_s\int_{\mathrm{bin}\ i}S(m)\,dm+N_b\int_{\mathrm{bin}\ i}B(m)\,dm,
@@ -93,8 +118,17 @@ Both densities vanish outside ``W`` and integrate to one inside it.
 
 `fit_distribution` minimizes ``-2\sum_i\log\operatorname{Poisson}(n_i;\nu_i)``.
 It integrates the densities over each bin, rather than evaluating their heights
-at bin centers. `AdvancedParameter` declares each name, start and bounds;
-`::P` inserts its current value when BuildConstructors builds the distribution.
+at bin centers. `@with_parameters` defines the `MassSpectrum` model and a
+companion `ConstructorOfMassSpectrum` that takes one `AdvancedParameter` per
+declared name; each `AdvancedParameter` declares a name, start and bounds, and
+`::P` inserts the parameter's current value when BuildConstructors builds the
+distribution.
+
+Start values are read off the histogram: the peak sits near
+``5284\,\mathrm{MeV}/c^2`` with a width of roughly ``15\,\mathrm{MeV}/c^2``.
+The width-ratio lower bound of 1.05 keeps the second component strictly wider
+than the core; at ``r=1`` the two components would be interchangeable and the
+fit ill-defined.
 
 ```@example lhcb
 @with_parameters(MassSpectrum;
@@ -104,7 +138,8 @@ at bin centers. `AdvancedParameter` declares each name, start and bounds;
         [Normal(center, width), Normal(center, width*width_ratio)],
         [core_fraction, 1-core_fraction])
     signal = truncated(peak, 5200., 5600.)
-    # Exponential already has lower support zero; only truncate its upper end.
+    # Adding 5200. shifts the exponential's support to the window's lower edge;
+    # its lower support is already zero, so only truncate its upper end at 400.
     background = 5200. + truncated(Exponential(background_scale); upper=400.)
     ExtendedMixtureModel([signal, background], [signal_yield, background_yield])
 end)
@@ -133,9 +168,15 @@ end
 ```
 
 The fitted signal is about **6,484 candidates with a local standard error of 94**.
-The deviance is **69.44 for 73 degrees of freedom**, with an approximate
-``p=0.60``: this check does not detect an overall lack of fit. Inspect the
-residuals next, then test the peak-shape assumption below.
+The [Poisson deviance](../statistics.md#Poisson-Counts-And-Histograms) is the
+likelihood-ratio statistic against a saturated model that reproduces every bin
+exactly; asymptotically it follows a chi-square distribution with bins minus
+free parameters degrees of freedom. Here it is **69.44 for ``80-7=73``
+degrees of freedom**, with an approximate ``p=0.60``: this check does not
+detect an overall lack of fit. The fitted centroid lies about
+``5\,\mathrm{MeV}/c^2`` above the known ``B^\pm`` mass; the
+[closing section](#What-The-Yield-Measures) quantifies this offset. Inspect
+the residuals next, then test the peak-shape assumption below.
 
 Bounds keep widths and yields physical; they are
 [not priors](../statistics.md#Fixed-Parameters-And-Bounds). The reported errors
@@ -143,8 +184,9 @@ come from [local curvature](../statistics.md#Local-Parameter-Covariance).
 `fitted_model(result)` returns an `ExtendedMixtureModel`, so plotting or
 evaluating it does not refit.
 
-**What SF adds here:** the model itself comes from DistributionsHEP and
-BuildConstructors; MIGRAD comes from NativeMinuit.
+**What ScientificFitting (SF) adds here:** the model itself comes from
+DistributionsHEP and BuildConstructors; MIGRAD, Minuit's gradient-based
+minimizer, comes from NativeMinuit.
 
 | Step | Handled by SF |
 |:---|:---|
@@ -153,10 +195,10 @@ BuildConstructors; MIGRAD comes from NativeMinuit.
 | Fit to inference | Return covariance, deviance, AIC and named values; retain the model and solver for profile refits and plots. |
 
 [NativeMinuit](https://github.com/fkguo/NativeMinuit.jl) also provides binned
-likelihoods, HESSE, MINOS and contours; a direct implementation can reach the
-same result. SF supplies the adapters above and a common result and diagnostics
-API across solvers. The custom spectrum drawing below remains ordinary Makie
-code.
+likelihoods, HESSE (curvature errors), MINOS (profile-likelihood intervals)
+and contours; a direct implementation can reach the same result. SF supplies
+the adapters above and a common result and diagnostics API across solvers.
+The custom spectrum drawing below remains ordinary Makie code.
 
 ## Inspect The Spectrum
 
@@ -179,10 +221,13 @@ each Poisson mean ``\nu``. For confidence level ``1-\alpha=0.6827``, they are
 ```
 
 Here ``\chi^2_{k,q}`` is the ``q``-quantile with ``k`` degrees of freedom.
-The formula inverts the two Poisson tail tests; for ``n=0`` it gives
-``[0,1.84]``, rather than ``[0,0]``. Coverage is at least the nominal level
-because counts are discrete. These bars describe individual bins, not the
-fitted signal-yield error, and **are not weights in the fit**.
+The formula inverts the two Poisson tail tests: ``\nu_{\mathrm{lo}}`` is the
+mean for which observing ``n`` or more counts has probability ``\alpha/2``,
+and ``\nu_{\mathrm{hi}}`` the mean for which observing ``n`` or fewer does;
+means outside the interval would make the observed count a tail event. For
+``n=0`` this gives ``[0,1.84]``, rather than ``[0,0]``. Coverage is at least
+the nominal level because counts are discrete. These bars describe individual
+bins, not the fitted signal-yield error, and **are not weights in the fit**.
 See the [central Poisson interval formula](https://docs.astropy.org/en/stable/api/astropy.stats.poisson_conf_interval.html).
 
 ```@example lhcb
@@ -315,13 +360,17 @@ end
 The two-width model describes these data better: the deviance falls from
 101.96 to 69.44, and the fitted signal increases by about 148 candidates.
 This supports allowing a wider resolution component; it does not identify
-a second physical signal. AIC is comparable because the data and likelihood
-normalization are unchanged.
+a second physical signal. The AIC difference is meaningful because both fits
+use the same data and the same likelihood normalization
+([Model Comparison With AIC And BIC](../statistics.md#Model-Comparison-With-AIC-And-BIC)).
 
 The yield shift measures sensitivity to the peak model, not an independent
 error to add in quadrature. The p-values are approximate, especially in sparse
-bins. Do not assign a standard two-parameter likelihood-ratio significance to
-the improvement: at zero mixture weight the unused width is not identifiable.
+bins. Do not assign the standard two-parameter likelihood-ratio significance
+to the improvement: the single-Gaussian model sets the wide component's weight
+``1-f`` to zero, and at that boundary the width ratio ``r`` has no effect on
+the model, so the chi-square calibration of the likelihood-ratio test does
+not apply.
 
 ## See The Yield Uncertainty
 
@@ -397,8 +446,12 @@ shape.
 
 The [independent numerical check](lhcb_reference.py), run from the repository
 with NumPy, SciPy and iminuit, compares both fits and the signal-yield MINOS
-interval. The executed cells check those reference values; the agreement tests
-the numerical implementation of this model.
+interval: Minuit's algorithm for the same interval as `profile_interval`
+above, the crossings of the profiled ``-2\log L`` at ``\Delta(-2\log L)=1``,
+located by its own iteration instead of a grid of refits. Hidden assertions in
+this page's source pin the deviance of both fits, the two-width parameters and
+errors, and the signal-yield interval to values cross-checked against that
+script; the agreement tests the numerical implementation of this model.
 
 ## What The Yield Measures
 
@@ -408,6 +461,18 @@ charges separately, uses a different selection and more detailed signal and
 background shapes, then corrects detector and production effects to measure
 CP asymmetry. Its ``22\,119\pm164`` yield is therefore not a target for this fit.
 
-We do not apply its charm veto, so ``B\to DK``, ``D\to KK`` decays can also
-contribute to the peak. A precision mass measurement would also require
-momentum-scale calibration.
+We do not exclude candidates whose two-kaon mass matches a charm meson, as
+the publication does, so decays through an intermediate charm meson,
+``B^\pm\to\bar D^0K^\pm`` with ``\bar D^0\to K^+K^-`` and the same three-kaon
+final state, can also contribute to the peak.
+
+The fitted centroid, ``5284.74\pm0.24\,\mathrm{MeV}/c^2``, lies about
+``5\,\mathrm{MeV}/c^2`` (0.1%) above the
+[PDG ``B^\pm`` mass](https://pdg.lbl.gov/2025/listings/rpp2025-list-B-plus-minus.pdf)
+of ``5279.41\pm0.07\,\mathrm{MeV}/c^2``. The raw counts peak in the same bins,
+so the offset is a property of these data, not of the fit: no momentum-scale
+calibration is applied here or documented for the open-data ntuple (a 0.1%
+scale shift moves the reconstructed mass by about this amount), and residual
+misidentified ``B^\pm\to\pi^\pm K^+K^-`` decays can enter with an
+upward-shifted mass. The centroid locates the peak in this selection and
+window; it is not a measurement of the ``B^\pm`` mass.

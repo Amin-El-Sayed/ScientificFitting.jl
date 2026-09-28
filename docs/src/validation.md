@@ -1,19 +1,18 @@
 # Validation
 
-Numerical trust is demonstrated, not asserted. This page collects the
-external references the test suite checks on every run and the measured
-performance behind the package's scaling claims. All timings below were taken
-on an Apple M3 Pro with Julia 1.13.0; rerun the quoted scripts for your
-hardware.
+This page collects the external references the test suite checks on every
+run and the measured performance behind the package's scaling claims. All
+timings below were taken on an Apple M3 Pro with Julia 1.13.0; rerun the
+quoted scripts for your hardware.
 
 ## NIST StRD Certified Problems
 
 The [NIST Statistical Reference Datasets](https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml)
 publish nonlinear regression problems with certified parameter estimates,
 standard deviations, and residual sums of squares to 11 significant digits.
-`test/statistics/nist_strd_reference.jl` fits eight of them (unweighted, from
-the certified Start 2) on every core-suite run and checks all three certified
-quantities:
+`test/statistics/nist_strd_reference.jl` fits eight of them, unweighted, from
+Start 2 — the second, closer of NIST's two published sets of starting values —
+on every core-suite run and checks all three certified quantities:
 
 | Problem | n | Parameters | Difficulty (NIST) |
 | --- | ---: | ---: | --- |
@@ -28,8 +27,8 @@ quantities:
 
 Agreement: parameters within a relative tolerance of ``10^{-6}``
 (``10^{-4}`` for MGH17, ``10^{-5}`` for Thurber), certified residual sums of
-squares within ``10^{-8}``, and certified standard deviations within
-``10^{-3}``–``10^{-4}``. The standard-deviation check is an external
+squares within ``10^{-9}`` (``10^{-8}`` for MGH17), and certified standard
+deviations within ``10^{-3}``–``10^{-4}``. The standard-deviation check is an external
 validation of the ``\chi^2/\mathrm{ndf}`` covariance scaling for fits without
 supplied uncertainties
 ([Covariance Scaling](statistics.md#Covariance-Scaling)).
@@ -50,9 +49,10 @@ supplied uncertainties
 
 ## Matrix-Free Whitening At Large n
 
-A structured covariance does not require its dense matrix. For an AR(1)
-residual process fitted through a `WhiteningOperator`
-(`benchmarks/whitening_scaling.jl`), after warm-up:
+A structured covariance does not require its dense matrix. For a fit whose
+residual covariance is modeled as an AR(1) process (first-order
+autoregressive: each point correlated with its neighbor) through a
+`WhiteningOperator` (`benchmarks/whitening_scaling.jl`), after warm-up:
 
 | n | operator fit | dense-covariance fit | dense memory |
 | ---: | ---: | ---: | ---: |
@@ -62,22 +62,28 @@ residual process fitted through a `WhiteningOperator`
 
 Operator and dense path agree in the fitted parameters where both run; the
 dense column stops where the covariance no longer fits in memory. The
-operator path is ``O(n)`` in time and memory for this structure.
+dense-memory column is not measured but computed: storage for the covariance
+matrix alone is ``8n^2`` bytes of `Float64`. The operator path is ``O(n)`` in
+time and memory for this structure.
 
 ## Time To First Fit
 
-Each distinct model function type normally triggers a fresh compilation of
-the fitting pipeline. With `derivatives=:finite`, models share one
-precompiled pipeline through a typed callback boundary
-(`benchmarks/ttfx_probe.jl`):
+In Julia, every named function or closure is its own type, so each distinct
+model function normally triggers a fresh compilation of the fitting
+pipeline. With `derivatives=:finite`, all models pass through one fixed
+callback signature and the pipeline compiles once
+([Backend Design](backend_design.md)). `benchmarks/ttfx_probe.jl` times
+every cell below in its own fresh Julia process, so each number is what a
+new session pays; the script prints the table rows directly:
 
 | Measurement | `derivatives=:auto` | `derivatives=:finite` |
 | --- | ---: | ---: |
-| first fit after `using` | 5.2 s | 0.6 s |
-| each additional model type | 5–8 s | 0.06–0.11 s |
-| Poisson fit, additional rate model | ~4 s | 0.1–0.15 s |
+| first fit after `using` | 5.0 s | 0.5 s |
+| each additional model type | 5.1 s | 0.06 s |
+| Poisson fit, additional rate model | 9.5 s | 0.11 s |
 
 Use `derivatives=:finite` when exploring model variants interactively; use
 the default `:auto` for production fits, where automatic differentiation
-specializes once per model and then runs at full speed. Results agree to
-solver tolerance.
+specializes once per model and then runs at full speed. The finite-difference
+path is checked against closed-form least-squares solutions in
+`test/numerics/finite_derivatives_reference.jl`.

@@ -7,8 +7,9 @@ windows and a pulse-height spectrum collected in unequal bins.
 
 ## Question One: What Is The Half-Life?
 
-The first controlled record represents a detector that counts events in a
-10-second acquisition window once per minute. The source activity decays, but
+The first data set is a constructed teaching record (see the Data section
+below). It represents a detector that counts events in a 10-second acquisition
+window once per minute. The source activity decays, but
 the detector also sees an approximately constant background:
 
 ```math
@@ -39,12 +40,15 @@ generally not exactly 68%.
 
 The band edges are stepped: Poisson observations are integers, so the 16th and
 84th percentiles can change only by whole counts as ``\mu(t)`` varies, and
-ScientificFitting renders each change as a vertical edge instead of
-interpolating fractional count quantiles. The plateaus become wider at late
-times because the exponential mean approaches the background more slowly:
+the figure renders each change as a vertical edge instead of interpolating
+fractional count quantiles. The plateaus become wider at late times because
+the exponential mean approaches the background more slowly:
 ``|\mathrm{d}\mu/\mathrm{d}t|`` decreases. The lower and upper edges jump at
 different times because the two percentiles cross different probability
-thresholds.
+thresholds. The band is constructed from the fitted mean curve as
+`quantile(Poisson(mu), 0.16)` and `quantile(Poisson(mu), 0.84)` on a dense
+time grid; `plot_fit` draws Gaussian confidence and prediction bands only and
+does not produce this display.
 
 ## Data
 
@@ -85,6 +89,12 @@ C(p)
 \right].
 ```
 
+The last term is the factorial, ``\log\Gamma(n_i+1) = \log(n_i!)``. It depends
+only on the observed counts, not on ``p``, so it never moves the minimum or
+changes the fitted parameters; it is kept so that ``-2\log L`` stays on the
+absolute scale used for model comparison
+([Poisson Counts And Histograms](../statistics.md#Poisson-Counts-And-Histograms)).
+
 The goodness-of-fit quantity is the Poisson deviance:
 
 ```math
@@ -96,8 +106,10 @@ D
 \right],
 ```
 
-with the continuous limit ``2\mu_i`` when ``n_i=0``. The lower plot shows signed
-deviance residuals,
+where for ``n_i = 0`` the bracket is exactly ``\mu_i`` (the limit of
+``n_i\log(n_i/\mu_i)`` as ``n_i \to 0`` is zero), so the term is ``2\mu_i``;
+the same convention applies in the residual formula below. The lower plot
+shows signed deviance residuals,
 
 ```math
 r_i
@@ -116,6 +128,10 @@ isolated large values, or dependence on the expected count level suggest a
 missing component or a wrong count model.
 
 ## Complete Decay Fit
+
+For count likelihoods, `stats.chi2` stores the Poisson deviance, so
+`stats.chi2_ndf` is the deviance per degree of freedom and `stats.pvalue`
+(printed as `P(D)`) is its asymptotic chi-square p-value.
 
 ```julia
 using ScientificFitting
@@ -140,7 +156,6 @@ decay_result = fit_poisson_model(
         [70.0, 0.30, 2.0],
         [25.0, 0.08, 5.0],
     ],
-    multistart=3, # p0 and the two additional starts.
 )
 
 lambda = decay_result.params[2]
@@ -184,13 +199,18 @@ The result is approximately
 T_{1/2} = 4.23 \pm 0.86\ \mathrm{min}.
 ```
 
+``\lambda`` and its error are `decay_result.params[2]` and
+`decay_result.param_stderr[2]`; the printed half-life and its error follow
+from them through the propagation lines in the code above.
+
 The fitted background is ``0.792\pm2.189`` counts per window in the local
 quadratic approximation. That symmetric interval extends below the physical
 positivity bound because the acquisition ends with only a few low-count
 windows, and should not be reported as the final background interval. A
 profile scan ([Profiles And Contours](../statistics.md#Profiles-And-Contours))
-refits the signal parameters at each forced background value; if the lower
-threshold is cut off by zero, report an asymmetric
+refits the signal parameters at each forced background value; if the profile
+does not reach the interval threshold before the background reaches zero, the
+lower interval edge is truncated by the physical bound: report an asymmetric
 interval or a one-sided upper limit. A longer background-only acquisition would
 separate source and detector background more directly.
 
@@ -198,7 +218,8 @@ The half-life uncertainty above is first-order propagation of the local
 ``\lambda`` covariance. Transform a profile interval for ``\lambda`` when the
 half-life uncertainty is central to the scientific conclusion.
 
-The deviance is approximately ``16.24`` for ``16`` degrees of freedom, giving
+The deviance is approximately ``16.24`` for ``16`` degrees of freedom
+(19 time windows minus 3 free parameters), giving
 an asymptotic p-value near ``0.44``, compatible with the model
 ([Goodness Of Fit](../statistics.md#Goodness-Of-Fit)).
 
@@ -206,8 +227,9 @@ an asymptotic p-value near ``0.44``, compatible with the model
 
 A pulse-height spectrum contains a Gaussian-like detector peak above a uniform
 background. The bins are unequal, including one empty low-amplitude bin:
-narrow bins retain shape resolution near the populated peak, wider bins keep
-the sparse high-amplitude tail from dominating the display. This is defensible
+bin widths grow with amplitude, from 0.4 V at low amplitude to 1.8 V in the
+tail, so narrow bins resolve the onset of the spectrum while the sparse
+high-amplitude tail is not split into many near-empty bins. This is defensible
 only when the edges are fixed independently of the observed fluctuations and
 the model is integrated over those exact edges. The fitted
 quantities are peak yield ``N``, centroid ``m``, Gaussian width ``s``, and
@@ -233,12 +255,21 @@ N
 \rho_B(e_{i+1}-e_i).
 ```
 
+Here ``\Phi`` is the standard normal cumulative distribution function (not the
+work function of the photoelectric-threshold example). The implementation
+expresses it through the error function,
+``\Phi(z) = \tfrac{1}{2}\left[1 + \operatorname{erf}(z/\sqrt{2})\right]``; in
+the difference ``\Phi(a)-\Phi(b)`` the constant ``\tfrac{1}{2}`` cancels, which
+yields the `0.5 * (erf(...) - erf(...))` factor in `expected_counts` below.
+
 Evaluating the density only at bin centers can bias the peak position, width,
 and yield when bins differ in width or the density changes across a bin.
 
 For display only, the upper panel divides observed and expected counts by each
-bin width: the bar area still equals the bin count, and a uniform background
-appears flat instead of growing taller in wider bins. The likelihood and the
+bin width: the bar height times the bin width equals the bin count (the
+observed bars are drawn slightly narrower than their bins for visual
+separation), and a uniform background appears flat instead of growing taller
+in wider bins. The likelihood and the
 lower-panel deviance residuals use the original integer counts.
 
 ## Complete Histogram Fit
@@ -273,7 +304,6 @@ spectrum_result = fit_histogram_model(
         [300.0, 4.2, 1.5, 0.5],
         [150.0, 3.2, 0.7, 2.0],
     ],
-    multistart=3,
 )
 
 @printf("peak yield = %.1f +/- %.1f events\n",
@@ -319,7 +349,8 @@ many low-amplitude events.
 
 ## Diagnostics
 
-The deviance is approximately ``6.84`` for ``6`` degrees of freedom, with an
+The deviance is approximately ``6.84`` for ``6`` degrees of freedom
+(10 bins minus 4 free parameters), with an
 asymptotic p-value near ``0.34``. A count model can have an acceptable global
 deviance while still missing structure in a narrow peak, a tail, or the empty
 bins, so inspect the deviance residual panel next: look for runs of same-sign

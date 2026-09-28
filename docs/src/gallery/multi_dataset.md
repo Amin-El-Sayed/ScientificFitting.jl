@@ -13,8 +13,9 @@ compatible, while channel C requires a separate gain.
 
 The solid lines show the accepted partial-sharing model; the dashed lines
 force all channels to one shared gain. In the main panel the difference is
-easy to underestimate; the first pull panel makes the failure of the
-all-shared hypothesis clear.
+easy to underestimate; the first pull panel — residuals in units of their
+stated uncertainties, defined below — makes the failure of the all-shared
+hypothesis clear.
 
 ## The Scientific Question
 
@@ -33,10 +34,10 @@ different gain, the transfer introduces a systematic error that grows with
 input.
 
 The teaching record is not attributed to a particular instrument. The three
-explicit data tables have different x sampling,
-heteroscedastic absolute y uncertainties, independent offsets, imperfect
-scatter, and an incompatible gain in channel C; the fit must recover that
-incompatibility without using it as an input.
+explicit data tables have different x sampling, point-dependent absolute y
+uncertainties, independent offsets, realistic random scatter, and an
+incompatible gain in channel C; the fit must recover that incompatibility
+without using it as an input.
 
 A mental model: the channels share a sensor type but not necessarily the
 whole electronics chain:
@@ -55,7 +56,11 @@ C & \text{replacement amplifier} & \text{own zero point}
 
 The code below uses three explicit calibration channels. Each channel has its
 own x grid and point-by-point absolute y uncertainty; the arrays are the
-complete observed record.
+complete fit input. The record is constructed for this example rather than
+measured on an instrument: channel C is built with a deliberately different
+gain, and the fit must recover that difference without being told. The
+reference input ``x`` and the channel response ``y`` are both in volts, so
+the gains are dimensionless and the offsets are in volts.
 
 ## The Multi-Dataset Cost
 
@@ -68,6 +73,13 @@ For independent Gaussian measurements, the simultaneous cost is
     \frac{y_{ij}-f_i(x_{ij};p_i)}{\sigma_{ij}}
   \right]^2.
 ```
+
+The bracketed quantity is the **pull** of point ``j`` in dataset ``i``: its
+residual ``y_{ij}-f_i(x_{ij};p_i)`` divided by its stated uncertainty
+``\sigma_{ij}``. Under a correct model with correct uncertainties the pulls
+scatter around zero with width near one; the pull panels display them against
+``\pm1`` and ``\pm2`` reference bands
+([Residuals And Pulls](../statistics.md#Residuals-And-Pulls)).
 
 Each local model receives only the global parameters listed by its
 `parameter_map`. The first hypothesis uses
@@ -283,6 +295,10 @@ The fit gives
 P(\chi^2_\mathrm{all})=0.00139.
 ```
 
+Here ndf counts all points across datasets minus the global free parameters:
+``11+10+9-4=26`` for the all-shared model and ``30-5=25`` for partial sharing
+([Degrees Of Freedom](../statistics.md#Degrees-Of-Freedom)).
+
 The first pull panel shows the specific failure: channel C is systematically
 below the common-gain model at low input and above it at high input — the
 residual signature of a slope mismatch. Channels A and B are pulled in the
@@ -352,9 +368,10 @@ P\!\left(\chi^2_1 \geq 31.166\right)
 
 This is the direct test of the equality constraint ``g_C=g_{AB}``; it agrees
 with the approximately ``5.6\sigma`` gain difference from the joint
-covariance, as expected for a linear Gaussian problem. In a nonlinear or
-bounded problem, profile the difference instead of assuming a symmetric
-Gaussian error.
+covariance, as expected for a linear Gaussian problem, where
+``\Delta\chi^2=(\Delta g/\sigma_{\Delta g})^2``: ``\sqrt{31.166}=5.58``,
+matching the ``5.6\sigma`` above. In a nonlinear or bounded problem, profile
+the difference instead of assuming a symmetric Gaussian error.
 
 ## AIC As A Cross-Check
 
@@ -362,19 +379,28 @@ A lower ``\chi^2`` is expected from one extra parameter even if the freedom is
 unnecessary; AIC adds a parameter-count penalty:
 
 ```math
-\mathrm{AIC}=2k-2\log L_{\max}.
+\mathrm{AIC}=2k-2\log L_{\max},
 ```
 
-Both models use the same data and Gaussian cost, so their AIC values may be
-compared ([Model Comparison With AIC And BIC](../statistics.md#Model-Comparison-With-AIC-And-BIC)):
+where ``k`` is the number of free parameters and ``L_{\max}`` the maximized
+likelihood. `fit_multi_model` minimizes the summed chi-square without the
+constant Gaussian normalization terms ``\sum_{ij}\log(2\pi\sigma_{ij}^2)``,
+so the printed values are ``\mathrm{AIC}=\chi^2_{\min}+2k`` — for the
+all-shared model ``52.9085 + 2\cdot 4 = 60.9085``. The dropped constant is
+the same for both models (same data, same ``\sigma_{ij}``), so only the
+difference is meaningful
+([Model Comparison With AIC And BIC](../statistics.md#Model-Comparison-With-AIC-And-BIC)):
 
 ```math
 \Delta\mathrm{AIC}
 = \mathrm{AIC}_\mathrm{all}-\mathrm{AIC}_\mathrm{partial}
-\approx 29.2.
+= 60.9085-31.7427
+= 29.17
+= \Delta\chi^2-2.
 ```
 
-That improvement is much larger than the penalty for one extra gain parameter.
+The improvement is far larger than the ``+2`` penalty for the one extra gain
+parameter.
 AIC only compares the candidate models supplied here: a nonlinear response,
 correlated calibration errors, or a shared reference-standard uncertainty
 could still require another model.
@@ -388,8 +414,13 @@ partial-sharing model. For a local linear model,
 \sigma_\mathrm{fit}^2(x)
 = J(x)\,\operatorname{Cov}(p_i)\,J^\mathsf{T}(x),
 \qquad
-J(x)=(x,1).
+J(x)=(x,1),
 ```
+
+where ``\operatorname{Cov}(p_i)`` is the ``2\times2`` block of the joint fit
+covariance belonging to channel ``i``'s (gain, offset) pair; it carries the
+gain–offset correlation, and the A and B bands are correlated through the
+shared gain.
 
 These bands describe uncertainty in each fitted mean response; they are not
 prediction bands for a future observation and do not add ``\sigma_{ij}^2``,

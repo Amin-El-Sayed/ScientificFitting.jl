@@ -1,8 +1,5 @@
 # Citation And License
 
-See [Packages and Interfaces](interfaces.md) for the technical package overview
-and executable integration examples.
-
 ## Inspiration And Attribution
 
 Part of the motivation came from kafe2's treatment of measurement uncertainties,
@@ -16,9 +13,9 @@ kafe2 offers a Python/YAML fitting workflow with Matplotlib. ScientificFitting
 has a Julia numerical core, optional Makie plotting, and a Python interface
 with native Matplotlib plots.
 
-ScientificFitting also uses Julia packages for differentiation, quadrature, and
-plotting. When an upstream method contributes materially to a publication,
-follow that project's citation guidance as well.
+ScientificFitting also builds on ForwardDiff.jl (differentiation), QuadGK.jl
+(quadrature), and Makie.jl (plotting). When an upstream method contributes
+materially to a publication, follow that project's citation guidance as well.
 
 ## Citation
 

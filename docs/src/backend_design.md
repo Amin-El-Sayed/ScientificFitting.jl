@@ -87,6 +87,11 @@ covariance is parameter independent:
 \chi^2(p)=r(p)^\mathsf{T}V^{-1}r(p).
 ```
 
+Here ``r(p) = y - f(x, p)`` is the residual vector of the model ``f`` at
+parameters ``p``, ``V`` is the observation covariance matrix, and ``n`` is the
+number of observations; ``V(p)`` below denotes the same covariance when it
+depends on the fitted parameters.
+
 When the effective covariance depends on the fitted parameters, it selects the
 normalized Gaussian objective:
 
@@ -104,40 +109,49 @@ fixed parameters restrict the parameter space, never as hidden penalty terms.
 
 ### 5. Dispatch only to a compatible solver
 
-Derivative selection is stored in the problem. `derivatives=:auto` keeps the
-Julia defaults; `derivatives=:finite` uses central finite differences for
-foreign callbacks that accept ordinary floats but not ForwardDiff duals, and
-applies to optimization, constraint derivatives, post-fit covariance,
+Derivative selection is stored in the problem. `derivatives=:auto` keeps
+forward-mode automatic differentiation (ForwardDiff); `derivatives=:finite`
+uses central finite differences for foreign callbacks that accept ordinary
+floats but not ForwardDiff duals, and applies to optimization, constraint
+derivatives, post-fit covariance,
 predictions, and profile/contour refits. Explicit model Jacobians and
-x-derivatives take precedence. Tolerance and budget defaults — the finite-mode
-`1e-6` versus `1e-10` split, NativeMinuit's EDM `0.1`, and the LsqFit
-`maxiters`/`maxIter` and `tol`/`x_tol`+`g_tol` mapping — are tabulated under
-[Solver Control](api.md#Solver-Control); explicit `tol` values are preserved,
-and the result keeps the solver's actual convergence flag, so an iteration
-limit never implies success.
+x-derivatives take precedence. Tolerance and budget defaults are tabulated
+under [Solver Control](api.md#Solver-Control): the finite-mode `1e-6` versus
+`1e-10` `tol` split and the per-solver meaning of `maxiters`. NativeMinuit's
+EDM default of `0.1` is documented under
+[Solver Adapters](api_fitting.md#Solver-Adapters). On the LsqFit path,
+`maxiters` maps to `maxIter` and the single `tol` to both `x_tol` and `g_tol`.
+Explicit `tol` values are preserved, and the result keeps the solver's actual
+convergence flag, so an iteration limit never implies success.
 
 Finite mode differentiates the **whole** objective, including any
 parameter-dependent covariance and its log determinant; differentiated models
 must be evaluable in a neighborhood of each evaluation point, including near
 declared bounds. Pointwise x-error propagation uses four vectorized model
 calls for a central fourth-order estimate of every `df/dx` with step
-``h_i = \epsilon^{1/5}\max(|x_i|,1)``; analytic `x_derivative` callbacks
-bypass it.
+``h_i = \epsilon^{1/5}\max(|x_i|,1)``, with machine epsilon
+``\epsilon = \mathrm{eps}(\mathrm{Float64}) \approx 2.2\times10^{-16}``;
+analytic `x_derivative` callbacks bypass it.
 
 The Python bridge converts inputs once and enters the fit through
-`invokelatest`, an inference boundary outside the numerical loop; foreign
-callbacks use a private `_TypedCallback{R}` (concrete result type, one dynamic
-dispatch), so different Python models share Julia solver specializations,
-while native Julia models bypass it. Models and x-derivatives return vectors,
-allocating parameter Jacobians return matrices. A `PrecompileTools` workload
+`invokelatest`, so Julia gives up compile-time specialization exactly once
+per fit rather than inside the numerical loop. Foreign callbacks are wrapped
+in a private `_TypedCallback{R}` whose declared result type `R` lets the
+solver code stay compiled, at the price of one dynamic call per model
+evaluation; different Python models therefore share Julia solver
+specializations, while native Julia models bypass the wrapper. Models and
+x-derivatives return vectors, allocating parameter Jacobians return matrices.
+A `PrecompileTools` workload
 caches Gaussian/Poisson kernels, prediction, and reporting without starting
 Python or loading plotting.
 
 Density helpers accept `vectorized=true` without changing their scalar
-default: one density call per objective, QuadGK's `BatchIntegrand` with
-per-bin adaptive error control, dual-number-preserving batch buffers reused
-across bins, and the same density closure in profile refits. An analytic bin
-integral supplied through `fit_histogram_model` avoids quadrature entirely.
+default: one batched density call over all observations per objective
+evaluation instead of one scalar call per point, QuadGK's `BatchIntegrand`
+with per-bin adaptive error control, dual-number-preserving batch buffers
+reused across bins, and the same density closure in profile refits. An
+analytic bin integral supplied through `fit_histogram_model` avoids quadrature
+entirely.
 
 Solver selection follows the represented problem rather than a speed
 preference:
@@ -146,7 +160,7 @@ preference:
 |---|---|
 | All parameters fixed | no optimizer; evaluate the complete result once |
 | Unbounded, static Gaussian chi-square without extra parameter terms | LsqFit least-squares path |
-| Bounds, priors, parameter constraints, parameter-dependent covariance, or likelihood objective | Optimization.jl with LBFGS |
+| Bounds, priors, parameter constraints, active error components, parameter-dependent covariance, or likelihood objective | Optimization.jl with LBFGS |
 | Nonlinear equality or inequality constraints | Optimization.jl with IPNewton |
 | Likelihood with explicit `solver=:nelder_mead` and no nonlinear constraints | OptimizationNLopt with native bounded Nelder-Mead, without derivatives |
 
@@ -182,15 +196,18 @@ field, so one result type serves all models and solvers while the numerical
 kernels still specialize. Conventions:
 [Solver Adapters](api_fitting.md#Solver-Adapters).
 
-Likelihood `optimizer` and `parameter_covariance` are independent options
-stored in `FitOptions` and retained by profile refits; their contracts,
+The likelihood `solver` and `parameter_covariance` keywords are independent
+options stored in `FitOptions` and retained by profile refits; their contracts,
 including Nelder-Mead's evaluation budget and Hessian-free default, are in
 [Minimization And Local Errors](api_fitting.md#Minimization-And-Local-Errors).
 
-One multistart ranking rule serves both families: a converged finite result
-outranks an unconverged one; within the same status, the lower cost wins. If
-every run stops early, the best finite result is returned with
-`converged=false`.
+One multistart ranking rule serves both families: the candidate with the
+lowest finite cost wins, and convergence status only breaks exact cost ties.
+The cost is the fitted quantity, so a formally converged stop at a worse
+minimum never displaces a better minimum whose solver stopped without a
+convergence code; a non-converged winner is returned with `converged=false`
+instead of being silently replaced. If no candidate produces a finite result,
+the last error is raised.
 
 ForwardDiff tags must not be shared between precompiled fits and unseen models
 with nested x derivatives
@@ -321,8 +338,9 @@ Architecture changes need evidence at the layer they affect:
 | NumPy callback parity, native Matplotlib panels, profiles, and ownership | `python/tests` |
 
 The core gate is `julia --project=. test/core_runtests.jl`; the complete
-package gate is `julia --project=. test/runtests.jl`. Benchmark methodology is
-in [Performance Checks](backend_design.md#Performance-Checks).
+package gate is `julia --project=. -e "using Pkg; Pkg.test()"`, which adds
+the optional CairoMakie test dependency. Benchmark methodology is in
+[Performance Checks](backend_design.md#Performance-Checks).
 
 For a page-level output check, run
 `julia --project=docs test/docs_output_snapshots.jl gallery/resonance_decay.md`
@@ -453,10 +471,11 @@ extending existing targeted tests rather than duplicating a benchmark
 framework.
 
 The core supports Julia 1.10. The optional
-[NativeMinuit 0.7.2](https://github.com/fkguo/NativeMinuit.jl/blob/main/Project.toml)
+[NativeMinuit 0.7.2](https://github.com/fkguo/NativeMinuit.jl/blob/v0.7.2/Project.toml)
 requires Julia 1.11 and declares LGPL-2.1-or-later; the Turing 0.48 reference
-runs on Julia 1.12. Plot tests cover CairoMakie 0.13 and 0.15.14+, the newer
-line permitting coexistence with Turing's chain-plotting dependencies.
+is executed on the docs environment (Julia 1.13.0). Plot tests cover
+CairoMakie 0.13 and 0.15.14+, the newer line permitting coexistence with
+Turing's chain-plotting dependencies.
 
 ## Performance Checks
 
@@ -467,7 +486,12 @@ julia --project=benchmarks benchmarks/runbenchmarks.jl --seconds=1
 ```
 
 with `--save` and `--compare` for TOML baselines; a comparison fails on missing
-benchmark cases or mismatched machine metadata. Two CI gates back the claims on
+benchmark cases or mismatched machine metadata. Two standalone probes back the
+scaling numbers quoted in [Validation](validation.md):
+`benchmarks/whitening_scaling.jl` (matrix-free whitening against dense
+covariance at growing ``n``) and `benchmarks/ttfx_probe.jl` (first-fit and
+per-model compilation cost); the startup gate below executes
+`benchmarks/startup_probe.jl`. Two CI gates back the claims on
 this page: `test/startup_probe_gate.jl` verifies fresh-process loading —
 `using ScientificFitting` without Makie — together with nested automatic x
 derivatives, and `test/performance_budget_gate.jl` checks broad steady-state

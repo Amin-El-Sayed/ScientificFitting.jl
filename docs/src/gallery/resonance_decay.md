@@ -13,11 +13,19 @@ mechanical oscillator to answer two questions:
 <img class="scientificfitting-plot" src="../assets/gallery/damped_oscillator_decay_sans_panel_light.png" alt="Damped oscillator model comparison in sans style with result panel">
 ```
 
-The main panel alone barely distinguishes the two models. The pull panels do:
-the constant-frequency model leaves coherent deviations, while a weak frequency
-drift removes most of that structure.
+The main panel alone barely distinguishes the two models. The pull panels —
+each point's residual divided by its expected standard deviation, defined
+below — do: the constant-frequency model leaves coherent deviations, while a
+weak frequency drift removes most of that structure.
 
 ## The Measurement
+
+**Data provenance.** The record is the author's own laboratory measurement of
+the free decay of a Pohl torsion pendulum (a rotating-wheel torsion
+oscillator, a standard undergraduate-laboratory apparatus). It ships with
+this repository as
+`examples/data/damped_oscillator/pohl_wheel_free_decay.csv` under the
+repository's MIT license.
 
 The source acquisition recorded the angular displacement at 50 Hz. The
 distributed CSV keeps every tenth raw sample between 20.18 s and 79.98 s,
@@ -30,9 +38,9 @@ interpolated.
 | `phi_rad` | measured angular displacement | rad |
 | `sigma_phi_rad` | assigned standard uncertainty of the angle | rad |
 
-The angle was reconstructed from a path displacement measured at a radius of
-91.9 mm. The acquisition analysis assigned a 1 mm path-length uncertainty, so
-the angle uncertainty stored in the file is
+The angle was reconstructed from a path displacement measured at the
+instrument radius of 91.9 mm. The acquisition analysis assigned a 1 mm
+path-length uncertainty, so the angle uncertainty stored in the file is
 
 ```math
 \sigma_\phi
@@ -55,7 +63,8 @@ For a torsion oscillator with moment of inertia ``\Theta``, damping coefficient
 \Theta\ddot\phi+b\dot\phi+D\phi=0.
 ```
 
-In the underdamped regime the solution is
+In the underdamped regime (``\lambda^2 < D/\Theta``, so the oscillation
+persists) the solution is
 
 ```math
 \phi(t)
@@ -80,8 +89,10 @@ origin and become more strongly correlated.
 The damping time is the derived quantity
 
 ```math
-\tau_d = \frac{1}{\lambda}.
+\tau_d = \frac{1}{\lambda},
 ```
+
+the time over which the oscillation amplitude falls by a factor ``e``.
 
 For the constant-coefficient model,
 
@@ -114,9 +125,17 @@ r_i
 Their expected behavior under a correct model is described in
 [Residuals And Pulls](../statistics.md#Residuals-And-Pulls).
 
-Phase-periodic models have repeated local minima. Here `multistart=3` tries
-`p0` and two additional frequency/phase guesses, then keeps the fit with the
-lowest cost; this does not prove that the minimum is global.
+Phase-periodic models have repeated local minima. The two explicit
+`initial_guesses` are always tried in addition to `p0`, and the fit keeps the
+candidate with the lowest cost; this does not prove that the minimum is
+global. (The `multistart` keyword sets a total candidate budget and would
+only add generated starts beyond the explicit list.)
+
+The start values are read off the record: ``A_\mathrm{ref}`` from the
+envelope near mid-record, ``\omega_\mathrm{ref} = 2\pi/T`` from the visible
+period ``T \approx 1.93\ \mathrm{s}``, ``\phi_\mathrm{ref} = 0`` as a neutral
+phase start, and ``\lambda`` from the rough amplitude ratio between the two
+ends of the record.
 
 ```julia
 using ScientificFitting
@@ -155,7 +174,6 @@ constant_result = fit_model(
         [1.8, 3.20, 2.0, 0.0020],
         [1.5, 3.35, -2.0, 0.0060],
     ],
-    multistart=3, # p0 and the two additional starts.
     solver=:ipnewton,
     maxiters=3000,
     tol=1e-7,
@@ -216,8 +234,11 @@ For this fit,
 ```math
 \frac{\chi^2}{\mathrm{ndf}} = 1.564,
 \qquad
-P(\chi^2) = 1.77\times 10^{-9}.
+P(\chi^2) = 1.77\times 10^{-9},
 ```
+
+with ``\mathrm{ndf} = 300`` points ``- \, 4`` free parameters ``= 296``
+([Degrees Of Freedom](../statistics.md#Degrees-Of-Freedom)).
 
 Under the stated independent Gaussian uncertainty model, residuals this
 incompatible would be extraordinarily unlikely
@@ -277,7 +298,6 @@ drift_result = fit_model(
         [1.8, 3.20, 2.0, 0.0020, 0.0001],
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
-    multistart=3,
     solver=:ipnewton,
     maxiters=4000,
     tol=1e-7,
@@ -386,8 +406,17 @@ The main panel shows the drift model's **local 1σ prediction band**. It combine
 \sigma_\mathrm{pred}^2(t)
 = J_p(t)\,\mathrm{Cov}(p)\,J_p^\mathsf{T}(t)
 + \sigma_\phi^2
-+ \left(\frac{\partial\phi}{\partial t}\sigma_t\right)^2.
++ \left(\frac{\partial f}{\partial t}\sigma_t\right)^2,
 ```
+
+where
+``J_p(t)=\left(\partial f/\partial A_\mathrm{ref},\ \partial f/\partial\omega_\mathrm{ref},\ \partial f/\partial\phi_\mathrm{ref},\ \partial f/\partial\lambda,\ \partial f/\partial\beta\right)``
+is the row vector of drift-model derivatives with respect to the fitted
+parameters, evaluated at time ``t`` and at the fitted values, and
+``\mathrm{Cov}(p)`` is the fitted parameter covariance matrix
+(`drift_result.param_covariance`). ``\sigma_\phi`` and ``\sigma_t`` are the
+assigned angle and timestamp uncertainties from [The Measurement](@ref)
+above.
 
 The band is narrow compared with the full oscillation amplitude and difficult
 to judge in the main panel; the pull panels display the same uncertainty scale
