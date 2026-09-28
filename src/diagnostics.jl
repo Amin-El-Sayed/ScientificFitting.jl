@@ -90,6 +90,9 @@ function _basic_diagnostic_findings(
         )
     end
 
+    # Condition thresholds (same for the Hessian check below): 1e16 is roughly
+    # 1/eps(Float64), where the inverse carries no significant digits (critical);
+    # 1e12 still leaves ~4 digits (warning).
     if !isnan(cov_cond) && cov_cond > 1e12
         severity = cov_cond > 1e16 ? :critical : :warning
         push!(
@@ -184,6 +187,9 @@ function _stationarity_finding(problem, options, params, cov, cost, objective)
     edm = dot(gradient, local_cov * gradient) / 4
     # MIGRAD accepts up to 10 times its nominal EDM goal (0.002 * tol).
     # Match that verdict, rather than rejecting valid near-tolerance solutions.
+    # Other solvers report convergence relative to the cost magnitude, so the
+    # accepted EDM scales with max(|cost|, 1); the 64*eps floor keeps the limit
+    # above pure roundoff in the cost evaluation.
     requested = options.solver isa NativeMinuitSolver ? 0.02options.tol :
                 options.tol * max(abs(cost), 1.0)
     limit = max(requested, 64eps(Float64) * max(abs(cost), 1.0))
@@ -297,6 +303,9 @@ function _parameter_correlation_findings(result)
     end
 
     best_pair[1] == 0 && return DiagnosticFinding[]
+    # Heuristic cutoffs: above |corr| = 0.95, intervals from the local
+    # covariance start to degrade; above 0.995, the pair is effectively
+    # degenerate.
     if best_abs_corr > 0.995
         severity = :critical
     elseif best_abs_corr > 0.95
@@ -393,10 +402,15 @@ function _xy_diagnostic_findings(result::FitResult)
     max_pull_index = argmax(abs.(pulls))
     max_abs_pull = abs(pulls[max_pull_index])
     max_pull_x = result.problem.x[max_pull_index]
-    # Bonferroni over n points: family-wise two-sided alpha = 0.05, so the
-    # largest of n standard-normal pulls stays below this limit 95% of the time.
+    # Bonferroni over n points: family-wise two-sided alpha = 0.05. The largest
+    # of n standard-normal pulls stays below this limit at least 95% of the
+    # time (exact only for independent pulls; for correlated post-fit pulls the
+    # bound is conservative).
     pull_limit = quantile(Normal(), 1 - 0.05 / (2n))
     pull_evidence = "max |pull| = $(_fmt_scientific(max_abs_pull)) at point $max_pull_index (x = $(_fmt_scientific(max_pull_x))); the 5% family limit for $n points is $(_fmt_scientific(pull_limit))."
+    # A single pull beyond 5 sigma is critical regardless of n (conventional
+    # discovery-level threshold); below that, only the family-wise limit
+    # escalates to a warning.
     if isfinite(max_abs_pull) && max_abs_pull > max(5.0, pull_limit)
         push!(
             findings,
@@ -423,7 +437,10 @@ function _xy_diagnostic_findings(result::FitResult)
 
     # Wald-Wolfowitz runs test on the pull signs. The z-statistic keeps the
     # false-positive rate sample-size independent; a fixed run-length or
-    # run-count threshold does not.
+    # run-count threshold does not. One-sided cutoff z < -2 (~2.3% false
+    # positives; only too-few runs indicate structure); m >= 8 keeps the normal
+    # approximation of the run count usable. The lag-1 check below uses the
+    # same convention, two-sided (|z| > 2, n >= 8).
     signs = filter(!=(0), sign.(pulls))
     n_plus = count(>(0), signs)
     n_minus = count(<(0), signs)
@@ -505,9 +522,19 @@ end
 """
     diagnose(result)
 
-Return a structured `DiagnosticReport` with actionable findings for a fit
-result. The report is designed for quick notebook/lab use: each finding includes
-a severity, evidence, and a concrete next step.
+Return a `DiagnosticReport` for a fit result. Each finding carries a severity,
+a code, numeric evidence, and a recommended action; the report's `summary`
+reflects only the checks that ran.
+
+For a `FitResult`, the report combines the findings recorded at fit time with
+parameter-correlation, goodness-of-fit, and residual-pattern checks (largest
+pull against a Bonferroni limit, a sign-runs test, and lag-1 autocorrelation).
+For any other result with a `diagnostics` field, such as a
+`LikelihoodFitResult`, the residual-pattern checks are omitted because there
+are no x-y residuals; the correlation check runs only when the result has a
+`param_correlation` field, and the goodness-of-fit checks only when its
+`stats` is a `FitStatistics`. A result without a `diagnostics` field throws an
+`ArgumentError`.
 """
 function diagnose(result::FitResult)
     findings = DiagnosticFinding[]
@@ -613,9 +640,11 @@ end
 
 Create a compact dashboard from `diagnose(...)` findings. The dashboard does
 not add new statistical tests; it summarizes the current findings into a lab
-workflow status and prioritized next actions.
+workflow status and prioritized next actions. `max_actions` limits the number
+of prioritized next actions; duplicate recommendations are dropped and higher
+severities come first.
 
-The internal status is:
+The `status` field of the returned dashboard is:
 
 - `:ok`: no current warnings or critical findings,
 - `:review`: warnings exist and should be inspected before using the result,
@@ -661,7 +690,8 @@ end
     diagnostic_dashboard_text(result; max_actions=5)
 
 Render a compact diagnostic dashboard as plain text. The output contains an
-overall status, severity counts, and prioritized next actions.
+overall status, severity counts, and prioritized next actions. `max_actions`
+is forwarded to `diagnostic_dashboard`.
 """
 diagnostic_dashboard_text(dashboard::DiagnosticDashboard) =
     join(_diagnostic_dashboard_lines(dashboard), "\n")
@@ -676,9 +706,13 @@ end
 """
     _diagnostic_values(result::FitResult, kind::Symbol)
 
-Renderer-independent coordinates, values, marginal error bars, and labels.
-Pulls reuse only the observation part of the stored whitened residual vector;
-auxiliary parameter constraints are not additional measurement points.
+Renderer-independent data for one diagnostic kind (`:residual`, `:pull`, or
+`:ratio`): coordinates, values, marginal error bars (or `nothing`), a panel
+title, an axis label, and the reference-line value (0.0, or 1.0 for `:ratio`).
+The `:pull` kind reuses only the observation part of the stored whitened
+residual vector, labelled "whitened residuals" because the entries are not
+per-point pulls under correlated covariance; auxiliary parameter constraints
+are not additional measurement points.
 """
 function _diagnostic_values(result::FitResult, kind::Symbol)
     x, yhat = result.problem.x, result.model_y

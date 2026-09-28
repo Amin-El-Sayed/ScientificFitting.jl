@@ -1,4 +1,5 @@
-"""Keep zero probability impossible and reject undefined or infinite densities."""
+"""Allow `-Inf` log likelihood (zero probability) to become infinite cost
+instead of clipping it; reject `NaN` and `+Inf`."""
 function _minus2logprob(value)
     value isa Real && (isfinite(value) || value == -Inf) || throw(ArgumentError(
         "log likelihood must be finite or -Inf (zero probability)",
@@ -42,7 +43,9 @@ struct PDFLogAdapter{S, D} <: UnivariateDistribution{S}
 end
 PDFLogAdapter(d::UnivariateDistribution{S}) where {S} = PDFLogAdapter{S, typeof(d)}(d)
 
-# A fixed zero can be omitted; a zero with gradient or Hessian sensitivity cannot.
+# A weight that is exactly zero with no derivative sensitivity can be dropped
+# from mixture sums; a zero carrying gradient or Hessian partials must stay in
+# the sum.
 _structural_zero(x) = iszero(x)
 _structural_zero(x::ForwardDiff.Dual) = _structural_zero(ForwardDiff.value(x)) &&
     all(_structural_zero, ForwardDiff.partials(x))
@@ -144,8 +147,9 @@ _event_batch(data::AbstractMatrix, indices) = view(data, :, indices)
 
 """Bound event-sized AD scratch storage while retaining native component batches."""
 function _batched_mixture_loglikelihood(d, data)
-    # Only the reduction is blocked. Model construction, normalization and the
-    # likelihood are unchanged; every event contributes, including the last block.
+    # Only the reduction is split into fixed-size blocks. Model construction,
+    # normalization and the likelihood are unchanged; every event contributes,
+    # including the last partial block.
     blocks = Iterators.partition(1:size(data, ndims(data)), 4096)
     return sum(indices -> sum(_mixture_logpdfs(d, _event_batch(data, indices))), blocks)
 end
@@ -162,6 +166,8 @@ function _distribution_loglikelihood(d, data)
     return _prepared_loglikelihood(_with_logpdf(d, first(events)), data)
 end
 
+# Snapshot the error model: upstream distributions may be mutable, and the
+# stored problem must not change when the caller later mutates the original.
 _prepare_error_distribution(d::UnivariateDistribution, n) = deepcopy(d)
 function _prepare_error_distribution(d::MultivariateDistribution, n)
     length(d) == n || throw(DimensionMismatch("joint error distribution dimension must match y"))
@@ -214,11 +220,13 @@ Fit independent events using `make_distribution(p)`, which returns a normalized
 Distributions.jl distribution. The factory runs once per objective evaluation,
 not once per event: expensive parameter-dependent normalization belongs there.
 ScientificFitting uses the upstream `loglikelihood`/`logpdf` implementation and
-minimizes `-2 log(L)`. Heterogeneous mixtures batch the upstream component log
-densities in bounded event blocks, so their temporary AD arrays do not grow with
-the sample size. Every event contributes; there is no subsampling. Homogeneous
-mixtures keep their specialized native loop. A scaled-sum
-adapter retains first/second derivatives when a free mixture weight reaches zero.
+minimizes `-2 log(L)`. Mixtures whose components have different types
+(heterogeneous) batch the upstream component log densities in bounded event
+blocks, so temporary AD arrays do not grow with the sample size; mixtures of a
+single component type (homogeneous) keep their specialized native loop. Every
+event contributes; there is no subsampling. When a free mixture weight reaches
+exactly zero, first and second derivatives with respect to that weight are
+retained.
 A distribution exposing only `pdf` uses `log(pdf)`;
 extreme-tail underflow then follows that upstream density implementation.
 Univariate PDF-only components also work inside native mixtures and products:
@@ -229,15 +237,19 @@ declare which are fitted explicitly in the factory and `p0`.
 For univariate continuous or discrete observations, pass a vector. For joint
 multivariate events pass a matrix and specify `obsdim=1` (rows are events) or
 `obsdim=2` (columns are events). Events are independent, but components of each
-event may be correlated. `nobs` counts events, not scalar coordinates. Discrete
-observations do not enable discrete fitted parameters. Data are copied once.
+event may be correlated. The observation count used for degrees of freedom and
+the BIC sample-size term counts events, not scalar coordinates of a
+multivariate event. Discrete observations do not enable discrete fitted
+parameters. Data are copied once.
 
 Distribution support, normalization and derivatives come from the upstream
 package. Zero probability yields infinite cost, without clipping. Start inside
 the support; use `derivatives=:finite` if a constructor does not support dual
 numbers, or a derivative-free solver for nonsmooth parameter dependence.
 Bounds, parameter terms, solvers, multistart and covariance options follow
-[`fit_custom`](@ref). A universal goodness-of-fit p-value is not assumed.
+[`fit_custom`](@ref). Unbinned maximum likelihood carries no universal
+goodness-of-fit statistic, so the result's goodness-of-fit fields (`chi2`,
+`chi2_ndf`, `pvalue`) are `NaN`.
 
 After `using DistributionsHEP`, factories returning `ExtendedMixtureModel` are
 also supported. These retain the extended Poisson yield term rather than being
@@ -380,6 +392,7 @@ end
 """
     fit_distribution(make_distribution, edges, counts;
         p0, total_count=nothing, integration=:auto, rtol=1e-8, kwargs...)
+        -> LikelihoodFitResult
 
 Fit independent Poisson bin counts using a univariate distribution factory.
 `edges` must be finite and strictly increasing. Bin `i` is `(edges[i], edges[i+1]]`;
@@ -402,14 +415,16 @@ quadrature for continuous components. Its estimated error uses relative toleranc
 Moving truncation bounds retain their derivatives through a fixed-interval map.
 Mixture components are integrated in batches, with dispatch outside the bin loop
 and temporary storage linear in the number of bins. Their normalization and
-parameter derivatives are retained. A missing dual-number implementation requires the usual
-explicit `derivatives=:finite` option, not silent loss of derivatives.
+parameter derivatives are retained. If an upstream implementation rejects dual
+numbers, the fit raises an error; pass `derivatives=:finite` explicitly.
+Derivatives are never dropped silently.
 
 The objective is normalized Poisson `-2log(L)`, with tail bin probabilities kept
-in log space. Empty support bins contribute zero for zero observations and
-infinite cost otherwise. Goodness-of-fit uses asymptotic Poisson deviance only
-when all expected bin counts are strictly positive; otherwise those fields are
-`NaN`. Low counts and fitted boundaries can also invalidate that approximation.
+in log space. Bins with zero predicted probability contribute zero cost when
+their observed count is zero and infinite cost otherwise. Goodness-of-fit uses
+the asymptotic Poisson deviance only when every expected bin count is strictly
+positive; otherwise `chi2`, `chi2_ndf`, and `pvalue` are `NaN`. Low counts and
+fitted boundaries can also invalidate that approximation.
 Other fit controls and [`fitted_model`](@ref) work as for unbinned distribution fits.
 BuildConstructors metadata can be used with either form.
 """

@@ -3,8 +3,11 @@ Typed boundary for foreign callbacks evaluated with finite differences.
 
 The function field is deliberately abstract: the solver specializes on its
 declared return type, not each runtime-created Python closure. One dynamic
-dispatch per callback lets these fits share precompiled numerical code. Native
-Julia models bypass this adapter and retain automatic differentiation.
+dispatch per callback lets these fits share precompiled numerical code. Only
+automatic differentiation (`derivatives=:auto`) bypasses this adapter. With
+`derivatives=:finite`, every plain `Function`, native Julia or foreign, is
+wrapped, and each call asserts the declared return type `R`
+(`Vector{Float64}` for vector models, `Float64` for scalar objectives).
 """
 struct _TypedCallback{R}
     f::Function

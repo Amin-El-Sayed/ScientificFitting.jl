@@ -14,7 +14,9 @@ Use an Optimization.jl algorithm with its native solve keywords. Load the
 corresponding Optimization solver package first. Set `maxiters` and `tol` on
 the fit, not here. Other keywords (for example `g_tol` or `store_trace`) are
 preserved in profile refits. Unsupported bounds/constraints are rejected using
-SciML's algorithm traits. This does not turn a scalar loss into least squares.
+SciML's algorithm traits. OptimizationSolver minimizes the cost as one
+scalar; it does not exploit least-squares structure (residual Jacobians), so
+plain chi-squared fits are usually faster with the automatic LsqFit path.
 For NLopt, pass an algorithm enum (for example `NLopt.LN_NELDERMEAD`), not a
 dimension-bound `NLopt.Opt`: profile refits change the number of free parameters.
 """
@@ -46,11 +48,12 @@ fit and cannot be overridden here, including through native `fix_*`, `limit_*`
 or `error_*` aliases. Set numerical initial steps with `steps` instead.
 
 `maxiters` is the native function-call budget, not an iteration count; `tol`
-is MIGRAD's EDM tolerance parameter, defaulting to the native `0.1` (target
-EDM `0.002 * tol`, accepted up to ten times that goal, on our `errordef=1`
-cost scale). An explicit `tol` is never
-rescaled or relaxed. A failed or independently rejected solve may restart once
-from its last point, using only the remaining function-call budget. No solver,
+is MIGRAD's tolerance on the EDM (estimated distance to minimum), defaulting
+to the native `0.1` (target EDM `0.002 * tol`, accepted up to ten times that
+goal, on our `errordef=1` cost scale). An explicit `tol` is never
+rescaled or relaxed. A solve that fails, or that ScientificFitting's
+convergence validation rejects, may restart once from its last point, using
+only the remaining function-call budget. No solver,
 strategy or tolerance is silently changed. The native object from the retained
 attempt is available in `result.solver_result.raw`;
 its coordinates follow `result.solver_result.parameter_indices`. Symmetric
@@ -87,9 +90,12 @@ NativeMinuitSolver(; steps=nothing, kwargs...) = NativeMinuitSolver(steps, (; kw
     default_fit_tolerance(solver, derivatives::Symbol) -> Real
 
 Stopping tolerance used when a fit omits `tol` or passes `tol=nothing`.
-`derivatives` is `:auto` or `:finite`; `solver=nothing` selects the legacy path.
+`derivatives` is `:auto` or `:finite`; `solver=nothing` keeps the automatic
+choice (LsqFit for static chi-square least squares, an Optimization.jl
+algorithm otherwise; see [`fit`](@ref)), which uses the generic fallback below.
 LsqFit/Optimization use `1e-10`, or `1e-6` for noisier finite differences.
-NativeMinuit uses its native EDM tolerance `0.1` in either derivative mode.
+NativeMinuit uses its native EDM (estimated distance to minimum) tolerance
+`0.1` in either derivative mode.
 
 Third-party solvers may specialize this method to match their stopping rule.
 Return a finite positive value. The fit stores the resolved tolerance in
@@ -128,7 +134,11 @@ solver_capabilities(::NativeMinuitSolver) =
 
 Solver output in free coordinates, separate from statistical inference.
 `parameter_indices` maps these coordinates to the full scientific parameter
-vector. `raw` preserves native status/covariance/trace information; mutating it
+vector. `backend` names the adapter family (for example `:optimization`);
+`converged` reports the solver's own termination status, which
+ScientificFitting validates independently; `iterations` stays `missing` when
+the solver reports none; `message` is the human-readable termination reason.
+`raw` preserves native status/covariance/trace information; mutating it
 does not update the already constructed ScientificFitting result.
 """
 struct FitSolverResult{R}
@@ -214,7 +224,7 @@ function _scalar_solver(problem, options)
     return OptimizationSolver(alg)
 end
 
-"""Build one scalar solver problem for both statistical problem families."""
+"""Build, solve, and validate one scalar solver problem for both statistical problem families."""
 function _minimize_scalar(problem, options, objective, cache; maxiters=options.maxiters)
     solver = _scalar_solver(problem, options)
     caps = solver_capabilities(solver)

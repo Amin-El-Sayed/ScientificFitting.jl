@@ -31,7 +31,10 @@ function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     style = get(_SF_STYLE_ALIASES, theme, theme)
     style in (:sans, :tex) ||
         throw(ArgumentError(
-            "theme must be :sans, :tex, or a supported legacy alias",
+            "theme must be :sans or :tex; accepted aliases are :analysis, " *
+            ":presentation, :screen, :lab, :workbench, :modern, :clean, " *
+            ":minimal, :showcase (-> :sans) and :article, :publication, " *
+            ":paper, :latex (-> :tex)",
         ))
     return style, appearance == :auto ? :light : appearance
 end
@@ -102,7 +105,9 @@ function _style_preset(style::Symbol, appearance::Symbol)
             stats_muted_color=ink,
             stats_fontsize=24,
             stats_box_color=box,
+            stats_box_alpha=0.95,
             stats_box_strokecolor=box_stroke,
+            stats_box_strokewidth=1.0,
             fontsize=23,
             xlabelsize=29,
             ylabelsize=29,
@@ -205,9 +210,9 @@ function _resolve_style_tokens(preset, s::FitPlotStyle)
         reference_color = pick(s.reference_color, preset.reference_color),
         stats_fontsize = pick(s.stats_fontsize, preset.stats_fontsize),
         stats_box_color = pick(s.stats_box_color, preset.stats_box_color),
-        stats_box_alpha = s.stats_box_alpha,
+        stats_box_alpha = pick(s.stats_box_alpha, preset.stats_box_alpha),
         stats_box_strokecolor = pick(s.stats_box_strokecolor, preset.stats_box_strokecolor),
-        stats_box_strokewidth = s.stats_box_strokewidth,
+        stats_box_strokewidth = pick(s.stats_box_strokewidth, preset.stats_box_strokewidth),
     )
 end
 
@@ -289,6 +294,8 @@ function _wrap_panel_text(value, panel_width::Real, fontsize::Real)
 
     # Makie's Label centers a word-wrapped text block. Pre-wrapping lets the
     # block keep its natural width and therefore honor `halign=:left`.
+    # 0.52 approximates the mean glyph advance of the panel fonts in units of
+    # fontsize; 12 columns is the floor below which wrapping stops helping.
     max_columns = max(12, floor(Int, panel_width / (0.52 * fontsize)))
     wrapped = String[]
     for source_line in split(String(value), '\n'; keepempty=true)
@@ -335,6 +342,9 @@ function _merged_kwargs(defaults::NamedTuple, overrides)
     return merge(defaults, _normalize_kwargs(overrides))
 end
 
+# Per-point sigmas are interpolated linearly in x and held constant beyond the
+# outermost data points. The prediction band therefore assumes slowly varying
+# observation noise; it is a display approximation, not a refit.
 function _interpolate_sigma_to_grid(x::AbstractVector, sigma::AbstractVector, xgrid::AbstractVector)
     length(x) == length(sigma) || throw(DimensionMismatch("uncertainty length must match x length"))
     order = sortperm(x)
@@ -379,6 +389,8 @@ function _observation_band_sigma(result::FitResult, xgrid::AbstractVector)
     if xerr !== nothing
         xgrid_err = _interpolate_sigma_to_grid(problem.x, xerr, xgrid)
         dydx = _model_dydx(problem, result.params; x=xgrid)
+        # First-order propagation of x uncertainty through the fitted slope,
+        # matching the effective-variance treatment used in the cost function.
         variance .+= (dydx .* xgrid_err) .^ 2
     end
 
@@ -413,6 +425,8 @@ function _panel_width_px(stats_panel_width, fig_width::Int)
 
     stats_panel_width isa Real || throw(ArgumentError("stats_panel_width must be :auto or a positive number"))
     stats_panel_width > 0 || throw(DomainError(stats_panel_width, "stats_panel_width must be positive"))
+    # Values in (0, 1] are a fraction of the figure width, clamped to a
+    # readable panel range; values > 1 are absolute pixels.
     if stats_panel_width <= 1
         return clamp(Int(round(fig_width * stats_panel_width)), 300, 560)
     end
@@ -774,6 +788,9 @@ function _as_label_text(value, latex_labels::Bool)
     return value
 end
 
+# All values are axis-relative fractions (drawn with space=:relative), tuned
+# for the default stats fontsize; the box does not grow with fontsize
+# overrides.
 function _stats_box_geometry(stats_lines; position::Symbol=:lt)
     max_chars = maximum(length(string(line)) for line in stats_lines; init=20)
     width = clamp(0.013 * max_chars, 0.22, 0.34)
@@ -991,6 +1008,8 @@ function _draw_right_stats!(
     return panel
 end
 
+# Keywords routed to fit_model by fitplot; everything else goes to plot_fit.
+# Keep in sync with the fit_model keyword signature.
 const _FITPLOT_FIT_KWARGS = Set([
     :sigma_y,
     :sigma_x,
@@ -1159,7 +1178,6 @@ function plot_fit(
         throw(ArgumentError("limit_padding must be finite and non-negative"))
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
-    thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)
     preset = _style_preset(resolved_style, resolved_appearance)
     tokens = _resolve_style_tokens(preset, style)
     (; panel_gap, stats_fontsize, data_color, data_marker, data_markersize,
@@ -1172,9 +1190,7 @@ function plot_fit(
     base_size = show_panel && stats_position == :right ?
         preset.figure_size_with_panel : preset.figure_size_without_panel
     fig_size = tokens.figure_size === nothing ? base_size : tokens.figure_size
-    fig = with_theme(thm) do
-        Figure(size=fig_size, backgroundcolor=preset.background_color)
-    end
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, fig_size)
 
     if show_panel
         colgap!(fig.layout, Int(round(panel_gap)))
@@ -1463,6 +1479,8 @@ function _diagnostic_colors(style::Symbol, appearance::Symbol)
     )
 end
 
+# 2.30 / 6.18 are the two-parameter Δχ² thresholds for 68.3 % / 95.4 % joint
+# coverage; atol absorbs user-side rounding of these levels.
 _contour_level_name(level) =
     isapprox(level, 2.30; atol=0.015) ? "1σ" :
     isapprox(level, 6.18; atol=0.015) ? "2σ" : "Δcost"
@@ -1934,9 +1952,7 @@ function plot_profile_matrix(
     cell = n <= 3 ? 285 : 235
     fig_size = _plot_figure_size(tokens, (cell * n + 80, cell * n + 70))
 
-    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
-        Figure(size=fig_size, backgroundcolor=preset.background_color)
-    end
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, fig_size)
 
     profile_color = tokens.fit_color
     profile_linewidth = max(2.0, 0.8 * tokens.fit_linewidth)
@@ -1945,8 +1961,9 @@ function plot_profile_matrix(
     region_colors = collect(diagnostic_colors.regions)
     isempty(region_colors) && (region_colors = [(tokens.fit_color, 0.20)])
     corr_color = preset.stats_muted_color
-    # Dense matrices scale the selected role down, but never below a readable
-    # final-size floor. This keeps one typography contract across all plots.
+    # Dense matrices shrink each text role (title, axis label, tick, legend)
+    # via density_scale, but never below a readable per-role floor, so the
+    # matrix stays on the same typographic scale as the single-axis plots.
     density_scale = preset.diagnostic_scale * (n <= 3 ? 1.0 : 0.84)
     matrix_titlesize = max(n <= 3 ? 26 : 24, round(Int, density_scale * preset.titlesize))
     matrix_labelsize = max(n <= 3 ? 23 : 21, round(Int, density_scale * preset.xlabelsize))
@@ -2063,8 +2080,9 @@ function plot_profile_matrix(
         col > 1 && row >= col && hideydecorations!(ax; grid=false, label=false)
     end
 
-    # Hidden upper-triangle axes have little determinable content. Equal Auto
-    # weights keep every diagnostic cell aligned without guessing pixel sizes.
+    # Upper-triangle cells hold only a centered text label, so the layout
+    # solver cannot infer a size for them. Equal Auto weights keep every cell
+    # the same size without hard-coding pixels.
     for index in 1:n
         colsize!(fig.layout, index, Auto(false, 1))
         rowsize!(fig.layout, index, Auto(false, 1))

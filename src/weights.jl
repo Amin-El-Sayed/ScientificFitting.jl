@@ -5,7 +5,10 @@ has_parameter_constraints(problem) = !isempty(problem.parameter_constraints)
 
 abstract type PreparedCovariance end
 
+# Effective covariance depends on the fitted parameters (x-uncertainties or
+# model-relative components): it is refactorized inside every objective call.
 struct DynamicPreparedCovariance <: PreparedCovariance end
+# No uncertainties given: residuals pass through unwhitened.
 struct NoPreparedCovariance <: PreparedCovariance end
 
 struct DiagonalPreparedCovariance{V<:Vector{Float64}} <: PreparedCovariance
@@ -29,7 +32,7 @@ end
 
 Internal cached representation of a correlated Gaussian parameter constraint.
 The covariance factorization and log determinant are independent of the fitted
-parameters, so they must be prepared once instead of recomputed inside every
+parameters, so they are prepared once instead of being recomputed inside every
 objective call.
 """
 struct PreparedParameterConstraint{F}
@@ -278,6 +281,12 @@ function _whiten_with_factor(factor, residual::AbstractVecOrMat)
     return collect(factor.L \ residual)
 end
 
+# CHOLMOD factorizes with a fill-reducing permutation, P*A*P' = L*L', so `factor.L`
+# is the Cholesky factor of the *permuted* covariance. `factor.PtL` (= P'*L) satisfies
+# (P'*L)*(P'*L)' = A, so `PtL \ residual` whitens the residual in its original order.
+# Solving with `factor.L` would drop the permutation and give a wrong squared norm
+# (residual'*P*A^-1*P'*residual instead of residual'*A^-1*residual). The whitened
+# vector differs element-wise from the dense-factor result but has the same norm.
 function _whiten_with_factor(factor::SparseArrays.CHOLMOD.Factor, residual::AbstractVecOrMat)
     return collect(factor.PtL \ residual)
 end
@@ -404,11 +413,19 @@ function _covariance_from_weighted_jacobian(
     fisher = Symmetric(Jw' * Jw)
     cov = _stable_symmetric_inverse(fisher)
 
-    if scale_covariance && ndf > 0
-        cov .*= (chi2 / ndf)
+    if scale_covariance
+        cov .*= _chi2_ndf_scale(chi2, ndf)
     end
 
     return cov
+end
+
+"""Guarded chi2/ndf covariance factor: 1.0 whenever the ratio is undefined or
+non-positive (ndf <= 0, chi2 = 0, or non-finite), so a degenerate fit never
+zeroes or destroys the covariance."""
+function _chi2_ndf_scale(chi2, ndf)
+    scale = ndf > 0 ? chi2 / ndf : NaN
+    return isfinite(scale) && scale > 0 ? scale : 1.0
 end
 
 function _should_scale_covariance(problem::FitProblem, policy::Symbol)
@@ -417,26 +434,33 @@ function _should_scale_covariance(problem::FitProblem, policy::Symbol)
     elseif policy == :never
         return false
     elseif policy == :auto
+        # :auto scales only unweighted fits: with user-supplied uncertainties
+        # the covariance is absolute and chi2/ndf rescaling would double-count
+        # the observed scatter; without them the residual scatter is the only
+        # available scale.
         return !has_y_uncertainty(problem) && !has_x_uncertainty(problem)
     end
     throw(ArgumentError("unsupported covariance scaling policy: $policy"))
 end
 
 """
+    _covariance_scale(problem, options, stats) -> Float64
     _covariance_scale(result) -> Float64
 
 The chi2/ndf factor that was applied to this result's parameter covariance, or
-1.0 when no scaling was applied. This is the single source of the cost-function
-scale: profiles, contours, and the stationarity check divide raw cost
-differences by it so that their thresholds stay consistent with
+1.0 when no scaling was applied. The factor comes from `_chi2_ndf_scale`, the
+same guarded helper the fit path applies, so the two always agree — including
+for a perfect fit (chi2 = 0), where both leave the covariance unscaled. This
+is the single source of the cost-function scale: profiles and contours divide
+raw cost differences by it, and the stationarity check divides the scaled
+covariance by it, so that their thresholds stay consistent with
 `param_stderr`.
 """
 function _covariance_scale(problem, options, stats)
     problem isa FitProblem || return 1.0
     stats.cost == :chi2 || return 1.0
     _should_scale_covariance(problem, options.scale_covariance) || return 1.0
-    scale = stats.ndf > 0 ? stats.chi2 / stats.ndf : NaN
-    return isfinite(scale) && scale > 0 ? scale : 1.0
+    return _chi2_ndf_scale(stats.chi2, stats.ndf)
 end
 
 _covariance_scale(result) = _covariance_scale(result.problem, result.options, result.stats)
@@ -446,6 +470,8 @@ function _covariance_from_cost_hessian(cache::FitEvaluationCache, p::AbstractVec
     free_idx = _free_indices(problem)
     q = p[free_idx]
     H = _derivative_hessian(problem, qq -> _cost_value(cache, _expand_free_parameters(problem, qq), cost), q)
+    # The cost is on the chi-square / -2 log L scale, so Cov = 2 * H^(-1)
+    # (H is the full second-derivative matrix of the cost).
     cov = 2.0 .* _stable_symmetric_inverse(H)
     return _embed_free_covariance(problem, cov)
 end

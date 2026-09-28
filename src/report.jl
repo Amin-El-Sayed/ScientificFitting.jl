@@ -4,7 +4,9 @@
 One fitted parameter as stored in a `FitReport`. It records the public name,
 best-fit value, symmetric display uncertainty, asymmetric lower/upper
 uncertainties when available, and whether the parameter was fixed rather than
-fitted.
+fitted. `index` is the position in the fit's parameter vector. For a fixed
+parameter, the uncertainties are the user-declared values from
+`FixedParameter`, not fit results.
 """
 struct ParameterEstimate
     index::Int
@@ -100,11 +102,19 @@ end
 
 Return an extractable report object for a fit result. Parameters are available as
 `report.parameters[i].value` and `report.parameters[i].uncertainty`.
+`report.statistics` has `cost`, `cost_min`, `minus2loglik_min`, `chi2`,
+`chi2_ndf`, `ndf`, `pvalue`, `aic`, and `bic`.
 
 Use `errors=:profile` to compute profile-based asymmetric uncertainties. This
-re-runs fits and can be expensive. `profile_threshold`, `profile_npoints`, and
-`profile_nsigma` control those scans and are ignored for `errors=:local`.
-Unbracketed profile sides remain `NaN`; they are never replaced with local errors.
+re-runs fits and can be expensive. The keywords map to `profile_interval`'s
+`threshold`, `npoints`, and `nsigma`: `profile_threshold` is the delta-cost
+level whose crossings define the interval, on the scale where `1.0` is the
+one-sigma (68.3%) cut consistent with `param_stderr` (use `k^2` for a
+k-sigma interval); `profile_npoints` sets the scan grid size per parameter;
+`profile_nsigma` sets the scan half-width in units of the local standard
+error. All three are ignored for `errors=:local`. A side where the scan does
+not cross the threshold within its range stays `NaN`; it is never silently
+replaced with the local symmetric error.
 """
 function fit_report(
     result;

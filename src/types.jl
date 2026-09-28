@@ -3,10 +3,10 @@
 
 Container for nonlinear parameter constraints passed to the general
 `Optimization.jl` backend. `ineq` and `eq` receive the complete parameter
-vector in the order defined by `p0`, including fixed parameters. Their outputs
-are interpreted as `ineq(p) <= 0` and `eq(p) == 0`. Use this only when simple
-bounds, fixed parameters, or Gaussian parameter constraints are not expressive
-enough.
+vector in the order defined by `p0`, including fixed parameters. Each callback
+returns a scalar or a vector; every component is constrained elementwise
+(`ineq(p) .<= 0`, `eq(p) .== 0`). Use this only when simple bounds, fixed
+parameters, or Gaussian parameter constraints are not expressive enough.
 """
 struct ConstraintSpec{FI, FE}
     ineq::FI
@@ -21,11 +21,12 @@ has_constraints(spec::ConstraintSpec) = !(spec.ineq === nothing && spec.eq === n
     ParameterPrior(index, mean, sigma)
     ParameterPrior(index, mean, sigma_minus, sigma_plus)
 
-Gaussian prior term for one fitted parameter. The prior contributes a
-chi-square-like penalty centered at `mean`; asymmetric uncertainties use
-`sigma_minus` below the mean and `sigma_plus` above the mean. In the normalized
-Gaussian-likelihood path, asymmetric scales define a continuous split-normal
-density with one shared normalization across both sides of `mean`.
+Gaussian prior term for one fitted parameter. The prior adds
+`((p[index] - mean) / sigma)^2` to the objective and counts as one observation
+in `ndf`; asymmetric uncertainties use `sigma_minus` below the mean and
+`sigma_plus` above the mean. With `cost=:gaussian_likelihood`, asymmetric
+scales define a continuous split-normal density with one shared normalization
+across both sides of `mean`.
 """
 struct ParameterPrior
     index::Int
@@ -46,10 +47,12 @@ ParameterPrior(index::Integer, mean::Real, sigma_minus::Real, sigma_plus::Real) 
 
 Fix one parameter to `value` during the fit. Optional uncertainties describe
 the externally known value. ScientificFitting stores them in reports and in that fixed
-parameter's diagonal covariance entry with zero fitted cross-covariances. They
-do not change the objective, make the parameter free, or propagate uncertainty
-into the fitted parameters; use `ParameterPrior` or `ParameterConstraint` for
-that coupled statistical treatment.
+parameter's diagonal covariance entry with zero fitted cross-covariances. With
+asymmetric uncertainties the diagonal entry is `max(sigma_minus, sigma_plus)^2`;
+a single covariance entry cannot represent asymmetry, so the larger side is
+used. They do not change the objective, make the parameter free, or propagate
+uncertainty into the fitted parameters; use `ParameterPrior` or
+`ParameterConstraint` for that coupled statistical treatment.
 """
 struct FixedParameter
     index::Int
@@ -70,10 +73,17 @@ FixedParameter(index::Integer, value::Real, sigma_minus::Real, sigma_plus::Real)
 """
     ParameterConstraint(indices, mean, covariance)
 
-Correlated Gaussian constraint on several parameters. The contribution is
-formed from the selected parameter vector, the supplied `mean`, and the
-positive-definite covariance matrix. This is the parameter-space analogue of a
-correlated measurement.
+Correlated Gaussian constraint on several parameters. With
+`delta = p[indices] .- mean`, the constraint adds the penalty
+`delta' * inv(covariance) * delta` (evaluated via a Cholesky factorization,
+never an explicit inverse) to the chi-square objective: the selected
+parameters are treated as one correlated auxiliary measurement with the given
+`mean` and positive-definite `covariance`. With `cost=:gaussian_likelihood`,
+the parameter-independent normalization
+`length(indices) * log(2pi) + logdet(covariance)` is added as well. Each
+constrained component counts as one auxiliary observation in `ndf`; the
+External Parameter Information section of the statistics reference derives the
+scalar analogue and the `ndf` counting.
 """
 struct ParameterConstraint
     indices::Vector{Int}
@@ -87,8 +97,9 @@ end
 Named uncertainty contribution used by component-based covariance models.
 `target` is `:x` or `:y`. For `mode=:absolute`, `values` are scalar or
 pointwise standard deviations. `:relative` interprets them as fractions of the
-measured absolute x or y values, while y-only `:model_relative` uses the fitted
-model values. For `:covariance`, a vector contains pointwise standard
+absolute measured values, i.e. `sigma_i = values_i * |y_i|` (or `|x_i|` for
+`target=:x`); the y-only `:model_relative` uses `|model(x_i, p)|` instead.
+For `:covariance`, a vector contains pointwise standard
 deviations and a matrix is the complete covariance contribution. Active
 components add in covariance space; `active=false` keeps a source documented
 but excludes it from the current fit.
@@ -110,9 +121,13 @@ ErrorComponent(name::Symbol, target::Symbol, mode::Symbol, values; active::Bool=
 
 Normalized solver and covariance options stored in a `FitResult`. User-facing
 fit functions expose these as keyword arguments; constructing `FitOptions`
-directly is mainly useful for lower-level workflows and tests. Invalid
-iteration, tolerance, covariance-scaling, and multistart settings fail during
-construction rather than inside a solver. `solver` is either `nothing` (the
+directly is mainly useful for lower-level workflows and tests. See [`fit`](@ref)
+for the meaning of each option; allowed values are
+`cost in (:auto, :chi2, :gaussian_likelihood)`,
+`scale_covariance in (:auto, :always, :never)`,
+`parameter_covariance in (:auto, :hessian, :none)`, and `multistart >= 1`
+candidate starting points. Invalid iteration, tolerance, covariance-scaling,
+and multistart settings fail during construction rather than inside a solver. `solver` is either `nothing` (the
 automatic choice) or a concrete `AbstractFitSolver`; the resolved choice is
 preserved by profile refits, and the backend that actually solved a fit is
 recorded on the result. Unlike the public fit keywords, `tol` here is a
@@ -178,8 +193,8 @@ Gaussian `-2 log(L)` cost, AIC, and BIC.
 
 `marginal_sigma` is optional scalar or pointwise marginal standard deviation.
 It does not change the fit; plotting uses it for data error bars and pointwise
-prediction bands. Without it, confidence bands remain available but a
-prediction band would not have enough information.
+prediction bands. Without it, confidence bands remain available, but requesting
+a prediction band (`band=:prediction`) raises an `ArgumentError`.
 
 The mutating function must write every element of `out` and support the element
 types used by automatic differentiation when the general optimizer is needed,
@@ -349,11 +364,15 @@ _derivative_mode(::FitProblem{TF, TW, DM}) where {TF, TW, DM} = DM
 """
     FitStatistics
 
-Goodness-of-fit and information-criterion summary for a fit. `cost_min` is the
-minimized objective. `minus2loglik_min`, AIC, and BIC have their standard
-likelihood interpretation only when the objective uses a consistently
-normalized `-2 log(L)` convention; a custom loss may provide only arithmetic
-summaries. `chi2`, `chi2_ndf`, and `pvalue` are `NaN` when no chi-square-like
+Goodness-of-fit and information-criterion summary for a fit. `cost` names the
+resolved objective and `cost_min` is its minimized value. `ndf` is the number
+of observations (data points plus parameter-prior and parameter-constraint
+terms) minus the number of free parameters. `pvalue` is the upper-tail
+probability of `chi2` under a chi-square distribution with `ndf` degrees of
+freedom. `minus2loglik_min`, AIC, and BIC have their standard likelihood
+interpretation only when the objective uses a consistently normalized
+`-2 log(L)` convention; a custom loss may provide only arithmetic summaries.
+`chi2`, `chi2_ndf`, and `pvalue` are `NaN` when no chi-square-like
 goodness-of-fit statistic exists.
 """
 struct FitStatistics
@@ -412,9 +431,9 @@ end
 """
     DiagnosticDashboard
 
-Compact, action-oriented summary returned by `diagnostic_dashboard(...)`. It
-groups diagnostic findings into an overall status, severity counts, and
-deduplicated next actions for quick interactive use.
+Summary returned by `diagnostic_dashboard(...)`: the underlying report, an
+overall `status` (`:ok`, `:review`, or `:stop`), per-severity finding counts,
+and deduplicated recommended next actions.
 """
 struct DiagnosticDashboard
     report::DiagnosticReport
@@ -428,17 +447,31 @@ end
 
 Result of a Gaussian/least-squares style fit. It stores the normalized
 `FitProblem`, solver options and status, fitted parameters, local covariance
-and correlation estimates, fitted model values, residuals, Jacobian,
-statistics, and diagnostics.
+and correlation estimates, fitted model values, residuals, weighted residuals,
+the residual Jacobian, statistics, and diagnostics.
+
+`residuals` is `y - model_y` (data minus model). `weighted_residuals` is the
+whitened residual vector: the data block is `W * (y - model_y)` with
+`W'W = inv(C)` for the observation covariance `C`, followed by one appended
+entry per parameter prior and per parameter-constraint component, so its
+length can exceed `length(y)`. For a non-diagonal covariance the data-block
+entries depend on the whitening factorization and are not per-point pulls.
+`jacobian` is the Jacobian of `weighted_residuals` with respect to the full
+parameter vector, evaluated at `params`: the residual Jacobian, not the model
+Jacobian supplied via the `jacobian` keyword. For a parameter-independent
+covariance its data rows equal `-W * dmodel/dp`; with parameter-dependent
+covariance it also differentiates through the whitening.
 
 The parameter covariance is a local quadratic approximation. For nonlinear
 models, active bounds, weak data, or asymmetric likelihoods, inspect
 `profile(...)` or `contour(...)` before treating symmetric errors as final.
-`iterations` is `missing` when a backend does not expose an iteration count;
+`backend` records which solver path produced the result. `iterations` is
+`missing` when a backend does not expose an iteration count;
 ScientificFitting never substitutes the configured iteration limit for an unknown value.
-`solver_result` retains [`FitSolverResult`](@ref) for scalar adapters, including
-native status and the free-to-full parameter map. It is `nothing` for the
-specialized LsqFit path and when every parameter is fixed.
+`solver_result` retains [`FitSolverResult`](@ref) for fits solved through the
+generic scalar-objective solver interface, including native status and the
+free-to-full parameter map. It is `nothing` for the specialized LsqFit path
+and when every parameter is fixed.
 """
 struct FitResult
     problem::FitProblem
@@ -528,6 +561,8 @@ function _normalize_bounds(bounds, nparams::Int)
     length(lower) == nparams || throw(DimensionMismatch("lower bounds length must equal parameter count"))
     length(upper) == nparams || throw(DimensionMismatch("upper bounds length must equal parameter count"))
     any(lower .> upper) && throw(DomainError((lower, upper), "each lower bound must be <= corresponding upper bound"))
+    # Fully infinite bounds are the same problem as no bounds; drop them so
+    # the unbounded fast path stays eligible.
     all(isinf.(lower) .& (lower .< 0.0)) && all(isinf.(upper) .& (upper .> 0.0)) && return nothing
     return (lower, upper)
 end
@@ -745,6 +780,24 @@ end
 
 Build a fit problem for 1D `x` and scalar `y` observations.
 
+`model(x, p)` receives the full `x` vector and the complete parameter vector
+`p` (ordered as in `p0`) and returns one prediction per observation, for
+example `model(x, p) = @. p[1] * x + p[2]`. `p0` is the vector of initial
+parameter values; its ordering defines the parameter indices used by every
+other keyword.
+
+`sigma_y` and `sigma_x` are per-observation 1-sigma standard deviations
+(length `n`, entries > 0). `cov_y` and `cov_x` are full `n x n` symmetric
+positive-definite observation covariance matrices. `sigma_y` and `cov_y` are
+mutually exclusive, as are `sigma_x` and `cov_x`.
+
+`bounds = (lower, upper)` takes two vectors of length `length(p0)`; use
+`-Inf`/`Inf` entries for one-sided or absent bounds.
+
+`jacobian(x, p)` optionally supplies the analytic `length(x) x length(p0)`
+matrix of derivatives `dmodel_i/dp_j`; when omitted, the Jacobian follows the
+`derivatives` mode. See `inplace` below for the mutating signatures.
+
 `constraints` accepts either `ConstraintSpec` or a NamedTuple with:
 - `ineq = p -> vector` interpreted as `ineq(p) <= 0`
 - `eq = p -> vector` interpreted as `eq(p) == 0`
@@ -783,9 +836,6 @@ covariance estimation, profiles, and prediction bands. Analytic `jacobian` and
 `x_derivative` callbacks take precedence where applicable. Numerical differences
 require a smooth model in a neighborhood of the evaluation point, including
 at parameter bounds; they do not make discontinuous objectives differentiable.
-Omitting `tol` selects [`default_fit_tolerance`](@ref) for the solver and
-derivative mode. Explicit solver tolerances are preserved and are not
-parameter-error guarantees.
 
 `whitening=WhiteningOperator(...)` supplies the complete static observation
 covariance through a matrix-free whitening operation. It is mutually exclusive

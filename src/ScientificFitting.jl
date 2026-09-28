@@ -1,3 +1,16 @@
+"""
+    ScientificFitting
+
+Frequentist curve and likelihood fitting: y and x uncertainties (effective
+variance), full covariance matrices, Gaussian, Poisson, binned, and unbinned
+likelihoods, parameter priors and correlated constraints, fixed parameters,
+and profile-likelihood intervals and contours.
+
+Main entry points: [`fit_model`](@ref), [`fit_likelihood_model`](@ref),
+[`profile`](@ref), [`profile_interval`](@ref), [`plot_fit`](@ref) /
+[`fitplot`](@ref), and [`fit_report`](@ref). Full documentation:
+<https://amin-el-sayed.github.io/ScientificFitting.jl/>.
+"""
 module ScientificFitting
 
 using ADTypes

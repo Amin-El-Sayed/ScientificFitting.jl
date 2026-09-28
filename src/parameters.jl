@@ -85,7 +85,7 @@ end
 """Run one fit per candidate start and keep the preferred result.
 
 `run_candidate(candidate_problem)` performs the actual fit. Candidate errors
-are collected; if no candidate produces a result, the last error (or a generic
+are swallowed; if no candidate produces a result, the last error (or a generic
 failure) is thrown.
 """
 function _fit_over_candidates(run_candidate, problem, initial_guesses, multistart::Int)
@@ -159,6 +159,10 @@ function _initial_candidates(problem, initial_guesses, multistart::Int)
     # candidates beyond p0 and the explicit list.
     multistart = max(multistart, length(candidates))
 
+    # Generated candidates are deterministic (no RNG, reproducible across
+    # runs): scale/sign variations of p0, or quartile points of finite
+    # bounds. They probe wrong-sign and wrong-scale starts, not a dispersed
+    # global search.
     if multistart > length(candidates)
         free_idx = _free_indices(problem)
         if problem.bounds !== nothing

@@ -5,11 +5,13 @@ Low-level public problem representation for likelihood and custom-objective
 fits. `objective(p)` is minimized directly, while optional `gof(p)` supplies a
 chi-square-like data goodness-of-fit statistic for reduced statistics and
 p-values. ScientificFitting adds the chi-square contributions from Gaussian parameter
-terms to that statistic, matching their treatment as auxiliary observations in
+terms (the `parameter_priors` and `parameter_constraints` entries) to that
+statistic, matching their treatment as auxiliary observations in
 the degrees of freedom.
-The stored `objective` is the original callback: it does not add SF parameter
-terms or enforce bounds, fixed values or nonlinear constraints. For a normalized
-data `-2log(L)` callback, `-objective(p)/2` is therefore the data log likelihood;
+The stored `objective` is the original callback: it does not add the Gaussian
+parameter terms or enforce bounds, fixed values or nonlinear constraints. For a
+normalized data `-2log(L)` callback, `-objective(p)/2` is therefore the data
+log likelihood;
 external posterior models must supply priors and parameter support themselves.
 An arbitrary custom objective need not have this likelihood interpretation.
 Nonlinear constraint callbacks receive the same complete `p` vector, including
@@ -19,15 +21,20 @@ Starting values must be finite. Fixed values are validated against declared
 bounds while the problem is constructed.
 For covariance, profile thresholds, and information criteria to have their
 documented interpretation, `objective` must use the `-2 log(L)` scale.
+`nobs` counts the statistically independent observations entering `objective`;
+it must be positive and sets the degrees of freedom and the BIC sample size.
+Gaussian parameter terms are added to this count automatically, so do not
+include them in `nobs`. `cost_name` is a `Symbol` stored as the cost label in
+`FitStatistics` and echoed in fit reports; it does not affect the minimization.
 Most users should prefer `fit_poisson_model`, `fit_histogram_model`,
 `fit_unbinned_model`, `fit_extended_unbinned_model`, or `fit_custom`; construct
 this type directly when the objective must be stored, inspected, or refitted.
 `derivatives=:finite` selects numerical derivatives for foreign/Float64-only
 objectives and constraint callbacks, including the covariance Hessian and all
 profile refits. The default `:auto` uses ForwardDiff. Both modes require a
-smooth objective near the evaluation point. Omitting `tol` selects
-[`default_fit_tolerance`](@ref) for the solver and derivative mode;
-explicit tolerances are preserved.
+smooth objective near the evaluation point. When the problem is later fitted,
+omitting `tol` there selects [`default_fit_tolerance`](@ref) for the solver and
+derivative mode; explicit tolerances are preserved.
 """
 struct LikelihoodFitProblem{TF, TG, DM}
     objective::TF
@@ -51,9 +58,10 @@ _derivative_mode(::LikelihoodFitProblem{TF, TG, DM}) where {TF, TG, DM} = DM
 
 Result of a likelihood or custom-objective fit. It mirrors the parameter,
 covariance, statistics, and diagnostics fields of `FitResult`, but stores a
-`LikelihoodFitProblem` instead of x-y residual data. Plotting support depends on
-the specific likelihood workflow because not every objective has a natural
-curve representation.
+`LikelihoodFitProblem` instead of x-y residual data. `plot_fit`,
+`plot_residuals`, and `plot_diagnostics` require the x-y data of a `FitResult`
+and do not accept a `LikelihoodFitResult`; the profile-based plots
+(`plot_profile`, `plot_contour`, `plot_profile_matrix`) remain available.
 
 `iterations` is `missing` when the selected optimizer does not expose an
 iteration count.
@@ -74,7 +82,8 @@ struct LikelihoodFitResult
     param_correlation::Matrix{Float64}
     stats::FitStatistics
     diagnostics::FitDiagnostics
-    # Do not specialize reports/plots on every native solution and model type.
+    # solver_result stays a non-parametric field so downstream reports/plots
+    # do not specialize on each native solver and model type.
     solver_result::Union{Nothing, FitSolverResult}
 end
 
@@ -181,7 +190,7 @@ function _fit_scalar_problem(problem::LikelihoodFitProblem, options::FitOptions;
     return _minimize_scalar(problem, options, objective, cache; maxiters)
 end
 
-"""Compute local curvature once, or retain explicit missing free-parameter errors."""
+"""Compute the local curvature once; `:none` or no free parameters yields an explicit NaN free-parameter covariance."""
 function _likelihood_geometry(cache::LikelihoodEvaluationCache, params::Vector{Float64}, method::Symbol)
     problem = cache.problem
     free_idx = _free_indices(problem)
@@ -213,8 +222,8 @@ function _build_likelihood_result(
     ndf = nobs - npar
     gof_ndf = isfinite(gof) && ndf > 0 ? gof / ndf : NaN
     pvalue = isfinite(gof) && ndf > 0 ? ccdf(Chisq(ndf), gof) : NaN
-    aic = cost_min + 2.0 * npar
-    bic = cost_min + log(nobs) * npar
+    aic = ndf > 0 ? cost_min + 2.0 * npar : NaN
+    bic = ndf > 0 ? cost_min + log(nobs) * npar : NaN
     cov, hessian = _likelihood_geometry(cache, params, options.parameter_covariance)
     stderr = _standard_errors_from_covariance(cov)
     corr = _correlation_from_covariance(cov)
@@ -250,10 +259,17 @@ Minimize a validated likelihood-scale or custom objective problem. Bounds,
 fixed parameters, Gaussian parameter terms, nonlinear constraints, observation
 count, and cost name are already stored in `problem`.
 
-`initial_guesses` may contain additional complete parameter vectors. `multistart`
-is the total candidate budget including `p0`; its default of one uses only `p0`.
-Remaining slots use deterministic bounded candidates when finite bounds are
-available. ScientificFitting returns the candidate with the lowest finite cost;
+`initial_guesses` may contain additional complete parameter vectors in `p0`
+order. Explicit guesses are always tried; the candidate budget grows to cover
+them. `multistart` is the total candidate budget including `p0` and every
+explicit guess. Remaining slots are filled with deterministic generated
+candidates: with declared bounds, the midpoints of the finite intervals plus
+interior points at 25% and 75% of each two-sided finite interval (parameters
+without such an interval keep their `p0` value); without declared bounds, the
+rescalings `0.5*p0`, `2*p0`, and `-p0` of the free parameters. A candidate is
+usable only when it yields a finite cost (for likelihood objectives: lies
+inside the distribution's support).
+ScientificFitting returns the candidate with the lowest finite cost;
 convergence status only breaks exact cost ties, and a non-converged winner is
 returned with `converged == false`. If no candidate produces a finite result,
 the last objective, validation, or solver error is raised.
@@ -265,24 +281,27 @@ profile refits, and every solver declares its capabilities, so incompatible
 combinations (for example nonlinear constraints with a derivative-free method)
 raise an error instead of being dropped. The shorthands `solver=:lbfgs`,
 `solver=:ipnewton`, and `solver=:nelder_mead` name the corresponding
-`OptimizationSolver` algorithms. Start at finite cost inside the
-distribution's support. All methods are local optimizers of continuous
+`OptimizationSolver` algorithms. All methods are local optimizers of continuous
 parameters, not guarantees of a global minimum.
 
-`parameter_covariance=:auto` chooses `:none` with Nelder-Mead and `:hessian`
-otherwise. Explicit `:hessian` computes `2 * inv(H)` for the complete cost;
-use it only for locally smooth likelihoods on the documented `-2 log(L)` scale.
-`:none` skips curvature and stores NaN for free-parameter errors (fixed errors
-remain zero). Profile refits preserve both options. Supply explicit profile
-ranges when local errors are unavailable; profile thresholds still require
-statistical justification for non-regular models.
+`parameter_covariance=:auto` chooses `:none` for derivative-free solvers (such
+as `:nelder_mead`) and `:hessian` otherwise. Explicit `:hessian` computes
+`2 * inv(H)` for the complete cost; use it only for locally smooth likelihoods
+on the documented `-2 log(L)` scale.
+`:none` skips curvature and stores NaN for free-parameter errors; fixed
+parameters keep their declared external uncertainty (zero when none was given),
+independent of this choice. Profile refits preserve both options. Supply
+explicit profile ranges when local errors are unavailable; profile thresholds
+still require statistical justification for non-regular models.
 
 `maxiters` and explicit `tol` must be positive. `tol=nothing` selects
 [`default_fit_tolerance`](@ref) for the solver and derivative mode.
 With Nelder-Mead, `maxiters` limits
 objective evaluations, `tol` sets NLopt's absolute/relative parameter tolerances,
-and `iterations` is `missing`, not an invented count. Scale parameters accordingly;
-`tol` is not a statistical error. Function-value stopping is disabled because
+and `iterations` is `missing`, not an invented count. The absolute tolerance
+acts in parameter units and one `tol` covers every parameter, so bring
+parameters to comparable magnitudes or set `tol` for the smallest relevant
+scale; `tol` is not a statistical error. Function-value stopping is disabled because
 equal costs need not mean a contracted simplex. A budget-limited solve returns
 `converged == false`.
 """
@@ -326,10 +345,14 @@ Fit a user-defined scalar objective. `objective(p)` is minimized directly.
 If `gof(p)` is supplied it is used for reduced goodness-of-fit statistics and
 p-values; otherwise these fields are `NaN`. `nobs` controls degrees of freedom
 and the BIC sample-size term, and must represent the number of statistically
-independent observations used by the objective.
+independent observations used by the objective; Gaussian parameter terms are
+counted as additional observations in both.
 
-When requested, ScientificFitting computes local covariance as `2 * inv(H)`, where `H` is the objective
-Hessian. AIC, BIC, and that covariance therefore have their standard
+When requested, ScientificFitting computes local covariance as `2 * inv(H)`,
+where `H` is the Hessian of the complete minimized cost (the objective plus any
+parameter priors and parameter constraints), as for
+[`fit(::LikelihoodFitProblem)`](@ref).
+AIC, BIC, and that covariance therefore have their standard
 interpretation only when `objective` is a normalized `-2log(L)` cost (Gaussian
 chi-square is on the same scale). For an arbitrary loss, the optimizer result
 remains usable but those inferential fields are only arithmetic summaries.
@@ -337,12 +360,15 @@ remains usable but those inferential fields are only arithmetic summaries.
 Common keywords are `bounds`, `constraints`, `parameter_priors`,
 `parameter_constraints`, `fixed_parameters`, `parameter_names`, `maxiters`,
 `tol`, `initial_guesses`, `multistart`, and `derivatives=:auto` (or `:finite`).
+See `ConstraintSpec`, `ParameterPrior`, `ParameterConstraint`, and
+`FixedParameter` for the accepted forms of the corresponding keywords.
 `solver` and `parameter_covariance` independently control minimization and
 local errors; see [`fit(::LikelihoodFitProblem)`](@ref) for choices and limits.
 Parameter callbacks receive the
-complete vector in `p0` order. `nobs` must be positive; invalid parameter
-controls or a non-finite objective fail with an error rather than producing a
-reportable result.
+complete vector in `p0` order. `nobs` must be positive. Invalid parameter
+controls raise `DimensionMismatch`, `DomainError`, or `ArgumentError` depending
+on the violation; a non-finite objective fails with an error rather than
+producing a reportable result.
 
 # Example
 
@@ -423,16 +449,18 @@ these describe observations, not additive continuous errors.
 The core minimizes `-2 * sum(logprob(...))`. Include all normalization terms,
 especially those depending on fitted parameters. A log density may be positive;
 `-Inf` denotes zero probability and yields infinite cost, without clipping.
-NaN, positive infinity, wrong output dimensions, or non-finite observations
-raise `ArgumentError`. Begin at finite cost inside the distribution's support.
+NaN or positive-infinity log probabilities, non-finite predictions, and
+non-finite observations raise `ArgumentError`; wrong input or output dimensions
+raise `DimensionMismatch`. Begin at finite cost inside the distribution's support.
 The package cannot verify that an arbitrary callback is normalized.
 
 The default gradient/Hessian backend requires a smooth objective near evaluated
-parameters, even for discrete *observations*. Choose `solver=:nelder_mead`
-for non-smooth or moving-support likelihoods; it does not compute Hessian errors
-unless `parameter_covariance=:hessian` is explicitly requested. This does not
-support discrete fitted parameters. Use `fit_custom` for dependent observations with a joint
-likelihood rather than multiplying their marginal probabilities.
+parameters, even for discrete *observations*. Choose `solver=:nelder_mead` for
+objectives that are not smooth or whose support boundary moves with the
+parameters; it does not compute Hessian errors unless
+`parameter_covariance=:hessian` is explicitly requested. ScientificFitting fits
+continuous parameters only. Use `fit_custom` for dependent observations with a
+joint likelihood rather than multiplying their marginal probabilities.
 
 Parameter controls, derivatives, and solver options follow `fit_custom`.
 Requested local covariance and profiles use the same complete likelihood. There is no
@@ -545,8 +573,9 @@ At an exactly zero expectation this reference is not regular, so the
 goodness-of-fit fields are `NaN`. A zero expectation with a positive observation
 has infinite cost; a zero observation contributes `2mu`, without a probability floor.
 Common parameter-control and solver keywords are listed under `fit_custom`.
-Invalid counts, dimensions, expectations, or parameter controls raise
-`ArgumentError`. Returns `LikelihoodFitResult`.
+Length mismatches raise `DimensionMismatch`; negative counts or expectations
+raise `DomainError`; other invalid input, such as non-finite values or
+non-integer counts, raises `ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_poisson_model(
     model,
@@ -605,8 +634,10 @@ The objective is normalized Poisson `-2 log(L)` and `stats.chi2` is Poisson
 deviance. The caller is responsible for integrating any continuous density over
 the bins; use `fit_histogram_density` when ScientificFitting should perform that
 integration. Common parameter-control and solver keywords are listed under
-`fit_custom`. Invalid edges, counts, expectations, or controls raise
-`ArgumentError`. Returns `LikelihoodFitResult`.
+`fit_custom`. Length mismatches raise `DimensionMismatch`; edges that are not
+strictly increasing, negative counts, or negative expectations raise
+`DomainError`; other invalid input raises `ArgumentError`. Returns
+`LikelihoodFitResult`.
 Exactly zero expectations follow the same support and goodness-of-fit rules as
 [`fit_poisson_model`](@ref).
 """
@@ -708,13 +739,19 @@ With `vectorized=true`, `pdf(xs, p)` receives a vector of quadrature nodes and
 must return one value per node. QuadGK batches these evaluations while retaining
 adaptive error control for each bin; the scalar callback remains the default.
 During automatic differentiation, the quadrature error norm includes the value,
-gradient and nested Hessian coefficients, not just the primal density.
+gradient and nested Hessian coefficients, not just the density value itself.
 
-Each expectation is `total_count * integral(pdf, edge[i], edge[i+1])`.
-Consequently, bins outside the supplied range still carry probability unless
-the density is normalized on that range. Common parameter-control and solver
-keywords are listed under `fit_custom`. Quadrature/model failures are propagated;
-invalid histogram input raises `ArgumentError`. Returns `LikelihoodFitResult`.
+Each expectation is `total_count * integral(pdf, edges[i], edges[i+1])`. If
+`pdf` assigns probability mass outside `[first(edges), last(edges)]`, these
+expectations sum to less than `total_count`; with the default
+`total_count=sum(counts)` the model then predicts fewer events than observed,
+and the fit distorts the shape parameters to compensate. Either pass the true
+full-support event count as `total_count`, or supply a density normalized on
+the binned range. Common parameter-control and solver keywords are listed under
+`fit_custom`. Quadrature/model failures are propagated. Length mismatches raise
+`DimensionMismatch`; non-increasing edges, negative counts, and non-positive
+`total_count` or `rtol` raise `DomainError`; other invalid input raises
+`ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_histogram_density(
     pdf,
@@ -785,8 +822,8 @@ and must return one density per observation. The scalar callback is the default.
 The objective is `-2 * sum(log(pdf(x_i, p)))`. No universal chi-square
 goodness-of-fit statistic exists, so `chi2`, `chi2_ndf`, and `pvalue` are `NaN`.
 Common parameter-control and solver keywords are listed under `fit_custom`.
-Non-positive densities and invalid controls raise `ArgumentError`. Returns
-`LikelihoodFitResult`.
+Non-positive densities and non-finite observations raise `ArgumentError`.
+Returns `LikelihoodFitResult`.
 """
 function fit_unbinned_model(
     pdf,
@@ -839,6 +876,10 @@ With `vectorized=true`, `rate(xs, p)` returns one intensity per input point:
 all observations are evaluated together, and QuadGK batches the quadrature nodes.
 
 The objective is `2 * integral(rate, domain) - 2 * sum(log(rate(x_i, p)))`.
+The parameter-independent term `2*log(n!)` of the extended likelihood, with `n`
+the number of observations, is omitted: fits, covariance, and AIC differences
+on the same data are unaffected, but absolute `-2 log(L)` values differ from
+fully normalized implementations by that constant.
 No generic chi-square p-value is reported. Positive `rtol` controls the estimated
 Gauss-Kronrod error in the maximum norm, including all carried AD coefficients.
 Common parameter-control and solver keywords
@@ -953,10 +994,16 @@ The minimized objective is chi-square without additive Gaussian normalization
 constants. AIC/BIC may compare models fit to the same observations and the same
 uncertainty model, but not different uncertainty scales or datasets.
 
-Use either `sigma_y` or `cov_y`, never both. With neither, the fit is
-unweighted. Common parameter-control and solver keywords are listed under
-`fit_custom`. Invalid dimensions, uncertainty, covariance, model output, or
-controls raise `ArgumentError`. Returns `LikelihoodFitResult`.
+Use either `sigma_y` or `cov_y`, never both. With neither, the objective is the
+raw sum of squared residuals: `chi2`, `chi2_ndf`, and `pvalue` then treat every
+observation as having variance one in the units of `y`, and `param_stderr` is
+likewise computed for unit variance. Report these statistics only when the data
+truly have unit variance; otherwise supply `sigma_y` or `cov_y`. Common
+parameter-control and solver keywords are listed under `fit_custom`. Mismatched
+lengths of `indices`, `y`, `sigma_y`, `cov_y`, or the model output raise
+`DimensionMismatch`; non-positive `sigma_y` entries raise `DomainError`; other
+invalid uncertainty or covariance input raises `ArgumentError`. Returns
+`LikelihoodFitResult`.
 """
 function fit_indexed_model(
     model,
@@ -1023,11 +1070,16 @@ normalization constants. AIC/BIC may compare models fit to the same datasets
 and uncertainty model, but not different uncertainty scales or datasets.
 
 `sigma_y` is either `nothing` or one uncertainty vector (or `nothing`) per
-dataset. `parameter_map[i]` contains one-based indices into the global `p0` and
-defines the local parameter order passed to model `i`. Common parameter-control
-and solver keywords are listed under `fit_custom`. Empty or mismatched dataset
-collections, invalid maps or uncertainties, and wrong model-output lengths
-raise `ArgumentError`. Returns `LikelihoodFitResult`.
+dataset. A `nothing` entry leaves that dataset unweighted: its raw squared
+residuals enter the objective with unit weight relative to the weighted
+datasets, and `chi2`, `chi2_ndf`, and `pvalue` then treat those observations as
+having variance one. `parameter_map[i]` contains one-based indices into the
+global `p0` and defines the local parameter order passed to model `i`. Common
+parameter-control and solver keywords are listed under `fit_custom`. Empty
+dataset collections, out-of-range `parameter_map` indices, and non-finite
+entries raise `ArgumentError`; mismatched collection, per-dataset x/y,
+`sigma_y`, or model-output lengths raise `DimensionMismatch`; non-positive
+uncertainties raise `DomainError`. Returns `LikelihoodFitResult`.
 """
 function fit_multi_model(
     models::AbstractVector,

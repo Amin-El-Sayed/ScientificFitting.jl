@@ -6,7 +6,7 @@ const LOG2PI = log(2.0 * pi)
 function _resolve_cost(problem::FitProblem, cost::Symbol)
     if cost == :auto
         return _has_parameter_dependent_covariance(problem) ? :gaussian_likelihood : :chi2
-    elseif cost in (:chi2, :least_squares)
+    elseif cost == :chi2
         return :chi2
     elseif cost == :gaussian_likelihood
         return :gaussian_likelihood
@@ -129,7 +129,9 @@ function _gaussian_data_minus2loglik(problem::FitProblem, p::AbstractVector)
     if cov === nothing
         # No observation uncertainty: the Gaussian scale is unknown and is
         # profiled out, sigma_hat^2 = RSS/n. Callers that form AIC/BIC must
-        # count sigma_hat as one additional estimated parameter.
+        # count sigma_hat as one additional estimated parameter. RSS = 0
+        # makes the profiled scale degenerate (log 0 = -Inf); return NaN so
+        # AIC/BIC are visibly undefined instead of infinitely favorable.
         rss = _data_chi2(problem, p)
         rss > 0 || return oftype(float(rss), NaN)
         return n * (LOG2PI + log(rss / n) + 1)
