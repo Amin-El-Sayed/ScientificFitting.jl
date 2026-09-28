@@ -92,7 +92,7 @@ end
         @test_throws ArgumentError NativeMinuitSolver(; options...)
         @test_throws ArgumentError NativeMinuitSolver(nothing, options)
     end
-    @test_throws ArgumentError NativeMinuitSolver([1., 0.], (; strategy=2))
+    @test_throws DomainError NativeMinuitSolver([1., 0.], (; strategy=2))
     steps = [0.1, 0.2]
     valid = NativeMinuitSolver(; steps, strategy=2, check_gradient=false)
     steps[1] = 0.0
