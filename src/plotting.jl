@@ -661,8 +661,7 @@ function _stats_panel_lines(
     lines = Any[latex_stats ? LaTeXString("\\textbf{Fit\\ Summary}") : "Fit Summary"]
     fixed = Set(fp.index for fp in result.problem.fixed_parameters)
     for i in 1:n
-        v = _fmt_value(result.params[i]; sigdigits=sigdigits)
-        e = _fmt_value(result.param_stderr[i]; sigdigits=sigdigits)
+        v, e = _value_error_strings(result.params[i], result.param_stderr[i]; sigdigits=sigdigits)
         # A fixed parameter is an input, not a measurement; say so in the figure.
         if latex_stats
             pexpr = _latex_symbol_expr(names[i])
@@ -715,8 +714,7 @@ function _plain_stats_rows(
     rows = Tuple{Any, Any}[]
     fixed = Set(fp.index for fp in result.problem.fixed_parameters)
     for i in 1:n
-        value = _fmt_value(result.params[i]; sigdigits=sigdigits)
-        err = _fmt_value(result.param_stderr[i]; sigdigits=sigdigits)
+        value, err = _value_error_strings(result.params[i], result.param_stderr[i]; sigdigits=sigdigits)
         name = latex_stats ? LaTeXString(_latex_symbol_expr(names[i])) : string(names[i])
         uncertainty = if latex_stats
             entry = _latex_number_expr(value) * " \\pm " * _latex_number_expr(err)
@@ -1142,7 +1140,7 @@ function plot_fit(
     yunit=nothing,
     auto_limits::Bool=true,
     limit_padding::Real=0.08,
-    fit_range::Symbol=:axis,
+    fit_range::Symbol=:data,
     plot_aspect::Union{Nothing, Real}=nothing,
     stats_panel_width=:auto,
     stats_position::Symbol=:right,
@@ -2135,11 +2133,16 @@ function plot_residuals(
     marker=nothing,
     markersize::Union{Nothing, Real}=nothing,
     error_whiskerwidth::Union{Nothing, Real}=nothing,
+    ylabel=nothing,
+    title=nothing,
     axis_kwargs=NamedTuple(),
     scatter_kwargs=NamedTuple(),
     errorbars_kwargs=NamedTuple(),
 )
-    x, values, errors, title, ylabel, reference = _diagnostic_values(result, kind)
+    x, values, errors, default_title, default_ylabel, reference = _diagnostic_values(result, kind)
+    # Generic per-kind labels unless the caller names the quantities.
+    title = title === nothing ? default_title : title
+    ylabel = ylabel === nothing ? default_ylabel : ylabel
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
     preset = _style_preset(resolved_style, resolved_appearance)
     tokens = _resolve_style_tokens(preset, style)

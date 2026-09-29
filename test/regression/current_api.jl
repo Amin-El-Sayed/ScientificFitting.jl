@@ -568,6 +568,25 @@ using Test
         @test occursin("cost_min", text)
     end
 
+    @testset "Reported values round to the uncertainty" begin
+        # Hand-worked references: the error keeps two significant digits and
+        # the value is cut at the same decimal place.
+        strings = ScientificFitting._value_error_strings
+        @test strings(15.5551, 0.10753) == ("15.56", "0.11")
+        @test strings(1234.5, 123.4) == ("1230", "120")
+        @test strings(2.5999, 0.0004217) == ("2.59990", "0.00042")
+        @test strings(-0.0031, 0.095) == ("-0.003", "0.095")
+        @test strings(5284.7386, 0.2432334) == ("5284.74", "0.24")
+        # The finer side of an asymmetric pair fixes the decimal place.
+        @test strings(4.75, 0.78, 0.91) == ("4.75", "0.78", "0.91")
+        @test strings(4.75, 0.078, 0.91) == ("4.750", "0.078", "0.910")
+        # No compact fixed-point form: fall back to plain significant digits.
+        @test strings(7.0, 0.0) == ("7.0", "0.0")
+        @test strings(7.0, NaN) == ("7.0", "NaN")
+        @test strings(1.23456e-5, 2.3e-7) == ("1.2346e-5", "2.3e-7")
+        @test strings(3.2e7, 2.5e6) == ("3.2e7", "2.5e6")
+    end
+
     @testset "Plotting extension boundary" begin
         x = collect(range(0.0, 4.0; length=50))
         p_true = [1.5, 0.6]

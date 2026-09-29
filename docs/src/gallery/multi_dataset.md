@@ -210,10 +210,10 @@ iterations = 4
 message = Success
 
 Parameters:
-  shared gain = 1.84775 +/- 0.0067733
-  offset A = 0.61983 +/- 0.0401546
-  offset B = -0.566252 +/- 0.0448925
-  offset C = 0.340211 +/- 0.0447551
+  shared gain = 1.8478 +/- 0.0068
+  offset A = 0.620 +/- 0.040
+  offset B = -0.566 +/- 0.045
+  offset C = 0.340 +/- 0.045
 
 Statistics:
   cost = multi_chi2
@@ -234,11 +234,11 @@ iterations = 5
 message = Success
 
 Parameters:
-  gain A/B = 1.8232 +/- 0.00807553
-  offset A = 0.707442 +/- 0.0431124
-  offset B = -0.46491 +/- 0.0484239
-  gain C = 1.906 +/- 0.0124389
-  offset C = 0.139047 +/- 0.0574583
+  gain A/B = 1.8232 +/- 0.0081
+  offset A = 0.707 +/- 0.043
+  offset B = -0.465 +/- 0.048
+  gain C = 1.906 +/- 0.012
+  offset C = 0.139 +/- 0.057
 
 Statistics:
   cost = multi_chi2

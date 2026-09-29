@@ -197,10 +197,10 @@ iterations = 43
 message = Success
 
 Parameters:
-  A_ref = 1.60616 +/- 0.000897684
-  omega_ref = 3.2601 +/- 3.271e-5
-  phi_ref = -0.763197 +/- 0.000567184
-  lambda = 0.00348457 +/- 3.21332e-5
+  A_ref = 1.60616 +/- 0.00090
+  omega_ref = 3.260100 +/- 0.000033
+  phi_ref = -0.76320 +/- 0.00057
+  lambda = 0.003485 +/- 0.000032
 
 Statistics:
   cost = gaussian_likelihood
@@ -313,17 +313,18 @@ println(diagnostic_dashboard_text(drift_result))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>Fit report
+<pre>
+Fit report
 backend = optimization
 converged = true
-iterations = 41
+iterations = 33
 message = Success
 
 Parameters:
-  A_ref = 1.60608 +/- 0.000897621
-  omega_ref = 3.26016 +/- 3.28557e-5
-  phi_ref = -0.775608 +/- 0.000846739
-  lambda = 0.00348365 +/- 3.21247e-5
+  A_ref = 1.60608 +/- 0.00090
+  omega_ref = 3.260157 +/- 0.000033
+  phi_ref = -0.77561 +/- 0.00085
+  lambda = 0.003484 +/- 0.000032
   beta = 8.32878e-5 +/- 4.21994e-6
 
 Statistics:
@@ -342,7 +343,8 @@ critical = 0, warning = 1, info = 0
 1 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. The uncertainties may be too large, correlations may be ignored, or the data may not be independent.</pre>
+  1. The uncertainties may be too large, correlations may be ignored, or the data may not be independent.
+</pre>
 </div>
 ```
 

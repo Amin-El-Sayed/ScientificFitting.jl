@@ -31,6 +31,8 @@ using SpecialFunctions
 using SparseArrays
 using Statistics
 
+using Printf: Printf
+
 include("formatting.jl")
 include("solvers.jl")
 include("types.jl")

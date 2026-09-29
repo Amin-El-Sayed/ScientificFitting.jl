@@ -59,8 +59,9 @@ the level. The full keyword contract (labels, units, limits, result panel,
 legend, `*_kwargs` escape hatches) is on the Fit Plotting documentation page;
 visual tokens are fields of [`FitPlotStyle`](@ref).
 
-The default `fit_range=:axis` draws the fitted model over the padded axis range.
-Use `fit_range=:data` or pass `xgrid` when the curve should stop at a specific
+The default `fit_range=:data` stops the fitted curve at the first and last
+measured x. Use `fit_range=:axis` to extend it over the padded axis range, or
+pass `xgrid` when the curve should stop at a specific
 domain boundary.
 
 Plotting is provided by the optional CairoMakie extension. Load it with
@@ -220,8 +221,9 @@ Plot residuals, pulls, or data/fit ratios for a fitted model. `kind` is
 uncorrelated uncertainties, each residual divided by its uncertainty), or
 `:ratio` (data divided by fit). Use this when the
 main fit plot looks plausible but the noise model or model structure needs
-inspection. Marker and error-bar defaults follow the selected plot style;
-explicit Makie keyword containers override them.
+inspection. `xlabel`, `ylabel`, and `title` replace the generic per-kind
+labels with the measured quantities. Marker and error-bar defaults follow
+the selected plot style; explicit Makie keyword containers override them.
 """
 function plot_residuals end
 

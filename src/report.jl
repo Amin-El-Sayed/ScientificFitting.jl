@@ -169,15 +169,16 @@ function _report_lines(report::FitReport; sigdigits::Int=6)
     ]
 
     for p in report.parameters
-        value = _fmt_value(p.value; sigdigits=sigdigits)
+        # The uncertainty sets the printed precision: two significant digits
+        # of the error, value rounded to the same decimal place.
+        suffix = p.fixed ? " (fixed)" : ""
         if p.uncertainty_minus != p.uncertainty_plus
-            minus = _fmt_value(p.uncertainty_minus; sigdigits=sigdigits)
-            plus = _fmt_value(p.uncertainty_plus; sigdigits=sigdigits)
-            suffix = p.fixed ? " (fixed)" : ""
+            value, minus, plus = _value_error_strings(
+                p.value, p.uncertainty_minus, p.uncertainty_plus; sigdigits=sigdigits)
             push!(lines, "  $(p.name) = $value -$minus +$plus$suffix")
         else
-            uncertainty = _fmt_value(p.uncertainty; sigdigits=sigdigits)
-            suffix = p.fixed ? " (fixed)" : ""
+            value, uncertainty = _value_error_strings(
+                p.value, p.uncertainty; sigdigits=sigdigits)
             push!(lines, "  $(p.name) = $value +/- $uncertainty$suffix")
         end
     end
@@ -214,6 +215,13 @@ end
 Render a `FitReport` or fit result as plain text. The result method first calls
 `fit_report`, so keyword arguments such as `errors=:profile` are forwarded to
 the report builder.
+
+Parameter lines round to the uncertainty: the error keeps two significant
+digits and the value is cut at the same decimal place (`15.56 +/- 0.11`).
+The result panels of the plot functions follow the same rule. `sigdigits`
+controls the statistics lines, and parameter lines fall back to it when the
+uncertainty has no compact fixed-point form (non-finite, zero, below `1e-6`,
+or at `1e5` and above).
 """
 function report_text(report::FitReport; sigdigits::Int=6)
     return join(_report_lines(report; sigdigits=sigdigits), "\n")
