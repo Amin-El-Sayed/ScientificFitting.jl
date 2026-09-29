@@ -116,15 +116,16 @@ println(diagnostic_dashboard_text(result))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>Fit report
+<pre>
+Fit report
 backend = optimization
 converged = true
 iterations = 7
 message = Success
 
 Parameters:
-  m = 0.849698 +/- 0.0115274
-  b = 1.30078 +/- 0.0263385
+  m = 0.850 +/- 0.012
+  b = 1.301 +/- 0.026
 
 Statistics:
   cost = gaussian_likelihood
@@ -140,7 +141,8 @@ Fit diagnostic dashboard
 status = ok - no immediate issue
 critical = 0, warning = 0, info = 0
 No major diagnostic issues detected by the current checks.
-No next action required by the current diagnostic checks.</pre>
+No next action required by the current diagnostic checks.
+</pre>
 </div>
 ```
 
@@ -186,9 +188,9 @@ later by drawing larger horizontal error bars on a finished plot.
 For the dataset shown here, the fitted sensitivity and offset are
 
 ```math
-m = (0.8497 \pm 0.0115)\,\mathrm{V\,mm^{-1}},
+m = (0.850 \pm 0.012)\,\mathrm{V\,mm^{-1}},
 \qquad
-b = (1.3008 \pm 0.0263)\,\mathrm{V}.
+b = (1.301 \pm 0.026)\,\mathrm{V}.
 ```
 
 Under the stated independent Gaussian resolution model,

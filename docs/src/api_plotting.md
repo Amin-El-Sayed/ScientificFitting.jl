@@ -95,7 +95,7 @@ maintained names. Unknown styles and appearances raise `ArgumentError`.
 | `xunit`, `yunit` | `nothing` | Appended as `label / unit` (quantity-calculus notation: a tick value 2 on an axis labeled `t / s` means t = 2 s); units are never inferred. |
 | `latex_labels` | `false` | Convert suitable labels to Makie `LaTeXString` content. Pass explicit `L"..."` strings for mathematical notation. |
 | `xgrid` | `nothing` | Explicit finite model-sampling coordinates; authoritative when supplied. |
-| `fit_range` | `:axis` | `:axis` samples the data x range extended by `limit_padding`; `:data` samples from the smallest to the largest measured x. |
+| `fit_range` | `:data` | `:data` samples from the smallest to the largest measured x, so the drawn curve never extrapolates silently; `:axis` extends the sampling over the data x range padded by `limit_padding`. |
 | `auto_limits` | `true` | Include data, errors, model, and displayed band in both axis limits. |
 | `limit_padding` | `0.08` | Finite non-negative fractional padding around automatic content limits. |
 | `plot_aspect` | `nothing` | Optional numeric `AxisAspect`; leave unset unless geometry carries meaning. |

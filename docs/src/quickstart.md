@@ -120,8 +120,8 @@ iterations = unavailable
 message = Converged with LsqFit
 
 Parameters:
-  m = 1.84747 +/- 0.0169514
-  b = 0.736949 +/- 0.0774882
+  m = 1.847 +/- 0.017
+  b = 0.737 +/- 0.077
 
 Statistics:
   cost = chi2
@@ -205,9 +205,9 @@ If you want only the uncertainty of the fitted mean curve, use
 The fitted calibration coefficients are
 
 ```math
-m = (1.8475 \pm 0.0170)\,\mathrm{V\,mm^{-1}},
+m = (1.847 \pm 0.017)\,\mathrm{V\,mm^{-1}},
 \qquad
-b = (0.7369 \pm 0.0775)\,\mathrm{V}.
+b = (0.737 \pm 0.077)\,\mathrm{V}.
 ```
 
 These are local one-standard-deviation errors from the parameter covariance:

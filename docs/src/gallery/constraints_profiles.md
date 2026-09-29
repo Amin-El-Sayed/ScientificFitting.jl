@@ -224,7 +224,8 @@ println(diagnostic_dashboard_text(result))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>amplitude = 4.750 -0.629 +1.018 V
+<pre>
+amplitude = 4.750 -0.629 +1.018 V
 profile interval = [4.121, 5.768] V
 corr(A, tau) = 0.9928
 Fit diagnostic dashboard
@@ -234,7 +235,8 @@ critical = 0, warning = 2, info = 0
 
 Next actions:
   1. Use profile or contour intervals before treating symmetric covariance errors as final uncertainties.
-  2. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.</pre>
+  2. Inspect a contour/profile plot. Re-center or rescale the independent variable, reparameterize the model, or add data that breaks the degeneracy.
+</pre>
 </div>
 ```
 

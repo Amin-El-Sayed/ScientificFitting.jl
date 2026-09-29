@@ -207,9 +207,9 @@ iterations = unavailable
 message = Converged with LsqFit
 
 Parameters:
-  A = 1.93938 +/- 0.0589119
-  lambda = 1.03103 +/- 0.0791039
-  C = 0.209571 +/- 0.0562024
+  A = 1.939 +/- 0.059
+  lambda = 1.031 +/- 0.079
+  C = 0.210 +/- 0.056
 
 Statistics:
   cost = chi2

@@ -226,12 +226,14 @@ use `band=:confidence`.
 
 ## Model Range And Automatic Limits
 
-`fit_range=:axis` (the default) draws the fitted model to the padded x
+`fit_range=:data` (the default) stops the drawn model at the first and last
+measured x: extrapolation beyond the data is a statement the analyst makes
+explicitly, not a display default. `fit_range=:axis` draws to the padded x
 limits, keeping interpolation and modest extrapolation visually continuous
 with the axis:
 
 ```julia
-plot_fit(result; fit_range=:data)             # first to last measured x
+plot_fit(result; fit_range=:axis)             # extend to the padded axis range
 plot_fit(result; xgrid=collect(0.0:0.01:8.0)) # exact requested domain
 ```
 
