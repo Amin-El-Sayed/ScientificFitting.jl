@@ -35,7 +35,7 @@ function fit_keywords(options)
     for (key, value) in values
         name = Symbol(key)
         pyis(value, pybuiltins.None) && continue
-        result[name] = if name in (:backend, :cost, :scale_covariance, :cost_name, :optimizer, :parameter_covariance)
+        result[name] = if name in (:cost, :scale_covariance, :cost_name, :solver, :parameter_covariance)
             Symbol(pyconvert(String, value))
         elseif name in (:cov_x, :cov_y)
             covariance(value)
@@ -131,14 +131,14 @@ scalar_fields(record) = pydict(String(name) => scalar_value(getproperty(record, 
 
 """Stored numerical checks, with parameter names instead of one-based indices."""
 function numerical_values(diagnostics, names)
-    return pydict(warnings=pylist(diagnostics.warnings),
-        covariance_condition=diagnostics.covariance_condition, hessian_condition=diagnostics.hessian_condition,
+    return pydict(covariance_condition=diagnostics.covariance_condition,
+        hessian_condition=diagnostics.hessian_condition,
         active_bounds=pylist(names[diagnostics.active_bounds]),
         findings=pylist(scalar_fields(f) for f in diagnostics.findings))
 end
 
 """Transfer actual core reports; Python never infers findings by parsing text."""
-function diagnostic_values(report::DiagnosticReport, max_actions::Int=5)
+function diagnostic_values(report::ScientificFitting.DiagnosticReport, max_actions::Int=5)
     dashboard = diagnostic_dashboard(report; max_actions)
     return pydict(findings=pylist(scalar_fields(f) for f in report.findings),
         summary=report.summary, status=String(dashboard.status),
@@ -161,7 +161,7 @@ function result_values(result, names)
             weighted_residuals=Py(result.weighted_residuals), jacobian=Py(result.jacobian)) : pybuiltins.None)
 end
 
-function report_values(report::FitReport, names, sigdigits::Int)
+function report_values(report::ScientificFitting.FitReport, names, sigdigits::Int)
     return pydict(parameters=pylist(pydict(name=p.name, value=p.value, uncertainty=p.uncertainty,
             uncertainty_minus=p.uncertainty_minus, uncertainty_plus=p.uncertainty_plus, fixed=p.fixed)
             for p in report.parameters),
@@ -212,7 +212,6 @@ contour_diagnostics(scan::ContourResult, center, covariance, tolerance::Real=0.5
 """Keep core ordering and axis orientation while replacing indices with names."""
 function matrix_values(result::ProfileMatrixResult)
     labels = Dict(zip(result.parameters, result.parameter_names))
-    triage = profile_matrix_triage(result; include_ok=true)
     return pydict(parameters=pylist(result.parameter_names),
         best_values=Py(result.best_values), local_stderr=Py(result.local_stderr),
         local_covariance=Py(result.local_covariance), local_correlation=Py(result.local_correlation),
@@ -222,10 +221,7 @@ function matrix_values(result::ProfileMatrixResult)
             for ((i, j), scan) in result.contours),
         panel_status=pydict(pytuple((labels[i], labels[j])) => String(status)
             for ((i, j), status) in result.panel_status),
-        diagnostics=diagnostic_values(result.report),
-        triage=pylist(pydict(parameters=pytuple(row.parameter_names), status=String(row.status),
-            severity_counts=pydict(String(k) => v for (k, v) in row.severity_counts),
-            finding_codes=pylist(String.(row.finding_codes)), next_action=row.next_action) for row in triage))
+        diagnostics=diagnostic_values(result.report))
 end
 
 plot_errors(result) = (ScientificFitting._xerror_for_plot(result.problem, result.params),

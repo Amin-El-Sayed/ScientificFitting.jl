@@ -1,10 +1,9 @@
 # Plotting And Customization
 
-ScientificFitting's plotting layer is an optional CairoMakie extension. Fitting,
-reporting, diagnostics, profiles, and contours work without Makie; loading
-`CairoMakie` adds the visual interface. A plot always reads an existing fit
-result, so changing a label, style, band, or annotation never changes the
-numerical analysis.
+ScientificFitting's plotting layer is an optional CairoMakie extension:
+fitting, reporting, diagnostics, profiles, and contours work without Makie;
+loading `CairoMakie` adds the visual interface. A plot reads an existing fit
+result and never changes the numerical analysis.
 
 ## The Short Path
 
@@ -31,35 +30,52 @@ result = out.result
 fig = out.figure
 ```
 
-All `fitplot` methods return the named tuple `(result, figure)`. The numerical
-result is therefore available for further diagnostics even in the shortest
-workflow.
+All `fitplot` methods return the named tuple `(result, figure)`.
 
-When an x-y `FitResult` already exists, use `plot_fit(result)`. It returns a
-Makie `Figure` and does not rerun the optimizer:
+When an x-y `FitResult` already exists, `plot_fit(result)` returns a Makie
+`Figure` without rerunning the optimizer:
 
 ```julia
 fig = plot_fit(result; title="Sensor calibration")
 ```
 
-The default layout allocates the scientific axis first and lets Makie's layout
-system size the optional information panel from its content. Error bars,
-uncertainty bands, labels, and the model range are included when automatic axis
-limits are calculated. Manual margin guessing should not be part of the normal
-workflow.
+## Reusable Styles
+
+`FitPlotStyle` collects the visual tokens shared by every plot function. Each
+field overrides the corresponding token of the selected `theme` preset;
+`nothing` keeps the theme value. One style object works for `plot_fit`,
+`fitplot`, and all diagnostic plot functions via their `style` keyword.
+Content and layout choices (labels, panels, legends) remain per-function
+keywords; Makie-level details go through the `*_kwargs` arguments below.
+
+The tokens are `figure_size`, `panel_gap`, `data_color`, `data_marker`,
+`data_markersize`, `data_strokecolor`, `data_strokewidth`, `fit_color`,
+`fit_linewidth`, `band_color`, `band_alpha`, `xerr_color`, `yerr_color`,
+`error_linewidth`, `error_whiskerwidth`, `secondary_color`,
+`reference_color`, `stats_fontsize`, `stats_box_color`, `stats_box_alpha`,
+`stats_box_strokecolor`, and `stats_box_strokewidth`.
+
+```julia
+project_style = FitPlotStyle(
+    fit_color=:firebrick,
+    band_alpha=0.25,
+    data_markersize=7.0,
+)
+
+fig = plot_fit(result; style=project_style)
+res_fig = plot_residuals(result; style=project_style)
+```
 
 ## Reports, Legends, And Panels
 
-The one-call interface uses independent switches rather than bundled output
-modes:
+Report, panel, and legend are independent switches:
 
 - `show_panel=true` includes the numerical result panel in the figure;
 - `print_report=true` prints `report_text(result)` to the terminal;
 - `show_legend=true` controls the legend independently.
 
-Both `fitplot` and `plot_fit` default to `show_panel=true`. Only `fitplot` has
-`print_report`, because `plot_fit` never emits terminal output. Thus all four
-panel/terminal combinations are direct Boolean choices rather than style names.
+Both `fitplot` and `plot_fit` default to `show_panel=true`; only `fitplot`
+has `print_report`, since `plot_fit` never prints.
 
 ```julia
 plot_fit(
@@ -71,44 +87,40 @@ plot_fit(
 )
 ```
 
-With `stats_position=:right`, the legend is placed above the model and parameter
-summary in the same left-aligned information panel. With
-`stats_position=:inside`, `legend_position` and `inside_stats_position` control
-the in-axis locations independently. `show_panel=false` removes the report
-panel entirely.
+With `stats_position=:right`, the legend sits above the parameter summary in
+the same left-aligned panel; with `stats_position=:inside`, `legend_position`
+and `inside_stats_position` set the in-axis locations. `show_panel=false`
+removes the panel.
 
-The sans style defaults to `(1040, 640)` with a right-side panel and
-`(860, 560)` without one. The TeX style uses `(1000, 640)` with the panel and
-`(760, 520)` without it. `figure_size=(width, height)` requests a minimum
-logical canvas. Makie measures legends, labels, and panel content while
-preserving a readable data-axis area; if the request is too small, the canvas
-grows rather than clipping content. A larger requested width goes to the
-flexible data axis after the panel has reached its natural width.
+The `:sans` theme preset (the default; see Two Visual Styles below) uses a
+`(1040, 640)` logical-pixel canvas with a right-side panel and `(860, 560)`
+without one; `:tex` uses `(1000, 640)` and `(760, 520)`.
+`style=FitPlotStyle(figure_size=(width, height))` requests a minimum logical
+canvas: a request too small for the measured legends, labels, and panel
+content grows rather than clips, and extra width goes to the flexible data
+axis once the panel has its natural width.
 
-`stats_panel_width=:auto` uses that natural width. A numeric value is the
-preferred wrapping width for long plain text. Legends and unbreakable TeX
-expressions may make the panel wider, because preserving the expression is
-safer than silently cropping it.
+`stats_panel_width=:auto` uses that natural width; a value above 1 sets the
+preferred wrapping width in logical pixels, and a value in (0, 1] is a
+fraction of the figure width, clamped to 300–560 px. Legends and unbreakable
+TeX expressions may widen the panel.
 
 ## Two Visual Styles
 
-The maintained themes describe visual properties only. They do not decide
-whether a panel is present, and they never change data, fit, uncertainty band,
-or statistics.
+A theme describes visual properties only; it never changes data, fit,
+uncertainty band, statistics, or whether a panel is present. Warning labels
+on diagnostic figures are controlled separately through the diagnostic plot
+functions' `panel_status_mode` keyword (`:issues`, `:all`, or `:none`; see
+[the diagnostics API](api_plotting_diagnostics.md)).
 
-- `theme=:sans` is the default. It follows Makie's direct line-and-band grammar:
-  sans-serif type, neutral filled observations, a saturated blue fit, visible
-  guides, strong open axes, and a left-aligned title.
-- `theme=:tex` uses Makie's LaTeX font family, hollow observations, a complete
-  axis frame with inward ticks, no grid, and the Okabe-Ito blue/vermillion pair
-  when multiple curves require color.
-
-The same contracts apply to compound diagnostics. Diagnostic status labels are
-controlled separately through `panel_status_mode`; changing fonts or axis
-grammar does not silently remove scientific warnings.
-
-Both images below contain the same observations, errors, fit, one-sigma
-prediction band, labels, and panel state. Only visual style changes.
+- `theme=:sans` is the default: sans-serif type, neutral filled
+  observations, a saturated blue fit, visible grid guides, open axes (no top
+  or right frame line), and a left-aligned title.
+- `theme=:tex` differs from `:sans` only in the following: TeX typography, a
+  full axis frame with inward ticks and no grid, hollow observations, and
+  the blue/vermillion pair from the Okabe-Ito palette (designed to stay
+  distinguishable in print and for color-vision deficiency) when multiple
+  curves require color.
 
 ```@raw html
 <div class="scientificfitting-gallery-grid scientificfitting-style-grid">
@@ -123,10 +135,8 @@ Color appearance is independent of style:
 plot_fit(result; theme=:sans, appearance=:dark)
 ```
 
-`appearance=:auto` currently resolves to the light appearance. Select
+`appearance=:auto` currently resolves to the light appearance; select
 `:light` or `:dark` explicitly when an exported asset must match a document.
-The documentation switch swaps real Makie-rendered light/dark assets; it does
-not invert or recolor PNG files in CSS.
 
 LaTeX conversion is also independent:
 
@@ -144,34 +154,33 @@ plot_fit(
 )
 ```
 
-Plain strings remain text, even when rendered with LaTeX typography. Pass a
-`LaTeXString`, such as `L"\nu"`, when a label contains mathematical symbols.
-`latex_stats=true` applies to the structured right-side panel; the compact
-in-axis text box remains plain text.
+Under TeX typography alone (`latex_labels=false`), plain strings are passed
+through unchanged. With `latex_labels=true`, a plain string containing `\`,
+`^`, or `_` is interpreted as TeX math; other strings render as upright
+text. Pass a `LaTeXString`, such as `L"\nu"`, whenever a label contains
+mathematical symbols, to make the intent explicit.
 
-## Figure Size Is Not Resolution
-
-Makie interprets `Figure(size=(width, height))` as a logical canvas in CSS-like
-pixels. Increasing that size to obtain a sharper PNG makes the plot physically
-larger; when a document scales it back down, every label becomes smaller with
-it. Keep the figure at its intended display size and control raster density
-when saving:
-
-```julia
-fig = plot_fit(result; figure_size=(1200, 600))
-save("fit.png", fig; px_per_unit=2)  # sharper raster, unchanged layout
-save("fit.svg", fig)                 # vector output for scalable documents
-```
-
-The documentation gallery follows the same rule: compound figures use a
-browser-sized logical canvas, while `px_per_unit` supplies retina-resolution
-pixels. Font-size checks therefore refer to the rendered page, not the raw PNG
-dimensions.
+`latex_stats=true` applies to the structured right-side panel only; the
+in-axis text box renders plain text, and combining `latex_stats=true` with
+`stats_position=:inside` raises an `ArgumentError`.
 
 Use `:sans` and `:tex` in new code. The former screen-oriented names
 `:analysis`, `:presentation`, `:screen`, `:lab`, `:workbench`, `:modern`,
 `:clean`, `:minimal`, and `:showcase` resolve to `:sans`; `:article`,
 `:publication`, `:paper`, and `:latex` resolve to `:tex`.
+
+## Figure Size Is Not Resolution
+
+Makie interprets `Figure(size=(width, height))` as a logical canvas in
+CSS-like pixels: enlarging it for a sharper PNG makes the plot physically
+larger, and every label shrinks when a document scales it back down. Keep the
+intended display size and set raster density when saving:
+
+```julia
+fig = plot_fit(result; style=FitPlotStyle(figure_size=(1200, 600)))
+save("fit.png", fig; px_per_unit=2)  # sharper raster, unchanged layout
+save("fit.svg", fig)                 # vector output for scalable documents
+```
 
 ## State What The Band Means
 
@@ -179,10 +188,17 @@ Use `:sans` and `:tex` in new code. The former screen-oriented names
 
 - `band=:confidence` propagates the local parameter covariance to the fitted
   mean curve;
-- `band=:prediction` adds the observation uncertainty in y and the effective x
-  uncertainty, answering where a new measurement may land;
+- `band=:prediction` adds the observation uncertainty in y and the x
+  uncertainty converted to y through the local model slope (contribution
+  ``(\sigma_x\,|df/dx|)^2``; see
+  [Uncertainty In X](statistics.md#Uncertainty-In-X)), answering where a new
+  measurement may land;
 - `band=:none` hides the band;
 - `nsigma` multiplies the displayed standard-deviation scale.
+
+Both bands are pointwise intervals under approximate normality — at
+`nsigma=1`, a 68.27% interval at each x — not simultaneous bands for the
+whole curve.
 
 ```julia
 plot_fit(
@@ -194,50 +210,51 @@ plot_fit(
 )
 ```
 
-The band comes from local covariance propagation. `nsigma=2` is not a guarantee
-of exact 95% coverage for a nonlinear, bounded, or non-Gaussian fit. When the
-profile is asymmetric or a contour is non-elliptic, report profile-based
-intervals and use the band only as the stated local approximation.
+The band comes from
+[local covariance propagation](statistics.md#Local-Parameter-Covariance), so
+the nominal coverage (95.45% at `nsigma=2`) holds only approximately for a
+nonlinear, bounded, or non-Gaussian fit; for asymmetric profiles or
+non-elliptic contours, report
+[profile-based intervals](statistics.md#Profiles-And-Contours) instead.
 
-A matrix-free `WhiteningOperator` must provide `marginal_sigma` before
-`band=:prediction` can draw pointwise observation uncertainty. Without those
-marginal standard deviations, use `band=:confidence`; the fit itself remains
-fully defined by the whitening operation.
+A matrix-free [`WhiteningOperator`](@ref) (a covariance supplied as an
+operator instead of a matrix; see
+[Structured Whitening](statistics.md#Structured-Whitening)) must provide
+per-point standard deviations via its `marginal_sigma` field before
+`band=:prediction` can draw pointwise observation uncertainty; without it,
+use `band=:confidence`.
 
 ## Model Range And Automatic Limits
 
-By default, `fit_range=:axis` draws the fitted model to the padded x limits, not
-only from the first to the last observation. This makes interpolation and
-modest extrapolation visually continuous with the axis. The alternatives are
-explicit:
+`fit_range=:axis` (the default) draws the fitted model to the padded x
+limits, keeping interpolation and modest extrapolation visually continuous
+with the axis:
 
 ```julia
 plot_fit(result; fit_range=:data)             # first to last measured x
 plot_fit(result; xgrid=collect(0.0:0.01:8.0)) # exact requested domain
 ```
 
-With `auto_limits=true`, ScientificFitting includes data, x/y error bars, the sampled
-model curve, and the selected band when it computes limits. `limit_padding`
-controls the fractional breathing room around that content. Use
-`auto_limits=false` only when supplying limits through Makie axis options or
-when coordinating several panels manually. If those manual limits extend the
-model domain, pass a matching `xgrid`; the plotting layer does not infer a new
-sampling grid from arbitrary Makie axis attributes.
+With `auto_limits=true`, the limit calculation includes data, x/y error bars,
+the sampled model curve, and the selected band; `limit_padding` controls the
+fractional breathing room. With `auto_limits=false` and manual Makie limits
+that extend the model domain, pass a matching `xgrid`; the plotting layer
+does not infer a new sampling grid from Makie axis attributes.
 
-`plot_aspect` is an explicit geometric constraint, not an automatic default.
-Leave it unset unless equal or prescribed axis geometry carries scientific
-meaning.
+`plot_aspect` fixes the axis width-to-height ratio (Makie `AxisAspect`;
+`plot_aspect=1` gives a square axis). Leave it unset unless equal or
+prescribed axis geometry carries scientific meaning.
 
 ## Customize Through Makie, Not Around It
 
-The style supplies defaults. Explicit ScientificFitting keywords override those defaults,
-and each Makie `*_kwargs` container is applied last:
+The style supplies defaults, explicit ScientificFitting keywords override
+them, and each Makie `*_kwargs` container is applied last:
 
 ```julia
 fig = plot_fit(
     result;
     theme=:sans,
-    fit_color=:navy,
+    style=FitPlotStyle(fit_color=:navy),
     axis_kwargs=(
         xgridvisible=false,
         ygridvisible=false,
@@ -257,8 +274,8 @@ fig = plot_fit(
 `axis_kwargs`, `line_kwargs`, `scatter_kwargs`, `band_kwargs`,
 `xerrorbars_kwargs`, `yerrorbars_kwargs`, and `legend_kwargs` accept a
 `NamedTuple` or dictionary of ordinary Makie attributes. `theme_override`
-merges a Makie `Theme` into the selected ScientificFitting theme when a project needs a
-consistent font or axis convention across many figures.
+merges a Makie `Theme` into the selected ScientificFitting theme for a
+project-wide font or axis convention.
 
 ## Add Scientific Objects After Fitting
 
@@ -279,16 +296,14 @@ axislegend(ax; position=:rt)
 ```
 
 `add_curve!` samples a function on an explicit `xgrid`, an `xspan`, or the
-axis's current x limits. `add_vband!` and `add_hband!` use Makie's axis-relative
-span primitives: they cover the full orthogonal axis but do not enlarge its
-automatic data limits. They can therefore be added before or after the first
-render. All helpers return the created Makie plot object and accept ordinary
-Makie attributes.
+axis's current x limits. `add_vband!` and `add_hband!` cover the full
+orthogonal axis without enlarging its automatic data limits, so they can be
+added before or after the first render. All helpers return the created Makie
+plot object and accept ordinary Makie attributes.
 
-A right-side legend created by `plot_fit` reflects the plot objects that exist
-at construction time. For layers added later, either create an in-axis
-`axislegend` as above or build a custom right-side panel after all plot objects
-exist.
+A right-side legend created by `plot_fit` reflects the plot objects existing
+at construction time; for layers added later, use an in-axis `axislegend` as
+above or build a custom panel after all plot objects exist.
 
 ## Compose A Custom Multi-Panel Figure
 
@@ -325,37 +340,30 @@ fig = with_theme(theme) do
 end
 ```
 
-By default the panel reports its natural width and height to Makie's
-`GridLayout`. For a detailed custom report, pass `width=...` to wrap plain-text
-lines; unbreakable TeX content keeps its natural width. Call
-`resize_plot_to_layout!` once after adding every layout block. It uses Makie's
-layout solver, treats the current canvas as a minimum, and temporarily supplies
-only missing intrinsic axis dimensions. After measurement, the first `Auto`
-column becomes flexible and consumes the remaining width; use
-`flexible_columns=(...)` for a different top-level graph column. The `nothing`
-height above is useful for stacked plots whose row proportions already define
-their vertical hierarchy.
+The panel reports its natural width and height to Makie's `GridLayout`;
+`width=...` wraps plain-text lines, while unbreakable TeX keeps its natural
+width. Call `resize_plot_to_layout!` once after adding every layout block: it
+treats the current canvas as a minimum and temporarily supplies only missing
+intrinsic axis dimensions. Afterwards the first `Auto` column consumes the
+remaining width; `flexible_columns=(...)` selects a different top-level graph
+column. The `nothing` height above suits stacked plots whose row proportions
+already define the vertical hierarchy.
 
 ## Diagnostic Figures
 
-Diagnostic plots use the same `theme` and `appearance` contract:
+Diagnostic plots — `plot_residuals`, `plot_diagnostics`, `plot_profile`,
+`plot_contour`, and `plot_profile_matrix` — use the same `theme` and
+`appearance` contract; the
+[Choose A Figure](api_plotting_diagnostics.md#Choose-A-Figure) table lists
+which figure answers which question.
 
-- `plot_residuals(result; kind=:residual | :pull | :ratio)` locates data-space
-  mismatch;
-- `plot_diagnostics(result)` combines fit and diagnostic views;
-- `plot_profile(profile_result; local_sigma=...)` compares the refitted profile
-  with the local parabola;
-- `plot_contour(contour_result; local_covariance=..., local_center=...)` shows
-  filled profile regions with the local covariance approximation as a line;
-- `plot_profile_matrix(...)` gives the multi-parameter overview.
+Single-profile and contour legends default to `legend_position=:below`,
+keeping the full content width even when confidence labels are descriptive;
+set `legend_position=:right` for a bounded side column, or pass
+`legend_kwargs` for Makie-level control.
 
-Single-profile and contour legends default to `legend_position=:below`. The
-axis therefore keeps the full scientific content width even when confidence
-labels are descriptive. Set `legend_position=:right` for a bounded side column,
-or pass `legend_kwargs` for direct Makie-level legend customization.
-
-Expensive profile matrices can be computed without Makie, inspected in a
-headless job, and rendered later without repeating any refits:
+Profile matrices can be computed without Makie in a headless job and rendered
+later without repeating any refits:
 
 ```julia
 matrix = profile_matrix(
@@ -365,17 +373,16 @@ matrix = profile_matrix(
     adaptive=true,
 )
 
-rows = profile_matrix_triage(matrix)
-
 using CairoMakie
 fig = plot_profile_matrix(matrix; theme=:tex)
 ```
 
-Diagonal panels compare actual profiles with local parabolas. Lower-triangle
-panels compare filled one- and two-sigma profile regions with dashed local
-covariance ellipses. Upper-triangle panels report local correlations. Read the
-matrix as triage: a warning label, skewed profile, open region, clipped contour,
-or disagreement with the local overlay tells you which parameter pair needs a
+Diagonal panels compare actual profiles with local parabolas
+([why a profile is not a slice](statistics.md#Why-A-Profile-Is-Not-A-Slice));
+the lower triangle compares filled one- and two-sigma profile regions with
+dashed local covariance ellipses; the upper triangle reports local
+correlations. A warning label, skewed profile, open region, clipped contour,
+or disagreement with the local overlay marks the parameter pair that needs
 closer analysis.
 
 ## Export
@@ -390,7 +397,5 @@ save("fit.svg", fig)
 save("fit.png", fig; px_per_unit=2)
 ```
 
-Use PDF or SVG when editable vector geometry is required and PNG for notebooks
-or raster publication pipelines. Inspect the final exported file at its actual
-display size; a plot that is readable on a large interactive canvas may still
-be too dense in a single journal column.
+Use PDF or SVG when editable vector geometry is required and PNG for
+notebooks or raster publication pipelines.

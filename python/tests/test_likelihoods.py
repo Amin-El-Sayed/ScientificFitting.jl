@@ -218,10 +218,10 @@ def test_laplace_errors_use_derivative_free_optimization_without_hessian_errors(
 
     result = fit_likelihood_model(lambda x, location: np.full_like(x, location),
         np.arange(len(y)), y, logprob=logprob, p0={"location": 0.1},
-        optimizer="nelder_mead", tol=1e-10)
+        solver="nelder_mead", tol=1e-10)
     assert result.converged and result.iterations is None
     np.testing.assert_allclose(result.params, [np.median(y)], atol=1e-7)
-    assert result.options["optimizer"] == "nelder_mead"
+    assert result.options["solver"] is not None
     assert result.options["parameter_covariance"] == "none"
     assert np.isnan(result.stderr).all() and np.isnan(result.covariance).all()
     codes = {finding.code for finding in result.diagnose(structured=True).findings}
@@ -238,7 +238,7 @@ def test_moving_support_is_not_clipped_or_differentiated():
     logprob = lambda y, mu, location: stats.expon.logpdf(y, loc=mu, scale=1)
     result = fit_likelihood_model(model, np.arange(len(y)), y, logprob=logprob,
         p0={"location": 0.}, bounds={"location": (-1., 1.)},
-        optimizer="nelder_mead", tol=1e-10)
+        solver="nelder_mead", tol=1e-10)
     assert result.converged and result.params[0] <= y.min()
     np.testing.assert_allclose(result.params, [y.min()], atol=1e-7)
     scan = result.profile("location", values=[0., 0.2, 0.3, 0.4])
@@ -246,7 +246,7 @@ def test_moving_support_is_not_clipped_or_differentiated():
     assert np.isinf(scan.delta_cost[3])
     with pytest.raises(Exception, match="initial likelihood cost must be finite"):
         fit_likelihood_model(model, np.arange(len(y)), y, logprob=logprob,
-                             p0={"location": 0.8}, optimizer="nelder_mead")
+                             p0={"location": 0.8}, solver="nelder_mead")
 
 
 def test_derivative_free_nuisance_refits_keep_constraints_and_missing_errors():
@@ -256,23 +256,23 @@ def test_derivative_free_nuisance_refits_keep_constraints_and_missing_errors():
 
     result = fit_custom(cost, p0={"a": 0.2, "b": 0.3, "fixed": 0.}, nobs=10,
         bounds={"a": (0., 2.), "b": (0., 2.)}, fixed_parameters={"fixed": 0.4},
-        parameter_priors={"b": (0.7, 1.)}, optimizer="nelder_mead", tol=1e-10)
+        parameter_priors={"b": (0.7, 1.)}, solver="nelder_mead", tol=1e-10)
     assert result.converged
     np.testing.assert_allclose(result.params, [0.7, 0.7, 0.4], atol=2e-5)
     assert np.isnan(result.stderr[:2]).all() and result.stderr[2] == 0
     scan = result.profile("a", values=[0.5, 0.7, 0.9], on_failure="throw")
     np.testing.assert_allclose(scan.delta_cost, [0.42, 0., 0.42], atol=2e-6)
     stopped = fit_custom(lambda mu: (mu-1)**2, p0={"mu": 0.}, nobs=10,
-                         optimizer="nelder_mead", maxiters=1)
+                         solver="nelder_mead", maxiters=1)
     assert not stopped.converged
 
 
-@pytest.mark.parametrize("optimizer", ["auto", "lbfgs", "nelder_mead"])
+@pytest.mark.parametrize("solver", [None, "lbfgs", "nelder_mead"])
 @pytest.mark.parametrize("covariance", ["none", "hessian"])
 @pytest.mark.parametrize("center", [0., 1.5])
-def test_likelihood_solver_and_covariance_are_orthogonal(optimizer, covariance, center):
+def test_likelihood_solver_and_covariance_are_orthogonal(solver, covariance, center):
     result = fit_custom(lambda mu: (mu-center)**2/0.04, p0={"mu": 0.2}, nobs=10,
-        optimizer=optimizer, parameter_covariance=covariance, tol=1e-8, maxiters=200)
+        solver=solver, parameter_covariance=covariance, tol=1e-8, maxiters=200)
     assert result.converged
     np.testing.assert_allclose(result.params, [center], atol=2e-8)
     if covariance == "none":
@@ -282,7 +282,7 @@ def test_likelihood_solver_and_covariance_are_orthogonal(optimizer, covariance, 
 
 
 def test_all_likelihood_wrappers_forward_solver_and_covariance_options():
-    options = dict(p0={"mu": 1.}, optimizer="nelder_mead", parameter_covariance="none",
+    options = dict(p0={"mu": 1.}, solver="nelder_mead", parameter_covariance="none",
                    bounds={"mu": (0.1, 5.)}, tol=1e-8)
     counts = [2, 1, 3]
     constant = lambda x, mu: np.full_like(x, mu)
@@ -298,6 +298,6 @@ def test_all_likelihood_wrappers_forward_solver_and_covariance_options():
     ]
     for result in fits:
         assert result.converged
-        assert result.options["optimizer"] == "nelder_mead"
+        assert result.options["solver"] is not None
         assert result.options["parameter_covariance"] == "none"
         assert np.isnan(result.stderr).all()

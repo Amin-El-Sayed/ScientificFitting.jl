@@ -1,8 +1,9 @@
 # Diagnostic Plotting
 
 These functions visualize an existing fit result or a stored profile scan.
-Only `plot_profile_matrix(result)` performs new fits; passing a
-`ProfileMatrixResult` renders stored numerical results.
+`plot_residuals` and `plot_diagnostics` require a `FitResult` (x-y Gaussian
+fit); profile, contour, and profile-matrix plots accept scans from both
+`FitResult` and `LikelihoodFitResult`.
 
 ```julia
 using ScientificFitting
@@ -19,8 +20,11 @@ using CairoMakie
 | Is a parameter pair described by a covariance ellipse? | [`plot_contour`](@ref) | no |
 | Which parameters need closer inspection? | [`plot_profile_matrix`](@ref) | yes for a fit result; no for a stored matrix |
 
-All functions accept `theme=:sans` or `:tex`, `appearance=:light` or
-`:dark`, an optional `theme_override`, and standard file output keywords.
+All functions accept `theme=:sans` or `:tex`, `appearance=:auto` (the
+default, currently resolving to `:light`), `:light`, or `:dark`,
+an optional `theme_override`, visual token overrides through the `style`
+keyword ([`FitPlotStyle`](@ref)), and the file output keywords `filename` and
+`format`.
 
 ## Residuals, Pulls, And Ratios
 
@@ -29,44 +33,52 @@ plot_residuals(result; kind=:pull)
 plot_diagnostics(result)
 ```
 
+Here ``y_i`` is the measured value and ``f_i`` the fitted model value at
+``x_i``.
+
 | `kind` | Displayed value | Reference line |
 |---|---|---:|
 | `:residual` | ``y_i-f_i`` with available y errors | 0 |
 | `:pull` | weighted or whitened residual coordinate | 0 |
 | `:ratio` | ``y_i/f_i`` with propagated y-error ratio | 1 |
 
-With dense covariance, whitened coordinates are not pointwise pulls in the
-original measurement order. Ratios are rejected when a fitted value is zero or
-non-finite.
+With a non-diagonal covariance, whitened coordinates are not pointwise pulls
+in the original measurement order
+([Residuals And Pulls](statistics.md#Residuals-And-Pulls)).
 
-Shared keywords are `filename`, `format`, `theme`, `appearance`,
-`theme_override`, `figure_size`, `xlabel`, `color`, `reference_color`,
-`marker`, `markersize`, `error_whiskerwidth`, `axis_kwargs`,
-`scatter_kwargs`, and `errorbars_kwargs`. `plot_diagnostics` also accepts
-`reference_line_kwargs`.
+Beyond the shared output and style keywords, both functions accept `xlabel`,
+`color`, `reference_color`, `marker`, `markersize`, `error_whiskerwidth`,
+`axis_kwargs`, `scatter_kwargs`, and `errorbars_kwargs`; `plot_diagnostics`
+also accepts `reference_line_kwargs`.
 
 ## One-Parameter Profiles
 
 ```julia
+profile_result = profile(result, i)
 plot_profile(profile_result; local_sigma=result.param_stderr[i])
 ```
 
+Profile and contour scans are produced by [`profile`](@ref) and
+[`contour`](@ref ScientificFitting.contour)
+([Results And Diagnostics](api_results.md)).
+
 | Concern | Keywords |
 |---|---|
-| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `figure_size` |
+| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `style` |
 | Labels | `title`, `xlabel`, `ylabel` |
 | Profile | `line_color`, `line_width`, `profile_label`, `line_kwargs` |
 | Local parabola | `local_sigma`, `local_color`, `local_linewidth`, `local_linestyle`, `local_label`, `local_line_kwargs` |
 | Threshold | `threshold_color`, `threshold_label`, `threshold_kwargs` |
 | Layout | `show_legend`, `legend_position`, `delta_max`, `axis_kwargs`, `legend_kwargs` |
 
-`local_sigma` and `delta_max` must be positive. `delta_max` changes only the
-displayed range. The default legend occupies a row below the data axis;
-`legend_position=:right` selects a bounded side column.
+`delta_max` changes only the displayed range. The default legend occupies a
+row below the data axis; `legend_position=:right` selects a bounded side
+column.
 
 ## Two-Parameter Contours
 
 ```julia
+contour_result = contour(result, i, j)
 plot_contour(
     contour_result;
     local_covariance=result.param_covariance,
@@ -76,7 +88,7 @@ plot_contour(
 
 | Concern | Keywords |
 |---|---|
-| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `figure_size` |
+| Output and style | `filename`, `format`, `theme`, `appearance`, `theme_override`, `style` |
 | Labels | `title`, `xlabel`, `ylabel`, `axis_kwargs` |
 | Profile regions | `show_regions`, `show_profile_lines`, `level_colors`, `region_colors`, `line_color`, `contour_kwargs` |
 | Optional heatmap | `show_heatmap`, `colormap`, `heatmap_kwargs` |
@@ -100,7 +112,9 @@ Its scan controls are `parameters`, `parameter_names`, `npoints_profile`,
 `max_refinements`, and `max_points`.
 
 Both methods accept `filename`, `format`, `theme`, `appearance`,
-`theme_override`, `panel_status_mode`, `delta_max`, and `figure_size`.
+`theme_override`, `style`, `panel_status_mode`, and `delta_max`; the matrix
+method additionally accepts `parameter_names` to replace display labels
+without recomputing the scans.
 `panel_status_mode` is `:issues`, `:all`, or `:none` and controls labels
 independently of visual style.
 
@@ -111,7 +125,7 @@ independently of visual style.
 | CairoMakie extension not loaded | `ArgumentError` naming CairoMakie |
 | Unsupported residual kind or non-finite coordinates | `ArgumentError` |
 | Ratio with a zero/non-finite model prediction | `ArgumentError` |
-| Non-positive profile display scale | `ArgumentError` |
+| Non-positive `local_sigma` or `delta_max` | `DomainError` |
 | Incompatible local covariance or contour geometry | `ArgumentError` |
 | Invalid profile-matrix status mode or display names | `ArgumentError` |
 

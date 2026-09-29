@@ -159,17 +159,6 @@ class ContourResult:
         return report if structured else report.dashboard_text
 
 
-@dataclass(frozen=True)
-class ProfileMatrixPanelTriage:
-    """Panel diagnosis in core severity order; parameters identify the x/y axes."""
-
-    parameters: tuple[str, str]
-    status: str
-    severity_counts: Mapping
-    finding_codes: tuple[str, ...]
-    next_action: str
-
-
 @dataclass(frozen=True, eq=False)
 class ProfileMatrixResult:
     """Completed scans keyed by parameter names, ready to plot without refitting.
@@ -188,11 +177,6 @@ class ProfileMatrixResult:
     contours: Mapping
     panel_status: Mapping
     diagnostics: DiagnosticReport
-    _triage: tuple[ProfileMatrixPanelTriage, ...] = field(repr=False)
-
-    def triage(self, *, include_ok=False):
-        """Return the core's severity-ordered panel actions, without new scans."""
-        return tuple(row for row in self._triage if include_ok or row.status != "ok")
 
 
 def _diagnostic(data):
@@ -205,7 +189,6 @@ def _diagnostic(data):
 
 def _numerical_diagnostics(data):
     values = dict(data)
-    values["warnings"] = tuple(values["warnings"])
     values["active_bounds"] = tuple(values["active_bounds"])
     values["findings"] = tuple(DiagnosticFinding(**dict(f)) for f in values["findings"])
     return MappingProxyType(values)
@@ -255,9 +238,6 @@ def _profile_matrix(handle):
         indices = [positions[first], positions[second]]
         contours[first, second] = _contour(scan, (first, second), best[indices],
                                          cov[np.ix_(indices, indices)], report)
-    triage = tuple(ProfileMatrixPanelTriage(tuple(row["parameters"]), row["status"],
-        MappingProxyType(dict(row["severity_counts"])), tuple(row["finding_codes"]),
-        row["next_action"]) for row in data["triage"])
     return ProfileMatrixResult(names, best, sigma, cov, corr, MappingProxyType(profiles),
         MappingProxyType(contours), MappingProxyType(dict(data["panel_status"])),
-        _diagnostic(data["diagnostics"]), triage)
+        _diagnostic(data["diagnostics"]))

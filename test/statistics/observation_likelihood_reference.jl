@@ -59,13 +59,16 @@ using Test, ScientificFitting, Distributions, LinearAlgebra, Statistics
     end
 
     @testset "Invalid probabilities are not repaired" begin
-        for invalid in ((y, mu, p) -> [0.], (y, mu, p) -> 0.,
-                        (y, mu, p) -> fill(NaN, length(y)), (y, mu, p) -> fill(Inf, length(y)))
+        for invalid in ((y, mu, p) -> [0.], (y, mu, p) -> 0.)
+            @test_throws DimensionMismatch fit_likelihood_model(line, x, y; p0=[1., 0.],
+                logprob=invalid, fixed_parameters=[1=>1., 2=>0.])
+        end
+        for invalid in ((y, mu, p) -> fill(NaN, length(y)), (y, mu, p) -> fill(Inf, length(y)))
             @test_throws ArgumentError fit_likelihood_model(line, x, y; p0=[1., 0.],
                 logprob=invalid, fixed_parameters=[1=>1., 2=>0.])
         end
-        @test_throws ArgumentError fit_likelihood_model(line, x[1:2], y; p0=[1., 0.], logprob=gaussian)
-        @test_throws ArgumentError fit_likelihood_model(line, Float64[], Float64[];
+        @test_throws DimensionMismatch fit_likelihood_model(line, x[1:2], y; p0=[1., 0.], logprob=gaussian)
+        @test_throws DomainError fit_likelihood_model(line, Float64[], Float64[];
             p0=[1., 0.], logprob=gaussian)
         restricted(y, mu, p) = p[1] > 0 ? gaussian(y, mu, p) : fill(-Inf, length(y))
         result = fit_likelihood_model(line, x, y; p0=[1., 0.], logprob=restricted,

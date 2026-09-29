@@ -5,7 +5,10 @@ has_parameter_constraints(problem) = !isempty(problem.parameter_constraints)
 
 abstract type PreparedCovariance end
 
+# Effective covariance depends on the fitted parameters (x-uncertainties or
+# model-relative components): it is refactorized inside every objective call.
 struct DynamicPreparedCovariance <: PreparedCovariance end
+# No uncertainties given: residuals pass through unwhitened.
 struct NoPreparedCovariance <: PreparedCovariance end
 
 struct DiagonalPreparedCovariance{V<:Vector{Float64}} <: PreparedCovariance
@@ -29,7 +32,7 @@ end
 
 Internal cached representation of a correlated Gaussian parameter constraint.
 The covariance factorization and log determinant are independent of the fitted
-parameters, so they must be prepared once instead of recomputed inside every
+parameters, so they are prepared once instead of being recomputed inside every
 objective call.
 """
 struct PreparedParameterConstraint{F}
@@ -64,8 +67,8 @@ function _prepare_covariance(cov, n::Int)
 
     if cov isa AbstractVector
         variances = collect(Float64, cov)
-        length(variances) == n || throw(ArgumentError("covariance vector length must match observations"))
-        any(variances .<= 0.0) && throw(ArgumentError("all effective variances must be positive"))
+        length(variances) == n || throw(DimensionMismatch("covariance vector length must match observations"))
+        any(variances .<= 0.0) && throw(DomainError(variances, "all effective variances must be positive"))
         return DiagonalPreparedCovariance(variances, inv.(sqrt.(variances)), sum(log, variances))
     end
 
@@ -102,7 +105,7 @@ function _prepare_fit_cache(problem::FitProblem)
 end
 
 function _validated_model_values(values::AbstractVector, n::Int)
-    length(values) == n || throw(ArgumentError("model output length must match x length"))
+    length(values) == n || throw(DimensionMismatch("model output length must match x length"))
     all(value -> isfinite(_finite_value(value)), values) ||
         throw(ArgumentError("model output must contain only finite values"))
     return values
@@ -126,7 +129,7 @@ end
 function _model_dydx(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
     if problem.x_derivative !== nothing
         values = problem.x_derivative(x, p)
-        length(values) == length(x) || throw(ArgumentError("x_derivative output length must match x length"))
+        length(values) == length(x) || throw(DimensionMismatch("x_derivative output length must match x length"))
         collected = collect(values)
         finite_values = _finite_value.(collected)
         all(isfinite, finite_values) || throw(ArgumentError("x_derivative output must contain only finite values"))
@@ -278,6 +281,12 @@ function _whiten_with_factor(factor, residual::AbstractVecOrMat)
     return collect(factor.L \ residual)
 end
 
+# CHOLMOD factorizes with a fill-reducing permutation, P*A*P' = L*L', so `factor.L`
+# is the Cholesky factor of the *permuted* covariance. `factor.PtL` (= P'*L) satisfies
+# (P'*L)*(P'*L)' = A, so `PtL \ residual` whitens the residual in its original order.
+# Solving with `factor.L` would drop the permutation and give a wrong squared norm
+# (residual'*P*A^-1*P'*residual instead of residual'*A^-1*residual). The whitened
+# vector differs element-wise from the dense-factor result but has the same norm.
 function _whiten_with_factor(factor::SparseArrays.CHOLMOD.Factor, residual::AbstractVecOrMat)
     return collect(factor.PtL \ residual)
 end
@@ -314,7 +323,7 @@ function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::Abst
 
     if cov isa AbstractVector
         cov_values = _finite_value.(cov)
-        any(cov_values .<= 0.0) && throw(ArgumentError("all effective variances must be positive"))
+        any(cov_values .<= 0.0) && throw(DomainError(cov_values, "all effective variances must be positive"))
         return collect(residual ./ sqrt.(cov))
     end
 
@@ -352,31 +361,6 @@ function _residual(problem::FitProblem, p::AbstractVector)
     return problem.y .- yhat
 end
 
-function _weighted_residual(problem::FitProblem, p::AbstractVector)
-    r = _residual(problem, p)
-    rw_data = _whiten_residual(problem, p, r)
-    if !has_parameter_priors(problem) && !has_parameter_constraints(problem)
-        return rw_data
-    end
-
-    T = eltype(rw_data)
-    n_constraint_terms = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
-    rw_priors = Vector{T}(undef, length(problem.parameter_priors) + n_constraint_terms)
-    cursor = 1
-    @inbounds for (i, prior) in enumerate(problem.parameter_priors)
-        sigma = _asymmetric_sigma(p[prior.index], prior.mean, prior.sigma_minus, prior.sigma_plus)
-        rw_priors[cursor] = (p[prior.index] - prior.mean) / sigma
-        cursor += 1
-    end
-    @inbounds for constraint in problem.parameter_constraints
-        delta = p[constraint.indices] .- constraint.mean
-        z = _stable_cholesky(constraint.covariance).L \ delta
-        rw_priors[cursor:(cursor + length(z) - 1)] .= z
-        cursor += length(z)
-    end
-    return vcat(rw_data, rw_priors)
-end
-
 function _weighted_residual(cache::FitEvaluationCache, p::AbstractVector)
     problem = cache.problem
     r = _residual(problem, p)
@@ -403,21 +387,11 @@ function _weighted_residual(cache::FitEvaluationCache, p::AbstractVector)
     return vcat(rw_data, rw_priors)
 end
 
-function _chi2(problem::FitProblem, p::AbstractVector)
-    rw = _weighted_residual(problem, p)
-    return sum(abs2, rw)
-end
-
-function _chi2(cache::FitEvaluationCache, p::AbstractVector)
-    rw = _weighted_residual(cache, p)
-    return sum(abs2, rw)
-end
-
 function _parameter_jacobian(problem::FitProblem, p::AbstractVector; x::AbstractVector=problem.x)
     if problem.jacobian !== nothing
         J = problem.jacobian(x, p)
-        size(J, 1) == length(x) || throw(ArgumentError("jacobian row count must match x length"))
-        size(J, 2) == length(p) || throw(ArgumentError("jacobian column count must match parameter count"))
+        size(J, 1) == length(x) || throw(DimensionMismatch("jacobian row count must match x length"))
+        size(J, 2) == length(p) || throw(DimensionMismatch("jacobian column count must match parameter count"))
         return Matrix{Float64}(J)
     end
 
@@ -425,20 +399,8 @@ function _parameter_jacobian(problem::FitProblem, p::AbstractVector; x::Abstract
     return Matrix{Float64}(jac)
 end
 
-function _weighted_jacobian(problem::FitProblem, p::AbstractVector)
-    jac = _derivative_jacobian(problem, pp -> _weighted_residual(problem, pp), p)
-    return Matrix{Float64}(jac)
-end
-
 function _weighted_jacobian(cache::FitEvaluationCache, p::AbstractVector)
     jac = _derivative_jacobian(cache.problem, pp -> _weighted_residual(cache, pp), p)
-    return Matrix{Float64}(jac)
-end
-
-function _free_weighted_jacobian(cache::FitEvaluationCache, params::AbstractVector)
-    problem = cache.problem
-    free_idx = _free_indices(problem)
-    jac = _derivative_jacobian(problem, q -> _weighted_residual(cache, _expand_free_parameters(problem, q)), params[free_idx])
     return Matrix{Float64}(jac)
 end
 
@@ -451,22 +413,19 @@ function _covariance_from_weighted_jacobian(
     fisher = Symmetric(Jw' * Jw)
     cov = _stable_symmetric_inverse(fisher)
 
-    if scale_covariance && ndf > 0
-        cov .*= (chi2 / ndf)
+    if scale_covariance
+        cov .*= _chi2_ndf_scale(chi2, ndf)
     end
 
     return cov
 end
 
-function _normalize_scale_covariance(scale_covariance)
-    if scale_covariance === true
-        return :always
-    elseif scale_covariance === false
-        return :never
-    elseif scale_covariance in (:auto, :always, :never)
-        return scale_covariance
-    end
-    throw(ArgumentError("scale_covariance must be :auto, :always, :never, true, or false"))
+"""Guarded chi2/ndf covariance factor: 1.0 whenever the ratio is undefined or
+non-positive (ndf <= 0, chi2 = 0, or non-finite), so a degenerate fit never
+zeroes or destroys the covariance."""
+function _chi2_ndf_scale(chi2, ndf)
+    scale = ndf > 0 ? chi2 / ndf : NaN
+    return isfinite(scale) && scale > 0 ? scale : 1.0
 end
 
 function _should_scale_covariance(problem::FitProblem, policy::Symbol)
@@ -475,24 +434,44 @@ function _should_scale_covariance(problem::FitProblem, policy::Symbol)
     elseif policy == :never
         return false
     elseif policy == :auto
+        # :auto scales only unweighted fits: with user-supplied uncertainties
+        # the covariance is absolute and chi2/ndf rescaling would double-count
+        # the observed scatter; without them the residual scatter is the only
+        # available scale.
         return !has_y_uncertainty(problem) && !has_x_uncertainty(problem)
     end
     throw(ArgumentError("unsupported covariance scaling policy: $policy"))
 end
 
-function _covariance_from_cost_hessian(problem::FitProblem, p::AbstractVector, cost::Symbol)
-    free_idx = _free_indices(problem)
-    q = p[free_idx]
-    H = _derivative_hessian(problem, qq -> _cost_value(problem, _expand_free_parameters(problem, qq), cost), q)
-    cov = 2.0 .* _stable_symmetric_inverse(H)
-    return _embed_free_covariance(problem, cov)
+"""
+    _covariance_scale(problem, options, stats) -> Float64
+    _covariance_scale(result) -> Float64
+
+The chi2/ndf factor that was applied to this result's parameter covariance, or
+1.0 when no scaling was applied. The factor comes from `_chi2_ndf_scale`, the
+same guarded helper the fit path applies, so the two always agree — including
+for a perfect fit (chi2 = 0), where both leave the covariance unscaled. This
+is the single source of the cost-function scale: profiles and contours divide
+raw cost differences by it, and the stationarity check divides the scaled
+covariance by it, so that their thresholds stay consistent with
+`param_stderr`.
+"""
+function _covariance_scale(problem, options, stats)
+    problem isa FitProblem || return 1.0
+    stats.cost == :chi2 || return 1.0
+    _should_scale_covariance(problem, options.scale_covariance) || return 1.0
+    return _chi2_ndf_scale(stats.chi2, stats.ndf)
 end
+
+_covariance_scale(result) = _covariance_scale(result.problem, result.options, result.stats)
 
 function _covariance_from_cost_hessian(cache::FitEvaluationCache, p::AbstractVector, cost::Symbol)
     problem = cache.problem
     free_idx = _free_indices(problem)
     q = p[free_idx]
     H = _derivative_hessian(problem, qq -> _cost_value(cache, _expand_free_parameters(problem, qq), cost), q)
+    # The cost is on the chi-square / -2 log L scale, so Cov = 2 * H^(-1)
+    # (H is the full second-derivative matrix of the cost).
     cov = 2.0 .* _stable_symmetric_inverse(H)
     return _embed_free_covariance(problem, cov)
 end
@@ -515,7 +494,8 @@ function _correlation_from_covariance(cov::AbstractMatrix)
             continue
         end
         denom = sigma[i] * sigma[j]
-        corr[i, j] = denom > 0 ? cov[i, j] / denom : 0.0
+        # Zero variance (a fixed parameter) still has unit self-correlation.
+        corr[i, j] = denom > 0 ? cov[i, j] / denom : (i == j ? 1.0 : 0.0)
     end
     return corr
 end
@@ -548,20 +528,8 @@ function _lsqfit_incompatibility(problem::FitProblem, cost::Symbol)
     return nothing
 end
 
-function _solve_backend(problem::FitProblem, backend::Symbol, cost::Symbol)
-    backend in (:auto, :lsqfit, :optimization) || throw(ArgumentError(
-        "unsupported backend: $backend (use :auto, :lsqfit, or :optimization)",
-    ))
-    backend == :optimization && return :optimization
-
-    incompatibility = _lsqfit_incompatibility(problem, cost)
-    if backend == :lsqfit && incompatibility !== nothing
-        throw(ArgumentError(
-            "backend=:lsqfit cannot represent this fit because $incompatibility; " *
-            "use backend=:auto or backend=:optimization",
-        ))
-    end
-    return incompatibility === nothing ? :lsqfit : :optimization
+function _solve_backend(problem::FitProblem, cost::Symbol)
+    return _lsqfit_incompatibility(problem, cost) === nothing ? :lsqfit : :optimization
 end
 
 function _constraint_vectors(spec::ConstraintSpec, p::AbstractVector)

@@ -19,7 +19,7 @@ Measurement errors are inputs; reported parameter errors are local covariance
 approximations, with profile-likelihood scans available to examine asymmetry
 and non-quadratic behavior. A model-uncertainty band is not the scatter of future
 measurements. This is an optimization-based package, not a posterior-sampling
-framework. Feedback from real analyses is welcome.
+framework.
 
 ## Install
 
@@ -84,8 +84,8 @@ report = fit_report(result; parameter_names=["m", "b"])
 ## Documentation
 
 Use the [online documentation](https://amin-el-sayed.github.io/ScientificFitting.jl/)
-for installation details, complete scientific examples, statistical methods,
-diagnostics, plotting, performance guidance, and the API reference.
+for installation details, complete scientific examples, the statistics
+reference, diagnostics, plotting, and the API reference.
 
 Build the local documentation from the repository root with:
 
@@ -95,9 +95,19 @@ julia --project=docs --startup-file=no docs/make.jl
 
 Then serve `docs/build` with any static file server.
 
+## Related Packages
+
+ScientificFitting combines measurement-error models, constraints, fit diagnostics,
+profiles, and editable plots in one workflow. It builds on LsqFit and
+Optimization.jl rather than implementing another minimizer. Other useful Julia
+tools include RooFitLite for RooFit-style models, NativeMinuit for Minuit-based
+minimization and error analysis, and Distributions for probability models.
+See [Packages and Interfaces](docs/src/interfaces.md) for their roles.
+
 ## Technical Notes
 
-- Julia 1.10 and later are supported. CI tests Julia 1.10 and Julia 1.12.
+- Julia 1.10 and later are supported. CI tests Julia 1.10 and the latest
+  stable release.
 - Gaussian fits accept diagonal, dense, sparse-static, component-based, and
   custom matrix-free static whitening uncertainty models, including x/y
   uncertainty propagation.

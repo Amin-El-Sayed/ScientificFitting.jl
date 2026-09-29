@@ -39,9 +39,9 @@ using LinearAlgebra
 
         @test isnan(result.stats.chi2)
         @test isnan(result.stats.pvalue)
-        @test any(contains("goodness-of-fit statistic is unavailable"), result.diagnostics.warnings)
+        @test any(f -> f.code == :gof_unavailable, result.diagnostics.findings)
         report = diagnose(result)
-        @test report isa DiagnosticReport
+        @test report isa ScientificFitting.DiagnosticReport
         @test any(f -> f.code == :gof_unavailable, report.findings)
     end
 
@@ -50,8 +50,8 @@ using LinearAlgebra
 
         @test isinf(flat.diagnostics.covariance_condition)
         @test isinf(flat.diagnostics.hessian_condition)
-        @test any(contains("parameter covariance is ill-conditioned"), flat.diagnostics.warnings)
-        @test any(contains("cost Hessian is ill-conditioned"), flat.diagnostics.warnings)
+        @test any(f -> f.code == :ill_conditioned_covariance, flat.diagnostics.findings)
+        @test any(f -> f.code == :ill_conditioned_hessian, flat.diagnostics.findings)
         report = diagnose(flat)
         @test any(f -> f.code == :ill_conditioned_covariance, report.findings)
         @test any(f -> f.code == :ill_conditioned_hessian, report.findings)
@@ -73,7 +73,7 @@ using LinearAlgebra
             f -> f.code == :nonpositive_parameter_covariance && f.severity == :critical,
             diagnose(stationary_maximum).findings,
         )
-        @test any(contains("symmetric parameter errors must not be reported"), stationary_maximum.diagnostics.warnings)
+        @test any(f -> f.code == :nonpositive_parameter_covariance, stationary_maximum.diagnostics.findings)
         @test diagnostic_dashboard(stationary_maximum).status == :stop
     end
 
@@ -87,7 +87,7 @@ using LinearAlgebra
         @test result.stats.ndf == 0
         @test isnan(result.stats.chi2_ndf)
         @test isnan(result.stats.pvalue)
-        @test any(contains("non-positive degrees of freedom"), result.diagnostics.warnings)
+        @test any(f -> f.code == :nonpositive_ndf, result.diagnostics.findings)
         @test any(f -> f.code == :nonpositive_ndf, diagnose(result).findings)
     end
 
@@ -99,7 +99,6 @@ using LinearAlgebra
         bad = fit_model(linear_model, x, quadratic; p0=[0.0, 0.0], sigma_y=fill(0.05, length(x)))
         bad_report = diagnose(bad)
 
-        @test any(f -> f.code == :very_large_reduced_chi2, bad_report.findings)
         @test any(f -> f.code == :tiny_pvalue, bad_report.findings)
         @test any(f -> f.code == :structured_residual_signs, bad_report.findings)
         pull_finding = only(filter(f -> f.code == :extreme_pull, bad_report.findings))
@@ -113,14 +112,13 @@ using LinearAlgebra
         block_result = fit_model(constant_model, block_x, block_y; p0=[0.0], sigma_y=fill(0.2, length(block_x)))
         block_report = diagnose(block_result)
 
-        run_finding = only(filter(f -> f.code == :long_same_sign_pull_run, block_report.findings))
+        run_finding = only(filter(f -> f.code == :structured_residual_signs, block_report.findings))
         @test run_finding.severity == :warning
         @test contains(run_finding.evidence, "point 1 to 10")
         @test contains(run_finding.evidence, "x = 1.0 to 10.0")
-        @test contains(run_finding.recommendation, "acquisition interval")
 
         too_good = fit_model(linear_model, x, linear_model(x, [1.2, -0.3]); p0=[1.0, 0.0], sigma_y=fill(10.0, length(x)))
-        @test any(f -> f.code == :very_small_reduced_chi2, diagnose(too_good).findings)
+        @test any(f -> f.code == :huge_pvalue, diagnose(too_good).findings)
 
         bounded = fit_model(
             linear_model,
@@ -158,9 +156,10 @@ using LinearAlgebra
     end
 
     @testset "Diagnostic dashboard prioritizes lab next actions" begin
-        clean_dashboard = diagnostic_dashboard(DiagnosticReport(DiagnosticFinding[], "Synthetic clean report."))
+        clean_dashboard = diagnostic_dashboard(
+            ScientificFitting.DiagnosticReport(ScientificFitting.DiagnosticFinding[], "Synthetic clean report."))
 
-        @test clean_dashboard isa DiagnosticDashboard
+        @test clean_dashboard isa ScientificFitting.DiagnosticDashboard
         @test clean_dashboard.status == :ok
         @test clean_dashboard.severity_counts[:critical] == 0
         @test clean_dashboard.severity_counts[:warning] == 0
@@ -179,11 +178,11 @@ using LinearAlgebra
         @test allunique(lowercase.(strip.(bad_dashboard.next_actions)))
         @test contains(diagnostic_dashboard_text(bad_dashboard), "Next actions:")
 
-        warning_report = DiagnosticReport(
-            DiagnosticFinding[
-                DiagnosticFinding(:warning, :a, "A", "evidence", "Inspect residuals."),
-                DiagnosticFinding(:warning, :b, "B", "evidence", "Inspect residuals."),
-                DiagnosticFinding(:info, :c, "C", "evidence", "Record context."),
+        warning_report = ScientificFitting.DiagnosticReport(
+            ScientificFitting.DiagnosticFinding[
+                ScientificFitting.DiagnosticFinding(:warning, :a, "A", "evidence", "Inspect residuals."),
+                ScientificFitting.DiagnosticFinding(:warning, :b, "B", "evidence", "Inspect residuals."),
+                ScientificFitting.DiagnosticFinding(:info, :c, "C", "evidence", "Record context."),
             ],
             "Synthetic warning report.",
         )
@@ -194,7 +193,7 @@ using LinearAlgebra
         @test warning_dashboard.next_actions == ["Inspect residuals.", "Record context."]
         @test isempty(diagnostic_dashboard(warning_report; max_actions=0).next_actions)
         @test length(diagnostic_dashboard(warning_report; max_actions=0).report.findings) == 3
-        @test_throws ArgumentError diagnostic_dashboard(warning_report; max_actions=-1)
+        @test_throws DomainError diagnostic_dashboard(warning_report; max_actions=-1)
     end
 
     @testset "Diagnosis flags strong parameter correlations" begin

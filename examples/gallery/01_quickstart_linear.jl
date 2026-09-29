@@ -2,8 +2,10 @@ using ScientificFitting
 using CairoMakie
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
-# Minimal workflow: x/y arrays plus y-uncertainties. Without an explicit model,
-# fitplot uses a straight line with a robust initial guess from the endpoints.
+# Minimal workflow: x/y arrays plus y-uncertainties (controlled teaching data;
+# see the dashboard note at the end). Without an explicit model, fitplot fits a
+# straight line, taking the initial guess from the line through the first and
+# last data points.
 x = [0.0, 0.4348, 0.8696, 1.3043, 1.7391, 2.1739, 2.6087, 3.0435,
      3.4783, 3.9130, 4.3478, 4.7826, 5.2174, 5.6522, 6.0870, 6.5217,
      6.9565, 7.3913, 7.8261, 8.2609, 8.6957, 9.1304, 9.5652, 10.0]
@@ -37,4 +39,8 @@ fit = fitplot(
 )
 
 println()
+# These are controlled teaching data with a deliberately smooth residual
+# pattern and conservative sigma_y, so the dashboard reports `review` by
+# design (low chi2/ndf, structured residuals). docs/src/quickstart.md walks
+# through the findings; a clean `ok` is not the expected output here.
 println(diagnostic_dashboard_text(fit.result))

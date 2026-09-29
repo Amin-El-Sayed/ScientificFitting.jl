@@ -1,7 +1,6 @@
 # Multi-Dataset Fit: Which Parameters May Be Shared?
 
-Several datasets often measure the same physics without sharing every
-instrument parameter. A simultaneous fit can use that structure, but sharing a
+A simultaneous fit can use shared structure across datasets, but sharing a
 parameter is a scientific hypothesis, not a numerical convenience.
 
 This controlled calibration-transfer example asks whether three readout
@@ -9,20 +8,14 @@ channels may use one common gain. The answer is no: channels A and B are
 compatible, while channel C requires a separate gain.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_sans_panel_light.png" alt="Multi-dataset calibration transfer in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_sans_panel_dark.png" alt="Multi-dataset calibration transfer in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_sans_plot_light.png" alt="Multi-dataset calibration transfer in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_sans_plot_dark.png" alt="Multi-dataset calibration transfer in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_tex_panel_light.png" alt="Multi-dataset calibration transfer in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_tex_plot_light.png" alt="Multi-dataset calibration transfer in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/multi_dataset_shared_slope_tex_panel_dark.png" alt="Multi-dataset calibration transfer in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="multi-dataset" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/multi_dataset_shared_slope_tex_plot_dark.png" alt="Multi-dataset calibration transfer in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/multi_dataset_shared_slope_sans_panel_light.png" alt="Multi-dataset calibration transfer in sans style with result panel">
 ```
 
-The solid lines show the accepted partial-sharing model. The dashed lines show
-what happens when all channels are forced to share one gain. In the main panel
-the difference is easy to underestimate; the first pull panel makes the failure
-of the all-shared hypothesis clear.
+The solid lines show the accepted partial-sharing model; the dashed lines
+force all channels to one shared gain. In the main panel the difference is
+easy to underestimate; the first pull panel — residuals in units of their
+stated uncertainties, defined below — makes the failure of the all-shared
+hypothesis clear.
 
 ## The Scientific Question
 
@@ -36,18 +29,18 @@ y_i(x)=g x+b_i,
 ```
 
 If this assumption is valid, one accurately calibrated gain can be transferred
-between channels after correcting their offsets. If one channel has a different
-gain, that transfer introduces a systematic error that grows with input.
+between channels after correcting their offsets; if one channel has a
+different gain, the transfer introduces a systematic error that grows with
+input.
 
-This page uses a controlled teaching record designed to expose that decision.
-It is not attributed to a particular instrument. The three explicit data
-tables have different x sampling, heteroscedastic absolute y uncertainties,
-independent offsets, imperfect scatter, and an incompatible gain in channel C.
-Because this is a method check, that incompatibility is known in advance; the
-fit must recover it without using that knowledge as an input.
+The teaching record is not attributed to a particular instrument. The three
+explicit data tables have different x sampling, point-dependent absolute y
+uncertainties, independent offsets, realistic random scatter, and an
+incompatible gain in channel C; the fit must recover that incompatibility
+without using it as an input.
 
-A useful mental model is three readout channels that share a sensor type but
-not necessarily the whole electronics chain:
+A mental model: the channels share a sensor type but not necessarily the
+whole electronics chain:
 
 ```math
 \begin{array}{c|c|c}
@@ -59,17 +52,15 @@ C & \text{replacement amplifier} & \text{own zero point}
 \end{array}
 ```
 
-The statistical question is therefore not only whether each line fits its own
-points. It is whether the apparatus justifies sharing a parameter across
-datasets.
-
 ## Data
 
 The code below uses three explicit calibration channels. Each channel has its
-own x grid and point-by-point absolute y uncertainty. There is no random-number
-generator or hidden model parameter in the analysis cell: the arrays are the
-complete observed record. Channels A and B should support gain transfer;
-channel C is the test of whether the analysis rejects an unjustified transfer.
+own x grid and point-by-point absolute y uncertainty; the arrays are the
+complete fit input. The record is constructed for this example rather than
+measured on an instrument: channel C is built with a deliberately different
+gain, and the fit must recover that difference without being told. The
+reference input ``x`` and the channel response ``y`` are both in volts, so
+the gains are dimensionless and the offsets are in volts.
 
 ## The Multi-Dataset Cost
 
@@ -82,6 +73,13 @@ For independent Gaussian measurements, the simultaneous cost is
     \frac{y_{ij}-f_i(x_{ij};p_i)}{\sigma_{ij}}
   \right]^2.
 ```
+
+The bracketed quantity is the **pull** of point ``j`` in dataset ``i``: its
+residual ``y_{ij}-f_i(x_{ij};p_i)`` divided by its stated uncertainty
+``\sigma_{ij}``. Under a correct model with correct uncertainties the pulls
+scatter around zero with width near one; the pull panels display them against
+``\pm1`` and ``\pm2`` reference bands
+([Residuals And Pulls](../statistics.md#Residuals-And-Pulls)).
 
 Each local model receives only the global parameters listed by its
 `parameter_map`. The first hypothesis uses
@@ -98,7 +96,7 @@ p_B=(p_1,p_3),\qquad
 p_C=(p_1,p_4).
 ```
 
-All three channels therefore use exactly the same gain ``g``.
+All three channels use the same gain ``g``.
 
 The second hypothesis uses
 
@@ -203,7 +201,8 @@ println(diagnostic_dashboard_text(partial_shared_result))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>All-shared-gain hypothesis
+<pre>
+All-shared-gain hypothesis
 Fit report
 backend = optimization
 converged = true
@@ -257,42 +256,38 @@ nested test: delta chi2 = 31.16586 for 1 dof, p = 2.369e-08
 All-shared diagnostic dashboard
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 2, info = 0
-2 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 1, info = 0
+1 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. Check residual structure and uncertainty estimates. If residuals are structured, improve the model before tuning errors.
-  2. Treat the result as suspicious unless you can explain the residual pattern or uncertainty model.
+  1. Treat the result as suspicious unless you can explain the residual pattern or uncertainty model.
 Partial-sharing diagnostic dashboard
 Fit diagnostic dashboard
 status = ok - no immediate issue
 critical = 0, warning = 0, info = 0
 No major diagnostic issues detected by the current checks.
-No next action required by the current diagnostic checks.</pre>
+No next action required by the current diagnostic checks.
+</pre>
 </div>
 ```
 
-The automatic dashboard correctly marks the all-shared fit for review from its
-large reduced chi-square and small p-value. Those aggregate checks establish
-that the stated model and uncertainties are inconsistent with the data, but
-they cannot identify which sharing assumption failed. The per-dataset pulls do
-that localization; the nested test and propagated gain difference quantify the
-evidence for freeing channel C's gain.
-
-`parameter_map` is the essential part of the interface. The same local function
-`linear_channel(x, p)` is reused for every channel, while the maps define which
-global parameters each call receives.
+The automatic dashboard marks the all-shared fit for review from its large
+reduced chi-square and small p-value. Those aggregate checks establish that
+the stated model and uncertainties are inconsistent with the data but cannot
+identify which sharing assumption failed; the per-dataset pulls localize it,
+and the nested test and propagated gain difference quantify the evidence for
+freeing channel C's gain.
 
 ## Diagnose The All-Shared Hypothesis
 
-The fully shared model converges. Its fitted gain is a compromise between
+The fully shared model converges; its fitted gain is a compromise between
 incompatible channels:
 
 ```math
 g_\mathrm{all}=1.8478\pm0.0068.
 ```
 
-Convergence does not make that compromise physically valid. The fit gives
+The fit gives
 
 ```math
 \frac{\chi^2_\mathrm{all}}{\mathrm{ndf}}=2.035,
@@ -300,15 +295,14 @@ Convergence does not make that compromise physically valid. The fit gives
 P(\chi^2_\mathrm{all})=0.00139.
 ```
 
-The first pull panel shows the specific failure. Channel C is systematically
-below the common-gain model at low input and above it at high input. That sign
-change is the residual signature of a slope mismatch. Channels A and B are
-pulled in the opposite direction because the shared gain is forced to
-compromise.
+Here ndf counts all points across datasets minus the global free parameters:
+``11+10+9-4=26`` for the all-shared model and ``30-5=25`` for partial sharing
+([Degrees Of Freedom](../statistics.md#Degrees-Of-Freedom)).
 
-This is why inspecting only the global ``\chi^2`` is insufficient. The global
-number says that something is wrong; per-dataset pulls show which sharing
-assumption is wrong.
+The first pull panel shows the specific failure: channel C is systematically
+below the common-gain model at low input and above it at high input — the
+residual signature of a slope mismatch. Channels A and B are pulled in the
+opposite direction because the shared gain must compromise.
 
 ## Fit Only The Defensible Sharing Structure
 
@@ -372,39 +366,44 @@ P\!\left(\chi^2_1 \geq 31.166\right)
 = 2.37\times10^{-8}.
 ```
 
-This is the direct test of the equality constraint ``g_C=g_{AB}``. It agrees
-with the approximately ``5.6\sigma`` gain difference derived from the joint
-covariance. That agreement is expected for this linear Gaussian problem; in a
-nonlinear or bounded problem, profile the difference instead of assuming a
-symmetric Gaussian error.
+This is the direct test of the equality constraint ``g_C=g_{AB}``; it agrees
+with the approximately ``5.6\sigma`` gain difference from the joint
+covariance, as expected for a linear Gaussian problem, where
+``\Delta\chi^2=(\Delta g/\sigma_{\Delta g})^2``: ``\sqrt{31.166}=5.58``,
+matching the ``5.6\sigma`` above. In a nonlinear or bounded problem, profile
+the difference instead of assuming a symmetric Gaussian error.
 
 ## AIC As A Cross-Check
 
-The partial-sharing model adds one parameter. A lower ``\chi^2`` is therefore
-expected even if the extra freedom is unnecessary. AIC adds a parameter-count
-penalty:
+A lower ``\chi^2`` is expected from one extra parameter even if the freedom is
+unnecessary; AIC adds a parameter-count penalty:
 
 ```math
-\mathrm{AIC}=2k-2\log L_{\max}.
+\mathrm{AIC}=2k-2\log L_{\max},
 ```
 
-Both models use the same data and Gaussian cost, so their AIC values may be
-compared:
+where ``k`` is the number of free parameters and ``L_{\max}`` the maximized
+likelihood. `fit_multi_model` minimizes the summed chi-square without the
+constant Gaussian normalization terms ``\sum_{ij}\log(2\pi\sigma_{ij}^2)``,
+so the printed values are ``\mathrm{AIC}=\chi^2_{\min}+2k`` — for the
+all-shared model ``52.9085 + 2\cdot 4 = 60.9085``. The dropped constant is
+the same for both models (same data, same ``\sigma_{ij}``), so only the
+difference is meaningful
+([Model Comparison With AIC And BIC](../statistics.md#Model-Comparison-With-AIC-And-BIC)):
 
 ```math
 \Delta\mathrm{AIC}
 = \mathrm{AIC}_\mathrm{all}-\mathrm{AIC}_\mathrm{partial}
-\approx 29.2.
+= 60.9085-31.7427
+= 29.17
+= \Delta\chi^2-2.
 ```
 
-That improvement is much larger than the penalty for one extra gain parameter.
-It reinforces the residual and gain-difference evidence against the
-all-shared-gain hypothesis.
-
-AIC is not proof that the partial-sharing model is physically true. It only
-compares the candidate models supplied here. A nonlinear response, correlated
-calibration errors, or a shared reference-standard uncertainty could still
-require another model.
+The improvement is far larger than the ``+2`` penalty for the one extra gain
+parameter.
+AIC only compares the candidate models supplied here: a nonlinear response,
+correlated calibration errors, or a shared reference-standard uncertainty
+could still require another model.
 
 ## What The Bands Mean
 
@@ -415,13 +414,18 @@ partial-sharing model. For a local linear model,
 \sigma_\mathrm{fit}^2(x)
 = J(x)\,\operatorname{Cov}(p_i)\,J^\mathsf{T}(x),
 \qquad
-J(x)=(x,1).
+J(x)=(x,1),
 ```
 
-These bands describe uncertainty in each fitted mean response. They are not
-prediction bands for a future observation and therefore do not add
-``\sigma_{ij}^2``. They also do not include uncertainty in the reference x
-values or correlations caused by a shared calibration standard.
+where ``\operatorname{Cov}(p_i)`` is the ``2\times2`` block of the joint fit
+covariance belonging to channel ``i``'s (gain, offset) pair; it carries the
+gain–offset correlation, and the A and B bands are correlated through the
+shared gain.
+
+These bands describe uncertainty in each fitted mean response; they are not
+prediction bands for a future observation and do not add ``\sigma_{ij}^2``,
+uncertainty in the reference x values, or correlations caused by a shared
+calibration standard.
 
 ## What Can Go Wrong
 
@@ -434,9 +438,6 @@ values or correlations caused by a shared calibration standard.
 - **Ignoring shared systematic uncertainty:** `fit_multi_model` currently
   supports dataset-specific diagonal `sigma_y`; a common reference-standard
   error requires a richer covariance treatment than this example.
-- **Using AIC across different data or likelihoods:** the comparison is
-  meaningful here because both candidates use exactly the same observations
-  and cost definition.
 
 ## Reproduce The Figure
 
@@ -447,8 +448,8 @@ construction, local bands, and light/dark Makie figure:
 julia --project=docs examples/gallery/10_multi_dataset_calibration.jl
 ```
 
-The practical conclusion is precise: **transfer the gain between channels A and
-B, but calibrate channel C separately.**
+**Transfer the gain between channels A and B; calibrate channel C
+separately.**
 
 Next, use [Full Covariance](full_covariance.md) when datasets share systematic
 uncertainty, or [Constraints and Profiles](constraints_profiles.md) when the

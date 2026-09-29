@@ -1,7 +1,7 @@
 """Select this checkout in JuliaCall's managed project for wrapper development.
 
-Run after `python -m pip install -e './python[plot,test]'`. The unreleased
-derivative API is not present in the registered v0.1.2 numerical core.
+Run after `python -m pip install -e './python[plot,test]'` to use the matching
+Julia source instead of a registered release of the numerical core.
 """
 
 from pathlib import Path

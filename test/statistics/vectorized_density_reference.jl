@@ -1,7 +1,6 @@
 using Test
 using ScientificFitting
 using ScientificFitting: ForwardDiff
-using ScientificFitting.QuadGK: quadgk
 using Statistics
 
 @testset "Vectorized density references" begin
@@ -48,14 +47,42 @@ using Statistics
     @testset "Adaptive batches preserve values and parameter derivatives" begin
         sizes = Int[]
         oscillatory(x, p) = (push!(sizes, length(x)); @. exp(p[1])*(1+0.2*cos(100*x)))
-        integrate(p) = first(quadgk(ScientificFitting._density_integrand(oscillatory, p, true),
-                                    0.0, 1.0; rtol=1e-10))
+        integrate(p) = ScientificFitting._likelihood_integral(
+            ScientificFitting._density_integrand(oscillatory, p, true), 0.0, 1.0; rtol=1e-10)
         exact(p) = exp(p[1])*(1+0.2*sin(100)/100)
         @test integrate([0.4]) ≈ exact([0.4]) rtol=1e-10
         @test length(sizes) > 1 # This integrand actually requires adaptive refinement.
         @test all(>(1), sizes)
         @test ForwardDiff.gradient(integrate, [0.4]) ≈ [exact([0.4])] rtol=1e-9
         @test ForwardDiff.hessian(integrate, [0.4]) ≈ reshape([exact([0.4])], 1, 1) rtol=1e-8
+    end
+
+    @testset "Public quadrature objectives resolve hidden derivative structure" begin
+        # At p=0 the value is constant; only the derivatives need refinement.
+        normalizer(p) = 1 + p[1]*(1-cos(73.))/73 + p[1]^2*sin(113.)/113
+        density(x, p) = (1 + p[1]*sin(73x) + p[1]^2*cos(113x))/normalizer(p)
+        batch_density(x, p) = density.(x, Ref(p))
+        integral(a, b, p) = ((b-a) + p[1]*(cos(73a)-cos(73b))/73 +
+            p[1]^2*(sin(113b)-sin(113a))/113)/normalizer(p)
+        edges, counts, events = [.13, .5, .92], [2, 3], [.2, .6]
+        expected_bins(p) = 5 .* [integral(edges[i], edges[i+1], p) for i in 1:2]
+        histogram_reference(p) = ScientificFitting._poisson_minus2loglik_terms(
+            Float64.(counts), expected_bins(p))
+        event_reference(p) = 2*(integral(first(edges), last(edges), p) -
+            sum(log(density(x, p)) for x in events))
+        for vectorized in (false, true)
+            callback = vectorized ? batch_density : density
+            options = (; p0=[0.], fixed_parameters=1 => 0., vectorized, rtol=1e-10)
+            histogram = fit_histogram_density(callback, edges, counts; options..., total_count=5)
+            unbinned = fit_extended_unbinned_model(callback, events,
+                (first(edges), last(edges)); options...)
+            for (result, reference) in ((histogram, histogram_reference), (unbinned, event_reference))
+                actual = result.problem.objective
+                @test actual([0.]) ≈ reference([0.]) atol=1e-9
+                @test ForwardDiff.gradient(actual, [0.]) ≈ ForwardDiff.gradient(reference, [0.]) atol=1e-8
+                @test ForwardDiff.hessian(actual, [0.]) ≈ ForwardDiff.hessian(reference, [0.]) atol=1e-7
+            end
+        end
     end
 
     @testset "Callback count and malformed batches" begin

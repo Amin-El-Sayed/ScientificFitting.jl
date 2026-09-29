@@ -9,10 +9,10 @@ it still follows the same logic as a real analysis:
 4. inspect the result,
 5. decide whether the result is trustworthy enough to use.
 
-The data below are controlled rather than archival measurements. Their smooth
-residual pattern is intentional: the first fit should teach both the convenient
-path and the fact that a good-looking line can still need review. Real workflows
-start in the [Gallery](gallery.md).
+The data are synthetic, constructed for this tutorial: a straight line plus
+noise plus a deliberate smooth residual oscillation, so the first fit looks
+good and is still flagged for review. Complete analyses live in the
+[Gallery](gallery.md).
 
 ## Question
 
@@ -28,9 +28,9 @@ We have three arrays:
 - `y`: measured sensor output,
 - `sigma_y`: one-standard-deviation uncertainty of each output value.
 
-The uncertainties are slightly larger at large ``x``. Here they represent
-pointwise repeatability of the voltage reading after range-dependent noise has
-been characterized. A shared gain uncertainty would instead correlate points
+The uncertainties grow linearly from 0.16 V to 0.36 V across the range. Here
+they represent pointwise repeatability of the voltage reading after
+range-dependent noise has been characterized. A shared gain uncertainty would instead correlate points
 and should not be encoded as independent `sigma_y` values.
 
 ## Model
@@ -52,14 +52,18 @@ For independent Gaussian y uncertainties, ScientificFitting minimizes
 \right)^2.
 ```
 
+The sum runs over all data points; ``U_i`` is the measured output `y[i]` at
+position ``x_i``, and ``\sigma_{U,i}`` is its standard deviation `sigma_y[i]`.
+
 This is the standard weighted least-squares model. It is appropriate only if
 the uncertainties are meaningful standard deviations and the residuals are
 roughly Gaussian and structureless.
 
 ## Complete Code
 
-Run this from the repository root or from any Julia project where ScientificFitting is
-available:
+Running this block requires both ScientificFitting and CairoMakie in the
+active environment (see [Installation](install.md)). In a repository checkout,
+use the docs environment, which provides both: `julia --project=docs`.
 
 ```julia
 using ScientificFitting
@@ -108,7 +112,8 @@ println(diagnostic_dashboard_text(result))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>Fit report
+<pre>
+Fit report
 backend = lsqfit
 converged = true
 iterations = unavailable
@@ -131,28 +136,32 @@ Statistics:
 
 Fit diagnostic dashboard
 status = review - inspect diagnostics
-critical = 0, warning = 1, info = 0
-1 warning(s). Inspect before trusting uncertainties or conclusions.
+critical = 0, warning = 2, info = 0
+2 warning(s). Inspect before trusting uncertainties or conclusions.
 
 Next actions:
-  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.</pre>
+  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+  2. Look for missing model structure, drift, a calibration offset, or correlated uncertainty in that interval.
+</pre>
 </div>
 ```
 
+The report header records which numerical solver ran (`backend`, chosen
+automatically or via the `solver` keyword), whether it reported convergence,
+and its status message; LsqFit reports no iteration count, hence
+`iterations = unavailable`. `cost` names the minimized objective — here the
+chi-square — and `cost_min` is its value at the minimum.
+
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Quickstart calibration fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_sans_panel_dark.png" alt="Quickstart calibration fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_light.png" alt="Quickstart calibration fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_sans_plot_dark.png" alt="Quickstart calibration fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_light.png" alt="Quickstart calibration fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_light.png" alt="Quickstart calibration fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="assets/gallery/quickstart_linear_tex_panel_dark.png" alt="Quickstart calibration fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="quickstart-linear" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="assets/gallery/quickstart_linear_tex_plot_dark.png" alt="Quickstart calibration fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Quickstart calibration fit in sans style with result panel">
 ```
 
 `show_panel=true` puts the numerical summary beside the axes;
-`print_report=true` independently prints the same real report to the terminal.
-The returned `fit.figure` is an ordinary Makie figure.
+`print_report=true` prints the full text report to the terminal; the panel
+shows a compact subset of it. `nsigma` sets the band half-width in standard
+deviations; `band_label` is free text and should be kept consistent with it.
+`filename` additionally saves the figure to that file in the working
+directory. The returned `fit.figure` is an ordinary Makie figure.
 
 `fitplot(x, y; sigma_y=...)` uses a straight-line model by default. If you want
 to make the model explicit, use:
@@ -162,12 +171,21 @@ model(x, p) = @. p[1] * x + p[2]
 result = fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=sigma_y)
 ```
 
+`p0` is the vector of starting parameter values for the iterative optimizer;
+its order defines how the model reads them (`p[1]` = slope, `p[2]` = intercept
+here), and every explicit model call requires it. A rough estimate read off
+the data is sufficient for well-behaved models; for nonlinear models a poor
+start can make the optimizer fail or converge to a wrong local minimum. The
+line-only `fitplot(x, y; ...)` call above needed no `p0` because it derives
+start values from the first and last data points.
+
 The explicit form is preferred once the model is not a straight line.
 
 ## What The Plot Means
 
-The selected plot style changes typography and visual hierarchy, not the data,
-fit, band, or reported numbers. The plot contains:
+The `theme` keyword of `fitplot` (default `:sans`) changes only typography and
+visual hierarchy, never the data, fit, band, or reported numbers. The plot
+contains:
 
 - measured data points,
 - y error bars from `sigma_y`,
@@ -192,8 +210,11 @@ m = (1.8475 \pm 0.0170)\,\mathrm{V\,mm^{-1}},
 b = (0.7369 \pm 0.0775)\,\mathrm{V}.
 ```
 
-These are local one-standard-deviation errors from the parameter covariance.
-They describe the stated independent-Gaussian model; they do not include an
+These are local one-standard-deviation errors from the parameter covariance:
+"local" means derived from the curvature of the cost function at the minimum,
+reliable only when the cost is approximately parabolic there (see
+[profiles](statistics.md#Profiles-And-Contours) when it is not). They
+describe the stated independent-Gaussian model; they do not include an
 unmodelled shared calibration uncertainty or residual correlation.
 
 The most important fields are:
@@ -202,9 +223,12 @@ The most important fields are:
 - `result.param_stderr`: local one-standard-deviation parameter errors.
 - `result.param_covariance`: local parameter covariance matrix.
 - `result.stats.chi2`: weighted residual sum of squares.
-- `result.stats.chi2_ndf`: chi-square divided by degrees of freedom.
-- `result.stats.pvalue`: goodness-of-fit probability under the stated Gaussian
-  assumptions.
+- `result.stats.chi2_ndf`: chi-square divided by the degrees of freedom, the
+  number of data points minus the number of free parameters (here
+  24 − 2 = 22; see [Degrees Of Freedom](statistics.md#Degrees-Of-Freedom)).
+- `result.stats.pvalue`: the probability of a chi-square at least as large as
+  the observed one if the model and the uncertainties are correct; see
+  [Goodness Of Fit](statistics.md#Goodness-Of-Fit).
 
 As a rule of thumb, ``\chi^2/\mathrm{ndf}`` should be near one when the model and
 uncertainties are both plausible. Much larger values usually mean missing model
@@ -226,13 +250,15 @@ likelihood definition.
 
 ## First Diagnosis
 
-`diagnostic_dashboard(result)` summarizes the first things to inspect:
+The dashboard summarizes the first things to inspect:
 
 ```julia
 dashboard = diagnostic_dashboard(result)
 ```
 
-The report prints reader-facing status labels:
+`diagnostic_dashboard(result)` returns the dashboard as a structured object;
+`diagnostic_dashboard_text(result)`, used in the Complete Code block above,
+renders the same dashboard as text. Its status line uses three labels:
 
 - `ok - no immediate issue`: no major issue found by the current checks,
 - `review - inspect diagnostics`: warnings exist; inspect before using the
@@ -240,10 +266,11 @@ The report prints reader-facing status labels:
 - `critical - fix before use`: at least one critical issue exists and must be
   fixed before the result is used for conclusions.
 
-For this controlled example, `review - inspect diagnostics` follows directly
-from the low chi-square and smooth residual pattern. The next action is therefore
-to inspect acquisition order and replace the independent-error model if a shared
-or time-correlated component is physically justified.
+For this synthetic example, `review - inspect diagnostics` follows from the
+low chi-square and from the smooth residual pattern. Both warnings point to
+the same inspection: check the residuals in acquisition order and replace the
+independent-error model if a shared or time-correlated component is
+physically justified.
 
 The dashboard does not prove the model is true. It only catches common failure
 modes quickly: bad goodness-of-fit, active bounds, ill-conditioned covariance,
@@ -271,14 +298,21 @@ interval = profile_interval(result, 1)
 cont = ScientificFitting.contour(result, 1, 2; adaptive=true)
 ```
 
+The integer arguments are parameter indices in the fitted parameter vector
+(1 = `m`, 2 = `b` here). `adaptive=true` refines the scan near the points
+where the profile crosses the interval threshold instead of forcing a dense
+grid. `ScientificFitting.contour` is written qualified because Makie exports
+a `contour` of its own.
+[Profiles and contours](statistics.md#Profiles-And-Contours) explains how to
+read the results.
+
 ## Next Steps
 
-- See [Linear Calibration](gallery/linear_calibration.md) for the same workflow
-  as a polished gallery example with generated light/dark plots.
-- See [How ScientificFitting Works](how_scientificfitting_works.md) for the object flow behind
-  the one-line interface.
-- See [Fitting for Practitioners](fitting_for_practitioners.md) for practical
+- [Fitting for Practitioners](fitting_for_practitioners.md) for practical
   troubleshooting rules.
-- See [Gaussian Fits and Covariance](gaussian_models.md) for the derivation of
-  weighted chi-square and [Profiles and Contours](profiles_contours.md) when a
-  local symmetric error is not enough.
+- [How ScientificFitting Works](how_scientificfitting_works.md) for the object
+  flow behind the one-line interface.
+- [Gaussian least squares](statistics.md#Gaussian-Least-Squares) for the
+  derivation of weighted chi-square, and
+  [profiles](statistics.md#Profiles-And-Contours) when a local symmetric error
+  is not enough.

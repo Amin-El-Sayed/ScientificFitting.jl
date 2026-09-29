@@ -188,15 +188,17 @@ end
 
         cache = ScientificFitting._prepare_fit_cache(result.problem)
         @test length(cache.parameter_constraints) == 1
+        # The evaluation cache is the single cost path; its values must be the
+        # ones reported on the result.
         @test isapprox(
             ScientificFitting._chi2_cost(cache, result.params),
-            ScientificFitting._chi2_cost(result.problem, result.params);
+            result.stats.chi2;
             atol=2e-12,
             rtol=2e-12,
         )
         @test isapprox(
             ScientificFitting._gaussian_minus2loglik(cache, result.params),
-            ScientificFitting._gaussian_minus2loglik(result.problem, result.params);
+            result.stats.minus2loglik_min;
             atol=2e-12,
             rtol=2e-12,
         )

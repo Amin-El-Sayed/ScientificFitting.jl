@@ -7,13 +7,13 @@ using Test
     y = @. 2.0 * x + 1.0
     model(x, p) = @. p[1] * x + p[2]
 
-    @testset "Solver controls and backend requests fail clearly" begin
-        @test_throws ArgumentError FitOptions(backend=:unknown)
-        @test_throws ArgumentError FitOptions(maxiters=0)
+    @testset "Solver controls fail clearly and features route automatically" begin
+        @test_throws ArgumentError FitOptions(solver=:lbfgs)
+        @test_throws DomainError FitOptions(maxiters=0)
         @test_throws ArgumentError FitOptions(tol=NaN)
         @test_throws ArgumentError FitOptions(tol=0.0)
         @test_throws ArgumentError FitOptions(scale_covariance=:invalid)
-        @test_throws ArgumentError FitOptions(multistart=0)
+        @test_throws DomainError FitOptions(multistart=0)
         @test FitOptions(tol=1).tol === 1.0
 
         sigma = fill(0.1, length(x))
@@ -23,62 +23,57 @@ using Test
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
-            backend=:lsqfit,
         ).backend == :lsqfit
-        @test_throws ArgumentError fit_model(
+        # Features outside static least squares route to the scalar solver
+        # automatically; there is no backend request left to get wrong.
+        @test fit_model(
             model,
             x,
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
             bounds=([0.0, -Inf], [3.0, Inf]),
-            backend=:lsqfit,
-        )
-        @test_throws ArgumentError fit_model(
+        ).backend == :optimization
+        @test fit_model(
             model,
             x,
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
             parameter_priors=(index=1, mean=2.0, sigma=0.2),
-            backend=:lsqfit,
-        )
-        @test_throws ArgumentError fit_model(
+        ).backend == :optimization
+        @test fit_model(
             model,
             x,
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
             cost=:gaussian_likelihood,
-            backend=:lsqfit,
-        )
-        @test_throws ArgumentError fit_model(
+        ).backend == :optimization
+        @test fit_model(
             model,
             x,
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
             sigma_x=fill(0.02, length(x)),
-            backend=:lsqfit,
-        )
-        @test_throws ArgumentError fit_model(
+        ).backend == :optimization
+        @test fit_model(
             model,
             x,
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
             constraints=ConstraintSpec(ineq=p -> p[1]),
-            backend=:lsqfit,
-        )
-        @test_throws ArgumentError fit_model(
+        ).backend == :optimization
+        @test fit_model(
             model,
             x,
             y;
             p0=[1.0, 0.0],
             sigma_y=sigma,
             error_components=(name=:extra, target=:y, mode=:absolute, values=0.1),
-            backend=:lsqfit,
-        )
+        ).backend == :optimization
 
         likelihood = fit_custom(p -> abs2(p[1] - 1.0); p0=[0.0], nobs=2)
         @test_throws MethodError ScientificFitting.fit(
@@ -91,8 +86,8 @@ using Test
         @test_throws ArgumentError fit_model(model, Float64[], Float64[]; p0=[1.0, 0.0])
         @test_throws ArgumentError fit_model(model, [0.0, NaN], [1.0, 2.0]; p0=[1.0, 0.0])
         @test_throws ArgumentError fit_model(model, x, y; p0=[1.0, Inf])
-        @test_throws ArgumentError fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.0, length(x)))
-        @test_throws ArgumentError fit_model(model, x, y; p0=[1.0, 0.0], sigma_x=[0.1, -0.1, fill(0.1, length(x) - 2)...])
+        @test_throws DomainError fit_model(model, x, y; p0=[1.0, 0.0], sigma_y=fill(0.0, length(x)))
+        @test_throws DomainError fit_model(model, x, y; p0=[1.0, 0.0], sigma_x=[0.1, -0.1, fill(0.1, length(x) - 2)...])
     end
 
     @testset "Bad covariance matrices are not silently repaired" begin
@@ -185,7 +180,7 @@ using Test
             bounds=bounds,
             initial_guesses=[[3.0, 0.0]],
         )
-        @test_throws ArgumentError fit_model(
+        @test_throws DimensionMismatch fit_model(
             model,
             x,
             y;
@@ -220,7 +215,7 @@ using Test
             sigma_y=fill(0.1, length(x)),
             parameter_priors=(index=1, mean=NaN, sigma=0.5),
         )
-        @test_throws ArgumentError fit_model(
+        @test_throws DomainError fit_model(
             model,
             x,
             y;
@@ -260,7 +255,7 @@ using Test
             sigma_y=fill(0.1, length(x)),
             fixed_parameters=(index=1, value=Inf),
         )
-        @test_throws ArgumentError fit_model(
+        @test_throws DomainError fit_model(
             model,
             x,
             y;
@@ -268,7 +263,7 @@ using Test
             sigma_y=fill(0.1, length(x)),
             fixed_parameters=(index=1, value=1.0, sigma=Inf),
         )
-        @test_throws ArgumentError fit_custom(
+        @test_throws DomainError fit_custom(
             p -> sum(abs2, p);
             p0=[1.0],
             nobs=3,
@@ -292,17 +287,17 @@ using Test
         @test_throws ArgumentError fit_poisson_model(count_model, [1.0, NaN], [1.0, 2.0]; p0=[0.0])
         @test_throws ArgumentError fit_poisson_model(count_model, count_x, [5.0, NaN, 3.0, 2.0]; p0=[0.0])
         @test_throws ArgumentError fit_poisson_model(count_model, count_x, [5.0, 4.5, 3.0, 2.0]; p0=[0.0])
-        @test_throws ArgumentError fit_poisson_model((x, p) -> fill(exp(p[1]), length(x) - 1), count_x, counts; p0=[0.0])
+        @test_throws DimensionMismatch fit_poisson_model((x, p) -> fill(exp(p[1]), length(x) - 1), count_x, counts; p0=[0.0])
         @test_throws ArgumentError fit_histogram_model(expected_counts, [0.0, 1.0, NaN, 4.0, 5.0], counts; p0=[0.0])
-        @test_throws ArgumentError fit_histogram_model(expected_counts, [0.0, 1.0, 1.0, 3.0, 4.0], counts; p0=[0.0])
+        @test_throws DomainError fit_histogram_model(expected_counts, [0.0, 1.0, 1.0, 3.0, 4.0], counts; p0=[0.0])
         @test_throws ArgumentError fit_histogram_model(expected_counts, 0.0:1.0:4.0, [5.0, 4.0, 3.5, 2.0]; p0=[0.0])
-        @test_throws ArgumentError fit_histogram_density(pdf, 0.0:1.0:4.0, counts; p0=[0.0], total_count=Inf)
-        @test_throws ArgumentError fit_histogram_density(pdf, 0.0:1.0:4.0, counts; p0=[0.0], rtol=NaN)
+        @test_throws DomainError fit_histogram_density(pdf, 0.0:1.0:4.0, counts; p0=[0.0], total_count=Inf)
+        @test_throws DomainError fit_histogram_density(pdf, 0.0:1.0:4.0, counts; p0=[0.0], rtol=NaN)
         @test_throws ArgumentError fit_unbinned_model(pdf, [-0.2, NaN, 0.4]; p0=[0.0])
         @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, NaN], (0.0, 1.0); p0=[0.0])
         @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, 1.4], (0.0, 1.0); p0=[0.0])
         @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, 0.4], (0.0, Inf); p0=[0.0])
-        @test_throws ArgumentError fit_extended_unbinned_model(rate, [0.2, 0.4], (0.0, 1.0); p0=[0.0], rtol=0.0)
+        @test_throws DomainError fit_extended_unbinned_model(rate, [0.2, 0.4], (0.0, 1.0); p0=[0.0], rtol=0.0)
     end
 
     @testset "Indexed and multi-fit uncertainties are physical inputs" begin
@@ -312,7 +307,7 @@ using Test
 
         @test fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], sigma_y=fill(0.1, 3)).converged
         @test_throws ArgumentError fit_indexed_model(indexed_model, indices, [1.0, NaN, 1.1]; p0=[0.0, 0.0], sigma_y=fill(0.1, 3))
-        @test_throws ArgumentError fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], sigma_y=[0.1, -0.1, 0.1])
+        @test_throws DomainError fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], sigma_y=[0.1, -0.1, 0.1])
         @test_throws ArgumentError fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], sigma_y=[0.1, NaN, 0.1])
         @test_throws ArgumentError fit_indexed_model(indexed_model, indices, indexed_y; p0=[0.0, 0.0], cov_y=[1.0 0.0 0.0; 0.5 1.0 0.0; 0.0 0.0 1.0])
 
@@ -333,7 +328,7 @@ using Test
         @test_throws ArgumentError fit_multi_model(Function[], Any[], Any[]; p0=[1.0])
         @test_throws ArgumentError fit_multi_model([local_linear], [[0.0, NaN]], [[1.0, 2.0]]; p0=[1.0, 0.0])
         @test_throws ArgumentError fit_multi_model([local_linear], [x1], [[1.0, NaN, 3.0, 4.0]]; p0=[1.0, 0.0])
-        @test_throws ArgumentError fit_multi_model([local_linear], [x1], [y1]; p0=[1.0, 0.0], sigma_y=[[0.1, 0.1, -0.1, 0.1]])
+        @test_throws DomainError fit_multi_model([local_linear], [x1], [y1]; p0=[1.0, 0.0], sigma_y=[[0.1, 0.1, -0.1, 0.1]])
         @test_throws ArgumentError fit_multi_model([local_linear], [x1], [y1]; p0=[1.0, 0.0], sigma_y=[[0.1, 0.1, NaN, 0.1]])
     end
 

@@ -2,9 +2,14 @@
     ProfileResult
 
 One-dimensional profile scan of the fitted cost function. `values` are the
-fixed parameter values, `cost_values` are the refitted objective values, and
-`delta_cost` is measured relative to the original fit minimum. The `threshold`
-field records the interval threshold requested by `profile`.
+fixed parameter values, `cost_values` are the raw refitted objective values,
+and `delta_cost` is measured relative to the original fit minimum. When the
+fit applied `scale_covariance` (chi2/ndf) scaling, `delta_cost` is divided by
+that same factor, so `threshold=1` always marks the one-sigma cut consistent
+with `param_stderr`. The `threshold` field records the interval threshold
+requested by `profile`. `parameter_index` is the index of the profiled
+parameter in the fit's parameter vector; `best_value` is that parameter's
+value at the fit minimum.
 """
 struct ProfileResult
     parameter_index::Int
@@ -20,7 +25,11 @@ end
 
 Two-parameter profile-contour scan. `x_values` and `y_values` define the scan
 grid for `parameter_indices`; `delta_cost` stores the refitted cost increase
-relative to the best fit, and `levels` stores the requested contour thresholds.
+relative to the best fit, divided by the fit's applied covariance scale (the
+same convention as `ProfileResult`), and `levels` stores the requested contour
+thresholds (delta-cost levels; see [`contour`](@ref)). `cost_values` holds the
+raw refitted objective values on the same grid. Both matrices are indexed
+`[ix, iy]`: rows follow `x_values`, columns follow `y_values`.
 """
 struct ContourResult
     parameter_indices::Tuple{Int, Int}
@@ -35,9 +44,13 @@ end
     ProfileInterval
 
 Asymmetric interval extracted from a `ProfileResult`. `lower` and `upper` are
-the threshold crossings; `uncertainty_minus` and `uncertainty_plus` are measured
-relative to the best-fit parameter value. Non-finite fields indicate that the
-scan did not bracket the requested threshold.
+the threshold crossings; `uncertainty_minus = best_value - lower` and
+`uncertainty_plus = upper - best_value` are both non-negative distances from
+the best-fit parameter value. Non-finite fields indicate that the scan did not
+bracket the requested threshold. `parameter_index` is the profiled parameter's
+index, `threshold` repeats the delta-cost threshold of the scan, and
+`profile_result` stores the underlying [`ProfileResult`](@ref) (use it with
+`diagnose`).
 """
 struct ProfileInterval
     parameter_index::Int
@@ -53,12 +66,15 @@ end
     ProfileMatrixResult
 
 Makie-free diagnostic overview for several fitted parameters. It stores the
-one-parameter profiles, lower-triangle pairwise contours, per-panel diagnostic
-reports, the selected local fit geometry, and a combined diagnostic report.
-Plotting is intentionally separate: `plot_profile_matrix(matrix_result)`
-renders this object without repeating any profile or contour refits.
-`panel_status` maps diagonal `(i, i)` and lower-triangle `(i, j)` panels to
-`:ok`, `:review`, or `:stop`.
+one-parameter profiles, pairwise contours, per-panel diagnostic reports, the
+best values, local standard errors, and local covariance/correlation submatrix
+of the selected parameters, and a combined diagnostic report. Plotting is
+intentionally separate: `plot_profile_matrix(matrix_result)` renders this
+object without repeating any profile or contour refits.
+Contour and status keys are parameter-index pairs `(i, j)` with `i` the x-axis
+parameter and `j` the y-axis parameter, `i` preceding `j` in `parameters`;
+diagonal profile panels use `(i, i)`. `panel_status` maps each key to `:ok`,
+`:review`, or `:stop`.
 """
 struct ProfileMatrixResult
     parameters::Vector{Int}
@@ -73,24 +89,6 @@ struct ProfileMatrixResult
     contour_diagnostics::Dict{Tuple{Int, Int}, DiagnosticReport}
     panel_status::Dict{Tuple{Int, Int}, Symbol}
     report::DiagnosticReport
-end
-
-"""
-    ProfileMatrixPanelTriage
-
-One row in the Makie-free triage summary returned by
-`profile_matrix_triage(...)`. `indices` identify the profile or contour panel,
-`parameter_names` are the reader-facing parameter labels, `status` is `:ok`,
-`:review`, or `:stop`, `finding_codes` are stable machine-readable diagnostic
-codes, and `next_action` is the first recommended action for that panel.
-"""
-struct ProfileMatrixPanelTriage
-    indices::Tuple{Int, Int}
-    parameter_names::Tuple{String, String}
-    status::Symbol
-    severity_counts::Dict{Symbol, Int}
-    finding_codes::Vector{Symbol}
-    next_action::String
 end
 
 function _merge_fixed_parameters(existing::Vector{FixedParameter}, added::Vector{FixedParameter})
@@ -131,11 +129,11 @@ function _refit_with_fixed(result::FitResult, fixed::Vector{FixedParameter})
 
     return fit(
         refit_problem;
-        backend=:auto,
         cost=result.options.cost,
         maxiters=result.options.maxiters,
         tol=result.options.tol,
         scale_covariance=result.options.scale_covariance,
+        solver=result.options.solver,
     )
 end
 
@@ -165,8 +163,8 @@ function _refit_with_fixed(result::LikelihoodFitResult, fixed::Vector{FixedParam
         refit_problem;
         maxiters=result.options.maxiters,
         tol=result.options.tol,
-        optimizer=result.options.optimizer,
         parameter_covariance=result.options.parameter_covariance,
+        solver=result.options.solver,
     )
 end
 
@@ -200,8 +198,8 @@ function _profile_refit_cost(result, fixed::Vector{FixedParameter}; on_failure::
 end
 
 function _validate_adaptive_controls(max_refinements::Int, max_points::Int)
-    max_refinements >= 0 || throw(ArgumentError("max_refinements must be non-negative"))
-    max_points >= 3 || throw(ArgumentError("max_points must be at least 3"))
+    max_refinements >= 0 || throw(DomainError(max_refinements, "max_refinements must be non-negative"))
+    max_points >= 3 || throw(DomainError(max_points, "max_points must be at least 3"))
     return nothing
 end
 
@@ -212,17 +210,17 @@ end
 
 function _validate_profile_controls(npoints::Int, nsigma::Real, threshold::Real; default_grid::Bool)
     if default_grid
-        npoints >= 3 || throw(ArgumentError("npoints must be at least 3"))
-        isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and > 0"))
+        npoints >= 3 || throw(DomainError(npoints, "npoints must be at least 3"))
+        isfinite(nsigma) && nsigma > 0 || throw(DomainError(nsigma, "nsigma must be finite and > 0"))
     end
-    isfinite(threshold) && threshold > 0 || throw(ArgumentError("threshold must be finite and > 0"))
+    isfinite(threshold) && threshold > 0 || throw(DomainError(threshold, "threshold must be finite and > 0"))
     return nothing
 end
 
 function _validate_contour_controls(npoints::Int, nsigma::Real; default_x_grid::Bool, default_y_grid::Bool)
     if default_x_grid || default_y_grid
-        npoints >= 2 || throw(ArgumentError("npoints must be at least 2"))
-        isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and > 0"))
+        npoints >= 2 || throw(DomainError(npoints, "npoints must be at least 2"))
+        isfinite(nsigma) && nsigma > 0 || throw(DomainError(nsigma, "nsigma must be finite and > 0"))
     end
     return nothing
 end
@@ -267,7 +265,10 @@ function _profile_from_grid(result, index::Int, grid::Vector{Float64}, threshold
     for (i, value) in enumerate(grid)
         costs[i] = _profile_refit_cost(result, [FixedParameter(index, value)]; on_failure=on_failure)
     end
-    delta = costs .- result.stats.cost_min
+    # Report delta on the same scale as param_stderr: when the fit applied
+    # chi2/ndf covariance scaling, the raw cost difference is divided by that
+    # factor so threshold=1 stays the one-sigma cut.
+    delta = (costs .- result.stats.cost_min) ./ _covariance_scale(result)
     return ProfileResult(index, grid, costs, delta, threshold, result.params[index])
 end
 
@@ -306,17 +307,25 @@ end
 Profile the fitted cost function in one parameter by fixing that parameter to
 grid values and re-minimizing all remaining free parameters.
 
-The automatic grid intersects `best_value +/- nsigma * local_stderr` with the
-parameter bounds. Without a positive finite local error, its initial step scale
-is `0.1 * max(abs(best_value), 1)`, a search heuristic, not an uncertainty.
-Use explicit `values` for scientifically chosen ranges. Explicit values are not clipped: infeasible points still
-follow `on_failure`. A bound is not substituted for a missing threshold crossing.
+The automatic grid intersects `best_value +/- nsigma * result.param_stderr[index]`
+with the parameter bounds. Without a positive finite standard error, the
+substitute scale `0.1 * max(abs(best_value), 1)` replaces it, so the scan spans
+`+/- nsigma` times that heuristic scale: a search range, not an uncertainty.
+Use explicit `values` for scientifically chosen ranges. Explicit values are not
+clipped: infeasible points still follow `on_failure`. A bound is not
+substituted for a missing threshold crossing.
+
+`threshold` is the delta-cost value targeted by adaptive refinement and
+recorded in the result; it does not affect a plain grid scan.
 
 With `adaptive=true`, ScientificFitting refines grid intervals that bracket the requested
 profile threshold. This improves interval extraction without forcing a dense
-grid over the full scan range. `on_failure=:inf` records failed refits as
-infinite cost so diagnostics can expose them; `:throw` stops at the first
-failure.
+grid over the full scan range. `max_refinements` bounds the number of
+refinement rounds and `max_points` caps the total number of grid points.
+`on_failure=:inf` records failed refits as infinite cost so diagnostics can
+expose them; `:throw` stops at the first failure.
+
+Returns a [`ProfileResult`](@ref).
 """
 function profile(
     result,
@@ -402,11 +411,22 @@ end
     profile_interval(result, index; threshold=1.0, npoints=121, nsigma=5,
                      values=nothing, adaptive=true, max_refinements=3,
                      max_points=241)
+    profile_interval(profile_result::ProfileResult)
 
 Compute a profile-based asymmetric interval by finding the profile-cost
-crossings at `delta_cost = threshold`. Explicit `values` replace the automatic
-`nsigma` range. A crossing that is not bracketed is returned as `NaN`; inspect
-`diagnose(interval.profile_result)` before reporting the interval.
+crossings at `delta_cost = threshold`. For one parameter, `threshold = 1`
+gives the asymptotic 68.27% (1-sigma) interval; use `threshold = n^2` for an
+n-sigma interval (for example 4 for 2 sigma). Explicit `values` replace the
+automatic `nsigma` range. A crossing that is not bracketed is returned as
+`NaN`; inspect `diagnose(interval.profile_result)` before reporting the
+interval.
+
+The `ProfileResult` method extracts threshold crossings from an existing scan
+without running more fits; the best value and threshold are those stored in
+the scan. A failed grid point stops that side's search; crossings are never
+interpolated across gaps.
+
+Returns a [`ProfileInterval`](@ref).
 """
 function profile_interval(
     result,
@@ -433,14 +453,6 @@ function profile_interval(
     return profile_interval(prof)
 end
 
-"""
-    profile_interval(profile_result::ProfileResult)
-
-Extract threshold crossings from an existing scan without running more fits.
-The best value and threshold are those stored in the scan. Unbracketed sides
-remain `NaN`, just as for `profile_interval(result, index)`. A failed grid
-point stops that side's search; crossings are never interpolated across gaps.
-"""
 function profile_interval(prof::ProfileResult)
     lower, upper = _profile_crossings(prof)
     center = prof.best_value
@@ -471,10 +483,13 @@ end
 function _profile_parabolicity_findings(profile_result::ProfileResult, local_sigma; tolerance::Real)
     local_sigma === nothing && return DiagnosticFinding[]
     sigma = Float64(local_sigma)
-    sigma > 0 || throw(ArgumentError("local_sigma must be positive"))
-    tolerance >= 0 || throw(ArgumentError("tolerance must be non-negative"))
+    sigma > 0 || throw(DomainError(sigma, "local_sigma must be positive"))
+    tolerance >= 0 || throw(DomainError(tolerance, "tolerance must be non-negative"))
 
     local_delta = @. abs2((profile_result.values - profile_result.best_value) / sigma)
+    # Compare only near the minimum, where intervals are read off: up to
+    # max(4*threshold, threshold + 3) in delta-cost (about 2 sigma for the
+    # default threshold), so far scan tails cannot trigger the finding.
     relevant = (profile_result.delta_cost .<= max(4 * profile_result.threshold, profile_result.threshold + 3))
     any(relevant) || return DiagnosticFinding[]
     deviation = maximum(abs.(profile_result.delta_cost[relevant] .- local_delta[relevant]); init=0.0)
@@ -496,7 +511,7 @@ end
 function _profile_matrix_parameter_names(result, parameters::Vector{Int}, parameter_names)
     if parameter_names !== nothing
         names = collect(String, parameter_names)
-        length(names) == length(parameters) || throw(ArgumentError("parameter_names length must match parameters"))
+        length(names) == length(parameters) || throw(DimensionMismatch("parameter_names length must match parameters"))
         return names
     end
     if hasproperty(result.problem, :parameter_names) && result.problem.parameter_names !== nothing
@@ -551,6 +566,13 @@ are two-parameter profile contours. Each panel is diagnosed against the local
 covariance approximation when local errors or covariance entries are finite.
 Without local errors, grids use `profile`'s heuristic scale; for controlled
 ranges, compute individual profiles/contours with explicit grid values.
+
+`contour_levels` follows the same convention as [`contour`](@ref); the
+defaults mark the asymptotic 68.27% and 95.45% two-parameter regions.
+`max_points` caps each panel's refined grid: the number of scan points for a
+profile, the total number of grid cells for a contour. `profile_tolerance` and
+`contour_tolerance` are the maximum allowed delta-cost deviations from the
+local parabola/ellipse before a panel is flagged; see [`diagnose`](@ref).
 
 Use this when a fit has several correlated or nonlinear parameters and you
 need a quick, machine-readable answer to: "Are local symmetric covariance
@@ -637,83 +659,33 @@ function profile_matrix(
     )
 end
 
-diagnose(matrix_result::ProfileMatrixResult) = matrix_result.report
-
-function _profile_matrix_panel_report(matrix_result::ProfileMatrixResult, indices::Tuple{Int, Int})
-    if indices[1] == indices[2]
-        return matrix_result.profile_diagnostics[indices[1]]
-    end
-    return matrix_result.contour_diagnostics[indices]
-end
-
-function _profile_matrix_parameter_name(matrix_result::ProfileMatrixResult, index::Int)
-    position = findfirst(==(index), matrix_result.parameters)
-    position === nothing && throw(ArgumentError("parameter index $index is not part of the profile matrix"))
-    return matrix_result.parameter_names[position]
-end
-
-function _profile_matrix_panel_order(matrix_result::ProfileMatrixResult)
-    panels = Tuple{Int, Int}[]
-    selected = matrix_result.parameters
-    for index in selected
-        push!(panels, (index, index))
-    end
-    for row in 2:length(selected), col in 1:(row - 1)
-        push!(panels, (selected[col], selected[row]))
-    end
-    return panels
-end
-
-_profile_matrix_status_rank(status::Symbol) =
-    status == :stop ? 1 : status == :review ? 2 : status == :ok ? 3 : 4
-
-"""
-    profile_matrix_triage(matrix_result; include_ok=false)
-
-Return a sorted, Makie-free list of profile-matrix panels that need attention.
-By default only `:review` and `:stop` panels are returned. Set
-`include_ok=true` to include successful panels as well, for example when a
-notebook wants to print a complete audit table.
-
-The returned `ProfileMatrixPanelTriage` rows are ordered by severity first and
-then by the natural matrix panel order. This is the programmatic counterpart of
-the status labels in `plot_profile_matrix(...)`.
-"""
-function profile_matrix_triage(matrix_result::ProfileMatrixResult; include_ok::Bool=false)
-    ordered_rows = Tuple{Int, ProfileMatrixPanelTriage}[]
-    for (order, indices) in enumerate(_profile_matrix_panel_order(matrix_result))
-        status = matrix_result.panel_status[indices]
-        include_ok || status != :ok || continue
-        report = _profile_matrix_panel_report(matrix_result, indices)
-        names = (
-            _profile_matrix_parameter_name(matrix_result, indices[1]),
-            _profile_matrix_parameter_name(matrix_result, indices[2]),
-        )
-        next_action = isempty(report.findings) ?
-            "No action required by the current profile/contour checks." :
-            first(report.findings).recommendation
-        row =
-            ProfileMatrixPanelTriage(
-                indices,
-                names,
-                status,
-                _severity_counts(report.findings),
-                [finding.code for finding in report.findings],
-                next_action,
-            )
-        push!(ordered_rows, (order, row))
-    end
-    sort!(ordered_rows; by=entry -> (_profile_matrix_status_rank(entry[2].status), entry[1]))
-    return [row for (_, row) in ordered_rows]
-end
-
 """
     diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance=0.25)
+    diagnose(contour_result::ContourResult; local_covariance=nothing,
+             local_center=nothing, tolerance=0.5)
+    diagnose(matrix_result::ProfileMatrixResult)
 
-Diagnose an already computed one-parameter profile. With `local_sigma`, the
-actual profile is compared to the local covariance parabola. This is the
-machine-readable counterpart of overlaying both curves in `plot_profile`.
+Diagnose already computed profile and contour scans. With `local_sigma`, a
+one-parameter profile is compared to the local covariance parabola; with
+`local_covariance`, a two-parameter contour grid is compared to the local
+covariance ellipse used by symmetric Gaussian error propagation. This is the
+machine-readable counterpart of overlaying both curves in `plot_profile` or
+`plot_contour`.
+
+`local_sigma` is the parameter's local standard error
+(`result.param_stderr[index]`). `tolerance` is the maximum allowed absolute
+deviation, in delta-cost units, between the scan and the local parabola
+`((value - best_value) / local_sigma)^2` (or the local covariance ellipse)
+near the minimum before `:profile_not_parabolic` or `:contour_not_elliptic`
+is reported. `local_center` is the ellipse center; it defaults to the scanned
+grid minimum.
+
+`diagnose(matrix_result)` returns the combined report precomputed by
+[`profile_matrix`](@ref) without new refits. Each method returns a
+`DiagnosticReport`.
 """
+diagnose(matrix_result::ProfileMatrixResult) = matrix_result.report
+
 function diagnose(profile_result::ProfileResult; local_sigma=nothing, tolerance::Real=0.25)
     findings = DiagnosticFinding[]
     append!(findings, _profile_refit_failure_findings(profile_result))
@@ -744,7 +716,9 @@ function _contour_from_grid!(cache, result, i::Int, j::Int, xs::Vector{Float64},
             _contour_refit_cost(result, i, j, xs[ix], ys[iy], on_failure)
         end
     end
-    delta = costs .- result.stats.cost_min
+    # Same scale convention as profiles: divide by the applied covariance
+    # scale so the 2.30/6.18 levels stay consistent with param_stderr.
+    delta = (costs .- result.stats.cost_min) ./ _covariance_scale(result)
     return ContourResult((i, j), xs, ys, costs, delta, levels)
 end
 
@@ -826,14 +800,25 @@ Compute a two-parameter profile-likelihood contour grid. At each grid point,
 parameters `i` and `j` are fixed and all remaining free parameters are
 re-minimized.
 
+`levels` are thresholds on the scaled `delta_cost` (the same scale convention
+as [`ProfileResult`](@ref)). The defaults 2.30 and 6.18 are the chi-square
+quantiles for 2 degrees of freedom, enclosing asymptotic 68.27% and 95.45%
+joint confidence for the parameter pair; they are the two-parameter analogues
+of the one-parameter `delta_cost = 1` and `4` cuts. See the Profiles And
+Contours section of the statistics reference.
+
 Automatic axes respect parameter bounds, as in `profile`. Explicit `xvalues`
 and `yvalues` remain unchanged, including infeasible points.
 
 With `adaptive=true`, ScientificFitting refines grid cells whose corner values bracket a
 requested contour level. This concentrates expensive refits near meaningful
 contour geometry instead of spreading them uniformly across the full rectangle.
+`max_refinements` bounds the number of refinement rounds and `max_points` caps
+the total number of grid cells (x-axis points times y-axis points).
 `on_failure=:inf` preserves failed cells for diagnostics; `:throw` stops at the
 first failed refit.
+
+Returns a [`ContourResult`](@ref).
 """
 function contour(
     result,
@@ -864,7 +849,7 @@ function contour(
     level_values = collect(Float64, levels)
     isempty(level_values) && throw(ArgumentError("contour levels must not be empty"))
     all(isfinite, level_values) || throw(ArgumentError("contour levels must be finite"))
-    all(>(0.0), level_values) || throw(ArgumentError("contour levels must be positive delta-cost thresholds"))
+    all(>(0.0), level_values) || throw(DomainError(level_values, "contour levels must be positive delta-cost thresholds"))
     level_values = sort!(unique!(level_values))
     if adaptive
         return _adaptive_contour(
@@ -980,7 +965,7 @@ end
 function _contour_ellipticity_findings(contour_result::ContourResult, local_covariance, local_center; tolerance::Real)
     cov = _contour_local_covariance(contour_result, local_covariance)
     cov === nothing && return DiagnosticFinding[]
-    tolerance >= 0 || throw(ArgumentError("tolerance must be non-negative"))
+    tolerance >= 0 || throw(DomainError(tolerance, "tolerance must be non-negative"))
 
     center = _contour_center(contour_result, local_center)
     precision, covariance_finding = _contour_local_covariance_precision(cov)
@@ -992,6 +977,8 @@ function _contour_ellipticity_findings(contour_result::ContourResult, local_cova
     end
 
     first_level = isempty(contour_result.levels) ? 2.30 : minimum(contour_result.levels)
+    # Same comparison region as the profile check, relative to the lowest
+    # requested level: far scan tails cannot trigger the finding.
     relevant = contour_result.delta_cost .<= max(4 * first_level, first_level + 3)
     any(relevant) || return DiagnosticFinding[]
     deviation = maximum(abs.(contour_result.delta_cost[relevant] .- local_delta[relevant]); init=0.0)
@@ -1010,13 +997,6 @@ function _contour_ellipticity_findings(contour_result::ContourResult, local_cova
     return DiagnosticFinding[]
 end
 
-"""
-    diagnose(contour_result::ContourResult; local_covariance=nothing, local_center=nothing, tolerance=0.5)
-
-Diagnose an already computed two-parameter contour grid. With
-`local_covariance`, the actual profiled contour surface is compared to the local
-covariance ellipse used by symmetric Gaussian error propagation.
-"""
 function diagnose(contour_result::ContourResult; local_covariance=nothing, local_center=nothing, tolerance::Real=0.5)
     findings = DiagnosticFinding[]
     append!(findings, _contour_refit_failure_findings(contour_result))

@@ -1,3 +1,16 @@
+"""
+    ScientificFitting
+
+Frequentist curve and likelihood fitting: y and x uncertainties (effective
+variance), full covariance matrices, Gaussian, Poisson, binned, and unbinned
+likelihoods, parameter priors and correlated constraints, fixed parameters,
+and profile-likelihood intervals and contours.
+
+Main entry points: [`fit_model`](@ref), [`fit_likelihood_model`](@ref),
+[`profile`](@ref), [`profile_interval`](@ref), [`plot_fit`](@ref) /
+[`fitplot`](@ref), and [`fit_report`](@ref). Full documentation:
+<https://amin-el-sayed.github.io/ScientificFitting.jl/>.
+"""
 module ScientificFitting
 
 using ADTypes
@@ -19,6 +32,7 @@ using SparseArrays
 using Statistics
 
 include("formatting.jl")
+include("solvers.jl")
 include("types.jl")
 include("derivatives.jl")
 include("parameters.jl")
@@ -27,6 +41,7 @@ include("weights.jl")
 include("costs.jl")
 include("fit.jl")
 include("likelihood_fits.jl")
+include("distribution_fits.jl")
 include("profile.jl")
 include("prediction.jl")
 include("plotting_api.jl")
@@ -40,27 +55,23 @@ export ParameterConstraint
 export ErrorComponent
 export WhiteningOperator
 export FitOptions
+export AbstractFitSolver, OptimizationSolver, NativeMinuitSolver, FitSolverResult
+export solver_capabilities, default_fit_tolerance, solve_fit
 export FitProblem
 export FitResult
 export LikelihoodFitProblem
 export LikelihoodFitResult
-export FitStatistics
-export FitDiagnostics
-export DiagnosticFinding
-export DiagnosticReport
-export DiagnosticDashboard
-export FitReport
-export ParameterEstimate
 export ProfileResult
 export ContourResult
 export ProfileInterval
 export ProfileMatrixResult
-export ProfileMatrixPanelTriage
 export fit
 export predict
 export fit_model
 export fit_custom
 export fit_likelihood_model
+export fit_distribution
+export fitted_model
 export fit_poisson_model
 export fit_histogram_model
 export fit_histogram_density
@@ -73,8 +84,8 @@ export profile
 export profile_interval
 export contour
 export profile_matrix
-export profile_matrix_triage
 export fitplot
+export FitPlotStyle
 export plot_fit
 export fit_axis
 export add_curve!

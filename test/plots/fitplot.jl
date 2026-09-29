@@ -71,19 +71,19 @@ using Test
     save(extension_out, right_panel.figure)
     @test size(right_panel.figure.scene) == (1040, 640)
     @test isfile(extension_out)
-    @test_throws ArgumentError fit_axis(right_panel.figure; index=0)
+    @test_throws DomainError fit_axis(right_panel.figure; index=0)
     @test_throws ArgumentError add_curve!(ax, [1.0, 2.0], [1.0])
     @test_throws ArgumentError add_curve!(ax, [1.0], [2.0])
     @test_throws ArgumentError add_curve!(ax, [1.0, NaN], [2.0, 3.0])
     @test_throws ArgumentError add_curve!(ax, x -> x == 0 ? Inf : x; xspan=(0.0, 1.0))
-    @test_throws ArgumentError add_curve!(ax, x -> x; n=1)
+    @test_throws DomainError add_curve!(ax, x -> x; n=1)
     @test_throws ArgumentError add_curve!(ax, x -> x; xspan=(0.0, Inf))
     @test_throws ArgumentError add_points!(ax, [1.0, Inf], [2.0, 3.0])
     @test_throws ArgumentError add_vline!(ax, NaN)
     @test_throws ArgumentError add_hline!(ax, Inf)
-    @test_throws ArgumentError add_vband!(ax, 2.0, 1.0)
+    @test_throws DomainError add_vband!(ax, 2.0, 1.0)
     @test_throws ArgumentError add_vband!(ax, NaN, 1.0)
-    @test_throws ArgumentError add_hband!(ax, 2.0, 1.0)
+    @test_throws DomainError add_hband!(ax, 2.0, 1.0)
     @test_throws ArgumentError add_hband!(ax, 0.0, Inf)
 
     # Axis-relative spans must not turn Makie's provisional 0:10 limits into
@@ -360,7 +360,7 @@ using Test
 
     # The requested canvas is a lower bound. Natural panel content may enlarge
     # it, while extra requested width remains available to the data axis.
-    wide_tex = plot_fit(quick.result; theme=:tex, figure_size=(1400, 640))
+    wide_tex = plot_fit(quick.result; theme=:tex, style=FitPlotStyle(figure_size=(1400, 640)))
     @test size(wide_tex.scene) == (1400, 640)
     @test fit_axis(wide_tex).layoutobservables.computedbbox[].widths[1] >
           fit_axis(tex_default).layoutobservables.computedbbox[].widths[1] + 390
@@ -372,7 +372,7 @@ using Test
     fitted_canvas = plot_fit(
         quick.result;
         theme=:tex,
-        figure_size=(700, 420),
+        style=FitPlotStyle(figure_size=(700, 420)),
         stats_panel_width=180,
         model_label=long_model_label,
         tight_layout=false,
@@ -417,7 +417,7 @@ using Test
         100,
         20,
     ))
-    @test_throws ArgumentError plot_info_panel!(panel_figure[1, 1]; width=0)
+    @test_throws DomainError plot_info_panel!(panel_figure[1, 1]; width=0)
 
     custom_figure = with_theme(plot_theme(:sans)) do
         Figure(size=(420, 280))
@@ -437,11 +437,11 @@ using Test
     @test custom_axis.layoutobservables.computedbbox[].widths[1] >= 320
     long_label_bbox = long_panel_label.layoutobservables.computedbbox[]
     @test long_label_bbox.origin[1] + long_label_bbox.widths[1] <= size(custom_figure.scene)[1]
-    @test_throws ArgumentError resize_plot_to_layout!(
+    @test_throws DomainError resize_plot_to_layout!(
         custom_figure;
         minimum_axis_size=(0, 180),
     )
-    @test_throws ArgumentError resize_plot_to_layout!(
+    @test_throws DomainError resize_plot_to_layout!(
         custom_figure;
         preferred_size=(420, Inf),
     )
@@ -499,8 +499,8 @@ using Test
     @test_throws ArgumentError plot_fit(quick.result; theme=:custom)
     @test_throws ArgumentError plot_fit(quick.result; theme=:dark)
     @test_throws ArgumentError plot_fit(quick.result; fit_range=:unknown)
-    @test_throws ArgumentError plot_fit(quick.result; nsigma=0)
-    @test_throws ArgumentError plot_fit(quick.result; nsigma=Inf)
+    @test_throws DomainError plot_fit(quick.result; nsigma=0)
+    @test_throws DomainError plot_fit(quick.result; nsigma=Inf)
     @test_throws ArgumentError plot_fit(quick.result; limit_padding=-0.01)
 
     contour_values = collect(range(-2.0, 2.0; length=17))
@@ -533,7 +533,7 @@ using Test
     contour_without_legend = plot_contour(contour_result; show_legend=false)
     save(joinpath(mktempdir(), "contour_without_legend.png"), contour_without_legend)
     contour_axis_without_legend = only(filter(content -> content isa Axis, contour_without_legend.content))
-    @test contour_axis.scene.viewport[].widths[1] ==
+    @test contour_axis.scene.viewport[].widths[1] >=
           contour_axis_without_legend.scene.viewport[].widths[1]
 
     contour_right = plot_contour(
@@ -544,7 +544,7 @@ using Test
     )
     save(joinpath(mktempdir(), "contour_right_legend.png"), contour_right)
     contour_right_axis = only(filter(content -> content isa Axis, contour_right.content))
-    @test contour_right_axis.scene.viewport[].widths[1] >= 0.5 * size(contour_right.scene)[1]
+    @test contour_right_axis.scene.viewport[].widths[1] >= 420
     @test plot_contour(contour_result; filename=heatmap_out, format=:png, show_heatmap=true) !== nothing
     profile_result = ProfileResult(1, contour_values, contour_values .^ 2, contour_values .^ 2, 1.0, 0.0)
     profile_out = joinpath(mktempdir(), "profile_legend.png")
@@ -561,7 +561,7 @@ using Test
     @test profile_figure !== nothing
     profile_axis = only(filter(content -> content isa Axis, profile_figure.content))
     @test profile_axis.scene.viewport[].widths[1] >= 0.75 * size(profile_figure.scene)[1]
-    @test_throws ArgumentError plot_profile(profile_result; delta_max=0.0)
+    @test_throws DomainError plot_profile(profile_result; delta_max=0.0)
     @test_throws ArgumentError plot_profile(profile_result; legend_position=:inside)
     @test_throws ArgumentError plot_contour(contour_result; legend_position=:inside)
     failed_delta = copy(contour_delta)

@@ -39,7 +39,7 @@ def test_result_and_report_snapshots(calibration):
     assert isinstance(result.message, str)
     assert result.iterations is None or isinstance(result.iterations, int)
     assert _backend().seval("r -> ismissing(r.iterations)")(result._handle) == (result.iterations is None)
-    assert result.options["backend"] == "auto"
+    assert result.options["solver"] is None
     assert result.statistics["cost"] == "chi2"
     np.testing.assert_allclose(result.residuals, result.y-result.model_y)
     np.testing.assert_allclose(result.weighted_residuals, result.residuals/0.1)
@@ -47,7 +47,7 @@ def test_result_and_report_snapshots(calibration):
     expected_nll = result.statistics["chi2"] + len(result.y)*np.log(2*np.pi*0.1**2)
     assert result.statistics["minus2loglik_min"] == pytest.approx(expected_nll)
     assert report.statistics == result.statistics
-    for key in ("warnings", "active_bounds", "findings"):
+    for key in ("active_bounds", "findings"):
         assert report.numerical_diagnostics[key] == result.numerical_diagnostics[key]
     for key in ("covariance_condition", "hessian_condition"):
         np.testing.assert_allclose(report.numerical_diagnostics[key], result.numerical_diagnostics[key])
@@ -113,7 +113,7 @@ def test_nonconverged_nuisance_fit_is_not_a_profile_minimum():
 def test_multistart_keeps_the_lowest_cost_when_no_run_converges():
     result = fit_custom(lambda mu: (mu-2)**2, p0={"mu": 0.}, nobs=10,
                         initial_guesses=[{"mu": 1.}], multistart=2,
-                        optimizer="nelder_mead", maxiters=1)
+                        solver="nelder_mead", maxiters=1)
     assert not result.converged
     np.testing.assert_array_equal(result.params, [1.])
     assert result.statistics["cost_min"] == 1.
@@ -255,9 +255,8 @@ def test_named_profile_matrix_geometry_and_order():
         assert scan.diagnose(structured=True).text == scan.diagnostics.text
     for scan in matrix.profiles.values():
         assert scan.diagnose(structured=True).text == scan.diagnostics.text
-    rows = matrix.triage(include_ok=True)
-    assert len(rows) == 6 and matrix.triage() == ()
-    assert all(row.status == matrix.panel_status[row.parameters] for row in rows)
+    assert len(matrix.panel_status) == 6
+    assert all(status == "ok" for status in matrix.panel_status.values())
     assert len(calls) == before
     assert not _backend().seval('any(m -> nameof(m) in (:Makie, :CairoMakie), values(Base.loaded_modules))')
     with pytest.raises(TypeError):

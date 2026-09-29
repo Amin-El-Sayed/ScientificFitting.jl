@@ -1,5 +1,6 @@
 using ScientificFitting
 using LinearAlgebra
+using Random
 using StatsAPI
 using Test
 
@@ -128,7 +129,7 @@ using Test
         short_derivative(x, p) = fill(p[1], length(x) - 1)
         bad_derivative(x, p) = fill(NaN, length(x))
 
-        @test_throws ArgumentError fit_model(
+        @test_throws DimensionMismatch fit_model(
             model,
             x,
             y;
@@ -454,13 +455,14 @@ using Test
         )
         @test bounded.converged
         @test !isempty(bounded.diagnostics.active_bounds)
-        @test any(contains("active bounds"), bounded.diagnostics.warnings)
+        @test any(f -> f.code == :active_bounds, bounded.diagnostics.findings)
     end
 
     @testset "Covariance scaling policy and multistart" begin
         x = collect(range(0.0, 5.0; length=80))
         model(x, p) = @. p[1] * exp(-p[2] * x)
-        y = model(x, [2.0, 0.8])
+        rng = Xoshiro(23)
+        y = model(x, [2.0, 0.8]) .+ 0.05 .* randn(rng, length(x))
         sigma_y = fill(0.05, length(x))
 
         scaled = fit_model(model, x, y; p0=[1.0, 0.2], sigma_y=sigma_y, scale_covariance=:always)
@@ -468,7 +470,9 @@ using Test
 
         @test scaled.converged
         @test unscaled.converged
-        @test maximum(unscaled.param_stderr) > maximum(scaled.param_stderr)
+        # The policy applies exactly the chi2/ndf factor, not merely "smaller".
+        factor = sqrt(unscaled.stats.chi2 / unscaled.stats.ndf)
+        @test isapprox(scaled.param_stderr, unscaled.param_stderr .* factor; rtol=1e-6)
 
         hard = fit_model(
             model,
@@ -482,8 +486,9 @@ using Test
         )
 
         @test hard.converged
-        @test isapprox(hard.params[1], 2.0; atol=1e-2)
-        @test isapprox(hard.params[2], 0.8; atol=1e-2)
+        # Multistart must escape the bad basin and land in the same optimum
+        # that the well-started fit of this noisy dataset finds.
+        @test isapprox(hard.params, unscaled.params; rtol=1e-4)
     end
 
     @testset "No-op bounds keep the fast least-squares backend" begin
@@ -558,7 +563,7 @@ using Test
         @test report.statistics.cost == :chi2
         @test isapprox(report.statistics.cost_min, result.stats.cost_min)
         @test size(report.covariance) == (2, 2)
-        @test report.diagnostics isa FitDiagnostics
+        @test report.diagnostics isa ScientificFitting.FitDiagnostics
         @test occursin("chi2/ndf", text)
         @test occursin("cost_min", text)
     end

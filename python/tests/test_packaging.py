@@ -38,6 +38,8 @@ def test_installer_pin_allows_compatible_core_patches():
     assert set(pin) == {"uuid", "version"}  # Never ship a local development path.
     assert pin["uuid"] == core["uuid"]
     current, compatible = Version.parse(core["version"]), Compat.parse(pin["version"])
+    wrapper = Version.parse(tomllib.loads((ROOT / "python/pyproject.toml").read_text())["project"]["version"])
+    assert (wrapper.major, wrapper.minor) == (current.major, current.minor)
     assert current in compatible
     # Core bugfixes must not force a new Python release with an identical wrapper.
     assert current.bump_patch() in compatible

@@ -1,18 +1,12 @@
 # Installation
 
-ScientificFitting declares support for Julia 1.10 and later. CI runs the core
-and full-package gates on Julia 1.10 and Julia 1.12. Julia 1.10 is the
-compatibility floor.
-
-For Python, see [Python Interface](python.md).
-
-!!! note "Early release"
-    Version 0.2 is an early work-in-progress release. Please report unexpected
-    behavior with a minimal reproducer and the complete diagnostic output.
+ScientificFitting supports Julia 1.10 and later. CI targets Julia 1.10 and the
+latest stable Julia; the optional NativeMinuit adapter requires Julia 1.11+.
+Documentation rendering is pinned to Julia 1.12.
 
 ## Install The Julia Package
 
-Install the registered package from Julia's General registry:
+Install from Julia's General registry:
 
 ```julia
 using Pkg
@@ -28,9 +22,20 @@ using ScientificFitting
 This loads fitting, likelihoods, diagnostics, profiles, contours, and text
 reports. It does **not** load Makie.
 
+For static PNG, PDF, and SVG plots, add CairoMakie to the environment where
+you added ScientificFitting, then load both:
+
+```julia
+using Pkg
+Pkg.add("CairoMakie")
+
+using ScientificFitting
+using CairoMakie
+```
+
 ## Work From A Checkout
 
-From a terminal, instantiate the numerical core in the repository root:
+Instantiate the numerical core in the repository root:
 
 ```bash
 cd /path/to/ScientificFitting
@@ -43,9 +48,8 @@ Start a Julia session in that environment:
 julia --project=.
 ```
 
-The checked-out repository keeps plotting and documentation dependencies in a
-separate environment. Instantiate it when running the gallery or building the
-site:
+Plotting and documentation dependencies live in a separate environment.
+Instantiate it when running the gallery or building the site:
 
 ```bash
 julia --project=docs --startup-file=no -e 'using Pkg; Pkg.instantiate()'
@@ -53,19 +57,8 @@ julia --project=docs examples/gallery/01_quickstart_linear.jl
 ```
 
 The example writes its figure to the ignored `examples/output/` directory.
-
-For static PNG, PDF, and SVG plots, install CairoMakie in the same environment:
-
-```julia
-using Pkg
-Pkg.add(["ScientificFitting", "CairoMakie"])
-
-using ScientificFitting
-using CairoMakie
-```
-
-Keeping CairoMakie optional is deliberate. A batch analysis can fit data,
-create reports, and run diagnostics without compiling a graphics stack.
+The `docs` environment already provides CairoMakie; do not `Pkg.add` packages
+into the checkout's root project — it is the package itself.
 
 ## First Use And Compilation
 
@@ -82,8 +75,12 @@ release gate. A core-only check is enough:
 julia --project=. --startup-file=no -e 'using ScientificFitting; println("ScientificFitting core ready")'
 ```
 
-For plotting, run the tracked quickstart example shown above. It exercises the
-same API used by the first tutorial and confirms CairoMakie export.
+Run this in the environment where you installed the package: from the
+checkout root as shown, or with `--project` pointing at your own project for
+a registry install.
+
+For plotting, run the tracked quickstart example shown above; it confirms
+CairoMakie export.
 
 ## Python Interface
 
@@ -107,8 +104,12 @@ status are on the [Python Interface](python.md) page.
 | Every fresh session recompiles | Reuse the same project and depot; check whether Julia or package versions keep changing. |
 | `plot_fit` says the extension is unavailable | Add and load `CairoMakie` before calling plotting functions. |
 | PDF or SVG export fails | Verify a minimal CairoMakie figure in the same environment; inspect backend and font errors first. |
-| A fit is unexpectedly slow | Check for dense covariance, bounds, constraints, priors, parameter-dependent covariance, or pointwise x-derivatives. These select more general numerical paths. |
+| A fit is unexpectedly slow | Check for dense covariance, bounds, constraints, priors, parameter-dependent covariance, or x uncertainties (`sigma_x`, `cov_x`), which re-evaluate the model slope at every data point in each iteration. These select more general numerical paths. |
 | Package versions will not resolve | Confirm Julia is at least 1.10 and instantiate a clean environment rather than mixing incompatible manifests. |
 
+For bug reports, include a minimal example, package versions, and the full
+`report_text(result)` and `diagnose(result)` output.
+
 Continue with the [Quickstart](quickstart.md). For package internals and scaling
-limits, see [Backend Design](backend_design.md) and [Performance](performance.md).
+limits, see [Backend Design](backend_design.md), in particular its
+[Performance Checks](backend_design.md#Performance-Checks) section.

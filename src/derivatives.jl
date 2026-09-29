@@ -3,13 +3,21 @@ Typed boundary for foreign callbacks evaluated with finite differences.
 
 The function field is deliberately abstract: the solver specializes on its
 declared return type, not each runtime-created Python closure. One dynamic
-dispatch per callback lets these fits share precompiled numerical code. Native
-Julia models bypass this adapter and retain automatic differentiation.
+dispatch per callback lets these fits share precompiled numerical code. Only
+automatic differentiation (`derivatives=:auto`) bypasses this adapter. With
+`derivatives=:finite`, every plain `Function`, native Julia or foreign, is
+wrapped, and each call asserts the declared return type `R`
+(`Vector{Float64}` for vector models, `Float64` for scalar objectives).
 """
 struct _TypedCallback{R}
     f::Function
 end
 (callback::_TypedCallback{R})(args...) where {R} = callback.f(args...)::R
+
+"""Share one precompiled pipeline across model types when finite differences apply."""
+_finite_model_boundary(model, derivatives::Symbol) =
+    derivatives == :finite && model isa Function && !(model isa _TypedCallback) ?
+        _TypedCallback{Vector{Float64}}(model) : model
 
 """Validate the differentiation policy stored with a problem and its refits."""
 function _validate_derivatives(mode::Symbol)
@@ -17,13 +25,25 @@ function _validate_derivatives(mode::Symbol)
     return mode
 end
 
-"""Default stopping tolerance; differenced gradients have a higher numerical noise floor."""
-_default_fit_tolerance(mode::Symbol) = mode == :finite ? 1e-6 : 1e-10
-
 """Select SciML's derivative provider without passing dual numbers to foreign callbacks."""
 function _optimization_ad(problem; second_order::Bool=false)
     ad = _derivative_mode(problem) == :finite ? AutoFiniteDiff(fdtype=Val(:central)) : AutoForwardDiff()
     return second_order ? DifferentiationInterface.SecondOrder(ad, ad) : ad
+end
+
+"""Reject invalid starting derivatives before a solver can propagate NaNs into parameters."""
+function _check_initial_derivatives(problem, objective, p, capabilities)
+    capabilities.gradient || capabilities.hessian || return nothing
+    gradient = DifferentiationInterface.gradient(objective, _optimization_ad(problem), p)
+    invalid = !all(isfinite, gradient) ? "gradient" :
+        capabilities.hessian && !all(isfinite, _derivative_hessian(problem, objective, p)) ? "Hessian" : nothing
+    if invalid !== nothing
+        hint = _derivative_mode(problem) == :auto ?
+            " For AD-incompatible models, explicitly select derivatives=:finite." : ""
+        throw(ArgumentError("initial cost is finite, but its $invalid contains NaN or Inf. " *
+            "Check differentiability, parameter scales, and distribution support at p0." * hint))
+    end
+    return nothing
 end
 
 """Differentiate vector predictions/residuals with the same policy as the objective."""

@@ -1,10 +1,63 @@
 """
+    FitPlotStyle(; kwargs...)
+
+Reusable visual tokens for every ScientificFitting plot function. Each field
+overrides the corresponding token of the selected `theme` preset; a `nothing`
+field keeps the theme value. Pass one style object to `plot_fit`, `fitplot`,
+`plot_residuals`, `plot_diagnostics`, `plot_profile`, `plot_contour`, and
+`plot_profile_matrix` via their `style` keyword to keep figures visually
+consistent. Content and layout choices (what is plotted, labels, panels,
+legends) remain keywords of the individual plot functions; Makie-level escape
+hatches remain available through their `*_kwargs` arguments.
+
+Fields: `figure_size`, `panel_gap`, `data_color`, `data_marker`,
+`data_markersize`, `data_strokecolor`, `data_strokewidth`, `fit_color`,
+`fit_linewidth`, `band_color`, `band_alpha`, `xerr_color`, `yerr_color`,
+`error_linewidth`, `error_whiskerwidth`, `secondary_color`,
+`reference_color`, `stats_fontsize`, `stats_box_color`, `stats_box_alpha`,
+`stats_box_strokecolor`, `stats_box_strokewidth`.
+"""
+Base.@kwdef struct FitPlotStyle
+    figure_size::Union{Nothing, Tuple{Int, Int}} = nothing
+    panel_gap::Union{Nothing, Float64} = nothing
+    data_color = nothing
+    data_marker = nothing
+    data_markersize::Union{Nothing, Float64} = nothing
+    data_strokecolor = nothing
+    data_strokewidth::Union{Nothing, Float64} = nothing
+    fit_color = nothing
+    fit_linewidth::Union{Nothing, Float64} = nothing
+    band_color = nothing
+    band_alpha::Union{Nothing, Float64} = nothing
+    xerr_color = nothing
+    yerr_color = nothing
+    error_linewidth::Union{Nothing, Float64} = nothing
+    error_whiskerwidth::Union{Nothing, Float64} = nothing
+    secondary_color = nothing
+    reference_color = nothing
+    stats_fontsize::Union{Nothing, Float64} = nothing
+    stats_box_color = nothing
+    stats_box_alpha::Union{Nothing, Float64} = nothing
+    stats_box_strokecolor = nothing
+    stats_box_strokewidth::Union{Nothing, Float64} = nothing
+end
+
+"""
     plot_fit(result; kwargs...)
 
 Create and return a Makie `Figure` from an existing `FitResult`. The default
 layout shows data, fitted model, uncertainty band, and an optional right-side
 report without requiring manual margin tuning. Use `fitplot(model, x, y; ...)`
 when fitting and plotting should happen in one call.
+
+The band is the pointwise `nsigma`-standard-error band of the fitted curve,
+propagated from the parameter covariance (`band=:confidence`, default
+`nsigma=1`, pointwise 68.3%, not a simultaneous band). `band=:prediction`
+adds the observation uncertainty in y and the first-order contribution of the
+x uncertainty; `band=:none` draws no band. The default legend label states
+the level. The full keyword contract (labels, units, limits, result panel,
+legend, `*_kwargs` escape hatches) is on the Fit Plotting documentation page;
+visual tokens are fields of [`FitPlotStyle`](@ref).
 
 The default `fit_range=:axis` draws the fitted model over the padded axis range.
 Use `fit_range=:data` or pass `xgrid` when the curve should stop at a specific
@@ -26,8 +79,13 @@ plot in one call. Every method returns the named tuple
 `(result::FitResult, figure::Figure)`. Obtain the primary axis with
 `fit_axis(output.figure)` when adding custom Makie content.
 
-Use `show_panel=true` to include fit statistics in the figure and
-`print_report=true` to print the text report independently.
+The two-array method `fitplot(x, y)` fits the straight line `p[1] * x + p[2]`;
+when `p0` is not supplied, the initial slope and intercept are derived from
+the first and last observations. Pass a model function explicitly for any
+other model.
+
+`show_panel` (default `true`) controls the fit-statistics panel;
+`print_report=true` additionally prints the text report.
 """
 function fitplot end
 
@@ -46,7 +104,9 @@ function fit_axis end
     add_curve!(axis, x, y; label=nothing, kwargs...)
 
 Add a function-valued or precomputed curve to an existing fit axis. A function
-is sampled on `xgrid`, `xspan`, or the current visible axis range. Style
+is sampled on `xgrid` (a vector of sample positions), on `xspan` (an
+`(xmin, xmax)` interval sampled at `n` points), or on the current visible axis
+range at `n` points; `xgrid` takes precedence when both are given. Style
 defaults follow the active ScientificFitting plot contract unless Makie keyword
 arguments such as `color` or `linewidth` are explicitly supplied.
 """
@@ -92,22 +152,24 @@ physical threshold to an existing fit axis.
 function add_hband! end
 
 """
-    plot_theme(style=:sans; appearance=:auto)
+    plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
 
-Return the Makie `Theme` used by ScientificFitting for a named plot style. The maintained
-visual styles are `:sans` (sans-serif typography, open axes, grid) and `:tex`
-(TeX typography, full frame, no grid). Panel visibility is deliberately not a
-style property. Former style names remain compatibility aliases. `appearance`
-is `:light`, `:dark`, or `:auto`.
+Return the Makie `Theme` used by ScientificFitting plots. The maintained visual
+styles are `:sans` (sans-serif typography, open axes, grid) and `:tex` (TeX
+typography, full frame, no grid); `appearance` is `:light`, `:dark`, or
+`:auto`. Use this when composing a custom Makie figure that should remain
+visually consistent with `plot_fit`. Axis text, legend entries and legend
+headings share the light/dark foreground color; explicit Makie attributes or
+`theme_override` take precedence.
 """
 function plot_theme end
 
 """
-    plot_palette(style=:sans; appearance=:auto)
+    plot_palette(theme=:sans; appearance=:auto)
 
-Return the visual tokens used by ScientificFitting's plot helpers, including color-safe
-series colors, markers, line weights, typography, and layout defaults. Use this
-when building compound Makie figures that should respond to a selected style.
+Return the visual tokens used by a ScientificFitting plot style. Besides data,
+fit, uncertainty-band, and error-bar defaults, the result exposes typography,
+layout, and color-safe multi-series tokens for custom Makie figures.
 """
 function plot_palette end
 
@@ -153,7 +215,10 @@ function resize_plot_to_layout! end
 """
     plot_residuals(result; kind=:pull, theme=:sans, kwargs...)
 
-Plot residuals, pulls, or data/fit ratios for a fitted model. Use this when the
+Plot residuals, pulls, or data/fit ratios for a fitted model. `kind` is
+`:residual` (data minus fit), `:pull` (the whitened residuals; for
+uncorrelated uncertainties, each residual divided by its uncertainty), or
+`:ratio` (data divided by fit). Use this when the
 main fit plot looks plausible but the noise model or model structure needs
 inspection. Marker and error-bar defaults follow the selected plot style;
 explicit Makie keyword containers override them.

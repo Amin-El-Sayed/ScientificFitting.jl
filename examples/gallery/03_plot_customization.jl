@@ -6,10 +6,14 @@ include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 x = collect(range(-1.5, 2.0; length=16))
 model(x, p) = @. p[1] * x^2 + p[2] * x + p[3]
 sigma_y = 0.07 .+ 0.025 .* abs.(x)
+# A deterministic 1σ sine perturbation stands in for random noise so the
+# example is reproducible without an RNG; it puts the printed chi2/ndf
+# near 0.5.
 y = model(x, [0.72, -0.38, 0.2]) .+ sigma_y .* sin.(3.4 .* x)
 
-# Theme overrides should change only the intended Makie attributes. Typography,
-# layout, and the remaining marks continue to follow ScientificFitting's style contract.
+# theme_override changes only the Makie attributes it names; typography,
+# layout, and the remaining marks keep following ScientificFitting's style
+# contract.
 custom_theme = Theme(Axis=(xgridvisible=false, ygridvisible=true))
 
 fit = fitplot(
@@ -29,12 +33,14 @@ fit = fitplot(
     yunit="mV",
     parameter_names=["a", "b", "c"],
     nsigma=2,
-    band_label="2-sigma band",
-    fit_color="#0072b2",
-    band_color="#0072b2",
-    band_alpha=0.18,
-    data_marker=:diamond,
-    data_markersize=9,
+    band_label="2σ confidence band",
+    style=FitPlotStyle(
+        fit_color="#0072b2",
+        band_color="#0072b2",
+        band_alpha=0.18,
+        data_marker=:diamond,
+        data_markersize=9,
+    ),
     stats_sigdigits=6,
     show_panel=true,
     print_report=true,

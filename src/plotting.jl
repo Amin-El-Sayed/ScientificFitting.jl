@@ -31,9 +31,32 @@ function _resolve_plot_style(theme::Symbol, appearance::Symbol)
     style = get(_SF_STYLE_ALIASES, theme, theme)
     style in (:sans, :tex) ||
         throw(ArgumentError(
-            "theme must be :sans, :tex, or a supported legacy alias",
+            "theme must be :sans or :tex; accepted aliases are :analysis, " *
+            ":presentation, :screen, :lab, :workbench, :modern, :clean, " *
+            ":minimal, :showcase (-> :sans) and :article, :publication, " *
+            ":paper, :latex (-> :tex)",
         ))
     return style, appearance == :auto ? :light : appearance
+end
+
+"""One themed Figure construction shared by every standalone plot helper."""
+function _themed_figure(resolved_style, resolved_appearance, theme_override, preset, figure_size)
+    return with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
+        Figure(
+            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
+            backgroundcolor=preset.background_color,
+        )
+    end
+end
+
+function _save_figure(fig, filename, format)
+    filename === nothing && return nothing
+    outpath = String(filename)
+    if isempty(splitext(outpath)[2])
+        outpath *= ".$(String(format))"
+    end
+    save(outpath, fig)
+    return nothing
 end
 
 function _style_preset(style::Symbol, appearance::Symbol)
@@ -44,11 +67,13 @@ function _style_preset(style::Symbol, appearance::Symbol)
     box = dark ? "#1b2027" : _SF_PAPER_SOFT
     box_stroke = dark ? "#65717d" : _SF_GRID
 
-    if style == :sans
-        # Screen-oriented sans typography, open axes, and light grid guides.
-        # Information density is controlled independently by `show_panel`.
-        fit = :dodgerblue
-        return (
+    style in (:sans, :tex) || throw(ArgumentError(
+        "style presets are defined only for :sans and :tex",
+    ))
+    # Screen-oriented sans typography, open axes, and light grid guides.
+    # Information density is controlled independently by `show_panel`.
+    fit = :dodgerblue
+    base = (
             name=:sans,
             diagnostic_scale=0.84,
             background_color=paper,
@@ -80,7 +105,9 @@ function _style_preset(style::Symbol, appearance::Symbol)
             stats_muted_color=ink,
             stats_fontsize=24,
             stats_box_color=box,
+            stats_box_alpha=0.95,
             stats_box_strokecolor=box_stroke,
+            stats_box_strokewidth=1.0,
             fontsize=23,
             xlabelsize=29,
             ylabelsize=29,
@@ -110,74 +137,83 @@ function _style_preset(style::Symbol, appearance::Symbol)
             ticksize=7.0,
             tickalign=0.0,
         )
-    elseif style == :tex
-        fit = dark ? "#77bce6" : "#0072b2"
-        return (
-            name=:tex,
-            diagnostic_scale=0.90,
-            background_color=paper,
-            axis_color=ink,
-            grid_color=(grid, 0.0),
-            # Hollow observations remain separable from fitted curves in
-            # grayscale and in dense vector exports.
-            data_color=paper,
-            data_marker=:circle,
-            data_markersize=8.5,
-            data_strokecolor=ink,
-            data_strokewidth=0.9,
-            fit_color=fit,
-            fit_linewidth=3.0,
-            band_color=fit,
-            band_alpha=dark ? 0.18 : 0.15,
-            xerr_color=ink,
-            yerr_color=ink,
-            error_linewidth=1.05,
-            error_whiskerwidth=4.0,
-            secondary_color=dark ? "#f06b4f" : "#d55e00",
-            reference_color=dark ? "#d3dae0" : "#444a50",
-            series_colors=dark ?
-                (fit, "#f06b4f", "#70cfa8", "#d69acb", "#a9b4bf") :
-                (fit, "#d55e00", "#009e73", "#cc79a7", "#4d4d4d"),
-            stats_color=ink,
-            stats_muted_color=ink,
-            stats_fontsize=30,
-            stats_box_color=box,
-            stats_box_strokecolor=box_stroke,
-            fontsize=26,
-            xlabelsize=32,
-            ylabelsize=32,
-            titlesize=38,
-            titlegap=22,
-            subplot_titlesize=30,
-            subplot_titlegap=10,
-            # Long scientific titles must never clip against a narrow axis.
-            titlealign=:left,
-            ticklabelsize=26,
-            legend_labelsize=26,
-            legend_patchsize=(36, 21),
-            legend_rowgap=5,
-            panel_rowgap=2,
-            panel_sectiongap=10,
-            panel_gap=20,
-            minimum_axis_size=(420, 300),
-            figure_padding=(14, 18, 13, 13),
-            figure_size_with_panel=(1000, 640),
-            figure_size_without_panel=(760, 520),
-            xgridvisible=false,
-            ygridvisible=false,
-            gridwidth=0.0,
-            topspinevisible=true,
-            rightspinevisible=true,
-            spinewidth=1.7,
-            tickwidth=1.6,
-            ticksize=7.0,
-            tickalign=1.0,
-        )
-    end
+    style == :sans && return base
 
-    throw(ArgumentError(
-        "style presets are defined only for :sans and :tex",
+    # :tex is a delta over :sans: TeX typography sizes, a full frame without
+    # grid, hollow observations that stay separable from fitted curves in
+    # grayscale, and a print-safe palette. Everything else is shared.
+    tex_fit = dark ? "#77bce6" : "#0072b2"
+    return merge(base, (
+        name=:tex,
+        diagnostic_scale=0.90,
+        grid_color=(grid, 0.0),
+        data_color=paper,
+        data_strokecolor=ink,
+        data_strokewidth=0.9,
+        fit_color=tex_fit,
+        fit_linewidth=3.0,
+        band_color=tex_fit,
+        band_alpha=dark ? 0.18 : 0.15,
+        secondary_color=dark ? "#f06b4f" : "#d55e00",
+        reference_color=dark ? "#d3dae0" : "#444a50",
+        series_colors=dark ?
+            (tex_fit, "#f06b4f", "#70cfa8", "#d69acb", "#a9b4bf") :
+            (tex_fit, "#d55e00", "#009e73", "#cc79a7", "#4d4d4d"),
+        stats_fontsize=30,
+        fontsize=26,
+        xlabelsize=32,
+        ylabelsize=32,
+        titlesize=38,
+        titlegap=22,
+        subplot_titlesize=30,
+        subplot_titlegap=10,
+        ticklabelsize=26,
+        legend_labelsize=26,
+        legend_patchsize=(36, 21),
+        panel_gap=20,
+        figure_padding=(14, 18, 13, 13),
+        figure_size_with_panel=(1000, 640),
+        figure_size_without_panel=(760, 520),
+        xgridvisible=false,
+        ygridvisible=false,
+        gridwidth=0.0,
+        topspinevisible=true,
+        rightspinevisible=true,
+        spinewidth=1.7,
+        tickwidth=1.6,
+        tickalign=1.0,
     ))
+end
+
+_plot_figure_size(tokens, default) = tokens.figure_size === nothing ? default : tokens.figure_size
+
+"""Merge a theme preset with the user's FitPlotStyle token overrides."""
+function _resolve_style_tokens(preset, s::FitPlotStyle)
+    pick(override, token) = override === nothing ? token : override
+    return (
+        figure_size = s.figure_size,
+        panel_gap = pick(s.panel_gap, preset.panel_gap),
+        data_color = pick(s.data_color, preset.data_color),
+        data_marker = pick(s.data_marker, preset.data_marker),
+        data_markersize = pick(s.data_markersize, preset.data_markersize),
+        data_strokecolor = pick(s.data_strokecolor, preset.data_strokecolor),
+        data_strokewidth = pick(s.data_strokewidth, preset.data_strokewidth),
+        fit_color = pick(s.fit_color, preset.fit_color),
+        fit_linewidth = pick(s.fit_linewidth, preset.fit_linewidth),
+        band_color = pick(s.band_color, preset.band_color),
+        band_alpha = pick(s.band_alpha, preset.band_alpha),
+        xerr_color = pick(s.xerr_color, preset.xerr_color),
+        yerr_color = pick(s.yerr_color, preset.yerr_color),
+        error_linewidth = pick(s.error_linewidth, preset.error_linewidth),
+        error_whiskerwidth = pick(s.error_whiskerwidth, preset.error_whiskerwidth),
+        secondary_color = pick(s.secondary_color, preset.secondary_color),
+        reference_color = pick(s.reference_color, preset.reference_color),
+        stats_fontsize = pick(s.stats_fontsize, preset.stats_fontsize),
+        stats_box_color = pick(s.stats_box_color, preset.stats_box_color),
+        stats_box_alpha = pick(s.stats_box_alpha, preset.stats_box_alpha),
+        stats_box_strokecolor = pick(s.stats_box_strokecolor, preset.stats_box_strokecolor),
+        stats_box_strokewidth = pick(s.stats_box_strokewidth, preset.stats_box_strokewidth),
+    )
 end
 
 function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Theme)
@@ -229,6 +265,7 @@ function _theme_from_style(style::Symbol, appearance::Symbol, theme_override::Th
             framevisible=false,
             labelsize=preset.legend_labelsize,
             labelcolor=preset.axis_color,
+            titlecolor=preset.axis_color,
             patchsize=preset.legend_patchsize,
             rowgap=preset.legend_rowgap,
         ),
@@ -257,6 +294,8 @@ function _wrap_panel_text(value, panel_width::Real, fontsize::Real)
 
     # Makie's Label centers a word-wrapped text block. Pre-wrapping lets the
     # block keep its natural width and therefore honor `halign=:left`.
+    # 0.52 approximates the mean glyph advance of the panel fonts in units of
+    # fontsize; 12 columns is the floor below which wrapping stops helping.
     max_columns = max(12, floor(Int, panel_width / (0.52 * fontsize)))
     wrapped = String[]
     for source_line in split(String(value), '\n'; keepempty=true)
@@ -278,12 +317,6 @@ function _wrap_panel_text(value, panel_width::Real, fontsize::Real)
     return join(wrapped, '\n')
 end
 
-"""
-    plot_theme(theme=:sans; appearance=:auto, theme_override=Theme())
-
-Return the Makie theme used by ScientificFitting plots. Use this when composing a custom
-Makie figure that should remain visually consistent with `plot_fit`.
-"""
 function plot_theme(
     theme::Symbol=:sans;
     appearance::Symbol=:auto,
@@ -293,13 +326,6 @@ function plot_theme(
     return _theme_from_style(style, resolved_appearance, theme_override)
 end
 
-"""
-    plot_palette(theme=:sans; appearance=:auto)
-
-Return the visual tokens used by a ScientificFitting plot style. Besides data, fit,
-uncertainty-band, and error-bar defaults, the result exposes typography,
-layout, and color-safe multi-series tokens for custom Makie figures.
-"""
 function plot_palette(theme::Symbol=:sans; appearance::Symbol=:auto)
     style, resolved_appearance = _resolve_plot_style(theme, appearance)
     return _style_preset(style, resolved_appearance)
@@ -316,8 +342,11 @@ function _merged_kwargs(defaults::NamedTuple, overrides)
     return merge(defaults, _normalize_kwargs(overrides))
 end
 
+# Per-point sigmas are interpolated linearly in x and held constant beyond the
+# outermost data points. The prediction band therefore assumes slowly varying
+# observation noise; it is a display approximation, not a refit.
 function _interpolate_sigma_to_grid(x::AbstractVector, sigma::AbstractVector, xgrid::AbstractVector)
-    length(x) == length(sigma) || throw(ArgumentError("uncertainty length must match x length"))
+    length(x) == length(sigma) || throw(DimensionMismatch("uncertainty length must match x length"))
     order = sortperm(x)
     xs = Float64.(x[order])
     ss = Float64.(sigma[order])
@@ -325,7 +354,8 @@ function _interpolate_sigma_to_grid(x::AbstractVector, sigma::AbstractVector, xg
     length(xs) == 1 && return fill(ss[1], length(xgrid))
     out = Vector{Float64}(undef, length(xgrid))
     j = 1
-    for (i, xg) in pairs(xgrid)
+    for i in sortperm(collect(Float64, xgrid))
+        xg = xgrid[i]
         if xg <= xs[1]
             out[i] = ss[1]
         elseif xg >= xs[end]
@@ -359,24 +389,33 @@ function _observation_band_sigma(result::FitResult, xgrid::AbstractVector)
     if xerr !== nothing
         xgrid_err = _interpolate_sigma_to_grid(problem.x, xerr, xgrid)
         dydx = _model_dydx(problem, result.params; x=xgrid)
+        # First-order propagation of x uncertainty through the fitted slope,
+        # matching the effective-variance treatment used in the cost function.
         variance .+= (dydx .* xgrid_err) .^ 2
     end
 
     return sqrt.(clamp.(variance, 0.0, Inf))
 end
 
+function _default_band_label(nsigma::Real)
+    level = isinteger(nsigma) ? string(Int(nsigma)) : string(nsigma)
+    return "$(level)-sigma band"
+end
+
 function _fit_band_sigma(result::FitResult, xgrid::AbstractVector, band::Symbol)
+    band == :none && return zeros(Float64, length(xgrid))
+    band in (:confidence, :prediction) ||
+        throw(ArgumentError("band must be :none, :confidence, or :prediction"))
     parameter_sigma = _prediction_band_sigma(result, xgrid)
     band == :confidence && return parameter_sigma
-    if band == :prediction && result.problem.whitening !== nothing &&
+    if result.problem.whitening !== nothing &&
        result.problem.whitening.marginal_sigma === nothing
         throw(ArgumentError(
             "band=:prediction requires marginal_sigma in WhiteningOperator; " *
             "provide marginal standard deviations or use band=:confidence",
         ))
     end
-    band == :prediction && return sqrt.(parameter_sigma .^ 2 .+ _observation_band_sigma(result, xgrid) .^ 2)
-    return zeros(Float64, length(xgrid))
+    return sqrt.(parameter_sigma .^ 2 .+ _observation_band_sigma(result, xgrid) .^ 2)
 end
 
 function _panel_width_px(stats_panel_width, fig_width::Int)
@@ -385,7 +424,9 @@ function _panel_width_px(stats_panel_width, fig_width::Int)
     end
 
     stats_panel_width isa Real || throw(ArgumentError("stats_panel_width must be :auto or a positive number"))
-    stats_panel_width > 0 || throw(ArgumentError("stats_panel_width must be positive"))
+    stats_panel_width > 0 || throw(DomainError(stats_panel_width, "stats_panel_width must be positive"))
+    # Values in (0, 1] are a fraction of the figure width, clamped to a
+    # readable panel range; values > 1 are absolute pixels.
     if stats_panel_width <= 1
         return clamp(Int(round(fig_width * stats_panel_width)), 300, 560)
     end
@@ -400,15 +441,6 @@ function _apply_right_panel_sizing!(fig)
     return nothing
 end
 
-"""
-    resize_plot_to_layout!(figure; axes=nothing, flexible_columns=(1,),
-                           minimum_axis_size=(420, 300),
-                           preferred_size=size(figure.scene))
-
-Fit a completed Makie layout to its contents while preserving a minimum data
-area and the requested canvas as lower bounds. See the public declaration in
-`plotting_api.jl` for the full contract.
-"""
 function resize_plot_to_layout!(
     fig;
     axes=nothing,
@@ -422,9 +454,9 @@ function resize_plot_to_layout!(
         throw(ArgumentError("preferred_size must contain width and height"))
     all(value -> value === nothing ||
                  (value isa Real && isfinite(value) && value > 0), minimum_axis_size) ||
-        throw(ArgumentError("minimum axis dimensions must be positive and finite or nothing"))
+        throw(DomainError(minimum_axis_size, "minimum axis dimensions must be positive and finite or nothing"))
     all(value -> value isa Real && isfinite(value) && value > 0, preferred_size) ||
-        throw(ArgumentError("preferred figure dimensions must be positive and finite"))
+        throw(DomainError(preferred_size, "preferred figure dimensions must be positive and finite"))
 
     axis_list = if axes === nothing
         [item for item in fig.content if item isa Axis]
@@ -622,21 +654,24 @@ function _stats_panel_lines(
     names = if parameter_names === nothing
         Any["p$i" for i in 1:n]
     else
-        length(parameter_names) == n || throw(ArgumentError("parameter_names length must match parameter count"))
+        length(parameter_names) == n || throw(DimensionMismatch("parameter_names length must match parameter count"))
         collect(parameter_names)
     end
 
     lines = Any[latex_stats ? LaTeXString("\\textbf{Fit\\ Summary}") : "Fit Summary"]
+    fixed = Set(fp.index for fp in result.problem.fixed_parameters)
     for i in 1:n
         v = _fmt_value(result.params[i]; sigdigits=sigdigits)
         e = _fmt_value(result.param_stderr[i]; sigdigits=sigdigits)
+        # A fixed parameter is an input, not a measurement; say so in the figure.
         if latex_stats
             pexpr = _latex_symbol_expr(names[i])
-            push!(lines, LaTeXString(
-                pexpr * " = " * _latex_number_expr(v) * " \\pm " * _latex_number_expr(e),
-            ))
+            entry = pexpr * " = " * _latex_number_expr(v) * " \\pm " * _latex_number_expr(e)
+            i in fixed && (entry *= "\\ \\mathrm{(fixed)}")
+            push!(lines, LaTeXString(entry))
         else
-            push!(lines, string(names[i], " = ", v, " ± ", e))
+            suffix = i in fixed ? " (fixed)" : ""
+            push!(lines, string(names[i], " = ", v, " ± ", e, suffix))
         end
     end
 
@@ -673,18 +708,23 @@ function _plain_stats_rows(
     names = if parameter_names === nothing
         Any["p$i" for i in 1:n]
     else
-        length(parameter_names) == n || throw(ArgumentError("parameter_names length must match parameter count"))
+        length(parameter_names) == n || throw(DimensionMismatch("parameter_names length must match parameter count"))
         collect(parameter_names)
     end
 
     rows = Tuple{Any, Any}[]
+    fixed = Set(fp.index for fp in result.problem.fixed_parameters)
     for i in 1:n
         value = _fmt_value(result.params[i]; sigdigits=sigdigits)
         err = _fmt_value(result.param_stderr[i]; sigdigits=sigdigits)
         name = latex_stats ? LaTeXString(_latex_symbol_expr(names[i])) : string(names[i])
-        uncertainty = latex_stats ?
-            LaTeXString(_latex_number_expr(value) * " \\pm " * _latex_number_expr(err)) :
-            string(value, " ± ", err)
+        uncertainty = if latex_stats
+            entry = _latex_number_expr(value) * " \\pm " * _latex_number_expr(err)
+            i in fixed && (entry *= "\\ \\mathrm{(fixed)}")
+            LaTeXString(entry)
+        else
+            string(value, " ± ", err, i in fixed ? " (fixed)" : "")
+        end
         push!(rows, (name, uncertainty))
     end
 
@@ -748,6 +788,9 @@ function _as_label_text(value, latex_labels::Bool)
     return value
 end
 
+# All values are axis-relative fractions (drawn with space=:relative), tuned
+# for the default stats fontsize; the box does not grow with fontsize
+# overrides.
 function _stats_box_geometry(stats_lines; position::Symbol=:lt)
     max_chars = maximum(length(string(line)) for line in stats_lines; init=20)
     width = clamp(0.013 * max_chars, 0.22, 0.34)
@@ -808,30 +851,6 @@ function _draw_inside_stats!(
     return nothing
 end
 
-"""
-    plot_info_panel!(
-        cell;
-        theme=:sans,
-        appearance=:auto,
-        legend_source=nothing,
-        legend_plots=nothing,
-        legend_labels=nothing,
-        model_label=nothing,
-        parameter_lines=Any[],
-        statistic_lines=Any[],
-        width=nothing,
-        ...
-    )
-
-Add a compact, left-aligned information panel to a Makie layout cell. The
-panel is intended for custom scientific figures that should use the same
-legend, model, parameter, and statistic hierarchy as `plot_fit`. `theme` and
-`appearance` supply readable panel defaults from the same central style
-contract; explicit panel keywords remain authoritative. By default Makie
-chooses the panel width from its contents. Set `width` to choose the wrapping
-width for detailed plain text. Legends and unbreakable TeX expressions retain
-their natural width so that the panel grows instead of clipping them.
-"""
 function plot_info_panel!(
     cell;
     theme::Symbol=:sans,
@@ -858,7 +877,7 @@ function plot_info_panel!(
     muted_color = muted_color === nothing ? preset.stats_muted_color : muted_color
     panel_width = width === nothing ? nothing : Float64(width)
     panel_width === nothing || panel_width > 0 ||
-        throw(ArgumentError("width must be positive"))
+        throw(DomainError(width, "width must be positive"))
 
     # Keep the outer panel content-sized. `width` controls wrapping for plain
     # labels, while unbreakable TeX and legend content may make it wider.
@@ -989,6 +1008,8 @@ function _draw_right_stats!(
     return panel
 end
 
+# Keywords routed to fit_model by fitplot; everything else goes to plot_fit.
+# Keep in sync with the fit_model keyword signature.
 const _FITPLOT_FIT_KWARGS = Set([
     :sigma_y,
     :sigma_x,
@@ -1005,7 +1026,7 @@ const _FITPLOT_FIT_KWARGS = Set([
     :x_derivative,
     :inplace,
     :derivatives,
-    :backend,
+    :solver,
     :cost,
     :maxiters,
     :tol,
@@ -1051,21 +1072,6 @@ function _fitplot_result(result::FitResult; print_report::Bool=false, kwargs...)
     return (result=result, figure=fig)
 end
 
-"""
-    fitplot(result::FitResult; show_panel=true, print_report=false, kwargs...)
-    fitplot(model, x, y; p0, show_panel=true, print_report=false, kwargs...)
-    fitplot(x, y; p0=nothing, show_panel=true, print_report=false, kwargs...)
-
-Fit and plot in one call. The `model, x, y` method forwards fitting keywords
-such as `sigma_y`, `sigma_x`, `whitening`, `x_derivative`, `bounds`,
-`parameter_priors`, and `backend` to `fit_model`; plotting keywords such as
-`xlabel`, `ylabel`, `theme`, `nsigma`, and `filename` are forwarded to
-`plot_fit`. `show_panel` controls the numerical panel in the figure, while
-`print_report` independently controls terminal output.
-
-The `x, y` method uses a linear model by default. All methods return a named
-tuple `(result, figure)` so the numerical result is not lost.
-"""
 function fitplot(
     result::FitResult;
     show_panel::Bool=true,
@@ -1119,92 +1125,6 @@ function fitplot(
     )
 end
 
-"""
-    plot_fit(
-        result::FitResult;
-        xgrid=nothing,
-        filename=nothing,
-        format=:pdf,
-        theme=:sans,
-        appearance=:auto,
-        theme_override=Theme(),
-        title=nothing,
-        model_label=nothing,
-        xlabel="x",
-        ylabel="y",
-        xunit=nothing,
-        yunit=nothing,
-        auto_limits=true,
-        limit_padding=0.08,
-        fit_range=:axis,
-        plot_aspect=nothing,
-        figure_size=nothing,
-        stats_panel_width=:auto,
-        stats_position=:right,
-        inside_stats_position=:lt,
-        panel_gap=nothing,
-        latex_labels=false,
-        latex_stats=false,
-        show_panel=true,
-        stats_mode=:compact,
-        tight_layout=true,
-        stats_sigdigits=5,
-        parameter_names=nothing,
-        stats_fontsize=nothing,
-        stats_title=nothing,
-        stats_box_color=nothing,
-        stats_box_alpha=0.95,
-        stats_box_strokecolor=nothing,
-        stats_box_strokewidth=1.0,
-        show_legend=true,
-        legend_position=:rt,
-        axis_kwargs=NamedTuple(),
-        legend_kwargs=NamedTuple(),
-        data_color=nothing,
-        data_marker=nothing,
-        data_markersize=nothing,
-        data_strokecolor=nothing,
-        data_strokewidth=nothing,
-        scatter_kwargs=NamedTuple(),
-        fit_color=nothing,
-        fit_linewidth=nothing,
-        fit_label="fit",
-        line_kwargs=NamedTuple(),
-        band_color=nothing,
-        band_alpha=nothing,
-        band=:confidence,
-        nsigma=1,
-        band_label="1-sigma band",
-        band_kwargs=NamedTuple(),
-        xerr_color=nothing,
-        yerr_color=nothing,
-        error_whiskerwidth=nothing,
-        xerrorbars_kwargs=NamedTuple(),
-        yerrorbars_kwargs=NamedTuple(),
-        data_label="data",
-    )
-
-Create a scientific fit plot with data, error bars, best-fit curve, optional
-uncertainty band, and an optional right-side information panel. Use
-`theme=:sans` for open axes, sans-serif typography, and grid guides, or
-`theme=:tex` for TeX typography, a full frame, and no grid. `show_panel`
-independently controls the numerical result panel and defaults to `true` for
-both styles. Legacy style names remain compatibility aliases rather than
-additional cosmetic presets. `appearance=:light` or `:dark` controls the color
-scheme independently.
-`figure_size` requests a minimum logical canvas size. Makie keeps the data axis
-flexible, gives it a readable minimum size while measuring the layout, and
-enlarges the canvas if natural legend or panel content would otherwise be
-clipped. Increasing the requested width therefore widens the data axis once
-the panel has the space it needs.
-`band=:confidence`
-shows the propagated parameter-covariance band. `band=:prediction` additionally
-includes observation uncertainty in y and effective x uncertainty. With the
-default `fit_range=:axis`, the automatically generated model grid extends to
-the padded axis range; use `fit_range=:data` or pass `xgrid` to draw only over a
-specific domain. Makie keyword containers can be passed as `NamedTuple`s or
-`Dict`s via the `*_kwargs` arguments.
-"""
 function plot_fit(
     result::FitResult;
     xgrid=nothing,
@@ -1213,6 +1133,7 @@ function plot_fit(
     theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
+    style::FitPlotStyle=FitPlotStyle(),
     title=nothing,
     model_label=nothing,
     xlabel="x",
@@ -1223,11 +1144,9 @@ function plot_fit(
     limit_padding::Real=0.08,
     fit_range::Symbol=:axis,
     plot_aspect::Union{Nothing, Real}=nothing,
-    figure_size::Union{Nothing, Tuple{<:Real, <:Real}}=nothing,
     stats_panel_width=:auto,
     stats_position::Symbol=:right,
     inside_stats_position::Symbol=:lt,
-    panel_gap::Union{Nothing, Real}=nothing,
     latex_labels::Bool=false,
     latex_stats::Bool=false,
     show_panel::Bool=true,
@@ -1235,35 +1154,18 @@ function plot_fit(
     tight_layout::Bool=true,
     stats_sigdigits::Int=5,
     parameter_names::Union{Nothing, AbstractVector}=nothing,
-    stats_fontsize::Union{Nothing, Real}=nothing,
     stats_title=nothing,
-    stats_box_color=nothing,
-    stats_box_alpha::Real=0.95,
-    stats_box_strokecolor=nothing,
-    stats_box_strokewidth::Real=1.0,
     show_legend::Bool=true,
     legend_position=:rt,
     axis_kwargs=NamedTuple(),
     legend_kwargs=NamedTuple(),
-    data_color=nothing,
-    data_marker=nothing,
-    data_markersize=nothing,
-    data_strokecolor=nothing,
-    data_strokewidth=nothing,
     scatter_kwargs=NamedTuple(),
-    fit_color=nothing,
-    fit_linewidth=nothing,
     fit_label="fit",
     line_kwargs=NamedTuple(),
-    band_color=nothing,
-    band_alpha=nothing,
     band::Symbol=:confidence,
     nsigma::Real=1.0,
-    band_label="1-sigma band",
+    band_label=nothing,
     band_kwargs=NamedTuple(),
-    xerr_color=nothing,
-    yerr_color=nothing,
-    error_whiskerwidth=nothing,
     xerrorbars_kwargs=NamedTuple(),
     yerrorbars_kwargs=NamedTuple(),
     data_label="data",
@@ -1271,38 +1173,24 @@ function plot_fit(
     band in (:confidence, :prediction, :none) || throw(ArgumentError("band must be :confidence, :prediction, or :none"))
     stats_position in (:inside, :right) || throw(ArgumentError("stats_position must be :inside or :right"))
     fit_range in (:axis, :data) || throw(ArgumentError("fit_range must be :axis or :data"))
-    isfinite(nsigma) && nsigma > 0 || throw(ArgumentError("nsigma must be finite and positive"))
+    isfinite(nsigma) && nsigma > 0 || throw(DomainError(nsigma, "nsigma must be finite and positive"))
     isfinite(limit_padding) && limit_padding >= 0 ||
         throw(ArgumentError("limit_padding must be finite and non-negative"))
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
-    thm = _theme_from_style(resolved_style, resolved_appearance, theme_override)
-    style = _style_preset(resolved_style, resolved_appearance)
-    panel_gap = panel_gap === nothing ? style.panel_gap : Float64(panel_gap)
-    stats_fontsize = stats_fontsize === nothing ? style.stats_fontsize : Float64(stats_fontsize)
-    data_color = data_color === nothing ? style.data_color : data_color
-    data_marker = data_marker === nothing ? style.data_marker : data_marker
-    data_markersize = data_markersize === nothing ? style.data_markersize : data_markersize
-    data_strokecolor = data_strokecolor === nothing ? style.data_strokecolor : data_strokecolor
-    data_strokewidth = data_strokewidth === nothing ? style.data_strokewidth : data_strokewidth
-    fit_color = fit_color === nothing ? style.fit_color : fit_color
-    fit_linewidth = fit_linewidth === nothing ? style.fit_linewidth : fit_linewidth
-    band_color = band_color === nothing ? style.band_color : band_color
-    band_alpha = band_alpha === nothing ? style.band_alpha : band_alpha
-    xerr_color = xerr_color === nothing ? style.xerr_color : xerr_color
-    yerr_color = yerr_color === nothing ? style.yerr_color : yerr_color
-    error_whiskerwidth = error_whiskerwidth === nothing ? style.error_whiskerwidth : error_whiskerwidth
-    stats_box_color = stats_box_color === nothing ? style.stats_box_color : stats_box_color
-    stats_box_strokecolor = stats_box_strokecolor === nothing ?
-        style.stats_box_strokecolor : stats_box_strokecolor
+    preset = _style_preset(resolved_style, resolved_appearance)
+    tokens = _resolve_style_tokens(preset, style)
+    (; panel_gap, stats_fontsize, data_color, data_marker, data_markersize,
+       data_strokecolor, data_strokewidth, fit_color, fit_linewidth, band_color,
+       band_alpha, xerr_color, yerr_color, error_linewidth, error_whiskerwidth,
+       stats_box_color, stats_box_alpha, stats_box_strokecolor,
+       stats_box_strokewidth) = tokens
     model_label = model_label === nothing ? _default_model_label(result, latex_labels) : model_label
 
     base_size = show_panel && stats_position == :right ?
-        style.figure_size_with_panel : style.figure_size_without_panel
-    fig_size = figure_size === nothing ? base_size : (Int(round(figure_size[1])), Int(round(figure_size[2])))
-    fig = with_theme(thm) do
-        Figure(size=fig_size, backgroundcolor=style.background_color)
-    end
+        preset.figure_size_with_panel : preset.figure_size_without_panel
+    fig_size = tokens.figure_size === nothing ? base_size : tokens.figure_size
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, fig_size)
 
     if show_panel
         colgap!(fig.layout, Int(round(panel_gap)))
@@ -1326,6 +1214,7 @@ function plot_fit(
     grid_limits = xgrid === nothing && fit_range == :axis ? _fit_x_limits(x, xerr; padding=limit_padding) : nothing
     xg = xgrid === nothing ? _default_grid(x; xlimits=grid_limits) : collect(Float64, xgrid)
     yg = _model_values(result.problem, result.params; x=xg)
+    band_label = band_label === nothing ? _default_band_label(nsigma) : band_label
     sg = Float64(nsigma) .* _fit_band_sigma(result, xg, band)
 
     bplot = nothing
@@ -1360,7 +1249,7 @@ function plot_fit(
             _merged_kwargs(
                 (
                     color=yerr_color,
-                    linewidth=style.error_linewidth,
+                    linewidth=error_linewidth,
                     whiskerwidth=error_whiskerwidth,
                 ),
                 yerrorbars_kwargs,
@@ -1378,7 +1267,7 @@ function plot_fit(
                 (
                     direction=:x,
                     color=xerr_color,
-                    linewidth=style.error_linewidth,
+                    linewidth=error_linewidth,
                     whiskerwidth=error_whiskerwidth,
                 ),
                 xerrorbars_kwargs,
@@ -1430,11 +1319,16 @@ function plot_fit(
         )
     end
 
+    # The inside box renders one plain multi-line text; LaTeXStrings would be
+    # destroyed by the join, so reject the combination instead of ignoring it.
+    show_panel && stats_position == :inside && latex_stats && throw(ArgumentError(
+        "latex_stats requires stats_position=:right; the inside stats box renders plain text",
+    ))
     stats_lines = show_panel ? _stats_panel_lines(
         result;
         parameter_names=parameter_names,
         sigdigits=stats_sigdigits,
-        latex_stats=stats_position == :right && latex_stats,
+        latex_stats=false,
         stats_mode=stats_mode,
     ) : nothing
     right_stats_rows = show_panel ? _plain_stats_rows(
@@ -1456,7 +1350,7 @@ function plot_fit(
             box_alpha=stats_box_alpha,
             box_strokecolor=stats_box_strokecolor,
             box_strokewidth=stats_box_strokewidth,
-            text_color=style.stats_color,
+            text_color=preset.stats_color,
         )
     elseif show_panel && stats_position == :right
         panel_width_px = _panel_width_px(stats_panel_width, fig_size[1])
@@ -1468,8 +1362,8 @@ function plot_fit(
             fontsize=stats_fontsize,
             title=stats_title,
             model_label=model_label,
-            color=style.stats_color,
-            muted_color=style.stats_muted_color,
+            color=preset.stats_color,
+            muted_color=preset.stats_muted_color,
             legend_plots=show_legend ? legend_plots : nothing,
             legend_labels=show_legend ? legend_labels : nothing,
             legend_kwargs=legend_kwargs,
@@ -1483,16 +1377,10 @@ function plot_fit(
         fig;
         axes=ax,
         preferred_size=fig_size,
-        minimum_axis_size=style.minimum_axis_size,
+        minimum_axis_size=preset.minimum_axis_size,
     )
 
-    if filename !== nothing
-        outpath = String(filename)
-        if isempty(splitext(outpath)[2])
-            outpath *= ".$(String(format))"
-        end
-        save(outpath, fig)
-    end
+    _save_figure(fig, filename, format)
 
     return fig
 end
@@ -1506,18 +1394,8 @@ function _axis_limits(axis::Axis)
     return (xmin, xmax), (ymin, ymax)
 end
 
-"""
-    fit_axis(figure; index=1)
-
-Return the `index`-th Makie `Axis` stored in a ScientificFitting figure.
-
-This is a small convenience for post-fit annotation workflows:
-`fig = plot_fit(result); ax = fit_axis(fig); add_vline!(ax, x0)`. It searches
-the figure layout instead of relying on manual cell indices, so the same call
-works for ordinary fit plots with or without a right-side report.
-"""
 function fit_axis(figure::Figure; index::Integer=1)
-    index >= 1 || throw(ArgumentError("index must be >= 1"))
+    index >= 1 || throw(DomainError(index, "index must be >= 1"))
     axes = [object for object in contents(figure.layout) if object isa Axis]
     index <= length(axes) || throw(ArgumentError("figure contains only $(length(axes)) axis object(s)"))
     return axes[Int(index)]
@@ -1530,17 +1408,6 @@ function _finite_annotation_vector(name::AbstractString, values; min_length::Int
     return vector
 end
 
-"""
-    add_curve!(axis, f; xgrid=nothing, xspan=nothing, n=400, label=nothing, kwargs...)
-    add_curve!(axis, x, y; label=nothing, kwargs...)
-
-Add a curve to an existing Makie axis and return the created plot object.
-
-The function-valued method samples `f` either on `xgrid`, on `xspan=(xmin,
-xmax)`, or on the current visible x-range of `axis`. This is useful for adding
-extrapolations, reference models, or derived physical relationships after a fit
-has already been computed.
-"""
 function add_curve!(
     axis::Axis,
     f;
@@ -1550,7 +1417,7 @@ function add_curve!(
     label=nothing,
     kwargs...,
 )
-    n >= 2 || throw(ArgumentError("n must be >= 2"))
+    n >= 2 || throw(DomainError(n, "n must be >= 2"))
     xs = if xgrid !== nothing
         _finite_annotation_vector("xgrid", xgrid; min_length=2)
     elseif xspan !== nothing
@@ -1569,69 +1436,36 @@ end
 function add_curve!(axis::Axis, x::AbstractVector, y::AbstractVector; label=nothing, kwargs...)
     xs = _finite_annotation_vector("x", x; min_length=2)
     ys = _finite_annotation_vector("y", y; min_length=2)
-    length(xs) == length(ys) || throw(ArgumentError("x and y must have equal length"))
+    length(xs) == length(ys) || throw(DimensionMismatch("x and y must have equal length"))
     return lines!(axis, xs, ys; label=label, kwargs...)
 end
 
-"""
-    add_points!(axis, x, y; label=nothing, kwargs...)
-
-Add marker points to an existing fit axis. This is intended for derived
-quantities, thresholds, extrapolated intersections, or highlighted data points;
-it does not rerun or modify the fit.
-"""
 function add_points!(axis::Axis, x, y; label=nothing, kwargs...)
     xs = _finite_annotation_vector("x", x; min_length=1)
     ys = _finite_annotation_vector("y", y; min_length=1)
-    length(xs) == length(ys) || throw(ArgumentError("x and y must have equal length"))
+    length(xs) == length(ys) || throw(DimensionMismatch("x and y must have equal length"))
     return scatter!(axis, xs, ys; label=label, kwargs...)
 end
 
-"""
-    add_vline!(axis, x; label=nothing, kwargs...)
-
-Add vertical reference line(s) to an existing axis. This wraps Makie's
-`vlines!` with ScientificFitting-style argument validation.
-"""
 function add_vline!(axis::Axis, x; label=nothing, kwargs...)
     xs = _finite_annotation_vector("x", x; min_length=1)
     return vlines!(axis, xs; label=label, kwargs...)
 end
 
-"""
-    add_hline!(axis, y; label=nothing, kwargs...)
-
-Add horizontal reference line(s) to an existing axis. This wraps Makie's
-`hlines!` with ScientificFitting-style argument validation.
-"""
 function add_hline!(axis::Axis, y; label=nothing, kwargs...)
     ys = _finite_annotation_vector("y", y; min_length=1)
     return hlines!(axis, ys; label=label, kwargs...)
 end
 
-"""
-    add_vband!(axis, xmin, xmax; label=nothing, kwargs...)
-
-Add a vertical uncertainty/reference band to an existing axis. The band spans
-the full axis height without contributing artificial y values to automatic
-limits, so it remains an annotation layer rather than a new data model.
-"""
 function add_vband!(axis::Axis, xmin::Real, xmax::Real; label=nothing, kwargs...)
     isfinite(xmin) && isfinite(xmax) || throw(ArgumentError("xmin and xmax must be finite"))
-    xmin <= xmax || throw(ArgumentError("xmin must be <= xmax"))
+    xmin <= xmax || throw(DomainError((xmin, xmax), "xmin must be <= xmax"))
     return vspan!(axis, Float64(xmin), Float64(xmax); label=label, kwargs...)
 end
 
-"""
-    add_hband!(axis, ymin, ymax; label=nothing, kwargs...)
-
-Add a horizontal uncertainty/reference band to an existing axis. The band spans
-the full axis width without contributing artificial x values to automatic
-limits, so it remains an annotation layer rather than a new data model.
-"""
 function add_hband!(axis::Axis, ymin::Real, ymax::Real; label=nothing, kwargs...)
     isfinite(ymin) && isfinite(ymax) || throw(ArgumentError("ymin and ymax must be finite"))
-    ymin <= ymax || throw(ArgumentError("ymin must be <= ymax"))
+    ymin <= ymax || throw(DomainError((ymin, ymax), "ymin must be <= ymax"))
     return hspan!(axis, Float64(ymin), Float64(ymax); label=label, kwargs...)
 end
 
@@ -1645,6 +1479,8 @@ function _diagnostic_colors(style::Symbol, appearance::Symbol)
     )
 end
 
+# 2.30 / 6.18 are the two-parameter Δχ² thresholds for 68.3 % / 95.4 % joint
+# coverage; atol absorbs user-side rounding of these levels.
 _contour_level_name(level) =
     isapprox(level, 2.30; atol=0.015) ? "1σ" :
     isapprox(level, 6.18; atol=0.015) ? "2σ" : "Δcost"
@@ -1697,29 +1533,26 @@ function _diagnostic_legend!(
         orientation=:vertical,
         halign=:left,
         valign=:top,
-        tellwidth=false,
-        tellheight=below,
+        tellwidth=true,
+        tellheight=true,
     )
     cell = below ? fig[2, 1] : fig[1, 2]
     legend = Legend(cell, handles, labels; _merged_kwargs(defaults, legend_kwargs)...)
 
-    if below
-        # The legend determines only its own row height. Its longest label must
-        # never determine the width of the scientific data column.
-        rowsize!(fig.layout, 1, Auto(false, 1))
-    else
-        # A requested side legend gets one third of the layout, independent of
-        # label length. This prevents descriptive text from collapsing the axis.
-        colsize!(fig.layout, 1, Auto(false, 2))
-        colsize!(fig.layout, 2, Auto(false, 1))
+    if !below
+        _apply_right_panel_sizing!(fig)
     end
+    # Measure intrinsic content first; then let the data row take spare height.
+    # A long legend can enlarge the canvas, but must never shrink the data axis.
+    resize_plot_to_layout!(fig)
+    rowsize!(fig.layout, 1, Auto(false, 1))
     return legend
 end
 
 function _draw_panel_status!(
     axis::Axis,
     status::Symbol,
-    style,
+    preset,
     appearance::Symbol;
     mode::Symbol=:issues,
     fontsize::Union{Nothing, Real}=nothing,
@@ -1735,27 +1568,12 @@ function _draw_panel_status!(
         space=:relative,
         align=(:left, :top),
         color=_panel_status_color(status, appearance),
-        fontsize=fontsize === nothing ? max(16, style.ticklabelsize - 2) : Float64(fontsize),
+        fontsize=fontsize === nothing ? max(16, preset.ticklabelsize - 2) : Float64(fontsize),
         font=:bold,
     )
     return nothing
 end
 
-"""
-    plot_profile(profile_result; filename=nothing, format=:pdf, theme=:sans, ...)
-
-Plot a one-dimensional profile-likelihood scan.
-
-Pass `local_sigma=result.param_stderr[i]` to overlay the local parabolic
-covariance approximation. If the profile and parabola disagree visibly, local
-symmetric errors should not be treated as the final uncertainty statement.
-Use `delta_max` to focus the view on scientifically relevant interval
-thresholds when a strongly non-parabolic tail would otherwise compress the
-minimum. Line weights and colors follow `theme`; explicit `line_kwargs`,
-`local_line_kwargs`, and `threshold_kwargs` take precedence. Descriptive
-legends default to a row below the axis so label length cannot shrink the data
-area. Use `legend_position=:right` only when a side legend is preferred.
-"""
 function plot_profile(
     profile_result::ProfileResult;
     filename::Union{Nothing, AbstractString}=nothing,
@@ -1763,6 +1581,7 @@ function plot_profile(
     theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
+    style::FitPlotStyle=FitPlotStyle(),
     title="Profile",
     xlabel="parameter",
     ylabel="Delta cost",
@@ -1779,7 +1598,6 @@ function plot_profile(
     local_label="local covariance parabola",
     threshold_label=nothing,
     delta_max::Union{Nothing, Real}=nothing,
-    figure_size::Tuple{<:Real, <:Real}=(900, 620),
     axis_kwargs=NamedTuple(),
     line_kwargs=NamedTuple(),
     local_line_kwargs=NamedTuple(),
@@ -1787,18 +1605,14 @@ function plot_profile(
     legend_kwargs=NamedTuple(),
 )
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
-    style = _style_preset(resolved_style, resolved_appearance)
-    line_color = line_color === nothing ? style.fit_color : line_color
-    line_width = line_width === nothing ? style.fit_linewidth : Float64(line_width)
-    local_color = local_color === nothing ? style.reference_color : local_color
-    local_linewidth = local_linewidth === nothing ? max(1.8, 0.7 * style.fit_linewidth) : Float64(local_linewidth)
-    threshold_color = threshold_color === nothing ? style.secondary_color : threshold_color
-    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
-        Figure(
-            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
-            backgroundcolor=style.background_color,
-        )
-    end
+    preset = _style_preset(resolved_style, resolved_appearance)
+    tokens = _resolve_style_tokens(preset, style)
+    line_color = line_color === nothing ? tokens.fit_color : line_color
+    line_width = line_width === nothing ? tokens.fit_linewidth : Float64(line_width)
+    local_color = local_color === nothing ? tokens.reference_color : local_color
+    local_linewidth = local_linewidth === nothing ? max(1.8, 0.7 * tokens.fit_linewidth) : Float64(local_linewidth)
+    threshold_color = threshold_color === nothing ? tokens.secondary_color : threshold_color
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, _plot_figure_size(tokens, (900, 620)))
     ax = Axis(fig[1, 1]; _merged_kwargs((title=title, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...)
     lines!(
         ax,
@@ -1808,7 +1622,7 @@ function plot_profile(
     )
     if local_sigma !== nothing
         sigma = Float64(local_sigma)
-        sigma > 0 || throw(ArgumentError("local_sigma must be positive"))
+        sigma > 0 || throw(DomainError(sigma, "local_sigma must be positive"))
         local_delta = @. abs2((profile_result.values - profile_result.best_value) / sigma)
         lines!(
             ax,
@@ -1825,7 +1639,7 @@ function plot_profile(
 
     if delta_max !== nothing
         delta_limit = Float64(delta_max)
-        delta_limit > 0 || throw(ArgumentError("delta_max must be positive"))
+        delta_limit > 0 || throw(DomainError(delta_limit, "delta_max must be positive"))
         ylims!(ax, 0, delta_limit)
     end
 
@@ -1852,34 +1666,11 @@ function plot_profile(
         )
     end
 
-    if filename !== nothing
-        outpath = String(filename)
-        if isempty(splitext(outpath)[2])
-            outpath *= ".$(String(format))"
-        end
-        save(outpath, fig)
-    end
+    _save_figure(fig, filename, format)
 
     return fig
 end
 
-"""
-    plot_contour(contour_result; filename=nothing, format=:pdf, theme=:sans, ...)
-
-Plot a two-dimensional profile-likelihood contour grid.
-
-The default emphasizes directly interpretable profile regions and labeled
-two-parameter 1-sigma/2-sigma contour levels. Set `show_heatmap=true` for an
-explicit delta-cost surface view; heatmaps are not the default diagnostic
-because they make confidence thresholds harder to read quickly.
-
-Pass `local_covariance=result.param_covariance` and
-`local_center=result.params[[i, j]]` to overlay the local covariance ellipse in
-the same parameter plane. Non-elliptic profile contours indicate that local
-Gaussian covariance errors are not sufficient. Descriptive legends default to
-a row below the axis so label length cannot shrink the data area. Use
-`legend_position=:right` only when a side legend is preferred.
-"""
 function plot_contour(
     contour_result::ContourResult;
     filename::Union{Nothing, AbstractString}=nothing,
@@ -1887,6 +1678,7 @@ function plot_contour(
     theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
+    style::FitPlotStyle=FitPlotStyle(),
     title="Contour",
     xlabel="parameter 1",
     ylabel="parameter 2",
@@ -1904,7 +1696,6 @@ function plot_contour(
     local_line_color=nothing,
     local_linewidth::Union{Nothing, Real}=nothing,
     local_linestyle=:dash,
-    figure_size::Tuple{<:Real, <:Real}=(820, 700),
     axis_kwargs=NamedTuple(),
     heatmap_kwargs=NamedTuple(),
     contour_kwargs=NamedTuple(),
@@ -1912,19 +1703,15 @@ function plot_contour(
     legend_kwargs=NamedTuple(),
 )
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
-    style = _style_preset(resolved_style, resolved_appearance)
+    preset = _style_preset(resolved_style, resolved_appearance)
+    tokens = _resolve_style_tokens(preset, style)
     diagnostic_colors = _diagnostic_colors(resolved_style, resolved_appearance)
     level_colors = level_colors === nothing ? diagnostic_colors.levels : level_colors
     region_colors = region_colors === nothing ? diagnostic_colors.regions : region_colors
     local_line_color = local_line_color === nothing ? diagnostic_colors.local_color : local_line_color
-    profile_linewidth = style.fit_linewidth
+    profile_linewidth = tokens.fit_linewidth
     local_linewidth = local_linewidth === nothing ? max(1.8, 0.7 * profile_linewidth) : Float64(local_linewidth)
-    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
-        Figure(
-            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
-            backgroundcolor=style.background_color,
-        )
-    end
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, _plot_figure_size(tokens, (820, 700)))
     ax = Axis(
         fig[1, 1];
         _merged_kwargs((title=title, titlealign=:left, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...,
@@ -1942,7 +1729,7 @@ function plot_contour(
     plot_levels = sort(unique(contour_result.levels))
     isempty(plot_levels) && throw(ArgumentError("contour_result levels must not be empty"))
     all(isfinite, plot_levels) || throw(ArgumentError("contour_result levels must be finite"))
-    all(>(0.0), plot_levels) || throw(ArgumentError("contour_result levels must be positive delta-cost thresholds"))
+    all(>(0.0), plot_levels) || throw(DomainError(plot_levels, "contour_result levels must be positive delta-cost thresholds"))
 
     colors = collect(level_colors)
     isempty(colors) && throw(ArgumentError("level_colors must contain at least one color"))
@@ -1996,12 +1783,7 @@ function plot_contour(
             length(raw_center) == 2 || throw(ArgumentError("local_center must contain exactly two values"))
             (Float64(raw_center[1]), Float64(raw_center[2]))
         end
-        precision = Symmetric(cov) \ Matrix{Float64}(I, 2, 2)
-        local_delta = Matrix{Float64}(undef, length(contour_result.x_values), length(contour_result.y_values))
-        for ix in eachindex(contour_result.x_values), iy in eachindex(contour_result.y_values)
-            delta = [contour_result.x_values[ix] - center[1], contour_result.y_values[iy] - center[2]]
-            local_delta[ix, iy] = dot(delta, precision * delta)
-        end
+        local_delta = _local_contour_delta(cov, center, contour_result.x_values, contour_result.y_values)
         for level in plot_levels
             contour!(
                 ax,
@@ -2060,13 +1842,7 @@ function plot_contour(
         )
     end
 
-    if filename !== nothing
-        outpath = String(filename)
-        if isempty(splitext(outpath)[2])
-            outpath *= ".$(String(format))"
-        end
-        save(outpath, fig)
-    end
+    _save_figure(fig, filename, format)
 
     return fig
 end
@@ -2083,26 +1859,6 @@ function _local_contour_delta(covariance::AbstractMatrix, center, xs, ys)
     return out
 end
 
-"""
-    plot_profile_matrix(result; parameters=nothing, parameter_names=nothing, ...)
-    plot_profile_matrix(matrix_result::ProfileMatrixResult; ...)
-
-Create a kafe2-inspired profile/contour overview for several fitted
-parameters.
-
-Diagonal panels show one-parameter profile scans against the local covariance
-parabola. Lower-triangle panels show two-parameter profile contours against the
-local covariance ellipse. Upper-triangle panels show the local correlation
-coefficient. The plot is intended as a fast diagnostic: if profile curves are
-not parabolic, or profile contours do not resemble the local ellipse, symmetric
-local covariance errors should not be treated as the final uncertainty
-statement.
-
-By default, panels with warnings or critical findings are marked. Set
-`panel_status_mode=:issues`, `:all`, or `:none` independently of visual style.
-Passing a precomputed `ProfileMatrixResult` renders the stored scans without
-repeating the profile and contour refits.
-"""
 function plot_profile_matrix(
     result;
     parameters=nothing,
@@ -2120,9 +1876,9 @@ function plot_profile_matrix(
     adaptive::Bool=false,
     max_refinements::Int=2,
     max_points::Int=1200,
+    style::FitPlotStyle=FitPlotStyle(),
     panel_status_mode::Symbol=:issues,
     delta_max::Union{Nothing, Real}=nothing,
-    figure_size=nothing,
 )
     _validate_panel_status_mode(panel_status_mode)
     matrix = profile_matrix(
@@ -2145,9 +1901,9 @@ function plot_profile_matrix(
         theme=theme,
         appearance=appearance,
         theme_override=theme_override,
+        style=style,
         panel_status_mode=panel_status_mode,
         delta_max=delta_max,
-        figure_size=figure_size,
     )
 end
 
@@ -2159,9 +1915,9 @@ function plot_profile_matrix(
     theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
+    style::FitPlotStyle=FitPlotStyle(),
     panel_status_mode::Symbol=:issues,
     delta_max::Union{Nothing, Real}=nothing,
-    figure_size=nothing,
 )
     selected = matrix.parameters
     names = parameter_names === nothing ? matrix.parameter_names : collect(parameter_names)
@@ -2189,31 +1945,30 @@ function plot_profile_matrix(
     sort!(unique!(matrix_levels))
 
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
-    style = _style_preset(resolved_style, resolved_appearance)
+    preset = _style_preset(resolved_style, resolved_appearance)
+    tokens = _resolve_style_tokens(preset, style)
     _validate_panel_status_mode(panel_status_mode)
     diagnostic_colors = _diagnostic_colors(resolved_style, resolved_appearance)
     cell = n <= 3 ? 285 : 235
-    fig_size = figure_size === nothing ? (cell * n + 80, cell * n + 70) :
-        (Int(round(figure_size[1])), Int(round(figure_size[2])))
+    fig_size = _plot_figure_size(tokens, (cell * n + 80, cell * n + 70))
 
-    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
-        Figure(size=fig_size, backgroundcolor=style.background_color)
-    end
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, fig_size)
 
-    profile_color = style.fit_color
-    profile_linewidth = max(2.0, 0.8 * style.fit_linewidth)
-    local_linewidth = max(1.6, 0.65 * style.fit_linewidth)
+    profile_color = tokens.fit_color
+    profile_linewidth = max(2.0, 0.8 * tokens.fit_linewidth)
+    local_linewidth = max(1.6, 0.65 * tokens.fit_linewidth)
     local_color = diagnostic_colors.local_color
     region_colors = collect(diagnostic_colors.regions)
-    isempty(region_colors) && (region_colors = [(style.fit_color, 0.20)])
-    corr_color = style.stats_muted_color
-    # Dense matrices scale the selected role down, but never below a readable
-    # final-size floor. This keeps one typography contract across all plots.
-    density_scale = style.diagnostic_scale * (n <= 3 ? 1.0 : 0.84)
-    matrix_titlesize = max(n <= 3 ? 26 : 24, round(Int, density_scale * style.titlesize))
-    matrix_labelsize = max(n <= 3 ? 23 : 21, round(Int, density_scale * style.xlabelsize))
-    matrix_ticklabelsize = max(n <= 3 ? 20 : 18, round(Int, density_scale * style.ticklabelsize))
-    matrix_legend_size = max(n <= 3 ? 20 : 19, round(Int, density_scale * style.legend_labelsize))
+    isempty(region_colors) && (region_colors = [(tokens.fit_color, 0.20)])
+    corr_color = preset.stats_muted_color
+    # Dense matrices shrink each text role (title, axis label, tick, legend)
+    # via density_scale, but never below a readable per-role floor, so the
+    # matrix stays on the same typographic scale as the single-axis plots.
+    density_scale = preset.diagnostic_scale * (n <= 3 ? 1.0 : 0.84)
+    matrix_titlesize = max(n <= 3 ? 26 : 24, round(Int, density_scale * preset.titlesize))
+    matrix_labelsize = max(n <= 3 ? 23 : 21, round(Int, density_scale * preset.xlabelsize))
+    matrix_ticklabelsize = max(n <= 3 ? 20 : 18, round(Int, density_scale * preset.ticklabelsize))
+    matrix_legend_size = max(n <= 3 ? 20 : 19, round(Int, density_scale * preset.legend_labelsize))
     matrix_status_size = max(17, matrix_ticklabelsize - 1)
     delta_label = resolved_style == :tex ? L"\Delta\mathrm{cost}" : "Δcost"
 
@@ -2241,7 +1996,7 @@ function plot_profile_matrix(
                 local_delta = @. abs2((prof.values - matrix.best_values[row]) / sigma)
                 lines!(ax, prof.values, local_delta; color=local_color, linewidth=local_linewidth, linestyle=:dash)
             end
-            hlines!(ax, [prof.threshold]; color=style.stats_color, linestyle=:dot)
+            hlines!(ax, [prof.threshold]; color=preset.stats_color, linestyle=:dot)
             ylimit = delta_max === nothing ?
                 max(4.0 * prof.threshold, maximum(matrix_levels; init=0.0)) :
                 Float64(delta_max)
@@ -2249,7 +2004,7 @@ function plot_profile_matrix(
             _draw_panel_status!(
                 ax,
                 matrix.panel_status[(index, index)],
-                style,
+                preset,
                 resolved_appearance;
                 mode=panel_status_mode,
                 fontsize=matrix_status_size,
@@ -2294,12 +2049,12 @@ function plot_profile_matrix(
                 marker=:cross,
                 markersize=12,
                 strokewidth=2.5,
-                color=style.stats_color,
+                color=preset.stats_color,
             )
             _draw_panel_status!(
                 ax,
                 matrix.panel_status[(xindex, yindex)],
-                style,
+                preset,
                 resolved_appearance;
                 mode=panel_status_mode,
                 fontsize=matrix_status_size,
@@ -2325,8 +2080,9 @@ function plot_profile_matrix(
         col > 1 && row >= col && hideydecorations!(ax; grid=false, label=false)
     end
 
-    # Hidden upper-triangle axes have little determinable content. Equal Auto
-    # weights keep every diagnostic cell aligned without guessing pixel sizes.
+    # Upper-triangle cells hold only a centered text label, so the layout
+    # solver cannot infer a size for them. Equal Auto weights keep every cell
+    # the same size without hard-coding pixels.
     for index in 1:n
         colsize!(fig.layout, index, Auto(false, 1))
         rowsize!(fig.layout, index, Auto(false, 1))
@@ -2344,7 +2100,7 @@ function plot_profile_matrix(
     end
     push!(handles, LineElement(color=local_color, linewidth=local_linewidth, linestyle=:dash))
     push!(labels, "local parabolic covariance")
-    push!(handles, MarkerElement(marker=:cross, markersize=12, strokewidth=2.5, color=style.stats_color))
+    push!(handles, MarkerElement(marker=:cross, markersize=12, strokewidth=2.5, color=preset.stats_color))
     push!(labels, "fit minimum")
     Legend(
         fig[n + 1, 1:n],
@@ -2359,23 +2115,11 @@ function plot_profile_matrix(
         labelsize=matrix_legend_size,
     )
 
-    if filename !== nothing
-        outpath = String(filename)
-        if isempty(splitext(outpath)[2])
-            outpath *= ".$(String(format))"
-        end
-        save(outpath, fig)
-    end
+    _save_figure(fig, filename, format)
 
     return fig
 end
 
-"""
-    plot_residuals(result; kind=:pull, filename=nothing, format=:pdf, ...)
-
-Plot residuals, pulls, or data/fit ratios for an XY fit. Marker shape, marker
-size, and error-bar caps follow `theme` unless explicitly overridden.
-"""
 function plot_residuals(
     result::FitResult;
     kind::Symbol=:pull,
@@ -2384,7 +2128,7 @@ function plot_residuals(
     theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
-    figure_size::Tuple{<:Real, <:Real}=(900, 520),
+    style::FitPlotStyle=FitPlotStyle(),
     xlabel="x",
     color=nothing,
     reference_color=nothing,
@@ -2397,18 +2141,14 @@ function plot_residuals(
 )
     x, values, errors, title, ylabel, reference = _diagnostic_values(result, kind)
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
-    style = _style_preset(resolved_style, resolved_appearance)
-    color = color === nothing ? style.data_color : color
-    reference_color = reference_color === nothing ? style.fit_color : reference_color
-    marker = marker === nothing ? style.data_marker : marker
-    markersize = markersize === nothing ? style.data_markersize : Float64(markersize)
-    error_whiskerwidth = error_whiskerwidth === nothing ? style.error_whiskerwidth : Float64(error_whiskerwidth)
-    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
-        Figure(
-            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
-            backgroundcolor=style.background_color,
-        )
-    end
+    preset = _style_preset(resolved_style, resolved_appearance)
+    tokens = _resolve_style_tokens(preset, style)
+    color = color === nothing ? tokens.data_color : color
+    reference_color = reference_color === nothing ? tokens.fit_color : reference_color
+    marker = marker === nothing ? tokens.data_marker : marker
+    markersize = markersize === nothing ? tokens.data_markersize : Float64(markersize)
+    error_whiskerwidth = error_whiskerwidth === nothing ? tokens.error_whiskerwidth : Float64(error_whiskerwidth)
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, _plot_figure_size(tokens, (900, 520)))
     ax = Axis(fig[1, 1]; _merged_kwargs((title=title, xlabel=xlabel, ylabel=ylabel), axis_kwargs)...)
     hlines!(ax, [reference]; color=reference_color, linestyle=:dash)
     if errors !== nothing
@@ -2422,24 +2162,11 @@ function plot_residuals(
     end
     scatter!(ax, x, values; _merged_kwargs((color=color, marker=marker, markersize=markersize), scatter_kwargs)...)
 
-    if filename !== nothing
-        outpath = String(filename)
-        if isempty(splitext(outpath)[2])
-            outpath *= ".$(String(format))"
-        end
-        save(outpath, fig)
-    end
+    _save_figure(fig, filename, format)
 
     return fig
 end
 
-"""
-    plot_diagnostics(result; filename=nothing, format=:pdf, ...)
-
-Create a compact residual, pull, and ratio diagnostic figure for an XY fit.
-`scatter_kwargs`, `errorbars_kwargs`, and `reference_line_kwargs` are applied
-to every panel after the selected style defaults.
-"""
 function plot_diagnostics(
     result::FitResult;
     filename::Union{Nothing, AbstractString}=nothing,
@@ -2447,7 +2174,7 @@ function plot_diagnostics(
     theme::Symbol=:sans,
     appearance::Symbol=:auto,
     theme_override::Theme=Theme(),
-    figure_size::Tuple{<:Real, <:Real}=(900, 900),
+    style::FitPlotStyle=FitPlotStyle(),
     xlabel="x",
     color=nothing,
     reference_color=nothing,
@@ -2460,18 +2187,14 @@ function plot_diagnostics(
     reference_line_kwargs=NamedTuple(),
 )
     resolved_style, resolved_appearance = _resolve_plot_style(theme, appearance)
-    style = _style_preset(resolved_style, resolved_appearance)
-    color = color === nothing ? style.data_color : color
-    reference_color = reference_color === nothing ? style.fit_color : reference_color
-    marker = marker === nothing ? style.data_marker : marker
-    markersize = markersize === nothing ? style.data_markersize : Float64(markersize)
-    error_whiskerwidth = error_whiskerwidth === nothing ? style.error_whiskerwidth : Float64(error_whiskerwidth)
-    fig = with_theme(_theme_from_style(resolved_style, resolved_appearance, theme_override)) do
-        Figure(
-            size=(Int(round(figure_size[1])), Int(round(figure_size[2]))),
-            backgroundcolor=style.background_color,
-        )
-    end
+    preset = _style_preset(resolved_style, resolved_appearance)
+    tokens = _resolve_style_tokens(preset, style)
+    color = color === nothing ? tokens.data_color : color
+    reference_color = reference_color === nothing ? tokens.fit_color : reference_color
+    marker = marker === nothing ? tokens.data_marker : marker
+    markersize = markersize === nothing ? tokens.data_markersize : Float64(markersize)
+    error_whiskerwidth = error_whiskerwidth === nothing ? tokens.error_whiskerwidth : Float64(error_whiskerwidth)
+    fig = _themed_figure(resolved_style, resolved_appearance, theme_override, preset, _plot_figure_size(tokens, (900, 900)))
 
     for (row, kind) in enumerate((:residual, :pull, :ratio))
         x, values, errors, title, ylabel, reference = _diagnostic_values(result, kind)
@@ -2498,13 +2221,7 @@ function plot_diagnostics(
         )
     end
 
-    if filename !== nothing
-        outpath = String(filename)
-        if isempty(splitext(outpath)[2])
-            outpath *= ".$(String(format))"
-        end
-        save(outpath, fig)
-    end
+    _save_figure(fig, filename, format)
 
     return fig
 end

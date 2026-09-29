@@ -8,7 +8,6 @@ if RENDER_PLOTS
 end
 
 using ScientificFitting
-using LaTeXStrings
 using LinearAlgebra
 using Printf
 
@@ -36,6 +35,8 @@ data = load_damped_oscillator(DATA_FILE)
 time = data.time
 angle = data.angle
 sigma_angle = data.sigma_angle
+# 0.5 ms standard timestamp uncertainty, assigned from the acquisition
+# timing resolution documented with the record.
 sigma_time = fill(0.0005, length(time))
 time_reference = (minimum(time) + maximum(time)) / 2
 
@@ -63,6 +64,7 @@ constant_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060],
     ],
     multistart=3, # p0 and the two additional starts.
+    solver=:ipnewton,
     maxiters=3000,
     tol=1e-7,
 )
@@ -80,6 +82,7 @@ drift_result = fit_model(
         [1.5, 3.35, -2.0, 0.0060, -0.0001],
     ],
     multistart=3,
+    solver=:ipnewton,
     maxiters=4000,
     tol=1e-7,
 )
@@ -104,13 +107,6 @@ function drift_prediction_sigma(result, t, sigma_y, sigma_t)
 end
 
 fmt(x, digits=4) = @sprintf("%.*g", digits, x)
-function fmt_tex(x, digits=4)
-    value = fmt(x, digits)
-    scientific = match(r"^(.+)[eE]([+-]?\d+)$", value)
-    scientific === nothing && return value
-    mantissa, exponent = scientific.captures
-    return mantissa * "\\times10^{" * string(parse(Int, exponent)) * "}"
-end
 
 function emit_doc_output_snapshot(body::Function, id::AbstractString)
     EMIT_DOC_OUTPUT_SNAPSHOTS || return nothing
@@ -143,23 +139,16 @@ function save_model_comparison(
     prediction_color = (palette.band_color, palette.band_alpha)
     pull_1sigma = (palette.band_color, max(0.12, 0.70 * palette.band_alpha))
     pull_2sigma = (palette.band_color, max(0.06, 0.35 * palette.band_alpha))
-    article = style == :tex
-    fit_title = article ? L"\mathrm{Damped\ oscillator:\ frequency\ drift}" :
-        "Damped oscillator: frequency drift"
-    constant_pull_title = article ? L"\mathrm{Pulls:\ constant-frequency\ model}" :
-        "Pulls: constant-frequency model"
-    drift_pull_title = article ? L"\mathrm{Pulls:\ frequency-drift\ model}" :
-        "Pulls: frequency-drift model"
-    angle_label = article ? L"\varphi\,/\,\mathrm{rad}" : "angle φ / rad"
-    pull_label = article ? L"r_i" : "pull rᵢ"
-    time_label = article ? L"t\,/\,\mathrm{s}" : "elapsed time t / s"
-    prediction_label = article ? L"\mathrm{drift\ model:\ local\ }1\sigma\mathrm{\ prediction\ band}" :
-        "drift model: local 1σ prediction band"
-    constant_label = article ? L"\mathrm{constant-frequency\ model}" :
-        "constant-frequency model"
-    drift_label = article ? L"\mathrm{frequency-drift\ model}" :
-        "frequency-drift model"
-    measurement_label = article ? L"\mathrm{measured\ angle}" : "measured angle"
+    fit_title = "Damped oscillator: frequency drift"
+    constant_pull_title = "Pulls: constant-frequency model"
+    drift_pull_title = "Pulls: frequency-drift model"
+    angle_label = "angle φ / rad"
+    pull_label = "pull rᵢ"
+    time_label = "elapsed time t / s"
+    prediction_label = "drift model: local 1σ prediction band"
+    constant_label = "constant-frequency model"
+    drift_label = "frequency-drift model"
+    measurement_label = "measured angle"
 
     base_size = show_panel ?
         palette.figure_size_with_panel : palette.figure_size_without_panel
@@ -197,6 +186,9 @@ function save_model_comparison(
     time_grid = collect(range(minimum(time), maximum(time); length=1800))
     constant_grid = constant_frequency_model(time_grid, constant_result.params)
     drift_grid = frequency_drift_model(time_grid, drift_result.params)
+    # The record carries one shared angle and timestamp uncertainty; the band
+    # uses that constant pair.
+    @assert allequal(sigma_angle) && allequal(sigma_time)
     prediction_sigma = [
         drift_prediction_sigma(drift_result, t, sigma_angle[1], sigma_time[1])
         for t in time_grid
@@ -281,8 +273,12 @@ function save_model_comparison(
     )
     hidexdecorations!(constant_pull_axis; grid=false)
     linkxaxes!(fit_axis, constant_pull_axis, drift_pull_axis)
-    ylims!(constant_pull_axis, -3.2, 3.2)
-    ylims!(drift_pull_axis, -3.2, 3.2)
+    # One shared limit derived from both fits: the panels stay directly
+    # comparable and the largest pulls are never clipped out of the figure.
+    pull_limit = 0.2 + maximum(abs, vcat(
+        constant_result.weighted_residuals, drift_result.weighted_residuals))
+    ylims!(constant_pull_axis, -pull_limit, pull_limit)
+    ylims!(drift_pull_axis, -pull_limit, pull_limit)
 
     beta = drift_result.params[5]
     sigma_beta = drift_result.param_stderr[5]
@@ -352,7 +348,7 @@ end
 if RENDER_PLOTS
     if RENDER_DOC_ASSETS
         mkpath(DOC_ASSET_DIR)
-        for style in (:sans, :tex), show_panel in (true, false), appearance in (:light, :dark)
+        for style in (:sans,), show_panel in (true,), appearance in (:light,)
             panel_suffix = show_panel ? "panel" : "plot"
             save_model_comparison(
                 joinpath(DOC_ASSET_DIR, "damped_oscillator_decay_$(style)_$(panel_suffix)_$(appearance).png");
@@ -369,18 +365,19 @@ if RENDER_PLOTS
     end
 end
 
+# One print function per model keeps the terminal output and the documented
+# snapshot from drifting apart.
+print_constant_report() = (
+    println(report_text(constant_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda"]));
+    println(diagnostic_dashboard_text(constant_result)))
+print_drift_report() = (
+    println(report_text(drift_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda", "beta"]));
+    println(diagnostic_dashboard_text(drift_result)))
+
 println("Constant-frequency model")
-println(report_text(constant_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda"]))
-println(diagnostic_dashboard_text(constant_result))
-emit_doc_output_snapshot("resonance_constant") do
-    println(report_text(constant_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda"]))
-    println(diagnostic_dashboard_text(constant_result))
-end
+print_constant_report()
+emit_doc_output_snapshot(print_constant_report, "resonance_constant")
 println()
 println("Frequency-drift model")
-println(report_text(drift_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda", "beta"]))
-println(diagnostic_dashboard_text(drift_result))
-emit_doc_output_snapshot("resonance_drift") do
-    println(report_text(drift_result; parameter_names=["A_ref", "omega_ref", "phi_ref", "lambda", "beta"]))
-    println(diagnostic_dashboard_text(drift_result))
-end
+print_drift_report()
+emit_doc_output_snapshot(print_drift_report, "resonance_drift")

@@ -1,84 +1,63 @@
 # XY Uncertainties
 
 This controlled calibration workflow shows what changes when the independent
-variable has uncertainty too. Horizontal error bars are not only a plotting
-feature: if the model is steep enough, uncertainty in ``x`` contributes to the
-statistical cost and to the fitted parameter errors.
+variable has uncertainty too: if the model is steep enough, uncertainty in
+``x`` contributes to the statistical cost and to the fitted parameter errors.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_sans_panel_dark.png" alt="XY uncertainty fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_light.png" alt="XY uncertainty fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_sans_plot_dark.png" alt="XY uncertainty fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_light.png" alt="XY uncertainty fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_light.png" alt="XY uncertainty fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/xy_uncertainties_tex_panel_dark.png" alt="XY uncertainty fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="xy-uncertainties" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/xy_uncertainties_tex_plot_dark.png" alt="XY uncertainty fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/xy_uncertainties_sans_panel_light.png" alt="XY uncertainty fit in sans style with result panel">
 ```
 
 ## Question
 
 A voltage sensor is calibrated by measuring stage position ``x_\mathrm{meas}``
 in millimetres and sensor response ``U_\mathrm{meas}`` in volts. Both
-instruments have finite resolution. The scientific question is:
+instruments have finite resolution. The measurements are modeled as
 
 ```math
-U = m x + b,
+U = m x + b;
 ```
 
-with realistic uncertainty on both ``m`` and ``b``. If ``x`` uncertainty is
-ignored, the fit treats the measured abscissa as exact and usually reports
-parameter errors that are too small.
+the scientific question is the sensitivity ``m`` and offset ``b`` with
+realistic uncertainties on both. Ignoring the ``x``
+uncertainty treats the measured abscissa as exact and usually yields parameter
+errors that are too small.
 
 ## Data
 
-The example uses a controlled, explicit calibration record rather than a
-perfect line. Position and voltage contain different fixed, irregular
-measurement deviations; no random generator is hidden in the page.
-
-The uncertainties are:
+The data are listed literally in the code below; the scatter is fixed in the
+listed numbers, and no random generator runs when the page is built. The
+uncertainties are:
 
 - ``\sigma_x = 0.05\,\mathrm{mm}`` for every measured position,
 - ``\sigma_U = 0.033\,\mathrm{V}`` for every measured voltage.
 
-The visible horizontal and vertical error bars correspond to these 1σ standard
-uncertainties. The 1σ prediction band in the plot includes the fitted
-parameter uncertainty and the observation noise used by the plotting routine.
+The error bars in the plot correspond to these 1σ standard uncertainties; the
+1σ prediction band combines the fitted parameter uncertainty with the
+effective observation noise ``\sigma_\mathrm{eff}`` (both error components,
+defined below).
 
 ## Model and Cost
 
-For a model ``f(x,p)``, an uncertainty in ``x`` changes the vertical residual
-through the local model slope:
-
-```math
-f(x + \delta x, p) \approx f(x,p)
-+ \frac{\partial f}{\partial x}(x,p)\,\delta x.
-```
-
-The effective vertical variance is therefore approximated as
-
-```math
-\sigma_{\mathrm{eff},i}^2
-= \sigma_{y,i}^2
-+ \left(\frac{\partial f}{\partial x}(x_i,p)\sigma_{x,i}\right)^2.
-```
-
+An uncertainty in ``x`` enters the vertical residual through the local model
+slope; [Uncertainty In X](../statistics.md#Uncertainty-In-X) derives the
+effective variance
+``\sigma_{\mathrm{eff},i}^2=\sigma_{y,i}^2+\left(\partial_x f(x_i,p)\,\sigma_{x,i}\right)^2``.
 For a straight line this becomes
 
 ```math
 \sigma_{\mathrm{eff},i}^2 = \sigma_y^2 + (m\sigma_x)^2.
 ```
 
-The size of the effect is easy to estimate before fitting. If
-``m\approx0.85\,\mathrm{V\,mm^{-1}}`` and
-``\sigma_x=0.05\,\mathrm{mm}``, the x-resolution contributes about
-``m\sigma_x\approx0.043\,\mathrm{V}`` in the vertical direction. That is larger
-than ``\sigma_U=0.033\,\mathrm{V}``. Drawing horizontal error bars while fitting
-as if x were exact would therefore understate the parameter uncertainty.
+The size of the effect is easy to estimate before fitting: with
+``m\approx0.85\,\mathrm{V\,mm^{-1}}`` and ``\sigma_x=0.05\,\mathrm{mm}``, the
+x-resolution contributes about ``m\sigma_x\approx0.043\,\mathrm{V}`` — larger
+than ``\sigma_U=0.033\,\mathrm{V}`` — so fitting as if x were exact would
+understate the parameter uncertainty.
 
-ScientificFitting uses this effective variance when `sigma_x` is supplied. This is a
-local first-order approximation. It is appropriate for smooth models and
-moderate x errors; it is not a full errors-in-variables model.
+ScientificFitting uses this effective variance when `sigma_x` is supplied. It
+is a local first-order approximation for smooth models and moderate x errors,
+not a full errors-in-variables model.
 
 ## Fit
 
@@ -125,8 +104,8 @@ plot_fit(
     show_legend=true,
     stats_position=:right,
     stats_mode=:full,
-    # Compact observations keep both uncertainty components visible.
-    data_markersize=5,
+    # Smaller markers keep the x and y error bars visible.
+    style=FitPlotStyle(data_markersize=5),
     filename="xy_uncertainties.pdf",
 )
 
@@ -165,37 +144,44 @@ No next action required by the current diagnostic checks.</pre>
 </div>
 ```
 
+The report's `backend` line names the numerical route that solved the fit; it
+is selected through the `solver` keyword of `fit_model`.
+
+`cost_min` is the full ``-2\log L``, which adds the normalization terms
+``\sum_i \ln(2\pi\sigma_{\mathrm{eff},i}^2)`` to ``\chi^2``; with
+``\sigma_\mathrm{eff}\approx0.054\,\mathrm{V}`` these terms are negative, so
+a negative cost is expected (see
+[The Cost Convention](../statistics.md#The-Cost-Convention)).
+
 The visible band is a 1σ prediction band; it is not a profile interval and not
 a confidence band for the mean line alone.
 
 ## Diagnostics
 
-This workflow is a good place to check whether a result is numerically
-reasonable before moving to more complicated models:
+Checks before moving to more complicated models:
 
-- Compare the result with and without `sigma_x`. The central value should not
-  jump wildly for this dataset, but the parameter uncertainty should increase
-  when x errors are included.
-- Inspect residuals for structure. Smooth residuals mean that the line may be
-  an incomplete model, even when the error bars were propagated correctly.
-- Check ``\chi^2/\mathrm{ndf}``. Values far above one suggest underestimated
-  uncertainties or model mismatch; values far below one suggest overestimated
-  uncertainties or correlated residuals.
+- Compare the result with and without `sigma_x`: the central value should not
+  jump wildly, but the parameter uncertainty should increase.
+- Plot the residuals against ``x`` and inspect them for structure; a
+  systematic trend or curvature — rather than random scatter around zero —
+  means the line may be an incomplete model even with correctly propagated
+  error bars.
+- Check ``\chi^2/\mathrm{ndf}`` and the p-value; the sample-size-aware reading
+  is in [Goodness Of Fit](../statistics.md#Goodness-Of-Fit).
 - For steep nonlinear models, run profiles or a more explicit measurement-error
   model before trusting local symmetric errors.
 
 The dashboard reports `status = ok - no immediate issue`: convergence,
-goodness-of-fit, residual structure, and local covariance pass its current
-first-line checks. This is not proof that the effective-variance approximation
-is the correct physical model; that judgment still depends on how the two
-instruments produce their errors.
+goodness-of-fit, residual structure, and local covariance pass its first-line
+checks. Whether the effective-variance approximation is the correct physical
+model still depends on how the two instruments produce their errors.
 
 ## Interpretation
 
 The fitted slope is the calibration sensitivity, and the intercept is the
 offset. Because ``\sigma_x`` contributes through the slope, the uncertainty of
-``m`` and ``b`` depends on the fitted model itself. This is why x errors cannot
-be fixed later by drawing larger horizontal error bars on a finished plot.
+``m`` and ``b`` depends on the fitted model itself; x errors cannot be added
+later by drawing larger horizontal error bars on a finished plot.
 
 For the dataset shown here, the fitted sensitivity and offset are
 
@@ -205,29 +191,28 @@ m = (0.8497 \pm 0.0115)\,\mathrm{V\,mm^{-1}},
 b = (1.3008 \pm 0.0263)\,\mathrm{V}.
 ```
 
-The fitted relation is ``U(x)=m x+b`` with ``x`` in millimetres. Under the
-stated independent Gaussian resolution model, ``\chi^2/\mathrm{ndf}=0.954`` and
-``P(\chi^2)=0.506`` are statistically unremarkable.
+Under the stated independent Gaussian resolution model,
+``\chi^2/\mathrm{ndf}=0.954`` and the p-value ``p=0.506`` are statistically
+unremarkable.
 
-The reported covariance is still local. It describes the curvature of the cost
-near the best fit after the effective-variance approximation has been applied.
-If the approximation is poor, the covariance can be precise but statistically
-misleading.
+The reported covariance is local curvature after the effective-variance
+approximation has been applied; if the approximation is poor, it can be precise
+but statistically misleading.
 
 ## What Can Go Wrong
 
-Do not use `sigma_x` as a visual-only option. It changes the cost function. If
-you only want horizontal error bars in a custom plot, keep that separate from
-the fit.
+Do not use `sigma_x` as a visual-only option: it changes the cost function. For
+horizontal error bars without statistical weight, draw them in a custom plot
+instead.
 
-Do not use effective variance blindly for discontinuous or kinked models. A
-first-order derivative approximation is not meaningful at a threshold, clipping
-point, or sharp regime switch.
+Do not use effective variance for discontinuous or kinked models; a first-order
+derivative approximation is not meaningful at a threshold, clipping point, or
+sharp regime switch.
 
-Do not assume this solves all x-error problems. Large x errors, latent true
-abscissae, and calibration transfer problems may require a full measurement
+Large x errors, unknown true x values that must be estimated alongside the
+parameters, and calibration transfer problems may require a full measurement
 model with nuisance parameters or a structured covariance description.
 
 Next useful pages: [Full Covariance](@ref),
 [Damped Oscillator](resonance_decay.md), and
-[Gaussian Fits and Covariance](../gaussian_models.md#Uncertainty-In-X).
+[Full Gaussian Likelihood](../statistics.md#Full-Gaussian-Likelihood).

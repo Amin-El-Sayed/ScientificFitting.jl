@@ -112,7 +112,7 @@ function _fit_with_lsqfit(problem::FitProblem, options::FitOptions)
     return params, converged, iterations, message, Matrix{Float64}(fit_result.jacobian)
 end
 
-function _fit_with_optimization(problem::FitProblem, options::FitOptions)
+function _fit_scalar_problem(problem::FitProblem, options::FitOptions; maxiters=options.maxiters)
     if _static_effective_covariance_available(problem)
         cov = _effective_covariance(problem, problem.p0)
         # Finite differences perturb Float64 parameters outside the sparse solve.
@@ -129,47 +129,7 @@ function _fit_with_optimization(problem::FitProblem, options::FitOptions)
     # unseen models can invert the tag order of their nested x derivatives.
     objective = (q, cache) -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)
 
-    lb = nothing
-    ub = nothing
-    free_bounds = _free_bounds(problem)
-    if free_bounds !== nothing
-        lb, ub = free_bounds
-    end
-
-    free_constraints = _free_constraints(problem.constraints, problem)
-    has_cons = has_constraints(free_constraints)
-    if has_cons
-        cons!, lcons, ucons = _build_constraint_system(free_constraints, problem)
-        ad = _optimization_ad(problem; second_order=true)
-        optf = OptimizationFunction(objective, ad; cons=cons!)
-        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub, lcons=lcons, ucons=ucons)
-        sol = solve(
-            optprob,
-            OptimizationOptimJL.IPNewton();
-            maxiters=options.maxiters,
-            abstol=options.tol,
-            reltol=options.tol,
-        )
-    else
-        optf = OptimizationFunction(objective, _optimization_ad(problem))
-        optprob = OptimizationProblem(optf, _free_p0(problem), cache; lb=lb, ub=ub)
-        sol = solve(
-            optprob,
-            OptimizationOptimJL.LBFGS();
-            maxiters=options.maxiters,
-            abstol=options.tol,
-            reltol=options.tol,
-        )
-    end
-
-    params = _expand_free_parameters(problem, sol.u)
-    retcode_text = string(sol.retcode)
-    converged = occursin("Success", retcode_text) || occursin("Default", retcode_text)
-    iterations = hasproperty(sol, :stats) && hasproperty(sol.stats, :iterations) ?
-                 Int(sol.stats.iterations) : missing
-    message = string(sol.retcode)
-
-    return params, converged, iterations, message, nothing
+    return _minimize_scalar(problem, options, objective, cache; maxiters)
 end
 
 function _build_fit_result(
@@ -181,6 +141,7 @@ function _build_fit_result(
     iterations::Union{Int, Missing},
     message::String,
     backend_jacobian=nothing,
+    solver_result=nothing,
 )
     cache = _prepare_fit_cache(problem)
     yhat = _model_values(problem, params)
@@ -190,18 +151,26 @@ function _build_fit_result(
     cost_min = Float64(_cost_value(cache, params, options.cost))
     minus2loglik_min = Float64(_gaussian_minus2loglik(cache, params))
 
+    # Priors and correlated constraints act as one Gaussian pseudo-observation
+    # per constrained component; they enter ndf, the p-value, and the BIC
+    # sample size on the same footing as data points.
     nconstraint_obs = sum((length(c.indices) for c in problem.parameter_constraints); init=0)
     nobs = length(problem.y) + length(problem.parameter_priors) + nconstraint_obs
     npar = length(_free_indices(problem))
     ndf = nobs - npar
     chi2_ndf = ndf > 0 ? chi2 / ndf : NaN
     pvalue = ndf > 0 ? ccdf(Chisq(ndf), chi2) : NaN
-    aic = minus2loglik_min + 2.0 * npar
-    bic = minus2loglik_min + log(nobs) * npar
+    # Without observation uncertainties the Gaussian scale sigma was profiled
+    # out of minus2loglik_min and counts as one additional estimated parameter.
+    npar_lik = npar + (!has_y_uncertainty(problem) && !has_x_uncertainty(problem) ? 1 : 0)
+    aic = ndf > 0 ? minus2loglik_min + 2.0 * npar_lik : NaN
+    bic = ndf > 0 ? minus2loglik_min + log(nobs) * npar_lik : NaN
 
     Jw = if backend_jacobian === nothing
         _weighted_jacobian(cache, params)
     else
+        # backend_jacobian is the weighted model Jacobian (LsqFit convention);
+        # negate to the stored residual-Jacobian convention.
         _full_jacobian_from_free(problem, -backend_jacobian, length(weighted_residuals))
     end
     free_idx = _free_indices(problem)
@@ -235,6 +204,18 @@ function _build_fit_result(
     end
     diagnostics = _fit_diagnostics(problem, params, cov, converged, ndf; hessian=hessian, gof=chi2)
 
+    # Validate scalar solvers with fresh fit geometry, not only their success flag.
+    # The EDM compares against the raw objective, so undo the covariance scaling.
+    scale = _covariance_scale(problem, options, stats)
+    stationarity = converged && solver_result !== nothing ?
+        _stationarity_finding(problem, options, params, cov ./ scale, cost_min,
+            q -> _cost_value(cache, _expand_free_parameters(problem, q), options.cost)) : nothing
+    _record_stationarity!(diagnostics, stationarity)
+    if stationarity !== nothing
+        converged = false
+        message *= "; " * stationarity.evidence
+    end
+
     return FitResult(
         problem,
         options,
@@ -252,98 +233,118 @@ function _build_fit_result(
         Jw,
         stats,
         diagnostics,
+        solver_result,
     )
 end
 
-"""Prefer convergence first, then the lowest finite cost within that status."""
+function _build_scalar_result(problem::FitProblem, options, answer)
+    params = _expand_free_parameters(problem, answer.params)
+    return _build_fit_result(problem, options, answer.backend, params, answer.converged,
+                            answer.iterations, answer.message, nothing, answer)
+end
+
+"""Prefer the lowest finite cost; convergence status only breaks exact ties.
+
+A converged stop at a worse minimum must not displace a better minimum whose
+solver stopped without a formal convergence code: the cost is the fitted
+quantity, and a non-converged winner is reported as such instead of being
+silently replaced.
+"""
 function _prefer_fit(candidate, incumbent)
     isfinite(candidate.stats.cost_min) || return false
     incumbent === nothing && return true
-    candidate.converged != incumbent.converged && return candidate.converged
-    return candidate.stats.cost_min < incumbent.stats.cost_min
+    candidate.stats.cost_min != incumbent.stats.cost_min &&
+        return candidate.stats.cost_min < incumbent.stats.cost_min
+    return candidate.converged && !incumbent.converged
 end
 
 """
-    fit(problem::FitProblem; backend=:auto, cost=:auto, maxiters=500,
-        tol=1e-10, scale_covariance=:auto, initial_guesses=nothing,
-        multistart=1) -> FitResult
+    fit(problem::FitProblem; cost=:auto, maxiters=500, tol=nothing,
+        scale_covariance=:auto, initial_guesses=nothing, multistart=1,
+        solver=nothing) -> FitResult
 
 Fit a validated Gaussian `FitProblem`.
 
 Keyword contracts:
-- `backend`: `:auto`, `:lsqfit`, or `:optimization`. `:auto` uses LsqFit only
-  when static chi-square least squares represents the complete problem.
-- `cost`: `:auto`, `:chi2`, or `:gaussian_likelihood`. `:auto` selects the
-  normalized Gaussian `-2 log(L)` cost for parameter-dependent covariance.
-- `maxiters`, `tol`: positive solver limits used for every candidate.
-- `scale_covariance`: `:auto`, `:never`, or `:always`. `:auto` estimates a
-  residual scale only when no observation uncertainty was supplied.
+- `cost`: `:auto`, `:chi2`, or `:gaussian_likelihood`. `:auto` selects `:chi2`
+  for a static covariance, and the normalized Gaussian `-2 log(L)` cost when
+  the effective covariance depends on the parameters (x uncertainties, or
+  error components with `mode=:model_relative`).
+- `maxiters`: positive solver budget used for every candidate.
+- `tol`: positive stopping tolerance; `nothing` selects
+  [`default_fit_tolerance`](@ref) for the solver and derivative mode.
+- `scale_covariance`: `:auto`, `:never`, or `:always`. `:auto` multiplies the
+  parameter covariance by `chi2/ndf`, and only when neither y nor x
+  observation uncertainty was supplied; `:never` reports the unscaled
+  covariance and `:always` forces the factor. Profile intervals and the
+  stationarity check use the same scale, so they stay consistent with
+  `param_stderr`. `:always` is rejected for `cost=:gaussian_likelihood`, where
+  the covariance comes from the cost Hessian.
 - `initial_guesses`: additional complete parameter vectors in `p0` order.
-- `multistart`: total candidate budget, including `problem.p0`. The default
-  of one uses only `p0`; two distinct additional guesses need `multistart=3`.
+  Explicit guesses are always tried; the candidate budget grows to cover them.
+- `multistart`: total candidate budget, including `problem.p0` and every
+  explicit guess. Values beyond that add generated candidates. Generated
+  candidates are deterministic: interval points when finite bounds exist,
+  otherwise fixed rescalings of `p0`. No random number generation is involved.
+- `solver`: `nothing` keeps the automatic choice: LsqFit exactly when static
+  chi-square least squares represents the complete problem, the scalar solver
+  otherwise. Pass `OptimizationSolver(algorithm)`, `NativeMinuitSolver()`, or
+  one of the shorthands `:lbfgs`, `:ipnewton`, `:nelder_mead` for an explicit
+  choice. The same solver and settings are used for multistart and profile
+  refits; `result.backend` records what actually solved the fit.
 
-The converged finite candidate with the lowest cost is returned. If no candidate
-converges but one remains finite, it is returned with `converged == false`; use
-`diagnostic_dashboard(result)` before interpreting it. If every candidate
-fails, the last model, validation, or solver error is rethrown.
-
-An explicit incompatible `backend=:lsqfit` request raises `ArgumentError`
-instead of dropping bounds, parameter terms, constraints, active error
-components, or parameter-dependent covariance.
+The candidate with the lowest finite cost is returned; convergence status only
+breaks exact cost ties. A non-converged winner is returned with
+`converged == false` even when another candidate converged at a higher cost —
+run `diagnostic_dashboard(result)` before interpreting such a result. If no
+candidate produces a finite result, the last model, validation, or solver error
+is rethrown.
 """
 function fit(
     problem::FitProblem;
-    backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=_default_fit_tolerance(problem.derivatives),
+    tol::Union{Nothing,Real}=nothing,
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
+    solver=nothing,
 )
+    solver = _resolve_solver_shorthand(solver)
+    scale_covariance isa Symbol || throw(ArgumentError(
+        "scale_covariance must be :auto, :always, or :never; the Bool spelling was removed in v0.3",
+    ))
+    if _resolve_cost(problem, cost) == :gaussian_likelihood &&
+       scale_covariance == :always
+        throw(ArgumentError(
+            "scale_covariance=:always is not available for cost=:gaussian_likelihood: " *
+            "the parameter covariance comes from the cost Hessian there, not from " *
+            "chi2/ndf scaling of a weighted Jacobian",
+        ))
+    end
     options = FitOptions(
-        backend=backend,
         cost=_resolve_cost(problem, cost),
         maxiters=maxiters,
-        tol=Float64(tol),
-        scale_covariance=_normalize_scale_covariance(scale_covariance),
+        tol=tol === nothing ? default_fit_tolerance(solver, problem.derivatives) : tol,
+        scale_covariance=scale_covariance,
         multistart=multistart,
+        solver=solver,
     )
 
-    candidates = _initial_candidates(problem, initial_guesses, multistart)
-    best_result = nothing
-    last_error = nothing
-
-    for candidate in candidates
-        candidate_problem = _with_p0(problem, candidate)
-        try
-            result = if isempty(_free_indices(candidate_problem))
-                params = _expand_free_parameters(candidate_problem, Float64[])
-                _build_fit_result(candidate_problem, options, :fixed, params, true, 0, "All parameters fixed", nothing)
-            else
-                chosen_backend = _solve_backend(candidate_problem, backend, options.cost)
-                params, converged, iterations, message, backend_jacobian = if chosen_backend == :lsqfit
-                    _fit_with_lsqfit(candidate_problem, options)
-                elseif chosen_backend == :optimization
-                    _fit_with_optimization(candidate_problem, options)
-                else
-                    throw(ArgumentError("unsupported backend: $chosen_backend (use :auto, :lsqfit, or :optimization)"))
-                end
-                _build_fit_result(candidate_problem, options, chosen_backend, params, converged, iterations, message, backend_jacobian)
-            end
-
-            _prefer_fit(result, best_result) && (best_result = result)
-        catch err
-            last_error = err
+    return _fit_over_candidates(problem, initial_guesses, multistart) do candidate_problem
+        if isempty(_free_indices(candidate_problem))
+            params = _expand_free_parameters(candidate_problem, Float64[])
+            return _build_fit_result(candidate_problem, options, :fixed, params, true, 0, "All parameters fixed", nothing)
         end
+        chosen_backend = solver === nothing ?
+            _solve_backend(candidate_problem, options.cost) : :optimization
+        if chosen_backend == :lsqfit
+            params, converged, iterations, message, jacobian = _fit_with_lsqfit(candidate_problem, options)
+            return _build_fit_result(candidate_problem, options, :lsqfit, params,
+                                     converged, iterations, message, jacobian)
+        end
+        return _fit_scalar_candidate(candidate_problem, options)
     end
-
-    if best_result === nothing
-        last_error === nothing || throw(last_error)
-        throw(ErrorException("fit failed for all initial guesses"))
-    end
-
-    return best_result
 end
 
 """
@@ -354,10 +355,10 @@ Fit scalar observations `y` measured at `x` with a model satisfying
 storage; `length(x)` must equal `length(y)` and the model must return one finite
 prediction per observation.
 
-Observation uncertainty is supplied by exactly the applicable combination of
-`sigma_y`, `cov_y`, `sigma_x`, `cov_x`, named `error_components`, or one
-complete static `WhiteningOperator`. A whitening operator is mutually exclusive
-with every other observation-uncertainty keyword. With no uncertainty,
+Observation uncertainty: supply at most one of `sigma_y`/`cov_y` and at most
+one of `sigma_x`/`cov_x`; y- and x-uncertainties and named `error_components`
+may be combined. A `whitening` operator supplies the complete covariance and
+excludes every other observation-uncertainty keyword. With no uncertainty,
 unweighted least squares is used.
 
 For fits with x uncertainty, `x_derivative=(x, p) -> dy_dx` supplies a
@@ -365,31 +366,44 @@ vectorized model derivative with respect to x. This avoids the default
 point-by-point AD path and is the preferred route for large datasets.
 
 For large static correlated datasets, `whitening=WhiteningOperator(...)`
-supplies the complete covariance through a matrix-free operation. It cannot be
-combined with other observation-uncertainty keywords. The operator must accept
-generic `AbstractVector` inputs and AD element types when the general optimizer
-is used.
+supplies the complete covariance through a matrix-free operation. The operator
+must accept generic `AbstractVector` inputs and AD element types when the
+general optimizer is used.
+
+An optional analytic `jacobian(x, p)` receives the full parameter vector
+(fixed values filled in) and returns the `length(x) × length(p0)` matrix
+`J[i, j] = ∂ŷᵢ/∂pⱼ`, including columns for fixed parameters; the free columns
+are selected internally. Prediction bands evaluate it on their own `x` grid,
+so it must accept any coordinate vector.
 
 Set `inplace=true` for `model!(out, x, p)`. The unbounded least-squares backend
 uses LsqFit's native in-place model interface; generic optimizer paths preserve
-the same contract with a type-correct output buffer. An optional analytic
-Jacobian must then use `jacobian!(J, x, p)`.
+the same contract with a type-correct output buffer. With `inplace=true`, an
+analytic Jacobian instead uses `jacobian!(J, x, p)` with the same shape.
 
-Parameter control uses `bounds`, `constraints`, `parameter_priors`,
-`parameter_constraints`, and `fixed_parameters`. Solver keywords are forwarded
-to `fit(::FitProblem)` with defaults `backend=:auto`, `cost=:auto`,
-`maxiters=500`, `tol=1e-10`, `scale_covariance=:auto`, and `multistart=1`.
+Parameter control uses `bounds` (a `(lower, upper)` tuple of vectors with one
+entry per parameter, `-Inf`/`Inf` for unbounded sides), `constraints`,
+`parameter_priors`, `parameter_constraints`, and `fixed_parameters`; the
+accepted forms for the latter four are documented under [`FitProblem`](@ref).
+Solver keywords are forwarded to `fit(::FitProblem)` with defaults
+`cost=:auto`, `maxiters=500`, `tol=nothing`, `scale_covariance=:auto`,
+`initial_guesses=nothing`, `multistart=1`, and `solver=nothing`.
+Omitting `tol` selects the solver-specific [`default_fit_tolerance`](@ref).
 
 Use `derivatives=:finite` for models implemented outside Julia or restricted to
 ordinary floating-point inputs. The policy also controls covariance, profiles,
 and predictions; see [`FitProblem`](@ref) for its numerical assumptions.
-In this mode, the default `tol` is `1e-6` rather than `1e-10`, accounting for
-differenced-gradient noise. An explicitly supplied tolerance is never relaxed.
+With LsqFit/Optimization this changes the default tolerance to `1e-6` to account
+for differenced-gradient noise. NativeMinuit retains its native EDM (estimated distance to minimum) stopping
+criterion.
+An explicitly supplied tolerance is never relaxed.
 
-Returns a `FitResult`. Invalid dimensions, non-finite values, non-positive
-standard deviations, contradictory uncertainty inputs, invalid covariance,
-bounds, or parameter controls raise `ArgumentError` before a result is
-constructed.
+Returns a `FitResult`. Invalid inputs raise an error before a result is
+constructed: `DimensionMismatch` for length mismatches (`x` vs. `y`, sigma
+vectors, bounds), `DomainError` for out-of-range values (non-positive standard
+deviations, reversed bounds), and `ArgumentError` for all remaining invalid
+inputs (non-finite values, contradictory uncertainty inputs, invalid
+covariance matrices, malformed parameter controls).
 
 # Example
 
@@ -419,14 +433,15 @@ function fit_model(
     x_derivative=nothing,
     inplace::Bool=false,
     derivatives::Symbol=:auto,
-    backend::Symbol=:auto,
     cost::Symbol=:auto,
     maxiters::Int=500,
-    tol::Real=_default_fit_tolerance(derivatives),
+    tol::Union{Nothing,Real}=nothing,
     scale_covariance=:auto,
     initial_guesses=nothing,
     multistart::Int=1,
+    solver=nothing,
 )
+    inplace || (model = _finite_model_boundary(model, derivatives))
     problem = FitProblem(
         model,
         x,
@@ -451,12 +466,12 @@ function fit_model(
 
     return fit(
         problem;
-        backend=backend,
         cost=cost,
         maxiters=maxiters,
         tol=tol,
         scale_covariance=scale_covariance,
         initial_guesses=initial_guesses,
         multistart=multistart,
+        solver=solver,
     )
 end

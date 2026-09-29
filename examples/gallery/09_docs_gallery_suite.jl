@@ -29,11 +29,11 @@ const DOC_ASSET_DIR = get(
 const EMIT_DOC_OUTPUT_SNAPSHOTS = get(ENV, "SCIENTIFICFITTING_DOC_OUTPUT_SNAPSHOTS", "0") == "1"
 const DOC_FIT_SIZE = (1040, 640)
 const DOC_PX_PER_UNIT = 2.0
+# Only the sans/panel variant is rendered. The :tex and legend-only branches
+# in the save_* functions below are kept deliberately so future variants can
+# be re-enabled here without rebuilding those code paths.
 const DOC_PLOT_VARIANTS = (
     (style=:sans, show_panel=true),
-    (style=:sans, show_panel=false),
-    (style=:tex, show_panel=true),
-    (style=:tex, show_panel=false),
 )
 
 if RENDER_DOC_ASSETS
@@ -85,14 +85,14 @@ function style_variant_plot(
 )
     render_asset_group(name) || return nothing
 
-    for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+    for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
         style, show_panel = variant.style, variant.show_panel
         typography = style == :tex ? latex : plain
         output_defaults = !show_panel ? (
             show_panel=false,
             show_legend=true,
             legend_position=:lt,
-            figure_size=nothing,
+            style=FitPlotStyle(figure_size=nothing),
         ) : (
             show_panel=true,
             show_legend=true,
@@ -246,7 +246,6 @@ function save_poisson_counts(
 
     half_life = log(2) / result.params[2]
     sigma_half_life = log(2) * result.param_stderr[2] / result.params[2]^2
-    deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
     article = style == :tex
     parameter_lines = article ? Any[
         LaTeXString("S_0 = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))\\;\\mathrm{counts}"),
@@ -261,10 +260,10 @@ function save_poisson_counts(
     ]
     statistic_lines = article ? Any[
         LaTeXString("D/\\mathrm{ndf} = $(fmt_tex(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_tex(result.stats.chi2_ndf, 4))"),
-        LaTeXString("P(D) = $(fmt_tex(deviance_pvalue, 4))"),
+        LaTeXString("P(D) = $(fmt_tex(result.stats.pvalue, 4))"),
     ] : Any[
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
-        "P(D) = $(fmt_sig(deviance_pvalue, 4))",
+        "P(D) = $(fmt_sig(result.stats.pvalue, 4))",
     ]
     gallery_output!(
         fig;
@@ -361,7 +360,6 @@ function save_histogram_fit(
     hlines!(residual_ax, [-2.0, 2.0]; color=(foreground, 0.32), linestyle=:dash, linewidth=1.5)
     linkxaxes!(ax, residual_ax)
 
-    deviance_pvalue = ccdf(Chisq(result.stats.ndf), result.stats.chi2)
     parameter_lines = article ? Any[
         LaTeXString("N_{\\mathrm{peak}} = $(fmt_tex(result.params[1], 5)) \\pm $(fmt_tex(result.param_stderr[1], 2))"),
         LaTeXString("\\mu = $(fmt_tex(result.params[2], 5)) \\pm $(fmt_tex(result.param_stderr[2], 2))\\;\\mathrm{V}"),
@@ -375,10 +373,10 @@ function save_histogram_fit(
     ]
     statistic_lines = article ? Any[
         LaTeXString("D/\\mathrm{ndf} = $(fmt_tex(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_tex(result.stats.chi2_ndf, 4))"),
-        LaTeXString("P(D) = $(fmt_tex(deviance_pvalue, 4))"),
+        LaTeXString("P(D) = $(fmt_tex(result.stats.pvalue, 4))"),
     ] : Any[
         "D/ndf = $(fmt_sig(result.stats.chi2, 4))/$(result.stats.ndf) = $(fmt_sig(result.stats.chi2_ndf, 4))",
-        "P(D) = $(fmt_sig(deviance_pvalue, 4))",
+        "P(D) = $(fmt_sig(result.stats.pvalue, 4))",
     ]
     gallery_output!(
         fig;
@@ -657,11 +655,10 @@ style_variant_plot(
     nsigma=1,
     show_legend=true,
     stats_position=:right,
-    stats_mode=:full,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(figure_size=DOC_FIT_SIZE),
 )
 
-# The same fit rendered with the two visual contracts. Panel visibility is
+# 1. Quickstart fit rendered in both visual contracts. Panel visibility is
 # deliberately held constant so this comparison isolates visual style.
 if render_asset_group("plot_style")
     for style in (:sans, :tex)
@@ -694,7 +691,7 @@ if render_asset_group("plot_style")
             show_panel=false,
             show_legend=true,
             legend_position=:lt,
-            figure_size=nothing,
+            style=FitPlotStyle(figure_size=nothing),
         )
         figure = plot_fit(
             quick_result;
@@ -708,63 +705,6 @@ if render_asset_group("plot_style")
         save_gallery_figure("plot_style_$(style).png", figure)
     end
 end
-
-# 1. Linear calibration with visible heteroscedastic uncertainties.
-x = [0.0, 0.3704, 0.7407, 1.1111, 1.4815, 1.8519, 2.2222, 2.5926,
-     2.9630, 3.3333, 3.7037, 4.0741, 4.4444, 4.8148, 5.1852, 5.5556,
-     5.9259, 6.2963, 6.6667, 7.0370, 7.4074, 7.7778, 8.1481, 8.5185,
-     8.8889, 9.2593, 9.6296, 10.0]
-y = [0.8596, 1.5216, 2.1594, 2.8399, 3.5361, 4.1533, 4.6783, 5.2132,
-     5.8284, 6.4639, 7.0427, 7.6164, 8.2992, 9.0838, 9.8358, 10.4881,
-     11.1291, 11.8393, 12.5375, 13.0958, 13.5503, 14.0656, 14.6970,
-     15.3255, 15.8751, 16.4603, 17.2153, 18.0676]
-sigma_y = [0.1000, 0.1044, 0.1089, 0.1133, 0.1178, 0.1222, 0.1267,
-           0.1311, 0.1356, 0.1400, 0.1444, 0.1489, 0.1533, 0.1578,
-           0.1622, 0.1667, 0.1711, 0.1756, 0.1800, 0.1844, 0.1889,
-           0.1933, 0.1978, 0.2022, 0.2067, 0.2111, 0.2156, 0.2200]
-calibration_model(x, p) = @. p[1] * x + p[2]
-linear_result = fit_model(calibration_model, x, y; p0=[1.5, 0.5], sigma_y=sigma_y)
-emit_doc_output_snapshot("linear_calibration") do
-    println(report_text(linear_result; parameter_names=["m", "b"]))
-    println(diagnostic_dashboard_text(linear_result))
-end
-style_variant_plot(
-    linear_result,
-    "linear_calibration";
-    plain=(
-        title="Sensor calibration",
-        model_label="U(x) = m x + b",
-        xlabel="x",
-        xunit="mm",
-        ylabel="U",
-        yunit="V",
-        parameter_names=["m", "b"],
-        latex_labels=false,
-        latex_stats=false,
-        band_label="1σ prediction band",
-    ),
-    latex=(
-        title=L"\mathrm{Sensor\ calibration}",
-        model_label=L"U(x)=m x + b",
-        xlabel=L"x",
-        xunit=L"\mathrm{mm}",
-        ylabel=L"U",
-        yunit=L"\mathrm{V}",
-        parameter_names=[L"m", L"b"],
-        latex_labels=true,
-        latex_stats=true,
-        band_label=L"1\sigma\ \mathrm{prediction\ band}",
-    ),
-    band=:prediction,
-    nsigma=1,
-    show_legend=true,
-    legend_position=:lt,
-    stats_position=:right,
-    stats_mode=:full,
-    # Compact observations keep short measured uncertainties visible.
-    data_markersize=5.0,
-    figure_size=DOC_FIT_SIZE,
-)
 
 # 2. Photoelectric work-function extraction from the intersection of two regimes.
 frequency_THz = [350.0, 380.0, 410.0, 440.0, 470.0, 495.0, 515.0, 532.0,
@@ -820,7 +760,7 @@ emit_doc_output_snapshot("photoelectric_threshold") do
     println("emission")
     println(diagnostic_dashboard_text(emission_result))
 end
-for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
     save_photoelectric_work_function(
         emission_result,
         baseline_result,
@@ -909,7 +849,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(figure_size=DOC_FIT_SIZE),
 )
 
 # 4. Effective-variance fit with x and y uncertainties.
@@ -968,8 +908,7 @@ style_variant_plot(
     stats_position=:right,
     stats_mode=:full,
     # Compact observations keep both uncertainty components visible.
-    data_markersize=5.0,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(data_markersize=5.0, figure_size=DOC_FIT_SIZE),
 )
 
 # 5. Bounds, prior, profile, and a genuinely non-elliptic contour.
@@ -1040,7 +979,7 @@ style_variant_plot(
     legend_position=:lt,
     stats_position=:right,
     stats_mode=:full,
-    figure_size=DOC_FIT_SIZE,
+    style=FitPlotStyle(figure_size=DOC_FIT_SIZE),
 )
 amplitude_interval = profile_interval(saturation_result, 1; npoints=81, nsigma=4)
 emit_doc_output_snapshot("constraints_profiles") do
@@ -1074,7 +1013,7 @@ if render_asset_group("constraints_profiles")
         max_refinements=1,
     )
 
-    for style in (:sans, :tex), appearance in (:light, :dark)
+    for style in (:sans,), appearance in (:light,)
         profile_figure = plot_profile(
             prof;
             theme=style,
@@ -1097,11 +1036,11 @@ if render_asset_group("constraints_profiles")
             ylabel=style == :tex ? L"\mathrm{time\ constant}\ \tau" : "time constant tau",
             local_covariance=saturation_result.param_covariance,
             local_center=saturation_result.params[[1, 2]],
-            figure_size=(980, 720),
+            style=FitPlotStyle(figure_size=(980, 720)),
         )
         save_gallery_figure("amplitude_timescale_contour_$(style)_$(appearance).png", contour_figure)
     end
-    for style in (:sans, :tex), appearance in (:light, :dark)
+    for style in (:sans,), appearance in (:light,)
         matrix_parameter_names = style == :tex ? [L"A", L"\tau", L"c"] :
             profile_overview_names
         matrix_figure = plot_profile_matrix(
@@ -1109,7 +1048,7 @@ if render_asset_group("constraints_profiles")
             parameter_names=matrix_parameter_names,
             theme=style,
             appearance=appearance,
-            figure_size=(1020, 980),
+            style=FitPlotStyle(figure_size=(1020, 980)),
         )
         save_gallery_figure("saturation_profile_matrix_$(style)_$(appearance).png", matrix_figure)
     end
@@ -1145,7 +1084,7 @@ emit_doc_output_snapshot("poisson_decay") do
     @printf("P(D) = %.3f\n", poisson_result.stats.pvalue)
     println(diagnostic_dashboard_text(poisson_result))
 end
-for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
     save_poisson_counts(
         poisson_result,
         x_counts,
@@ -1193,7 +1132,7 @@ emit_doc_output_snapshot("histogram_likelihood") do
     @printf("P(D) = %.3f\n", hist_result.stats.pvalue)
     println(diagnostic_dashboard_text(hist_result))
 end
-for variant in DOC_PLOT_VARIANTS, appearance in (:light, :dark)
+for variant in DOC_PLOT_VARIANTS, appearance in (:light,)
     save_histogram_fit(
         hist_result,
         edges,

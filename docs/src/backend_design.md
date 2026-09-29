@@ -1,12 +1,10 @@
 # Backend Design
 
-This page is the contributor map for ScientificFitting's numerical core. It explains
-where statistical meaning is established, where numerical work happens, and
-which boundaries must not be blurred. User-facing signatures and defaults are
-documented in the [API Reference](api.md); the statistical derivations are in
-[Mathematics and Statistics](statistical_foundations.md).
+This page is the contributor map for ScientificFitting's numerical core.
+User-facing signatures and defaults are in the [API Reference](api.md); the
+statistical derivations are in [Mathematics and Statistics](statistics.md).
 
-The central dependency direction is deliberately one-way:
+The dependency direction is one-way:
 
 ```math
 \begin{aligned}
@@ -18,13 +16,13 @@ The central dependency direction is deliberately one-way:
 \end{aligned}
 ```
 
-Later stages may inspect an earlier result. They must not reconstruct or mutate
-the statistical problem behind it.
+Later stages may inspect an earlier result, never reconstruct or mutate the
+statistical problem behind it.
 
 ## Two Problem Families
 
-ScientificFitting has two normalized problem types because a residual vector and a
-general likelihood do not expose the same information.
+A residual vector and a general likelihood do not expose the same information,
+so there are two normalized problem types.
 
 | Normalized problem | Scientific payload and public path |
 |---|---|
@@ -34,27 +32,22 @@ general likelihood do not expose the same information.
 Both families share parameter bounds, fixed parameters, Gaussian parameter
 terms, nonlinear constraints, multistart selection, local covariance,
 diagnostics, and profile refits. They stay separate where their data contracts
-differ: a generic likelihood need not have x-y residuals, model predictions, or
-a natural fit curve.
+differ: a generic likelihood need not have x-y residuals, predictions, or a
+fit curve.
 
 ## One Fit, Step By Step
 
 ### 1. Normalize and validate the scientific input
 
-Convenience functions construct a `FitProblem` or `LikelihoodFitProblem` before
-optimization begins. Problem construction and the public fit entry points copy
-numeric inputs into stable storage and reject mismatched dimensions, non-finite
-observations or starting values, non-positive standard deviations, invalid
-covariance matrices, inconsistent parameter indices, and fixed values outside
-declared bounds before solver dispatch.
-
-This boundary is intentional. A solver should never be asked to discover that a
-covariance matrix is not positive definite or that the model returned the wrong
-number of predictions.
+Problem construction and the public fit entry points copy numeric inputs into
+stable storage and reject mismatched dimensions, non-finite observations or
+starting values, non-positive standard deviations, invalid covariance
+matrices, inconsistent parameter indices, and fixed values outside declared
+bounds before solver dispatch.
 
 ### 2. Map full parameters to optimizer coordinates
 
-The scientific model always sees the complete parameter vector. Fixed
+The scientific model always sees the complete parameter vector; fixed
 parameters are removed only from the optimizer-visible vector:
 
 ```math
@@ -63,11 +56,10 @@ q_{\mathrm{free}}
 p_{\mathrm{full}}.
 ```
 
-Bounds are reduced to the same free coordinates. Nonlinear constraint callbacks
-are wrapped so that user code still receives `p_full`. After fitting, free
-covariance and Jacobian blocks are embedded back into full parameter order.
-This single mapping is reused by ordinary fits, multistart candidates, profiles,
-and contours.
+Bounds are reduced to the same free coordinates, and nonlinear constraint
+callbacks still receive `p_full`. After fitting, free covariance and Jacobian
+blocks are embedded back into full parameter order. Ordinary fits, multistart
+candidates, profiles, and contours reuse this one mapping.
 
 ### 3. Prepare reusable evaluation state
 
@@ -80,14 +72,11 @@ evaluations:
 - `WhiteningOperator` keeps the supplied matrix-free operation and determinant,
 - correlated parameter constraints are factorized once.
 
-The general Gaussian path stores this state in `FitEvaluationCache`; likelihood
-fits use `LikelihoodEvaluationCache` for reusable parameter-constraint state.
-The LsqFit path prepares equivalent static weights directly for its native
-residual interface.
-
-Parameter-dependent covariance is not cached as if it were static. Effective
-x-error covariance and model-relative uncertainty must be recomputed at each
-parameter point because that dependence is part of the probability model.
+This state lives in `FitEvaluationCache` (Gaussian) and
+`LikelihoodEvaluationCache` (likelihood); the LsqFit path prepares equivalent
+static weights for its native residual interface. Parameter-dependent
+covariance — [effective x errors](statistics.md#Uncertainty-In-X) and
+model-relative components — is recomputed at each parameter point, not cached.
 
 ### 4. Construct exactly one objective
 
@@ -98,6 +87,11 @@ covariance is parameter independent:
 \chi^2(p)=r(p)^\mathsf{T}V^{-1}r(p).
 ```
 
+Here ``r(p) = y - f(x, p)`` is the residual vector of the model ``f`` at
+parameters ``p``, ``V`` is the observation covariance matrix, and ``n`` is the
+number of observations; ``V(p)`` below denotes the same covariance when it
+depends on the fitted parameters.
+
 When the effective covariance depends on the fitted parameters, it selects the
 normalized Gaussian objective:
 
@@ -106,149 +100,165 @@ normalized Gaussian objective:
 =n\log(2\pi)+\log\det V(p)+r(p)^\mathsf{T}V(p)^{-1}r(p).
 ```
 
-The log determinant cannot be dropped in the second case. Doing so changes the
-optimum, not merely the reported normalization.
-
-Likelihood problems provide their data objective directly on the ``-2\log L``
-scale. Gaussian parameter priors and correlated parameter constraints are then
-added by the shared parameter layer. Bounds and fixed parameters restrict the
-parameter space; they are not hidden penalty terms.
+The determinant term then changes the optimum and cannot be dropped; see
+[Full Gaussian Likelihood](statistics.md#Full-Gaussian-Likelihood).
+Likelihood problems provide their data objective directly on the
+[``-2\log L`` scale](statistics.md#The-Cost-Convention). The shared parameter
+layer adds Gaussian priors and correlated parameter constraints; bounds and
+fixed parameters restrict the parameter space, never as hidden penalty terms.
 
 ### 5. Dispatch only to a compatible solver
 
-Derivative selection is stored in the problem, not in the renderer.
-`derivatives=:auto` keeps the Julia defaults; `derivatives=:finite` uses central
-finite differences for foreign callbacks that accept ordinary floating-point
-values but not ForwardDiff dual numbers. It applies to optimization, constraint
-derivatives, post-fit covariance, predictions, and profile/contour refits.
-Explicit model Jacobians and x-derivatives take precedence where they apply.
-The solver stopping tolerance defaults to `1e-6` in finite mode and `1e-10`
-otherwise. This avoids demanding convergence below the noise floor of
-numerically differenced gradients; it is not an error bound on fitted
-parameters. Explicit `tol` values are preserved, including when they lead to
-a reported convergence failure.
-For LsqFit, `maxiters` maps to `maxIter` and `tol` to both its step (`x_tol`)
-and gradient (`g_tol`) criteria. The result keeps the solver's actual
-convergence flag; reaching an iteration limit does not imply success.
+Derivative selection is stored in the problem. `derivatives=:auto` keeps
+forward-mode automatic differentiation (ForwardDiff); `derivatives=:finite`
+uses central finite differences for foreign callbacks that accept ordinary
+floats but not ForwardDiff duals, and applies to optimization, constraint
+derivatives, post-fit covariance,
+predictions, and profile/contour refits. Explicit model Jacobians and
+x-derivatives take precedence. Tolerance and budget defaults are tabulated
+under [Solver Control](api.md#Solver-Control): the finite-mode `1e-6` versus
+`1e-10` `tol` split and the per-solver meaning of `maxiters`. NativeMinuit's
+EDM default of `0.1` is documented under
+[Solver Adapters](api_fitting.md#Solver-Adapters). On the LsqFit path,
+`maxiters` maps to `maxIter` and the single `tol` to both `x_tol` and `g_tol`.
+Explicit `tol` values are preserved, and the result keeps the solver's actual
+convergence flag, so an iteration limit never implies success.
 
-The finite mode differentiates the **whole** objective, including any
-parameter-dependent covariance and its log determinant. It is an approximation,
-not a claim of exact derivatives: noisy models, badly scaled parameters, and
-non-smooth/domain-limited callbacks still need care. Differentiated models must be evaluable
-in a neighborhood of each evaluation point, including near declared bounds.
-For pointwise x-error propagation, four vectorized model calls give a central
-fourth-order estimate of every `df/dx`, rather than one Python call per
-observation. The step ``h_i = \epsilon^{1/5}\max(|x_i|,1)`` balances truncation
-and roundoff; the larger step also reduces noise when the likelihood gradient
-differentiates this estimate again. Analytic `x_derivative` callbacks bypass it.
+Finite mode differentiates the **whole** objective, including any
+parameter-dependent covariance and its log determinant; differentiated models
+must be evaluable in a neighborhood of each evaluation point, including near
+declared bounds. Pointwise x-error propagation uses four vectorized model
+calls for a central fourth-order estimate of every `df/dx` with step
+``h_i = \epsilon^{1/5}\max(|x_i|,1)``, with machine epsilon
+``\epsilon = \mathrm{eps}(\mathrm{Float64}) \approx 2.2\times10^{-16}``;
+analytic `x_derivative` callbacks bypass it.
 
-The Python bridge converts inputs once and enters the selected fit through
-`invokelatest`, an inference boundary outside the numerical loop. This prevents
-compiling all solver branches through Python's dynamic call dispatcher. Foreign
-callbacks use a private `_TypedCallback{R}`: the result type is concrete, while
-one dynamic dispatch calls the runtime-created closure. Different Python models
-therefore share Julia solver specializations. Native Julia models bypass it.
-The Python adapter declares the output rank: models and x-derivatives return
-vectors, allocating parameter Jacobians return matrices. Input validation must
-preserve that distinction before Julia conversion.
-A small `PrecompileTools` workload caches Gaussian/Poisson numerical kernels,
-prediction, and reporting with ordinary Julia callbacks. It neither starts
-Python nor loads plotting during installation or package import.
+The Python bridge converts inputs once and enters the fit through
+`invokelatest`, so Julia gives up compile-time specialization exactly once
+per fit rather than inside the numerical loop. Foreign callbacks are wrapped
+in a private `_TypedCallback{R}` whose declared result type `R` lets the
+solver code stay compiled, at the price of one dynamic call per model
+evaluation; different Python models therefore share Julia solver
+specializations, while native Julia models bypass the wrapper. Models and
+x-derivatives return vectors, allocating parameter Jacobians return matrices.
+A `PrecompileTools` workload
+caches Gaussian/Poisson kernels, prediction, and reporting without starting
+Python or loading plotting.
 
-Event and histogram density helpers accept `vectorized=true` without changing
-their scalar default. Event log likelihoods use one density call per objective;
-integrals use QuadGK's `BatchIntegrand`, retaining adaptive error control for
-each bin. Batch buffers retain the parameter element type, including dual
-numbers, and are reused across bins within one objective evaluation. Profile
-refits retain the same density closure. An analytic bin integral can instead
-be supplied through `fit_histogram_model`, avoiding quadrature entirely.
+Density helpers accept `vectorized=true` without changing their scalar
+default: one batched density call over all observations per objective
+evaluation instead of one scalar call per point, QuadGK's `BatchIntegrand`
+with per-bin adaptive error control, dual-number-preserving batch buffers
+reused across bins, and the same density closure in profile refits. An
+analytic bin integral supplied through `fit_histogram_model` avoids quadrature
+entirely.
 
-Solver selection follows the represented problem rather than a speed preference:
+Solver selection follows the represented problem rather than a speed
+preference:
 
 | Condition | Backend |
 |---|---|
 | All parameters fixed | no optimizer; evaluate the complete result once |
 | Unbounded, static Gaussian chi-square without extra parameter terms | LsqFit least-squares path |
-| Bounds, priors, parameter constraints, parameter-dependent covariance, or likelihood objective | Optimization.jl with LBFGS |
+| Bounds, priors, parameter constraints, active error components, parameter-dependent covariance, or likelihood objective | Optimization.jl with LBFGS |
 | Nonlinear equality or inequality constraints | Optimization.jl with IPNewton |
-| Likelihood with explicit `optimizer=:nelder_mead` and no nonlinear constraints | OptimizationNLopt with native bounded Nelder-Mead, without derivatives |
+| Likelihood with explicit `solver=:nelder_mead` and no nonlinear constraints | OptimizationNLopt with native bounded Nelder-Mead, without derivatives |
 
-An explicit `backend=:lsqfit` request is rejected if it would discard any part
-of the statistical problem. Backend selection may change how the same objective
-is minimized; it must never change which objective is being minimized.
+There is no backend forcing: features outside static least squares route to
+the scalar solver automatically. Backend selection may change how the
+objective is minimized, never which objective is minimized.
 
-Likelihood `optimizer` and `parameter_covariance` are independent options stored
-in `FitOptions` and retained by profile refits. Nelder-Mead defaults to no
-Hessian calculation, not a numerical Hessian across a kink or support boundary.
-It uses the same objective/cache and parameter controls, without a separate
-statistics implementation or bound penalty. Its `maxiters` is NLopt's objective
-evaluation budget; the unavailable iteration count remains `missing`.
+### The Solver Extension Boundary
 
-Both fit families use one multistart ranking rule: a converged finite result
-outranks an unconverged one; within the same status, the lower cost wins. If
-every run stops early, return the best finite result with `converged=false`,
-not merely the first candidate.
+Both problem families enter `src/solvers.jl` for scalar minimization; the
+specialized LsqFit residual path remains in `src/fit.jl`. An explicit
+`solver::AbstractFitSolver` overrides automatic numerical selection, not the
+statistical model. An adapter implements:
 
-Both solver objectives retain the model/objective type even when their evaluation
-cache is passed as solver context. ForwardDiff tags must not be shared between
-precompiled fits and unseen models with nested x derivatives
-([ForwardDiff #714](https://github.com/JuliaDiff/ForwardDiff.jl/issues/714)).
-The startup gate compares automatic and analytic x derivatives in a fresh
-process, for diagonal and dense x covariance, and checks a custom objective
-with a nested derivative against its exact minimum and covariance. Python's
-typed finite-difference callbacks still share their precompiled solver path.
+- `solver_capabilities`: support for bounds/constraints and required derivatives.
+- `solve_fit`: minimize the prepared `OptimizationProblem` and return
+  `FitSolverResult` in its free coordinates, with native result and actual status.
+- Optionally `default_fit_tolerance`: supply the solver's stopping tolerance
+  when the user omits `tol`; the core stores it before multistart or profiling.
 
-CHOLMOD's sparse solves do not accept ForwardDiff dual numbers. Static sparse
-covariance therefore requires `derivatives=:finite` with the general optimizer,
-or an AD-compatible `WhiteningOperator` instead. The least-squares path remains
-available without that override. Python uses finite derivatives consistently,
-including sparse fits with bounds and profile refits. Sparse covariance
-components are validated through their stored entries, without a dense copy.
+The core owns objective construction, parameter mapping, capability checks,
+derivative policy, multistart ranking, statistical summaries, and profile
+refits. Adapters do not add priors, reinterpret error scales, or silently drop
+constraints; unknown iteration counts stay `missing`. Solver settings persist
+when a profile changes the number of free parameters, so NLopt adapters take
+algorithm enums rather than dimension-bound native `Opt` instances.
+
+`OptimizationSolver` uses SciML's algorithm traits and termination codes.
+`ScientificFittingNativeMinuitExt` loads only with NativeMinuit and supplies
+the same cost and derivative policy to MIGRAD with `errordef=1`; its native
+result keeps covariance and failure evidence behind a non-specializing result
+field, so one result type serves all models and solvers while the numerical
+kernels still specialize. Conventions:
+[Solver Adapters](api_fitting.md#Solver-Adapters).
+
+The likelihood `solver` and `parameter_covariance` keywords are independent
+options stored in `FitOptions` and retained by profile refits; their contracts,
+including Nelder-Mead's evaluation budget and Hessian-free default, are in
+[Minimization And Local Errors](api_fitting.md#Minimization-And-Local-Errors).
+
+One multistart ranking rule serves both families: the candidate with the
+lowest finite cost wins, and convergence status only breaks exact cost ties.
+The cost is the fitted quantity, so a formally converged stop at a worse
+minimum never displaces a better minimum whose solver stopped without a
+convergence code; a non-converged winner is returned with `converged=false`
+instead of being silently replaced. If no candidate produces a finite result,
+the last error is raised.
+
+ForwardDiff tags must not be shared between precompiled fits and unseen models
+with nested x derivatives
+([ForwardDiff #714](https://github.com/JuliaDiff/ForwardDiff.jl/issues/714));
+the startup gate checks exactly this in a fresh process. CHOLMOD's sparse
+solves reject ForwardDiff duals, so static sparse covariance requires
+`derivatives=:finite` with the general optimizer or an AD-compatible
+`WhiteningOperator`; the least-squares path needs no override, Python uses
+finite derivatives consistently (including sparse fits with bounds and profile
+refits), and sparse covariance components are validated through their stored
+entries, without a dense copy.
 
 ### 6. Build the result once
 
-`FitResult` and `LikelihoodFitResult` are the numerical source of truth. Result
-construction records the selected minimum, solver status, parameter estimates,
-local parameter covariance, correlations, statistics, and diagnostics. Gaussian
-x-y results additionally retain model predictions, raw residuals, weighted
-residuals, and the weighted Jacobian.
+`FitResult` and `LikelihoodFitResult` are the numerical source of truth:
+selected minimum, solver status, parameter estimates, local covariance,
+correlations, statistics, and diagnostics. Gaussian x-y results additionally
+retain predictions, raw and weighted residuals, and the weighted Jacobian.
 
-For static least squares, local covariance comes from the weighted Jacobian. For
-Gaussian likelihood and general likelihood fits, it comes from the objective
-Hessian on the ``-2\log L`` scale. `LikelihoodFitResult` construction evaluates
-it once and reuses it for diagnostics.
-For likelihoods with `parameter_covariance=:none`, free errors/covariances are
-`NaN`, fixed errors remain zero, and diagnostics explain the omission rather
-than claiming a curvature failure. Covariance conditioning uses free coordinates;
-a fixed parameter's zero variance is not a singularity. This covariance is a local approximation;
-profiles and contours remain separate refit operations when the cost is not
-locally quadratic.
+For static least squares, local covariance comes from the weighted Jacobian;
+otherwise from the objective Hessian on the ``-2\log L`` scale, evaluated once
+and reused for diagnostics. With `parameter_covariance=:none`, free errors and
+covariances are `NaN`, fixed errors remain zero, and diagnostics explain the
+omission rather than claiming a curvature failure. Conditioning uses free
+coordinates; a fixed parameter's zero variance is not a singularity. The
+covariance is a
+[local approximation](statistics.md#Local-Parameter-Covariance); profiles and
+contours remain separate refit operations.
 
 ### 7. Read the result without changing it
 
 `report_text`, `diagnose`, and `diagnostic_dashboard` consume result fields.
 `profile` and `contour` reuse the stored normalized problem, fix one or two
-parameters, and refit the remaining nuisance parameters. Plotting is an optional
-CairoMakie package extension and consumes the same result objects. None of these
-paths reruns or alters the original fit unless the API explicitly describes a
-profile or contour refit.
+parameters, and refit the remaining nuisance parameters. Plotting is an
+optional CairoMakie package extension consuming the same result objects. None
+of these paths reruns or alters the original fit unless the API explicitly
+describes a refit.
 
-Automatic scan ranges intersect the local-covariance range with declared bounds;
-they do not generate known-infeasible trial values. Explicit grids are preserved,
-and missing threshold crossings remain missing rather than being replaced by a
-bound. This policy is shared by Gaussian and general-likelihood profiles,
-contours, and matrices.
+Automatic scan ranges intersect the local-covariance range with declared
+bounds; explicit grids are preserved, and missing threshold crossings remain
+missing rather than being replaced by a bound, in Gaussian and
+general-likelihood profiles, contours, and matrices alike.
 
-The Python renderer uses native Matplotlib objects, not Makie. Both renderers
-share core residual/ratio preparation; observation pulls use stored whitened
-residuals without auxiliary parameter terms. Completed profile/contour snapshots
-are rendered without further scans. Matplotlib's constrained layout reserves
-outside legends and reports; the wrapper does not install a separate layout
-engine or resize callbacks.
+The [Python renderer](python.md) uses native Matplotlib objects, not Makie.
+Both renderers share residual/ratio preparation; observation pulls use stored
+whitened residuals without auxiliary parameter terms, completed
+profile/contour snapshots render without further scans, and Matplotlib's
+constrained layout reserves outside legends and reports without a separate
+layout engine or resize callbacks.
 
 ## Numerical Invariants
-
-These are architectural rules, not implementation preferences.
 
 | Invariant | Consequence |
 |---|---|
@@ -265,8 +275,7 @@ These invariants are the review contract for changes to the numerical core.
 
 ## Source Map
 
-The core is split by responsibility rather than by feature-specific vertical
-stacks.
+The core is split by responsibility, not by feature-specific vertical stacks.
 
 | Source | Owns |
 |---|---|
@@ -275,21 +284,24 @@ stacks.
 | `weights.jl` | covariance preparation, whitening, weighted residuals/Jacobians, local covariance helpers, backend compatibility |
 | `costs.jl` | chi-square, normalized Gaussian likelihood, priors, and correlated parameter terms |
 | `fit.jl` | Gaussian solver dispatch and `FitResult` construction |
+| `solvers.jl` and `ext/ScientificFittingNativeMinuitExt.jl` | scalar solver contract, capabilities and optional MIGRAD adapter |
 | `derivatives.jl` and `prediction.jl` | shared derivative policy and model-mean uncertainty propagation |
 | `likelihood_fits.jl` | likelihood problem construction, wrappers, solver path, and `LikelihoodFitResult` |
+| `distribution_fits.jl` and `ext/ScientificFittingDistributionsHEPExt.jl` | upstream probability objects, normalization, histogram integrals and extended yields |
+| `ext/ScientificFittingBuildConstructorsExt.jl` | named constructor metadata, parameter mapping and fitted-model reconstruction |
 | `profile.jl` | fixed-parameter refits, profile intervals, contours, matrix summaries, and their diagnostics |
 | `diagnostics.jl` | structured findings, severity, evidence, next actions, and renderer-independent residual values |
 | `report.jl` | Makie-free report objects and text formatting |
 | `plotting_api.jl` | public plotting boundary and informative fallback methods |
 | `ext/ScientificFittingCairoMakieExt.jl` plus `plotting.jl` | CairoMakie rendering only |
 
-This map is also a review rule. For example, a plotting feature should not add a
-second statistical calculation, and a new optimizer should not own covariance
+This map is also a review rule: a plotting feature should not add a second
+statistical calculation, and a new optimizer should not own covariance
 semantics.
 
 ## Where A New Feature Belongs
 
-Before adding a type or abstraction, first ask whether an existing problem can
+Before adding a type or abstraction, ask whether an existing problem can
 already express the required statistics.
 
 | Change | Preferred integration |
@@ -301,9 +313,8 @@ already express the required statistics.
 | New diagnostic | consume a result or profile object and return structured evidence plus an action |
 | New report or plot | consume existing result fields; keep rendering inside the optional extension |
 
-Do not add a parallel result type, cache, or solver path merely to support a new
-presentation. Small APIs that compose existing contracts are easier to audit
-than duplicated feature stacks.
+Do not add a parallel result type, cache, or solver path merely to support a
+new presentation.
 
 ## Verification Map
 
@@ -326,45 +337,166 @@ Architecture changes need evidence at the layer they affect:
 | Plot composition and extension behavior | `test/plots/fitplot.jl` |
 | NumPy callback parity, native Matplotlib panels, profiles, and ownership | `python/tests` |
 
-The core gate is `julia --project=. test/core_runtests.jl`; the complete package
-gate is `julia --project=. test/runtests.jl`. Performance methodology and the
-benchmark runner are documented on the [Performance](performance.md) page.
+The core gate is `julia --project=. test/core_runtests.jl`; the complete
+package gate is `julia --project=. -e "using Pkg; Pkg.test()"`, which adds
+the optional CairoMakie test dependency. Benchmark methodology is in
+[Performance Checks](backend_design.md#Performance-Checks).
 
 For a page-level output check, run
 `julia --project=docs test/docs_output_snapshots.jl gallery/resonance_decay.md`
-(additional page paths are accepted). Without page arguments the gate executes
-every documented workflow. It compares the displayed output with both the
-page's code cells and the example generator; only solver iteration counts are
-normalized across solver/platform versions.
+(more page paths are accepted; without arguments it executes every documented
+workflow). It compares the displayed output with both the page's code cells
+and the example generator; only solver iteration counts are normalized across
+solver/platform versions.
 
-## Planned Work
+## [Ecosystem Integrations](@id v03-ecosystem)
 
-- [x] **v0.2: concrete statistical scope at the entry point.** README and
-  documentation entry now distinguish observation models, likelihood
-  optimization, local parameter errors, profiles, and model bands from
-  posterior sampling. Source checks guard that distinction.
-- [x] **User-defined measurement-error distributions.** `fit_likelihood_model`
-  now accepts batched log densities/masses in Julia and Python, reusing the
-  common likelihood engine. Gaussian, fitted-scale, Binomial, and Student-t
-  references cover normalization and curvature. Bounded derivative-free
-  Nelder-Mead and independent covariance controls now cover non-smooth and
-  moving-support examples without fabricated Hessian errors. Laplace and
-  exponential references verify minima and profile costs; worked guidance
-  distinguishes successful minimization from valid interval coverage.
-- [ ] **v0.2: complete the native Python interface.** The preview now wraps
-  every high-level fit family, named parameter controls, sparse/structured
-  covariance, in-place callbacks, and core reports/profiles/diagnostics.
-  [Python examples](python.md) use NumPy models and native Matplotlib; the
-  wrapper does not duplicate statistical algorithms or require Makie.
-  Numerical API review and eleven fresh-process cases verify parameters,
-  covariance, and cost against analytic references. [Startup and callback
-  measurements](performance.md#Python-Startup) distinguish first use from warm
-  fitting and record the remaining runtime and quadrature overhead.
-  Local installed-wheel provisioning and Conda Python 3.14 reference fits pass
-  on macOS ARM64. Wheel/sdist metadata, MIT license, and the 0.2 core pin are
-  checked; installed Conda and packaged wheel runtime files match the current
-  sources. Registry installation checks reject persisted development/repository
-  overrides and record the actual resolved core source and tree hash.
-  **Remaining:** run the configured installed-package CI on Linux, macOS, and
-  Windows, then repeat clean wheel/Conda installation against the registered
-  0.2 core without development overrides before publishing Python packages.
+[Packages and Interfaces](interfaces.md) holds executable examples of
+distribution fitting, named model construction, interchangeable solvers and
+posterior inference. The [Python interface](python.md) keeps NumPy callbacks
+and Matplotlib plots and does not wrap Julia constructor or solver objects.
+
+| Interface | Contract | Focused reference tests |
+|:---|:---|:---|
+| Distribution objects | Reuse upstream `logpdf`/`pdf`/`cdf`; continuous, discrete and joint observations, binned and extended likelihoods | `test/extensions/distribution_ecosystem.jl`, `composite_distributions.jl` |
+| BuildConstructors | Preserve names, starts, bounds, fixed/shared parameters and reconstruction; independent of Minuit | `test/extensions/buildconstructors.jl` |
+| NativeMinuit / Optimization | Same statistical objective, parameter controls and nuisance refits; explicit solver capabilities | `test/extensions/native_minuit.jl`, `model_composition.jl` |
+
+Analytic references cover normalization, gradients, Hessians, mixture
+boundaries and nuisance refits. A named extended model agrees between Optim
+and NativeMinuit; the opt-in probe `benchmarks/ecosystem.jl` compares both
+paths at matched accuracy.
+
+### Real-Data Reference
+
+The [LHCb three-hadron B-decay data](https://opendata.cern.ch/record/4900)
+supply the [mass-spectrum example](gallery/lhcb_mass_spectrum.md): 3,420,295
+MagnetUp candidates, 9,717 after the notebook's PID cuts, 7,368 in the fit
+window. `examples/data/lhcb_mass/prepare.jl` verifies the ROOT checksum and
+rebuilds every bin; the CC0 collision data, DOI, cuts and model limits are
+documented on the page, and the full ROOT download stays outside Git and the
+ordinary docs build.
+
+`benchmarks/lhcb_reference.py` checks the two peak shapes independently using
+SciPy CDFs and C++ Minuit2; executed documentation checks the minima, local
+errors and signal-yield profile against those references. This is a
+conditional mass-spectrum fit, not a reproduction of an LHCb paper; keep data
+preparation, warm fitting and uncertainty analysis separate in timing, and do
+not advertise 3.4 million scanned candidates as 3.4 million fitted events.
+
+The binned distribution adapter processes each mixture component across all
+bins rather than dispatching per bin, retaining log-space probability sums and
+derivatives through truncation and zero weights; regressions compare values,
+gradients and Hessians with the scalar formulation and bound allocations for
+10,000 bins. Unbinned heterogeneous mixtures reduce native component batches
+in blocks of at most 4,096 events, bounding event-sized gradient/Hessian
+scratch without binning, sampling, or rebuilding the model per block; total
+work still scales with the event count, and regressions cover the final
+partial block and zero weights.
+
+Likelihood quadrature estimates its error from the maximum norm of the value
+and all nested AD coefficients, so a locally constant density cannot hide an
+oscillatory derivative. Moving finite integration bounds are mapped to
+`[0, 1]` without discarding derivatives. CDFs violating range/order by
+roundoff are reintegrated from the PDF in `integration=:auto`; strict `:cdf`
+and larger violations still fail, and no probabilities are clipped. A
+DistributionsHEP tail case reproduces the original CDF-roundoff failure.
+
+The example uses upper-only truncation of an exponential's natural support:
+Distributions 0.25.131's redundant lower bound at zero produces undefined AD
+derivatives in its log normalizer, while the equivalent upper-only constructor
+keeps valid automatic derivatives. The shared scalar-solver boundary rejects
+non-finite initial gradients and, when required, Hessians; the error names the
+derivative failure and the finite-difference option and never silently changes
+differentiation policy. No upstream types are patched.
+
+### Shared Contract
+
+1. **Statistical meaning stays in ScientificFitting.** Solvers receive the same
+   validated objective/residuals, parameter mapping, and constraints. Likelihood
+   costs use ``-2\log L``; the Minuit adapter must use the matching error scale
+   (`errordef=1`). Probability densities, discrete masses, and event intensities
+   remain distinct. Dependent observations require a joint likelihood, not a
+   product of marginal probabilities; discrete data do not imply discrete fit
+   parameters are supported.
+2. **Capabilities are explicit.** Check bounds, nonlinear constraints, required
+   derivatives, and residual versus scalar objectives before solving. Reject
+   unsupported requests instead of dropping constraints or adding hidden
+   penalties. Retain explicit solver/derivative options in multistart and all
+   nuisance-parameter refits. Document backend-specific tolerance and budget
+   meanings rather than pretending iterations and function calls are identical.
+3. **Results preserve evidence.** Normalize parameters, objective values, and
+   convergence status while retaining native failure details. Keep minimizer
+   selection independent of local covariance, MINOS intervals, and contour
+   methods. Record missing crossings, parameter boundaries, and failed scans;
+   do not substitute symmetric errors for an invalid asymmetric interval.
+4. **Metadata is not statistics.** Constructor metadata used for optimizer step
+   sizes is not a measurement uncertainty or Gaussian prior. Parameter terms
+   remain explicit. Reject conflicting names/bounds and avoid silently mutating
+   the user's constructor during optimization or profiling.
+5. **Reuse expensive work at the correct scope.** Prepare a parameter-dependent
+   distribution and its normalization once per distinct model at each parameter
+   point, not once per observation. Preserve dual-number types, batched
+   evaluation, stable log densities, and analytic bin integrals/CDF differences
+   where available. Fall back to controlled quadrature or an explicit finite
+   derivative mode where appropriate; never cache a normalization across changed
+   parameters or claim smoothness for an arbitrary interpolated density.
+
+### Solver And Posterior Checks
+
+The solver contract is exercised with LsqFit, Optim through Optimization.jl,
+bounded NLopt Nelder-Mead, and NativeMinuit, across residual, scalar-gradient,
+nonlinear-constrained, derivative-free and profile-refit paths; C++ Minuit2
+provides an independent likelihood-fit reference.
+
+Turing is a complementary posterior-inference workflow, not a MIGRAD
+substitute. Its
+[external-likelihood interface](https://turinglang.org/docs/usage/external-likelihoods/index.html)
+reuses `-problem.objective(p)/2` for an explicitly normalized data likelihood;
+the [executed example](interfaces.md#Posterior-Inference) specifies priors and
+support in Turing, without copying SF parameter terms or constraints. A
+Gamma-Poisson reference checks data/prior separation, values, gradients,
+Hessians, and four NUTS chains against the analytic posterior and Turing's
+chain diagnostics. The core has no Turing dependency or sampler wrapper;
+posterior credible intervals and profile confidence intervals keep their
+different meanings.
+
+Each required adapter needs analytic or independent parameter/objective/error
+references, a constraint/failure case, profile-refit parity, and executable
+documentation. A nested signal-plus-background model must work through
+BuildConstructors with two solvers without rewriting its likelihood. Measure
+adapter overhead against direct upstream calls at the same objective and
+accuracy, separating startup, warm fitting, and uncertainty analysis, by
+extending existing targeted tests rather than duplicating a benchmark
+framework.
+
+The core supports Julia 1.10. The optional
+[NativeMinuit 0.7.2](https://github.com/fkguo/NativeMinuit.jl/blob/v0.7.2/Project.toml)
+requires Julia 1.11 and declares LGPL-2.1-or-later; the Turing 0.48 reference
+is executed on the docs environment (Julia 1.13.0). Plot tests cover
+CairoMakie 0.13 and 0.15.14+, the newer line permitting coexistence with
+Turing's chain-plotting dependencies.
+
+## Performance Checks
+
+The canonical benchmark run is
+
+```bash
+julia --project=benchmarks benchmarks/runbenchmarks.jl --seconds=1
+```
+
+with `--save` and `--compare` for TOML baselines; a comparison fails on missing
+benchmark cases or mismatched machine metadata. Two standalone probes back the
+scaling numbers quoted in [Validation](validation.md):
+`benchmarks/whitening_scaling.jl` (matrix-free whitening against dense
+covariance at growing ``n``) and `benchmarks/ttfx_probe.jl` (first-fit and
+per-model compilation cost); the startup gate below executes
+`benchmarks/startup_probe.jl`. Two CI gates back the claims on
+this page: `test/startup_probe_gate.jl` verifies fresh-process loading —
+`using ScientificFitting` without Makie — together with nested automatic x
+derivatives, and `test/performance_budget_gate.jl` checks broad steady-state
+budgets for representative warmed hot paths, catching regressions such as
+losing the fast path or recomputing static covariance work inside the
+objective. The LsqFit least-squares fast path is selected automatically for
+unbounded static chi-square fits (`[-Inf, Inf]` counts as no-op bounds), and
+its weighted Jacobian is reused during `FitResult` construction.

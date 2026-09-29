@@ -44,11 +44,15 @@ using Test
     @test_throws ErrorException profile(result, 1; values=[-0.5, 0.0, 0.5], on_failure=:throw)
 end
 
-@testset "Multistart ranks status before cost and keeps the best fallback" begin
+@testset "Multistart ranks cost before status and keeps the best fallback" begin
     record(converged, cost) = (; converged, stats=(cost_min=cost,))
     prefer = ScientificFitting._prefer_fit
-    @test prefer(record(true, 1.), record(false, 0.))
-    @test !prefer(record(false, 0.), record(true, 1.))
+    # The lower minimum wins even against a formally converged stop; the
+    # non-converged winner is reported as non-converged instead of replaced.
+    @test !prefer(record(true, 1.), record(false, 0.))
+    @test prefer(record(false, 0.), record(true, 1.))
+    @test prefer(record(true, 1.), record(false, 1.))
+    @test !prefer(record(false, 1.), record(true, 1.))
     for converged in (false, true)
         @test prefer(record(converged, 1.), nothing)
         @test prefer(record(converged, 1.), record(converged, 2.))
@@ -62,7 +66,7 @@ end
 
     # Neither run may move with a one-evaluation budget; the second is better.
     custom = fit_custom(p -> (p[1]-2)^2; p0=[0.], initial_guesses=[[1.]],
-        multistart=2, nobs=10, optimizer=:nelder_mead, maxiters=1)
+        multistart=2, nobs=10, solver=:nelder_mead, maxiters=1)
     @test !custom.converged
     @test custom.params == [1.]
     @test custom.stats.cost_min == 1.

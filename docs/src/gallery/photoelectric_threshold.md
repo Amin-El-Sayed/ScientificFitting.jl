@@ -1,20 +1,12 @@
 # Photoelectric Work Function
 
 This workflow estimates the work function of a metal from photoelectric
-stopping-voltage measurements. The transition is not identified by forcing a
-single line through a clipped dataset. The baseline and emission regimes are
-fitted separately, and the threshold is the intersection of those two fitted
-lines with uncertainty propagated from both covariance matrices.
+stopping-voltage measurements. The baseline and emission regimes are fitted
+separately; the threshold is the intersection of the two fitted lines, with
+uncertainty propagated from both covariance matrices.
 
 ```@raw html
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_sans_panel_dark.png" alt="Photoelectric work-function fit in dark sans style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_light.png" alt="Photoelectric work-function fit in sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="sans" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_sans_plot_dark.png" alt="Photoelectric work-function fit in dark sans style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_light.png" alt="Photoelectric work-function fit in tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-light" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_light.png" alt="Photoelectric work-function fit in tex style without result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="show" src="../assets/gallery/photoelectric_threshold_tex_panel_dark.png" alt="Photoelectric work-function fit in dark tex style with result panel">
-<img class="scientificfitting-plot scientificfitting-plot-dark" data-scientificfitting-plot-group="photoelectric-threshold" data-scientificfitting-plot-style="tex" data-scientificfitting-plot-panel="hide" src="../assets/gallery/photoelectric_threshold_tex_plot_dark.png" alt="Photoelectric work-function fit in dark tex style without result panel">
+<img class="scientificfitting-plot" src="../assets/gallery/photoelectric_threshold_sans_panel_light.png" alt="Photoelectric work-function fit in sans style with result panel">
 ```
 
 ## Question
@@ -26,35 +18,39 @@ the stopping-voltage excess measures the maximum kinetic energy:
 ```math
 e\,[U_\mathrm{emit}(\nu)-U_\mathrm{base}(\nu)]
 = h(\nu-\nu_0),
+\qquad \nu \ge \nu_0,
 \qquad
 \Phi=h\nu_0.
 ```
 
-The analysis answers three questions:
-
-- What is the fitted Planck constant ``h`` from the slope?
-- What is the work function ``\Phi`` from the threshold energy?
-- Where is the threshold frequency ``\nu_0`` where emission starts?
+The analysis extracts the Planck constant ``h`` from the slope, the work
+function ``\Phi`` from the threshold energy, and the threshold frequency
+``\nu_0`` where emission starts.
 
 ## Data
 
-This page uses a controlled teaching dataset designed to expose the transition
-analysis clearly; it is not presented as archival experimental data. The
+This is a controlled teaching dataset, not archival experimental data. The
 columns are frequency, stopping voltage, and individual standard uncertainties
-in both quantities. Eight points resolve the baseline below the transition; ten
-points resolve the emission regime. The uncertainties are heteroskedastic
-because frequency calibration and voltage readout precision change across the
-scan.
+in both quantities: eight points resolve the baseline below the transition,
+ten the emission regime. The uncertainties differ from point to point
+(heteroskedastic) because frequency calibration and voltage readout precision
+change across the scan.
 
-The regime assignment is an experimental decision made before the fit. Points
-inside an unresolved transition region should not be assigned opportunistically
-according to which line they happen to favor.
+Below the threshold no photoelectrons are emitted, so no stopping voltage
+exists there in the strict sense; the voltage recorded in that regime is the
+zero-current readout of the measurement chain (offset and drift). That is why
+those eight points enter the fit as an instrument baseline instead of being
+forced to zero.
+
+The regime assignment is an experimental decision made before the fit, not an
+opportunistic choice of whichever line a transition-region point happens to
+favor.
 
 ## Model
 
-Both observed regimes are locally linear. They are parameterized around
+Both regimes are locally linear and parameterized around
 ``\nu_\mathrm{ref}=550\,\mathrm{THz}``, close to the transition, rather than
-around the physically irrelevant point ``\nu=0``:
+around the physically irrelevant ``\nu=0``:
 
 ```math
 U_\mathrm{base}(\nu)
@@ -64,12 +60,12 @@ U_\mathrm{emit}(\nu)
 = m_\mathrm{emit}(\nu-\nu_\mathrm{ref}) + c_\mathrm{emit}.
 ```
 
-Centering does not change either line. It reduces the otherwise artificial
-slope-intercept correlation and makes ``c`` the fitted voltage near the region
-where the threshold is inferred.
+Centering does not change either line; it reduces the artificial
+slope-intercept correlation and makes ``c`` the fitted voltage near the
+threshold region.
 
 The baseline slope belongs to the readout chain, not to the photoelectric
-effect. The physical slope is therefore the difference
+effect. The physical slope is the difference
 
 ```math
 m_\gamma=m_\mathrm{emit}-m_\mathrm{base}
@@ -86,13 +82,14 @@ x_0 =
 \nu_0=\nu_\mathrm{ref}+x_0.
 ```
 
-This formula also explains the uncertainty problem. The denominator is the
-difference of two fitted slopes. If the two lines were nearly parallel, the
-same voltage noise would move the intersection by a large amount. ScientificFitting does
-not read the threshold error from either fit line alone; it propagates the
-covariance matrices of both fitted lines through this intersection formula.
+The denominator is the difference of two fitted slopes, so nearly parallel
+lines would let the same voltage noise move the intersection by a large
+amount; the covariance matrices of both fitted lines are propagated through
+this formula.
 
-The work function follows from the threshold photon energy:
+The work function follows from the threshold photon energy: since
+``\Phi = h\nu_0`` and ``h = 10^{-12}\,e\,m_\gamma``, the factors of ``e`` and
+``10^{12}`` cancel when ``\Phi`` is expressed in eV and ``\nu_0`` in THz:
 
 ```math
 \Phi[\mathrm{eV}] = m_\gamma[\mathrm{V/THz}]\,
@@ -101,9 +98,16 @@ The work function follows from the threshold photon energy:
 
 ## Fit
 
-This is the complete numerical analysis for the values shown below. The plot is
-constructed from the same two `FitResult`s in the next section; no refit occurs
-during rendering.
+The plot in the Plot Construction section below is constructed from the same
+two `FitResult`s; no refit occurs during rendering.
+
+The start values come from the physics: for a nearly flat baseline the
+expected emission slope is ``10^{12}h/e \approx 4.1\times10^{-3}\,\mathrm{V/THz}``,
+so `p0` starts the emission slope at `0.0042`; the baseline starts at zero
+slope for the same reason. No bounds are set — the fit reaches the same
+minimum even from a flat-slope start, and a fit that ends on an active bound
+would make the local covariance unreliable (see
+[Fixed Parameters And Bounds](../statistics.md#Fixed-Parameters-And-Bounds)).
 
 ```julia
 using ScientificFitting
@@ -145,7 +149,6 @@ emission = fit_model(
     p0=[0.0042, 0.02],
     sigma_y=sigma_voltage_V[emission_mask],
     sigma_x=sigma_frequency_THz[emission_mask],
-    bounds=([0.0, -5.0], [0.02, 5.0]),
 )
 
 me, ce = emission.params
@@ -196,7 +199,8 @@ println(diagnostic_dashboard_text(emission))
 ```@raw html
 <div class="scientificfitting-cell-output">
 <div class="scientificfitting-cell-output-label">Output from this code</div>
-<pre>h = 6.55527e-34 +/- 4.89176e-35 J s
+<pre>
+h = 6.55527e-34 +/- 4.89176e-35 J s
 Phi = 2.2493 +/- 0.1635 eV
 nu0 = 549.759 +/- 10.954 THz
 
@@ -208,17 +212,34 @@ No major diagnostic issues detected by the current checks.
 No next action required by the current diagnostic checks.
 emission
 Fit diagnostic dashboard
-status = ok - no immediate issue
-critical = 0, warning = 0, info = 0
-No major diagnostic issues detected by the current checks.
-No next action required by the current diagnostic checks.</pre>
+status = review - inspect diagnostics
+critical = 0, warning = 1, info = 0
+1 warning(s). Inspect before trusting uncertainties or conclusions.
+
+Next actions:
+  1. Use a covariance model, inspect acquisition order/time dependence, or fit a model with the missing systematic component.
+</pre>
 </div>
 ```
 
-Both centered line fits pass the automatic first-line checks. Their parameter
-covariances are nevertheless retained in full when propagating ``\nu_0`` and
-``\Phi``; an `ok` dashboard does not justify dropping slope-intercept
-correlation.
+The baseline dashboard is quiet; the emission fit draws one
+residual-correlation warning, whose named next check is the residuals in
+acquisition order. Neither status changes the propagation: parameter
+covariances are retained in full when computing ``\nu_0`` and ``\Phi``, and a
+quiet dashboard would not justify dropping slope-intercept correlation
+either.
+
+The warning names its own check: plot the pulls in acquisition order. Doing
+that here shows no trend, no drift, and no cluster of same-sign residuals;
+the flag comes from the lag-1 autocorrelation of the pulls, which is negative
+— neighboring residuals alternate in sign slightly more often than chance
+predicts, just past the 2σ threshold of that check. A drift or a missing
+systematic would produce the opposite signature, positive autocorrelation
+with runs of same-sign residuals, so the suggested fixes do not apply. With
+ten points, one check slightly past its threshold is accepted as a false
+alarm, and the propagated uncertainties are quoted as they stand. With real
+data, repeat this inspection against the acquisition log before quoting
+them.
 
 ## Interpretation
 
@@ -237,20 +258,18 @@ and
 ```
 
 The fitted ``h`` differs from the exact SI value
-``6.62607015\times10^{-34}\,\mathrm{J\,s}`` by about ``0.15\sigma``. Because the
-record is controlled teaching data, that agreement checks the analysis and
-uncertainty propagation; it is not an independent determination of the SI
-constant or evidence for a particular photocathode material.
+``6.62607015\times10^{-34}\,\mathrm{J\,s}`` by about ``0.15\sigma``. For
+controlled teaching data this agreement checks the analysis and uncertainty
+propagation, not the SI constant or a particular photocathode material.
 
 ## Plot Construction
 
-The plot is not a separate fitting workflow. The numerical work is already in
-`baseline`, `emission`, and the propagated intersection quantities. The figure
-then layers experiment-specific Makie annotations on top while still using
-ScientificFitting's style contract and information panel. This is the intended pattern
-for lab notebooks: fit once, keep the `FitResult`s, then add the threshold,
-accepted region, literature line, or derived quantity marker as visual
-annotations.
+The numerical work is already in `baseline`, `emission`, and the propagated
+intersection quantities; the figure layers experiment-specific Makie
+annotations on top of ScientificFitting's plot theme, palette, and
+information panel. This is the intended lab-notebook pattern: fit once, keep the
+`FitResult`s, then add annotations such as the threshold, an accepted region,
+or a literature line.
 
 ```julia
 using CairoMakie
@@ -335,9 +354,8 @@ save("photoelectric_threshold.pdf", fig)
 ```
 
 All colors, error bars, line widths, and report typography come from the
-selected ScientificFitting plot style. Switching to
-`style=:tex` or `appearance=:dark` therefore
-changes the whole figure coherently instead of requiring manual restyling.
+selected plot style; `style=:tex` or `appearance=:dark` restyles the whole
+figure coherently.
 
 ## Error Propagation
 
@@ -353,8 +371,12 @@ V_\mathrm{emit} & 0 \\
 \end{pmatrix}.
 ```
 
-For ``D=m_\gamma`` and ``x_0=\nu_0-\nu_\mathrm{ref}``, the threshold gradients
-with respect to the centered line parameters ``(m,c)`` are:
+For ``D=m_\gamma`` and ``x_0=\nu_0-\nu_\mathrm{ref}``, differentiating
+``\nu_0=\nu_\mathrm{ref}+(c_\mathrm{base}-c_\mathrm{emit})/D`` with respect
+to each of the four line parameters, with
+``\partial D/\partial m_\mathrm{emit}=1`` and
+``\partial D/\partial m_\mathrm{base}=-1``, gives the threshold gradients
+with respect to the centered line parameters ``(m,c)``:
 
 ```math
 \nabla_\mathrm{emit}\nu_0 =
@@ -377,9 +399,9 @@ V_\mathrm{base}
 (\nabla_\mathrm{base}\nu_0)^T.
 ```
 
-This includes slope-intercept correlation within both lines. If the regimes
-share calibration systematics, the zero off-diagonal blocks are no longer
-valid; those shared terms must be included explicitly.
+This includes the slope-intercept correlation within both lines; if the
+regimes share calibration systematics, the zero off-diagonal blocks are
+invalid and the shared terms must be included explicitly.
 
 The other two propagated quantities use
 
@@ -390,50 +412,54 @@ h = \frac{eD}{10^{12}},
      = D\nu_\mathrm{ref}+c_\mathrm{base}-c_\mathrm{emit}.
 ```
 
-The second form for ``\Phi`` makes its gradient especially transparent. It also
-shows why using ``m_\mathrm{emit}\nu_0`` would be wrong when the fitted baseline
-has a nonzero slope.
+The second form for ``\Phi`` makes its gradient transparent and shows why
+``m_\mathrm{emit}\nu_0`` would be wrong when the fitted baseline has a nonzero
+slope.
 
 ## Reading The Plot
 
-Both fitted lines and both 1σ fit-uncertainty bands are visible. The
-vertical shaded interval is the propagated 1σ uncertainty of their
-intersection. It is not the width of the physical transition and not a
-prediction interval for future observations. Horizontal and vertical error bars
-show the individual measurement uncertainties.
+The vertical shaded interval is the propagated 1σ uncertainty of the line
+intersection — not the width of the physical transition and not a prediction
+interval for future observations. The shaded band along each fitted line is
+the 1σ uncertainty of the fitted mean line, propagated from the parameter
+covariance; it excludes new-observation noise and is narrower than a
+prediction band. Horizontal and vertical error bars show the individual
+measurement uncertainties.
 
 ## Diagnostics
 
-For this workflow, the first checks are practical:
+First checks for this workflow:
 
 - ``\chi^2/\mathrm{ndf}`` should be of order one if the linear model and
-  uncertainties are realistic.
+  uncertainties are realistic
+  ([Goodness Of Fit](../statistics.md#Goodness-Of-Fit)); the info panel in
+  the figure reports 0.8713 for the baseline fit and 0.8357 for the emission
+  fit.
 - Residuals within either regime should not bend systematically; curvature would
   signal contact potentials, wavelength calibration errors, or a bad threshold
   selection.
-- The fitted threshold should lie between the last baseline and first emission
-  measurement, not far outside the observed transition.
+- The fitted threshold should lie between the last baseline and the first
+  emission measurement.
 - A profile scan of the slope or intercept is useful when the threshold region
   is sparse, because local covariance can look too confident near a kink or
   bound.
 
-The figure uses a local 1σ band. If a diagnostic dashboard reports a `review`
-or `critical` status, the next step is not styling the plot; it is checking the
-model range, uncertainty model, and profile intervals.
+If a diagnostic dashboard reports a `review` or `critical` status, check the
+model range, uncertainty model, and profile intervals before styling the plot.
 
 ## What Can Go Wrong
 
 Do not force the below-threshold baseline to exactly zero unless the measurement
-chain guarantees it. A fitted baseline accounts for offset and drift, and its
+chain guarantees it; a fitted baseline accounts for offset and drift, and its
 uncertainty contributes to the threshold uncertainty.
 
 Do not calculate the intersection from best-fit values and then forget the
-covariances. The threshold depends on all four line parameters.
+covariances; the threshold depends on all four line parameters.
 
-Do not overinterpret a good-looking line. If the residuals curve, the p-value is
-implausibly small, or the profile is non-parabolic, the local symmetric errors
-are not enough evidence for a careful scientific report.
+If the residuals curve, the p-value is implausibly small, or the profile is
+non-parabolic, the local symmetric errors are not enough evidence for a careful
+scientific report.
 
 Next useful pages: [XY Uncertainties](@ref),
 [Constraints and Profiles](@ref), and
-[Parameters and Fit Quality](../parameter_inference.md).
+[External Parameter Information](../statistics.md#External-Parameter-Information).

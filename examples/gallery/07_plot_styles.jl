@@ -1,9 +1,13 @@
+using CairoMakie
 using ScientificFitting
 using LaTeXStrings
 include(joinpath(@__DIR__, "..", "_example_utils.jl"))
 
 # A controlled comparison: scientific content stays fixed while typography and
-# panel visibility vary independently.
+# panel visibility vary independently. The deviations are a deterministic
+# sinusoid of amplitude sigma_y, not random noise, so the figures are
+# byte-reproducible and the panel statistics (chi2/ndf ~ 0.5) are
+# illustrative only.
 x = collect(range(0.0, 10.0; length=90))
 sigma_y = 0.12 .+ 0.01 .* x
 y = @. 1.85 * x + 0.7 + sigma_y * sin(1.6 * x)
