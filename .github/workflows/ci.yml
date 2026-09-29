@@ -6,14 +6,19 @@ on:
   pull_request:
 
 jobs:
+  # The suite is compilation-bound, so wall clock is bought with parallel
+  # shards, not platform coverage: three runtime-balanced shards per Julia
+  # version, Linux only. macOS is exercised by local development and stays
+  # out of the pull-request path after a shardless macOS job hit the 6 h
+  # runner limit.
   core:
-    name: Core tests - Julia ${{ matrix.version }} - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Core tests - Julia ${{ matrix.version }} - shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         version: ["1.10", "1"]
-        os: [ubuntu-latest, macos-latest]
+        shard: ["1", "2", "3"]
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -24,9 +29,13 @@ jobs:
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Core tests without plot rendering
         run: julia --project=. --startup-file=no -e 'include("test/core_runtests.jl")'
+        env:
+          SCIENTIFICFITTING_TEST_SHARD: ${{ matrix.shard }}
       - name: Startup probe gate
+        if: matrix.shard == '1'
         run: julia --project=. --startup-file=no test/startup_probe_gate.jl
       - name: Performance budget gate
+        if: matrix.shard == '1'
         run: julia --project=. --startup-file=no test/performance_budget_gate.jl
         env:
           SCIENTIFICFITTING_PERFORMANCE_BUDGET_SCALE: "4.0"
@@ -82,8 +91,13 @@ jobs:
       - uses: julia-actions/cache@v2
       - name: Install the supported plotting version
         run: julia --project=. -e 'using Pkg; Pkg.add(PackageSpec(name="CairoMakie", version="${{ matrix.cairo }}"))'
-      - name: Pkg.test
+      # The plotting slice checks the Pkg.test sandbox resolution and the
+      # pinned Makie compatibility; the core shards above already run the
+      # full Makie-free suite. A plain `Pkg.test()` still runs everything.
+      - name: Pkg.test (plotting slice)
         run: julia --project=. --startup-file=no -e 'using Pkg; Pkg.test(; allow_reresolve=false)'
+        env:
+          SCIENTIFICFITTING_TEST_SLICE: plots
 
   docs:
     name: Documentation, plots, and docs gates
