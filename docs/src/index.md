@@ -18,6 +18,13 @@ result = fit_model((x, p) -> p[1] .* x .+ p[2], x, U;
 println(report_text(result; parameter_names=["m", "b"]))
 ```
 
+One call renders the same kind of fit as a publication-ready figure with a
+result panel (`fitplot`, from the [Quickstart](quickstart.md)):
+
+```@raw html
+<img class="scientificfitting-plot" src="assets/gallery/quickstart_linear_sans_panel_light.png" alt="Linear calibration fit with data, fitted line, prediction band, and result panel">
+```
+
 Where to go next:
 
 - **First complete fit**, including the plot and the diagnosis:
