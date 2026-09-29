@@ -30,6 +30,7 @@ import ScientificFitting:
     report_text,
     _diagnostic_values,
     _fmt_value,
+    _value_error_strings,
     _model_dydx,
     _model_values,
     _parameter_jacobian,
