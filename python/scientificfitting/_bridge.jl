@@ -1,4 +1,4 @@
-using ScientificFitting, PythonCall, SparseArrays
+using ScientificFitting, PythonCall, Random, SparseArrays
 using ScientificFitting: _TypedCallback
 
 """One vectorized foreign call; no dual numbers or per-observation Python loops."""
@@ -203,6 +203,18 @@ function run_matrix(result, indices, names, options)
     return profile_matrix(result; parameters=pyconvert(Vector{Int}, Py(indices)),
         parameter_names=pyconvert(Vector{String}, Py(names)), scan_keywords(options)...)
 end
+
+"""An integer seed builds a fresh Xoshiro; None keeps the core's default generator."""
+generator(::Nothing) = Random.default_rng()
+generator(seed::Integer) = Xoshiro(seed)
+
+"""Forward only the keywords Python received, so the core rejects any the method does not use."""
+function run_confidence_interval(result, index::Int, method::String, level::Float64, options, seed)
+    kwargs = scan_keywords(options)
+    seed === nothing || (kwargs[:rng] = generator(seed))
+    return scalar_fields(confidence_interval(result, index; method=Symbol(method), level, kwargs...))
+end
+run_bootstrap(result, nsamples::Int, seed) = parametric_bootstrap(result; nsamples, rng=generator(seed))
 
 profile_diagnostics(scan::ProfileResult, sigma::Real, tolerance::Real=0.25, max_actions::Int=5) = diagnostic_values(
     isfinite(sigma) && sigma > 0 ? diagnose(scan; local_sigma=sigma, tolerance) : diagnose(scan; tolerance), max_actions)
