@@ -126,6 +126,36 @@ class ProfileInterval:
     profile_result: ProfileResult
 
 
+@dataclass(frozen=True)
+class ConfidenceInterval:
+    """Interval for one named free parameter; an unbracketed profile limit is NaN.
+
+    level is the nominal two-sided coverage probability; method is "profile",
+    "hessian", or "bootstrap". Coverage is asymptotic for the first two and
+    approximate for the bootstrap percentile interval.
+    """
+
+    parameter: str
+    lower: float
+    upper: float
+    level: float
+    method: str
+
+
+@dataclass(frozen=True, eq=False)
+class BootstrapSamples:
+    """Refitted parameter vectors, one read-only row per successful refit.
+
+    Columns follow Result.parameter_names; fixed parameters keep their value in
+    every row. Failed or non-converged refits are counted in n_failed and are
+    not rows, so params.shape[0] == n_requested - n_failed.
+    """
+
+    params: np.ndarray
+    n_requested: int
+    n_failed: int
+
+
 @dataclass(frozen=True, eq=False)
 class ContourResult:
     """Two-parameter scan. delta_cost[i,j] belongs to x[i], y[j].
@@ -216,6 +246,15 @@ def _interval(handle, profile):
     return ProfileInterval(profile.parameter, float(handle.lower), float(handle.upper),
         float(handle.uncertainty_minus), float(handle.uncertainty_plus),
         float(handle.threshold), profile)
+
+
+def _confidence_interval(fields, parameter):
+    return ConfidenceInterval(parameter, float(fields["lower"]), float(fields["upper"]),
+        float(fields["level"]), fields["method"])
+
+
+def _bootstrap_samples(handle):
+    return BootstrapSamples(_snapshot(handle.params), int(handle.n_requested), int(handle.n_failed))
 
 
 def _contour(handle, names, center, covariance, diagnostics=None):

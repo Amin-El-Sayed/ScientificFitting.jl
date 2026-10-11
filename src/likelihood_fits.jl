@@ -35,6 +35,10 @@ profile refits. The default `:auto` uses ForwardDiff. Both modes require a
 smooth objective near the evaluation point. When the problem is later fitted,
 omitting `tol` there selects [`default_fit_tolerance`](@ref) for the solver and
 derivative mode; explicit tolerances are preserved.
+`bootstrap_resampler(rng, p)` optionally returns this problem rebuilt from one
+data set simulated from the model at `p`, with `p` as its start values;
+`parametric_bootstrap` requires it. The Poisson count fits set it; the default
+`nothing` marks an objective that cannot be resampled.
 """
 struct LikelihoodFitProblem{TF, TG, DM}
     objective::TF
@@ -49,6 +53,7 @@ struct LikelihoodFitProblem{TF, TG, DM}
     cost_name::Symbol
     parameter_names::Union{Nothing, Vector{String}}
     derivatives::Symbol
+    bootstrap_resampler::Union{Nothing, Function}
 end
 
 _derivative_mode(::LikelihoodFitProblem{TF, TG, DM}) where {TF, TG, DM} = DM
@@ -100,6 +105,7 @@ function LikelihoodFitProblem(
     cost_name::Symbol,
     parameter_names=nothing,
     derivatives::Symbol=:auto,
+    bootstrap_resampler::Union{Nothing, Function}=nothing,
 )
     _validate_derivatives(derivatives)
     p0_vec = _float_vector(p0)
@@ -137,6 +143,7 @@ function LikelihoodFitProblem(
         cost_name,
         names,
         derivatives,
+        bootstrap_resampler,
     )
 end
 
@@ -154,6 +161,7 @@ function _with_p0(problem::LikelihoodFitProblem, p0::AbstractVector)
         cost_name=problem.cost_name,
         parameter_names=problem.parameter_names,
         derivatives=problem.derivatives,
+        bootstrap_resampler=problem.bootstrap_resampler,
     )
 end
 
@@ -510,11 +518,13 @@ function fit_likelihood_model(
     return fit_custom(objective; p0=p0, nobs=length(y_vec), cost_name=cost_name, kwargs...)
 end
 
+# Returns `nothing` for expectations outside the model support (negative or
+# non-finite entries): the objective maps that to infinite cost so the
+# optimizer backs away instead of dying inside a line search.
 function _nonnegative_expectation(mu, n::Int)
     values = collect(mu)
     length(values) == n || throw(DimensionMismatch("model expectation length must match observations"))
-    all(isfinite, values) || throw(ArgumentError("model expectation contains non-finite values"))
-    all(v -> v >= 0, values) || throw(DomainError(values, "model expectation must be nonnegative"))
+    all(v -> isfinite(v) && v >= 0, values) || return nothing
     return values
 end
 
@@ -559,6 +569,28 @@ function _histogram_data(edges, counts)
     return edges_vec, counts_vec
 end
 
+"""Build the Poisson count problem; its resampler draws counts from the same expectation."""
+function _poisson_count_problem(expectation, counts::Vector{Float64}, p0::AbstractVector;
+                                cost_name::Symbol, controls...)
+    mu = p -> _nonnegative_expectation(expectation(p), length(counts))
+    resampler = function (rng, p)
+        values = mu(p)
+        values === nothing && throw(ArgumentError(
+            "the fitted expectation is outside the Poisson support; cannot resample"))
+        return _poisson_count_problem(expectation,
+            Float64[rand(rng, Poisson(nu)) for nu in values], p; cost_name, controls...)
+    end
+    return LikelihoodFitProblem(
+        p -> (values = mu(p); values === nothing ? Inf : _poisson_minus2loglik_terms(counts, values)),
+        p -> (values = mu(p); values === nothing ? NaN : _poisson_gof(counts, values)),
+        p0;
+        nobs=length(counts),
+        cost_name,
+        bootstrap_resampler=resampler,
+        controls...,
+    )
+end
+
 """
     fit_poisson_model(model, x, counts; p0, kwargs...) -> LikelihoodFitResult
 
@@ -573,8 +605,10 @@ At an exactly zero expectation this reference is not regular, so the
 goodness-of-fit fields are `NaN`. A zero expectation with a positive observation
 has infinite cost; a zero observation contributes `2mu`, without a probability floor.
 Common parameter-control and solver keywords are listed under `fit_custom`.
-Length mismatches raise `DimensionMismatch`; negative counts or expectations
-raise `DomainError`; other invalid input, such as non-finite values or
+Length mismatches raise `DimensionMismatch`; negative counts raise
+`DomainError`. A model expectation that is negative or not finite has
+infinite cost at that parameter point, so the optimizer backs away; only a
+start value with non-finite cost raises an error; other invalid input, such as non-finite values or
 non-integer counts, raises `ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_poisson_model(
@@ -603,22 +637,9 @@ function fit_poisson_model(
     _assert_finite_observations("x", x_vec)
     _assert_count_observations("counts", counts_vec)
 
-    objective = p -> _poisson_minus2loglik_terms(counts_vec, _nonnegative_expectation(model(x_vec, p), length(counts_vec)))
-    gof = p -> _poisson_gof(counts_vec, _nonnegative_expectation(model(x_vec, p), length(counts_vec)))
-    problem = LikelihoodFitProblem(
-        objective,
-        gof,
-        p0;
-        bounds=bounds,
-        constraints=constraints,
-        parameter_priors=parameter_priors,
-        parameter_constraints=parameter_constraints,
-        fixed_parameters=fixed_parameters,
-        nobs=length(counts_vec),
-        cost_name=:poisson_likelihood,
-        parameter_names=parameter_names,
-        derivatives=derivatives,
-    )
+    problem = _poisson_count_problem(p -> model(x_vec, p), counts_vec, p0;
+        cost_name=:poisson_likelihood, bounds, constraints, parameter_priors,
+        parameter_constraints, fixed_parameters, parameter_names, derivatives)
     return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 
@@ -635,8 +656,9 @@ deviance. The caller is responsible for integrating any continuous density over
 the bins; use `fit_histogram_density` when ScientificFitting should perform that
 integration. Common parameter-control and solver keywords are listed under
 `fit_custom`. Length mismatches raise `DimensionMismatch`; edges that are not
-strictly increasing, negative counts, or negative expectations raise
-`DomainError`; other invalid input raises `ArgumentError`. Returns
+strictly increasing or negative counts raise `DomainError`; other invalid
+input raises `ArgumentError`. A negative or non-finite expected count has
+infinite cost at that parameter point rather than raising. Returns
 `LikelihoodFitResult`.
 Exactly zero expectations follow the same support and goodness-of-fit rules as
 [`fit_poisson_model`](@ref).
@@ -663,25 +685,9 @@ function fit_histogram_model(
     expected_counts = _finite_model_boundary(expected_counts, derivatives)
     edges_vec, counts_vec = _histogram_data(edges, counts)
 
-    objective = p -> _poisson_minus2loglik_terms(
-        counts_vec,
-        _nonnegative_expectation(expected_counts(edges_vec, p), length(counts_vec)),
-    )
-    gof = p -> _poisson_gof(counts_vec, _nonnegative_expectation(expected_counts(edges_vec, p), length(counts_vec)))
-    problem = LikelihoodFitProblem(
-        objective,
-        gof,
-        p0;
-        bounds=bounds,
-        constraints=constraints,
-        parameter_priors=parameter_priors,
-        parameter_constraints=parameter_constraints,
-        fixed_parameters=fixed_parameters,
-        nobs=length(counts_vec),
-        cost_name=:histogram_poisson_likelihood,
-        parameter_names=parameter_names,
-        derivatives=derivatives,
-    )
+    problem = _poisson_count_problem(p -> expected_counts(edges_vec, p), counts_vec, p0;
+        cost_name=:histogram_poisson_likelihood, bounds, constraints, parameter_priors,
+        parameter_constraints, fixed_parameters, parameter_names, derivatives)
     return fit(problem; maxiters, tol, initial_guesses, multistart, parameter_covariance, solver)
 end
 

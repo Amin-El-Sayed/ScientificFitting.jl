@@ -4,7 +4,7 @@ This appendix derives every statistical quantity ScientificFitting computes,
 each exactly once, in the order a fit uses them: cost, residuals, Gaussian
 models, covariance and whitening, x uncertainty, external parameter
 information, degrees of freedom, goodness of fit, local covariance, profiles,
-observation likelihoods, and model comparison. Operational advice lives in
+bootstrap intervals, observation likelihoods, and model comparison. Operational advice lives in
 [Assessing a Fit](fitting_for_practitioners.md); executable analyses live in
 the [Gallery](gallery.md).
 
@@ -518,6 +518,21 @@ Wilks thresholds are asymptotic: small samples, discrete data, parameters on
 boundaries, and weak signals can break nominal coverage, and critical analyses
 should calibrate with simulation.
 
+[`confidence_interval`](@ref) computes a one-parameter interval at nominal
+coverage ``\gamma`` (`level`, default 0.6827) by three methods, ordered by
+cost. `method=:hessian` returns ``\hat\theta_i\pm z\,\sigma_{\theta_i}`` from
+the local curvature, with the standard error ``\sigma_{\theta_i}`` =
+`param_stderr[i]` and ``z`` the standard-normal quantile at ``(1+\gamma)/2``
+(``z=1`` at the default), and costs nothing beyond the fit;
+`method=:profile`, the default, returns the crossings of ``\Delta C`` with the
+``\chi^2_1`` quantile at ``\gamma`` (the one-parameter column above) and costs
+one profile scan; `method=:bootstrap` returns quantiles of refits to
+simulated data ([Bootstrap Intervals](@ref)) and costs `nsamples` refits. All three work on the scale of `param_stderr`: the
+covariance-scaling factor enters the Hessian errors, the profile ``\Delta C``,
+and the noise of the simulated data alike, so for a model linear in its
+parameters with a fixed Gaussian covariance the three intervals agree, the
+bootstrap up to its Monte Carlo scatter.
+
 ### The Profile Matrix
 
 ```@raw html
@@ -543,6 +558,204 @@ panels_to_review = filter(p -> last(p) != :ok, matrix.panel_status)
 The scans are Makie-free; load CairoMakie only to render them. The
 [Constraints and Profiles](gallery/constraints_profiles.md) example shows the
 complete workflow.
+
+## Bootstrap Intervals
+
+The profile thresholds are asymptotic. The parametric bootstrap calibrates an
+interval by simulation instead: it repeats the experiment many times on the
+computer, with the fitted model as the truth, and reads the interval from the
+scatter of the refitted parameters.
+
+### Resampling From The Fitted Model
+
+Let ``\hat\theta`` be the best fit and ``B`` the number of simulated data sets
+(`nsamples`, default 999). For each ``b=1,\dots,B``,
+[`parametric_bootstrap`](@ref)
+
+1. draws a synthetic data set ``d^*_b`` from the fitted model at
+   ``\hat\theta``; the measured data enter only through ``\hat\theta``;
+2. refits ``d^*_b`` with the options of the original fit, giving
+   ``\hat\theta^*_b``;
+3. stores ``\hat\theta^*_b`` as row ``b`` of `params` in the returned
+   [`BootstrapSamples`](@ref).
+
+If the fitted model is close to the true one, the replicates
+``\hat\theta^*_1,\dots,\hat\theta^*_B`` scatter around ``\hat\theta``
+approximately as ``\hat\theta`` scatters around the true parameters in
+repeated experiments. Two sampling models are implemented.
+
+**Gaussian data** (`sigma_y`, `cov_y`, or no observation uncertainty):
+
+```math
+d^*=m(\hat\theta)+\sqrt{s}\,Lz,
+\qquad
+z\sim\mathcal N(0,I),
+```
+
+where ``V=LL^T`` is the Cholesky factorization of the observation covariance
+(``L=\operatorname{diag}(\sigma_i)`` for independent errors, ``V=I`` without
+stated uncertainties) and ``s`` is the factor that scales `param_covariance`
+([Covariance Scaling](@ref)): ``s=\chi^2/\mathrm{ndf}`` when scaling was
+applied, otherwise ``s=1``. Since ``\operatorname{Cov}(Lz)=LIL^T=V``, the
+simulated noise has covariance ``sV``; the step is whitening run backwards,
+from independent unit draws ``z`` to correlated residuals ``Lz``. An
+unweighted fit with the default `scale_covariance=:auto` therefore resamples
+at the residual standard deviation
+``\sqrt{\mathrm{RSS}/\mathrm{ndf}}``, where RSS is the residual sum of squares
+and the divisor is ``\mathrm{ndf}``, as in the parameter covariance, not the
+``n`` of [Unknown Residual Scale](@ref). A straight line through ``n=10``
+points with ``\mathrm{RSS}=0.355`` has ``\mathrm{ndf}=8`` and
+``s=0.355/8=0.0444``; its simulated noise has standard deviation
+``\sqrt{0.0444}=0.21`` in y units. With `scale_covariance=:never` the stated
+``\sigma=1`` is kept. When ``s`` is required but undefined
+(``\mathrm{ndf}\le 0``, or ``\chi^2`` not finite and positive), the call
+raises `ArgumentError`.
+
+**Poisson counts** ([`fit_poisson_model`](@ref),
+[`fit_histogram_model`](@ref), [`fit_histogram_density`](@ref)):
+
+```math
+n^*_i\sim\mathrm{Poisson}\!\left(\mu_i(\hat\theta)\right)
+\quad\text{independently for every observation or bin } i,
+```
+
+where ``\mu_i(\hat\theta)`` is the fitted expected count, computed exactly as
+in the cost ([Poisson Counts And Histograms](@ref)).
+
+In both cases only the observations are simulated; x values, bin edges,
+`total_count`, bounds, and fixed parameters keep their values.
+
+### The Percentile Interval
+
+For parameter ``i``, sort the ``B`` replicate values ``\hat\theta^*_{b,i}``.
+The empirical ``q``-quantile ``\hat Q(q)`` is the value below which a fraction
+``q`` of them lie (`Statistics.quantile`, which interpolates linearly between
+neighboring sorted values). The percentile interval at nominal coverage
+``\gamma`` is
+
+```math
+\left[\hat Q\!\left(\frac{1-\gamma}{2}\right),\
+\hat Q\!\left(\frac{1+\gamma}{2}\right)\right];
+```
+
+at the default ``\gamma=0.6827`` these are the 15.87% and 84.13% quantiles, so
+about 158 of 999 replicates lie below the lower limit and 158 above the upper.
+Because the limits are read from the simulated distribution, a skewed
+distribution of the estimator gives an asymmetric interval without any
+parabolic approximation; a bias of the estimator (a replicate median away from
+``\hat\theta``) is not corrected, and an error in the model cannot appear in
+replicates that were all drawn from it. Bias-corrected and accelerated (BCa)
+intervals are deliberately not implemented.
+
+The limits carry Monte Carlo error. The number of replicates below the true
+``q``-quantile of the replicate distribution is binomial with mean ``Bq`` and
+standard deviation ``\sqrt{Bq(1-q)}``, so ``\hat Q(q)`` sits at the
+probability level ``q\pm\sqrt{q(1-q)/B}``: ``0.159\pm0.012`` for ``B=999``.
+Quadrupling ``B`` halves this scatter.
+
+### Bootstrap Or Profile
+
+Prefer the bootstrap where the Wilks threshold of the profile is doubtful:
+
+- very low counts, where the discreteness of the data makes ``\Delta C``
+  deviate from its asymptotic ``\chi^2_1`` distribution;
+- parameters within a few standard errors of a physical boundary; the refits
+  respect the same bounds, so the replicates pile up at the boundary as the
+  estimator does;
+- strongly non-quadratic costs, where the large-sample regime behind both the
+  parabola and the Wilks threshold is evidently not reached.
+
+Agreement of the profile and bootstrap intervals is evidence that the
+asymptotic threshold is adequate.
+
+The bootstrap raises `ArgumentError` where the fitted model does not define how
+new data arise:
+
+- **x uncertainties.** The effective-variance cost propagates ``\sigma_x`` but
+  never estimates the true x values. Simulating new measured x requires them
+  and a rule for drawing them, which is a separate errors-in-variables model.
+- **Parameter priors and constraints.** Each Gaussian term of
+  [External Parameter Information](@ref) acts as an auxiliary measurement
+  ``\mu_j\pm\tau_j``. In a repeated experiment ``\mu_j`` would fluctuate as
+  well; holding it fixed while only the data vary pulls every refit toward the
+  same ``\mu_j``, the replicates scatter less than the estimator, and the
+  interval would come out too narrow without any warning. Simulating ``\mu_j``
+  too is meaningful only under the auxiliary-measurement reading; prior
+  information has no sampling distribution.
+
+Error components, a `WhiteningOperator`, and objectives without a simulation
+rule, such as [`fit_custom`](@ref) or the unbinned fits, are refused as well;
+[`parametric_bootstrap`](@ref) lists the supported cases.
+
+### Failures And Reproducibility
+
+Every refit starts at ``\hat\theta`` with the cost, solver, iteration limit,
+tolerance, and covariance policy of the original fit; `multistart` and
+`initial_guesses` are not reused. A refit that throws or reports
+`converged == false` is dropped and counted in `n_failed`. Failures are
+never silent: `parametric_bootstrap` raises `ErrorException` once more than
+10% of the ``B`` refits have failed, and `confidence_interval` with
+`method=:bootstrap` refuses whenever `n_failed > 0` — refit failures
+correlate with where the simulated data landed, so percentiles over the
+survivors would be selection-biased.
+
+A model expectation that leaves the Poisson support during a refit (negative
+or non-finite expected counts) has infinite cost at that point and the
+optimizer backs away; it does not fail the refit. Physical bounds, as in the
+example below, remain good practice: they keep every refit in the region
+where the model is meaningful.
+
+The replicates depend on the random number generator `rng`. The default
+`Random.default_rng()` gives different limits on every call; pass a seeded
+generator such as `Xoshiro(1)` from `Random`, and report ``B`` and the seed.
+The same seed reproduces the samples exactly.
+
+### A Low-Count Decay
+
+A decaying source is counted in a short gate of fixed length at each of ten
+delays ``t``. The expected count is ``Ae^{-t/\tau}``, with amplitude ``A``
+(expected counts per gate at ``t=0``) and lifetime ``\tau``. The 30 recorded
+counts are few enough to put the asymptotic thresholds in question. The bounds
+``A\ge 0`` and ``\tau\ge 0.1`` keep every expected count finite and
+nonnegative.
+
+```julia
+using ScientificFitting, Random, Statistics
+
+t = collect(0.5:1.0:9.5)
+counts = [7, 7, 2, 3, 6, 3, 1, 1, 0, 0]
+decay(t, p) = p[1] .* exp.(-t ./ p[2])
+
+result = fit_poisson_model(decay, t, counts; p0=[10.0, 3.0],
+    bounds=([0.0, 0.1], [Inf, Inf]), parameter_names=["amplitude", "lifetime"])
+
+confidence_interval(result, :lifetime; method=:hessian)
+confidence_interval(result, :lifetime)  # method=:profile
+confidence_interval(result, :lifetime; method=:bootstrap, rng=Xoshiro(1))
+
+samples = parametric_bootstrap(result; rng=Xoshiro(1))
+samples.n_failed
+quantile(samples.params[:, 2], [(1 - 0.6827) / 2, (1 + 0.6827) / 2])
+```
+
+The fit gives ``\hat A=9.19`` and ``\hat\tau=3.469`` with
+`param_stderr[2] = 0.923`. The three 68.27% intervals for ``\tau``:
+
+| method | interval | below ``\hat\tau`` | above ``\hat\tau`` |
+| --- | --- | ---: | ---: |
+| `:hessian` | ``[2.546, 4.392]`` | ``0.923`` | ``0.923`` |
+| `:profile` | ``[2.722, 4.679]`` | ``0.747`` | ``1.210`` |
+| `:bootstrap` | ``[2.669, 4.655]`` | ``0.801`` | ``1.186`` |
+
+The Hessian interval is symmetric by construction. The profile and bootstrap
+intervals both reach about 1.2 above and 0.75 to 0.80 below ``\hat\tau``: with
+few late counts, long lifetimes are harder to exclude than short ones. The two
+calibrations, Wilks' asymptotics and simulation, agree within 0.06 on each
+side, comparable to the Monte Carlo scatter of the bootstrap limits (standard
+deviation 0.04 for the lower and 0.07 for the upper limit over 20 seeds). All
+999 refits converged (`samples.n_failed == 0`), and the explicit quantiles
+reproduce the bootstrap limits ``[2.669, 4.655]`` exactly because both calls
+use the same seed.
 
 ## Observation Likelihoods
 
@@ -716,8 +929,8 @@ A reproducible result states:
    information;
 4. the minimized cost, free-parameter count, and goodness-of-fit statistic
    where its reference distribution is justified;
-5. whether covariance errors or profile intervals were reported, and the
-   covariance-scaling policy;
+5. the interval method reported (covariance errors, profile, or bootstrap
+   with its `nsamples` and seed) and the covariance-scaling policy;
 6. residual, pull, profile, or simulation checks relevant to the model;
 7. active bounds, fixed parameters, failed scans, or approximations limiting
    interpretation.

@@ -37,6 +37,16 @@ the cost at the global minimum by at most the threshold,
 ``\Delta C`` is divided by the same covariance scale as `param_stderr`, so
 both report matching uncertainties.
 
+**Parametric bootstrap** — an interval calibrated by simulation: draw ``B``
+synthetic data sets from the fitted model at the best-fit parameters
+``\hat\theta`` (Gaussian noise with the observation covariance, including any
+covariance scaling, or Poisson counts with the fitted expectations), refit
+each one, and take the
+empirical ``(1-\gamma)/2`` and ``(1+\gamma)/2`` quantiles of the ``B``
+refitted values of a parameter as its interval at nominal coverage ``\gamma``
+(the percentile interval). It replaces asymptotic thresholds by the simulated
+sampling process but inherits every assumption of the fitted model.
+
 **Confidence band** — the pointwise 68.27% (at `nsigma=1`) interval for the
 fitted mean curve from the parameter covariance.
 

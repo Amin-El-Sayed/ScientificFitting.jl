@@ -32,6 +32,7 @@ using SparseArrays
 using Statistics
 
 using Printf: Printf
+using Random
 
 include("formatting.jl")
 include("solvers.jl")
@@ -45,6 +46,8 @@ include("fit.jl")
 include("likelihood_fits.jl")
 include("distribution_fits.jl")
 include("profile.jl")
+include("bootstrap.jl")
+include("intervals.jl")
 include("prediction.jl")
 include("plotting_api.jl")
 include("report.jl")
@@ -84,6 +87,8 @@ export fit_multi_model
 export fit_report
 export profile
 export profile_interval
+export confidence_interval, ConfidenceInterval
+export parametric_bootstrap, BootstrapSamples
 export contour
 export profile_matrix
 export fitplot

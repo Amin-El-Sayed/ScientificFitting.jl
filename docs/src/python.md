@@ -206,6 +206,31 @@ confidence level. Arrays store `delta_cost[i, j]` at `(x[i], y[j])`; direct
 Matplotlib calls need `pair.delta_cost.T`. `result.report(errors="profile")`
 computes asymmetric errors with additional fits; its covariance remains local.
 
+## Confidence Intervals And The Bootstrap
+
+`confidence_interval` is the one entry point for the three interval methods,
+with the same contract as the Julia core
+([Bootstrap Intervals](statistics.md#Bootstrap-Intervals)):
+
+```python
+ci = result.confidence_interval("slope")                     # profile (default)
+ci = result.confidence_interval("slope", method="hessian")   # local curvature
+ci = result.confidence_interval("slope", method="bootstrap",
+                                nsamples=2000, seed=11)
+print(ci.lower, ci.upper, ci.level, ci.method)
+```
+
+`level` defaults to 0.6827 (one sigma); keywords apply only to the method
+that uses them — `npoints`/`nsigma`/`adaptive` to `method="profile"`,
+`nsamples`/`seed` to `method="bootstrap"`; anything else raises the core's
+`ArgumentError`. `seed=None` draws from the core's default generator; an
+integer seed makes the resampling reproducible. The raw parameter samples
+come from `result.parametric_bootstrap(nsamples=999, seed=None)`, whose
+`params` array has one row per successful refit and whose `n_failed` counts
+dropped refits. Fits with x uncertainties, error components, parameter
+priors, or constraints refuse to resample; the
+[statistics reference](statistics.md#Bootstrap-Intervals) states why.
+
 ## Customize With Matplotlib
 
 Style (`"sans"` / `"tex"`) and report visibility (`panel=True` / `False`) are
