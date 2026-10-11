@@ -128,6 +128,58 @@ ScientificFitting.ContourResult
 ScientificFitting.ProfileMatrixResult
 ```
 
+## Confidence Intervals
+
+One-parameter intervals by local curvature, profile likelihood, or parametric
+bootstrap, all on the scale of `param_stderr`; the methods are derived in
+[Profiles And Contours](statistics.md#Profiles-And-Contours) and
+[Bootstrap Intervals](statistics.md#Bootstrap-Intervals).
+
+| Need | Function | Return value |
+|---|---|---|
+| Interval for one free parameter | [`confidence_interval`](@ref) | [`ConfidenceInterval`](@ref) |
+| Simulated parameter distribution | [`parametric_bootstrap`](@ref) | [`BootstrapSamples`](@ref) |
+
+| `method` | Limits | Additional fits |
+|---|---|---|
+| `:hessian` | `params[i] ± z * param_stderr[i]`, `z = quantile(Normal(), (1 + level) / 2)` | none |
+| `:profile` (default) | Crossings of the profiled `delta_cost` with `quantile(Chisq(1), level)` | one profile scan |
+| `:bootstrap` | Empirical `(1 - level) / 2` and `(1 + level) / 2` quantiles over the bootstrap refits | `nsamples` refits |
+
+`level` is the nominal two-sided coverage probability in (0, 1); the default
+0.6827 matches `param_stderr` and `threshold = 1`, and 0.9545 corresponds to
+two sigma. `parameter` is the 1-based index into `result.params`, or a
+`Symbol` or string for likelihood fits that store `parameter_names`. The scan
+controls `values`, `npoints`, `nsigma`, `adaptive`, `max_refinements`,
+`max_points`, and `on_failure` apply only to `:profile`, whose threshold
+follows from `level`; `nsamples` and `rng` apply only to `:bootstrap`. A
+profile side the scan does not bracket is `NaN`.
+
+`parametric_bootstrap` simulates Gaussian `FitProblem` data with `sigma_y`,
+`cov_y`, or no observation uncertainty, and the counts of
+[`fit_poisson_model`](@ref), [`fit_histogram_model`](@ref), and
+[`fit_histogram_density`](@ref); a `LikelihoodFitProblem` can supply its own
+`bootstrap_resampler`. Pass a seeded `rng` for reproducible limits.
+
+`DomainError` signals `level` outside (0, 1) or `nsamples < 1`.
+`ArgumentError` signals an index outside `1:length(result.params)`, an unknown
+name or a name lookup without stored names, a fixed parameter, an unknown
+`method`, a keyword the selected method does not use, a non-finite
+`param_stderr[i]` for `:hessian`, and a problem the bootstrap cannot simulate:
+x uncertainties, error components, a `WhiteningOperator`, parameter priors or
+constraints, or an objective without a resampler. `parametric_bootstrap`
+raises `ErrorException` once more than 10% of the refits fail;
+`confidence_interval` with `method=:bootstrap` raises it for any failed
+refit, because percentiles over the surviving refits would be
+selection-biased.
+
+```@docs
+ScientificFitting.confidence_interval
+ScientificFitting.ConfidenceInterval
+ScientificFitting.parametric_bootstrap
+ScientificFitting.BootstrapSamples
+```
+
 ## Diagnostics And Reports
 
 | Need | Function | Return value |
