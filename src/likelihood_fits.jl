@@ -510,11 +510,13 @@ function fit_likelihood_model(
     return fit_custom(objective; p0=p0, nobs=length(y_vec), cost_name=cost_name, kwargs...)
 end
 
+# Returns `nothing` for expectations outside the model support (negative or
+# non-finite entries): the objective maps that to infinite cost so the
+# optimizer backs away instead of dying inside a line search.
 function _nonnegative_expectation(mu, n::Int)
     values = collect(mu)
     length(values) == n || throw(DimensionMismatch("model expectation length must match observations"))
-    all(isfinite, values) || throw(ArgumentError("model expectation contains non-finite values"))
-    all(v -> v >= 0, values) || throw(DomainError(values, "model expectation must be nonnegative"))
+    all(v -> isfinite(v) && v >= 0, values) || return nothing
     return values
 end
 
@@ -573,8 +575,10 @@ At an exactly zero expectation this reference is not regular, so the
 goodness-of-fit fields are `NaN`. A zero expectation with a positive observation
 has infinite cost; a zero observation contributes `2mu`, without a probability floor.
 Common parameter-control and solver keywords are listed under `fit_custom`.
-Length mismatches raise `DimensionMismatch`; negative counts or expectations
-raise `DomainError`; other invalid input, such as non-finite values or
+Length mismatches raise `DimensionMismatch`; negative counts raise
+`DomainError`. A model expectation that is negative or not finite has
+infinite cost at that parameter point, so the optimizer backs away; only a
+start value with non-finite cost raises an error; other invalid input, such as non-finite values or
 non-integer counts, raises `ArgumentError`. Returns `LikelihoodFitResult`.
 """
 function fit_poisson_model(
@@ -635,8 +639,9 @@ deviance. The caller is responsible for integrating any continuous density over
 the bins; use `fit_histogram_density` when ScientificFitting should perform that
 integration. Common parameter-control and solver keywords are listed under
 `fit_custom`. Length mismatches raise `DimensionMismatch`; edges that are not
-strictly increasing, negative counts, or negative expectations raise
-`DomainError`; other invalid input raises `ArgumentError`. Returns
+strictly increasing or negative counts raise `DomainError`; other invalid
+input raises `ArgumentError`. A negative or non-finite expected count has
+infinite cost at that parameter point rather than raising. Returns
 `LikelihoodFitResult`.
 Exactly zero expectations follow the same support and goodness-of-fit rules as
 [`fit_poisson_model`](@ref).
