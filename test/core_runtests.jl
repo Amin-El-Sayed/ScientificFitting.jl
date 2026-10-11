@@ -18,6 +18,7 @@ const CORE_TEST_FILES = (
     ("statistics/distribution_objects.jl", 2),
     ("statistics/distribution_histograms.jl", 1),
     ("statistics/profile_contour_reference.jl", 1),
+    ("statistics/interval_reference.jl", 2),
     ("numerics/inplace_model_reference.jl", 2),
     ("numerics/finite_derivatives_reference.jl", 2),
     ("numerics/nonsmooth_likelihood_reference.jl", 3),
