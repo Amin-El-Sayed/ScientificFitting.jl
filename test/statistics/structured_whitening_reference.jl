@@ -196,3 +196,65 @@ end
         error_components=(name=:extra, target=:y, mode=:absolute, values=0.1),
     )
 end
+
+@testset "Exponential whitening reference" begin
+    gaps = [0.30, 0.05, 0.75, 0.80, 0.10, 0.75, 0.85, 0.02, 0.88, 1.30, 0.20]
+    x = cumsum([0.0; gaps])
+    sigma = 0.4
+    correlation_length = 0.8
+    covariance = [sigma^2 * exp(-abs(xi - xj) / correlation_length) for xi in x, xj in x]
+    factor = cholesky(Symmetric(covariance))
+    whitening = exponential_whitening(x, sigma, correlation_length)
+
+    @test isapprox(whitening.logdet_covariance, logdet(factor); rtol=1e-12)
+    @test whitening.marginal_sigma == sigma
+    for residual in (sin.(1:12), collect(range(-1.0, 2.0; length=12)), [(-1.0)^i * i / 12 for i in 1:12])
+        whitened = whitening(similar(residual), residual)
+        @test isapprox(sum(abs2, whitened), dot(residual, factor \ residual); rtol=1e-12)
+    end
+
+    model(x, p) = @. p[1] * x + p[2]
+    n = 40
+    fit_sigma = 0.2
+
+    fit_x = cumsum(0.05 .+ 0.1 .* (1 .+ sin.(1:n)))
+    fit_y = @. 1.4 * fit_x - 0.3 + 0.05 * sin(7.1 * fit_x)
+    fit_length = 0.3
+    fit_covariance = [fit_sigma^2 * exp(-abs(xi - xj) / fit_length) for xi in fit_x, xj in fit_x]
+    structured = fit_model(
+        model,
+        fit_x,
+        fit_y;
+        p0=[1.0, 0.0],
+        whitening=exponential_whitening(fit_x, fit_sigma, fit_length),
+    )
+    dense = fit_model(model, fit_x, fit_y; p0=[1.0, 0.0], cov_y=fit_covariance)
+    @test structured.converged
+    @test dense.converged
+    @test isapprox(structured.params, dense.params; rtol=1e-8)
+    @test isapprox(structured.param_stderr, dense.param_stderr; rtol=1e-8)
+    @test isapprox(structured.stats.chi2, dense.stats.chi2; rtol=1e-8)
+
+    # exp(-1 / 1e-9) underflows to zero, so this covariance is exactly sigma^2 * I.
+    unit_x = collect(1.0:n)
+    unit_y = @. 0.7 * unit_x + 2.0 + 0.1 * cos(1.9 * unit_x)
+    limit = fit_model(
+        model,
+        unit_x,
+        unit_y;
+        p0=[1.0, 0.0],
+        whitening=exponential_whitening(unit_x, fit_sigma, 1e-9),
+    )
+    independent = fit_model(model, unit_x, unit_y; p0=[1.0, 0.0], sigma_y=fill(fit_sigma, n))
+    @test isapprox(limit.params, independent.params; rtol=1e-6)
+    @test isapprox(limit.param_stderr, independent.param_stderr; rtol=1e-6)
+    @test isapprox(limit.stats.chi2, independent.stats.chi2; rtol=1e-6)
+
+    @test_throws DomainError exponential_whitening(x, 0.0, correlation_length)
+    @test_throws DomainError exponential_whitening(x, sigma, -1.0)
+    @test_throws DomainError exponential_whitening([0.0, 1.0, 1.0], sigma, correlation_length)
+    @test_throws DomainError exponential_whitening([0.0, 2.0, 1.0], sigma, correlation_length)
+    @test_throws ArgumentError exponential_whitening([0.0, NaN, 1.0], sigma, correlation_length)
+    @test_throws ArgumentError exponential_whitening(Float64[], sigma, correlation_length)
+    @test_throws DimensionMismatch whitening(zeros(11), zeros(11))
+end

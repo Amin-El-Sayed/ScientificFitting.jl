@@ -23,6 +23,9 @@ combinations are rejected.
 `whitening` is exclusive with every other observation-uncertainty keyword: it
 already represents the complete covariance
 ([Structured Whitening](statistics.md#Structured-Whitening)).
+[`exponential_whitening`](@ref) constructs the operator for the exponential
+covariance ``C_{ij}=\sigma^2\exp(-|x_i-x_j|/\ell)`` on a strictly increasing
+grid.
 
 With no supplied observation uncertainty, `fit_model` performs unweighted
 least squares; the `scale_covariance` policy is specified in
@@ -291,4 +294,5 @@ ScientificFitting.FixedParameter
 ScientificFitting.ParameterConstraint
 ScientificFitting.ErrorComponent
 ScientificFitting.WhiteningOperator
+ScientificFitting.exponential_whitening
 ```
