@@ -8,7 +8,7 @@ from scipy import sparse
 from scipy.optimize import minimize
 from scipy.sparse.linalg import spsolve
 
-from scientificfitting import ErrorComponent, WhiteningOperator, fit_model
+from scientificfitting import ErrorComponent, WhiteningOperator, exponential_whitening, fit_model
 from scientificfitting._core import _backend
 from scientificfitting._inputs import _covariance
 
@@ -118,6 +118,40 @@ def test_matrix_free_whitening_and_jacobian_views(inplace):
     mean, uncertainty = result.predict(x, uncertainty=True)
     np.testing.assert_allclose(uncertainty**2, np.einsum("ij,jk,ik->i", design, parameter_covariance, design), rtol=3e-5)
     assert views
+
+
+def nonuniform_observations(n=45):
+    x = -1 + 3*np.linspace(0, 1, n)**1.5
+    return x, line(x, 1.7, 0.3) + 0.07*np.sin(np.arange(n))
+
+
+def test_exponential_whitening_matches_dense_covariance():
+    x, y = nonuniform_observations()
+    sigma, length = 0.2, 0.3
+    covariance = sigma**2 * np.exp(-np.abs(np.subtract.outer(x, x)) / length)
+    p0 = {"slope": 1.0, "offset": 0.0}
+    operator = fit_model(line, x, y, p0=p0, whitening=exponential_whitening(x, sigma, length))
+    dense = fit_model(line, x, y, p0=p0, cov_y=covariance)
+    np.testing.assert_allclose(operator.params, dense.params, rtol=1e-8)
+    np.testing.assert_allclose(operator.stderr, dense.stderr, rtol=1e-8)
+    np.testing.assert_allclose(operator.statistics["aic"], dense.statistics["aic"], rtol=1e-8)
+
+
+def test_short_exponential_correlation_equals_independent_errors():
+    x, y = nonuniform_observations()
+    p0 = {"slope": 1.0, "offset": 0.0}
+    operator = fit_model(line, x, y, p0=p0, whitening=exponential_whitening(x, 0.2, 1e-9))
+    independent = fit_model(line, x, y, p0=p0, sigma_y=0.2)
+    np.testing.assert_allclose(operator.params, independent.params, rtol=1e-8)
+    np.testing.assert_allclose(operator.stderr, independent.stderr, rtol=1e-8)
+
+
+def test_exponential_whitening_reports_core_domain_errors():
+    x, _ = nonuniform_observations()
+    with pytest.raises(Exception, match="DomainError"):
+        exponential_whitening(x, 0.0, 0.3)
+    with pytest.raises(Exception, match="DomainError"):
+        exponential_whitening(x[::-1], 0.2, 0.3)
 
 
 @pytest.mark.parametrize("analytic", [False, True])
