@@ -56,6 +56,7 @@ export FixedParameter
 export ParameterConstraint
 export ErrorComponent
 export WhiteningOperator
+export exponential_whitening
 export FitOptions
 export AbstractFitSolver, OptimizationSolver, NativeMinuitSolver, FitSolverResult
 export solver_capabilities, default_fit_tolerance, solve_fit

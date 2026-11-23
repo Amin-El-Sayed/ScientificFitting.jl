@@ -208,6 +208,16 @@ static observation covariance; a parameter-dependent covariance needs the
 likelihood path below. Verify ``\lVert Wr\rVert^2`` and ``\log\det V`` against
 a small dense reference before using a custom operator at scale.
 
+For correlation that decays exponentially with distance along one coordinate,
+such as slow drifts shared by neighboring points of a scan or time series,
+`exponential_whitening(x, sigma, correlation_length)` builds this operator for
+``V_{ij}=\sigma^2\exp(-|x_i-x_j|/\ell)``, with ``\ell`` the correlation length,
+and supplies ``\log\det V``. The grid ``x`` must be strictly increasing but
+need not be uniform: the innovation above holds with
+``\rho_i=\exp(-(x_i-x_{i-1})/\ell)`` in place of ``\rho``, so uniform spacing
+``\Delta x`` is the AR(1) case with ``\rho=\exp(-\Delta x/\ell)``. For this
+covariance it replaces a hand-built operator.
+
 ## Full Gaussian Likelihood
 
 If ``d\sim\mathcal N\!\left(m(\theta),V(\theta)\right)``, ScientificFitting

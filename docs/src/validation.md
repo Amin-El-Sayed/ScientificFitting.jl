@@ -51,8 +51,9 @@ supplied uncertainties
 
 A structured covariance does not require its dense matrix. For a fit whose
 residual covariance is modeled as an AR(1) process (first-order
-autoregressive: each point correlated with its neighbor) through a
-`WhiteningOperator` (`benchmarks/whitening_scaling.jl`), after warm-up:
+autoregressive: each point correlated with its neighbor), whitened by the
+shipped `exponential_whitening` constructor on a uniform grid
+(`benchmarks/whitening_scaling.jl`), after warm-up:
 
 | n | operator fit | dense-covariance fit | dense memory |
 | ---: | ---: | ---: | ---: |

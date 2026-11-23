@@ -314,6 +314,57 @@ function _whiten_with_operator(operator::WhiteningOperator, values::AbstractVecO
     return _whiten_with_operator!(out, operator, values)
 end
 
+"""
+    exponential_whitening(x, sigma, correlation_length) -> WhiteningOperator
+
+Return a [`WhiteningOperator`](@ref) for the exponential observation covariance
+`C[i, j] = sigma^2 * exp(-abs(x[i] - x[j]) / correlation_length)` on the strictly
+increasing coordinates `x`, which need not be equally spaced. Residuals are
+whitened in the order of `x`, so the data must be sorted by `x`. Construction and
+each application cost O(n) time and memory; `C` is never formed. The operator's
+`marginal_sigma` is `sigma`.
+
+This is the covariance of an Ornstein-Uhlenbeck process sampled at `x`, or, for
+uniform spacing `dx`, of a stationary AR(1) process with lag-one correlation
+`exp(-dx / correlation_length)`.
+
+Empty or non-finite `x` raises `ArgumentError`. `x` that is not strictly
+increasing, and `sigma` or `correlation_length` that is not finite and positive,
+raise `DomainError`. Applying the operator to a residual whose length differs
+from `length(x)` raises `DimensionMismatch`.
+"""
+function exponential_whitening(x::AbstractVector{<:Real}, sigma::Real, correlation_length::Real)
+    grid = _float_vector(x)
+    isempty(grid) && throw(ArgumentError("x must not be empty"))
+    _assert_finite_vector("x", grid)
+    gap = diff(grid)
+    all(>(0.0), gap) || throw(DomainError(x, "x must be strictly increasing"))
+    isfinite(sigma) && sigma > 0 || throw(DomainError(sigma, "sigma must be finite and positive"))
+    isfinite(correlation_length) && correlation_length > 0 ||
+        throw(DomainError(correlation_length, "correlation_length must be finite and positive"))
+
+    n = length(grid)
+    marginal_sigma = Float64(sigma)
+    scaled_gap = gap ./ Float64(correlation_length)
+    rho = exp.(-scaled_gap)
+    # 1 - rho^2 via expm1: avoids cancellation when gaps are much shorter than the correlation length.
+    innovation_variance = -expm1.(-2 .* scaled_gap)
+    innovation_scale = 1 ./ (marginal_sigma .* sqrt.(innovation_variance))
+    logdet_covariance = 2n * log(marginal_sigma) + sum(log, innovation_variance; init=0.0)
+
+    function whiten!(out, residual)
+        length(residual) == n || throw(DimensionMismatch(
+            "residual length $(length(residual)) does not match length(x) = $n",
+        ))
+        out[1] = residual[1] / marginal_sigma
+        for i in 2:n
+            out[i] = (residual[i] - rho[i - 1] * residual[i - 1]) * innovation_scale[i - 1]
+        end
+        return nothing
+    end
+    return WhiteningOperator(whiten!; logdet_covariance, marginal_sigma)
+end
+
 function _whiten_residual(problem::FitProblem, p::AbstractVector, residual::AbstractVector)
     problem.whitening !== nothing && return _whiten_with_operator(problem.whitening, residual)
     cov = _effective_covariance(problem, p)

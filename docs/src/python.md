@@ -78,6 +78,10 @@ column shows the Julia convention `model(x, p)`; Python callbacks receive
 parameters by keyword, `model(x, **parameters)`, as above. Gaussian errors enter as
 `sigma_x`/`sigma_y`, dense or SciPy sparse covariance as `cov_x`/`cov_y`, and
 named error sources as `ErrorComponent` inputs (`help(ErrorComponent)`).
+For exponentially decaying correlation along x, pass
+`whitening=exponential_whitening(x, sigma, correlation_length)`; the Julia core
+builds and applies the operator
+([Structured Whitening](statistics.md#Structured-Whitening)).
 
 Student-t errors allow heavier tails; here the scales are known separately for
 each observation:

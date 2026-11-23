@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ._runtime import _backend
+
 
 def _real_array(values):
     """Convert real inputs without silently dropping imaginary components."""
@@ -118,3 +120,24 @@ class WhiteningOperator:
 
         marginal = None if self.marginal_sigma is None else _error_values(self.marginal_sigma)
         return (whiten, float(self.logdet_covariance), marginal)
+
+
+def exponential_whitening(x, sigma, correlation_length):
+    """WhiteningOperator for exponentially correlated observation errors.
+
+    Models C[i, j] = sigma**2 * exp(-abs(x[i] - x[j]) / correlation_length).
+    `x` must be finite and strictly increasing, not necessarily equally spaced,
+    and in the order of the fitted observations. The Julia core builds and
+    applies the O(n) operator and its log determinant; C is never formed.
+    `marginal_sigma` is `sigma`. Pass the result as `whitening=`.
+
+    Invalid input raises the core's error through JuliaCall: DomainError for
+    non-increasing `x`, or for `sigma` or `correlation_length` that is not
+    finite and positive; ArgumentError for empty or non-finite `x`.
+    """
+    operator = _backend().exponential_whitening(_array(x), float(sigma), float(correlation_length))
+
+    def apply(out, residual):
+        operator(out, residual)
+
+    return WhiteningOperator(apply, operator.logdet_covariance, operator.marginal_sigma, inplace=True)
