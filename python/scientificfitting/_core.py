@@ -2,13 +2,17 @@
 
 from collections.abc import Mapping
 from copy import deepcopy
+from operator import index as _integer
 from types import MappingProxyType
 
 import numpy as np
 
 from ._inputs import ErrorComponent, WhiteningOperator, _array, _covariance, _readonly, _real_array, _snapshot
 from ._runtime import _backend
-from ._results import _diagnostic, _fit_report, _profile, _contour, _interval, _profile_matrix, _numerical_diagnostics
+from ._results import (
+    _bootstrap_samples, _confidence_interval, _contour, _diagnostic, _fit_report, _interval,
+    _numerical_diagnostics, _profile, _profile_matrix,
+)
 
 
 def _model_callback(function, names, *, ndim=1):
@@ -245,6 +249,40 @@ class Result:
         scan = _profile(result.profile_result, parameter, self.stderr[index-1])
         return _interval(result, scan)
 
+    def confidence_interval(self, parameter, *, method="profile", level=0.6827,
+                            nsamples=None, seed=None, **options):
+        """Confidence interval for a named free parameter as ConfidenceInterval.
+
+        level is the nominal two-sided coverage: 0.6827 is one sigma, 0.9545
+        two sigma. method="profile" crosses quantile(Chisq(1), level) on the
+        scale of stderr; options follow Julia profile (values, npoints, nsigma,
+        adaptive, max_refinements, max_points, on_failure), and an unbracketed
+        limit is NaN. "hessian" is params +- z*stderr. "bootstrap" takes
+        percentile limits from parametric_bootstrap with nsamples (None: the
+        core default 999) and seed. Only the keywords given are passed, so the
+        core rejects any that the method does not use. Fixed parameters are
+        inputs of the fit and have no interval.
+        """
+        index = self.parameter_names.index(parameter) + 1
+        if nsamples is not None:
+            options["nsamples"] = nsamples
+        fields = _backend().run_confidence_interval(
+            self._handle, index, method, float(level), options, _seed(seed))
+        return _confidence_interval(fields, parameter)
+
+    def parametric_bootstrap(self, *, nsamples=999, seed=None):
+        """Refit data sets simulated from the fitted model; returns BootstrapSamples.
+
+        Only observations are simulated: Gaussian noise from sigma_y or cov_y,
+        scaled like stderr, or Poisson counts for fit_poisson_model,
+        fit_histogram_model, and fit_histogram_density. Other fits raise an
+        error naming the reason. Every refit starts at params with the options
+        of the original fit. seed=None uses Julia's default generator; an
+        integer seeds a Xoshiro for reproducible samples. More than 10% failed
+        refits raise an error instead of returning a biased sample.
+        """
+        return _bootstrap_samples(_backend().run_bootstrap(self._handle, nsamples, _seed(seed)))
+
     def contour(self, first, second, **options):
         """Two-parameter profile grid; `delta_cost[i,j]` belongs to `x[i], y[j]`.
 
@@ -269,6 +307,11 @@ class Result:
         names = list(self.parameter_names if parameters is None else parameters)
         indices = [self.parameter_names.index(name) + 1 for name in names]
         return _profile_matrix(_backend().run_matrix(self._handle, indices, names, options))
+
+
+def _seed(seed):
+    """Python and NumPy integers become exact Julia seeds; other types raise TypeError."""
+    return None if seed is None else _integer(seed)
 
 
 def _start(p0):

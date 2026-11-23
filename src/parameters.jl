@@ -106,11 +106,15 @@ function _fit_over_candidates(run_candidate, problem, initial_guesses, multistar
     return best_result
 end
 
-function _with_p0(problem::FitProblem, p0::AbstractVector)
+_with_p0(problem::FitProblem, p0::AbstractVector) = _with_data(problem, problem.y, p0)
+
+# The stored model and Jacobian already carry their inplace and typed-callback
+# adapters; the constructor's defaults pass them through without wrapping again.
+function _with_data(problem::FitProblem, y::AbstractVector, p0::AbstractVector)
     return FitProblem(
         problem.model,
         problem.x,
-        problem.y;
+        y;
         p0=p0,
         sigma_y=problem.sigma_y,
         sigma_x=problem.sigma_x,
